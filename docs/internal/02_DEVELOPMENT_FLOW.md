@@ -50,3 +50,4 @@
 1.  **Full Codebase Review**: "Broken Windows" の修復。
 2.  **Massive Refactoring**: アーキテクチャレベルの改善。
 3.  **Documentation Gardening**: ドキュメントの動的保守と整合性確認。
+4.  **Context Compression**: セッションが長期化した際、決定事項をドキュメントに書き出し、コンテキストリセットを提案する。
