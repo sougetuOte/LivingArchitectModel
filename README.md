@@ -22,6 +22,7 @@ By placing these definition files in your project root, you transform a standard
   - `02_DEVELOPMENT_FLOW.md`: Impact analysis, TDD, and review cycles.
   - `03_QUALITY_STANDARDS.md`: Coding standards and quality gates.
   - `04_RELEASE_OPS.md`: Deployment and emergency protocols.
+  - `05_MCP_INTEGRATION.md`: Guide for integrating MCP servers (Serena, Heimdall).
 
 ## 🚀 How to Use
 

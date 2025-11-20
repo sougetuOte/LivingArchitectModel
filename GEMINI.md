@@ -49,6 +49,7 @@
     - `02_DEVELOPMENT_FLOW.md`: 開発・TDD サイクル
     - `03_QUALITY_STANDARDS.md`: 品質・設計基準
     - `04_RELEASE_OPS.md`: デプロイ・運用規定
+    - `05_MCP_INTEGRATION.md`: MCP サーバー連携ガイド
 3.  **Specifications** (`docs/specs/*.md`): ドキュメント化された仕様。
 4.  **Existing Code**: 既存の実装。
 

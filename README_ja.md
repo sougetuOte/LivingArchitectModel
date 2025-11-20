@@ -22,6 +22,7 @@
   - `02_DEVELOPMENT_FLOW.md`: 影響分析、TDD、レビューサイクル。
   - `03_QUALITY_STANDARDS.md`: コーディング規約と品質ゲート。
   - `04_RELEASE_OPS.md`: デプロイと緊急対応プロトコル。
+  - `05_MCP_INTEGRATION.md`: MCP サーバー連携ガイド (Serena, Heimdall)。
 
 ## 🚀 使い方
 
