@@ -65,3 +65,48 @@
 ### Phase 3 (Auditing)
 
 - **Heimdall**: 「過去にどのような経緯でこのコードになったか」を Git 履歴から参照し、リファクタリングの判断材料にする。
+
+## 4. Finding More MCP Servers (MCP サーバーの探し方)
+
+Antigravity は標準的な MCP クライアントとして動作するため、以下のリソースから用途に合ったサーバーを探して追加することができる。
+
+- **Official MCP Registry**: [modelcontextprotocol.io](https://modelcontextprotocol.io/examples)
+  - 公式および検証済みの主要サーバー（Filesystem, Git, Postgres, Slack 等）が掲載されている。
+- **Awesome MCP Servers**: [github.com/punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)
+  - コミュニティベースの包括的なリスト。カテゴリ別に整理されており、新しいツールを探すのに最適。
+
+## 5. Configuration Examples (設定例)
+
+以下は `claude.json` (または Antigravity の設定ファイル) への記述例である。
+**注意**: `serena` や `heimdall` はプロジェクトごとにパスを指定する必要があるため、新しいプロジェクトを始めるたびに設定を追加（または更新）する必要がある。
+
+```json
+{
+  "mcpServers": {
+    "serena": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant",
+        "--project",
+        "/absolute/path/to/your/project"
+      ]
+    },
+    "heimdall": {
+      "type": "stdio",
+      "command": "heimdall-mcp",
+      "args": [],
+      "env": {
+        "PROJECT_PATH": "/absolute/path/to/your/project"
+      }
+    }
+  }
+}
+```
+
+※ `/absolute/path/to/your/project` は実際のプロジェクトルート（例: `/home/ote/work_gemini/LivingArchitectModel`）に書き換えること。
