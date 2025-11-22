@@ -31,3 +31,6 @@ yarn-error.log*
 
 # Agent
 .agent/
+memos/
+.serena/
+data/
