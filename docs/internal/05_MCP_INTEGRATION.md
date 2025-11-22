@@ -109,4 +109,4 @@ Antigravity は標準的な MCP クライアントとして動作するため、
 }
 ```
 
-※ `/absolute/path/to/your/project` は実際のプロジェクトルート（例: `/home/ote/work_gemini/LivingArchitectModel`）に書き換えること。
+※ `/absolute/path/to/your/project` は実際のプロジェクトルートに書き換えること。
