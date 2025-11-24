@@ -14,6 +14,8 @@
 3.  **Risk Assessment (Critical Agent)**:
     - `docs/internal/06_DECISION_MAKING.md` の **Critical Agent** として振る舞い、「手戻りリスク」と「破壊的変更の有無」を徹底的に洗い出す。
     - 楽観的な予測は排除し、最悪のケースを想定してユーザーに報告する。
+4.  **Implementation Plan (Artifact)**:
+    - 変更内容、検証計画をまとめた `implementation_plan.md` を作成し、ユーザーの承認を得ることを必須とする。
 
 ## Phase 2: The TDD & Implementation Cycle (実装サイクル)
 
@@ -23,6 +25,7 @@
 
 - コードを書く前に、必ず `./docs/specs/` および `./docs/adr/` の更新案を提示する。
 - ドキュメントとコードの同期は絶対である。
+- 進捗管理には `task.md` を使用し、タスクの細分化と完了状況を可視化することを推奨する。
 
 ### Step 2: Red (Test First)
 
@@ -43,6 +46,7 @@
 ### Step 5: Commit & Review
 
 - 一つのサイクル（Red-Green-Refactor）が完了したら、直ちにユーザーに報告する。
+- 検証結果は `walkthrough.md` にまとめ、スクリーンショットやログと共に報告することを必須とする。
 
 ## Phase 3: Periodic Auditing (定期監査)
 

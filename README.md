@@ -11,6 +11,8 @@ By placing these definition files in your project root, you transform a standard
 - **Active Retrieval**: The AI must actively search and load context, rather than relying on passive memory.
 - **Gatekeeper Role**: The AI blocks low-quality code and ambiguous specs before they enter the codebase.
 - **Zero-Regression**: Strict impact analysis and TDD cycles to prevent regressions.
+- **Multi-Perspective Decisions**: Use the "Three Agents" model (Affirmative, Critical, Mediator) for robust decision-making.
+- **Command Safety**: Strict Allow/Deny lists for terminal commands to prevent accidental damage.
 - **Living Documentation**: Documentation is treated as code, updated dynamically in every cycle.
 
 ## 📦 Contents
@@ -23,6 +25,9 @@ By placing these definition files in your project root, you transform a standard
   - `03_QUALITY_STANDARDS.md`: Coding standards and quality gates.
   - `04_RELEASE_OPS.md`: Deployment and emergency protocols.
   - `05_MCP_INTEGRATION.md`: Guide for integrating MCP servers (Serena, Heimdall).
+  - `06_DECISION_MAKING.md`: Multi-Perspective Decision Making Protocol (Three Agents Model).
+  - `07_SECURITY_AND_AUTOMATION.md`: Command Safety Protocols (Allow/Deny Lists).
+  - `99_reference_generic.md`: General advice and best practices (Non-SSOT).
 
 ## 🚀 How to Use
 

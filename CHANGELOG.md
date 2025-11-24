@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.4.0] - 2025-11-24
+
+### Added
+
+- **Protocol**: Integrated Antigravity Artifacts (`implementation_plan.md`, `task.md`, `walkthrough.md`) into `docs/internal/02_DEVELOPMENT_FLOW.md`.
+- **Docs**: Added references to new protocols in `README.md` and `README_ja.md`.
+
+### Changed
+
+- **Protocol**: Clarified Mediator's decision-making authority in `docs/internal/06_DECISION_MAKING.md`.
+
 ## [v1.3.0] - 2025-11-24
 
 ### Added
