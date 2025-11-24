@@ -28,6 +28,11 @@
 - **Non-Functional Requirements**: パフォーマンス、セキュリティ、対応ブラウザ。
 - **Tech Stack**: 使用するライブラリ、フレームワークのバージョン制約。
 
+### E. Perspective Check (3 Agents)
+
+- `docs/internal/06_DECISION_MAKING.md` に基づき、Affirmative / Critical / Mediator の視点で仕様をレビュー済みか確認する。
+- 特に「Critical Agent」によるリスク指摘が解決されているかを確認すること。
+
 ## 2. Definition of Ready (着手判定基準)
 
 実装タスク（Phase 1）へ移行する前に、以下のチェックリストを全て満たさなければならない。
