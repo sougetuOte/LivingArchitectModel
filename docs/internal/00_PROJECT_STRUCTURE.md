@@ -17,8 +17,8 @@
 │   ├── tasks/              # タスク管理 (Kanban/List)
 │   ├── internal/           # プロジェクト運用ルール (本フォルダ)
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
-├── .agent/                 # エージェント用設定・ワークフロー
-└── GEMINI.md               # プロジェクト憲法
+├── .claude/                # Claude Code用設定・コマンド
+└── CLAUDE.md               # プロジェクト憲法
 ```
 
 ## 2. Asset Placement Rules (資産配置ルール)

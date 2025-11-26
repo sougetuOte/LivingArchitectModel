@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0] - 2025-11-26
+
+### Changed
+
+- **Breaking**: Migrated from Gemini to Claude Code
+  - `GEMINI.md` → `CLAUDE.md`
+  - Updated all documentation to reference Claude models
+  - Model recommendations updated: Claude Opus/Sonnet/Haiku
+- **Docs**: Updated `README.md` and `README_ja.md` for Claude Code
+- **Docs**: Updated `docs/internal/00_PROJECT_STRUCTURE.md` directory structure
+- **Docs**: Updated `docs/internal/99_reference_generic.md` starter kit
+
+### Added
+
+- **Feature**: Added Claude Code slash commands (`.claude/commands/`)
+  - `/focus` - 現在のタスクに集中
+  - `/daily` - 日次振り返り
+  - `/adr-create` - 新しいADRを作成
+
+### Removed
+
+- **Breaking**: Removed `GEMINI.md` (replaced by `CLAUDE.md`)
+
 ## [v1.4.0] - 2025-11-24
 
 ### Added
@@ -22,7 +45,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- **Docs**: Updated `GEMINI.md` to include new protocols in the SSOT list.
+- **Docs**: Updated `CLAUDE.md` to include new protocols in the SSOT list.
 - **Docs**: Integrated "Perspective Check" into `01_REQUIREMENT_MANAGEMENT.md`.
 - **Docs**: Integrated "Critical Agent" risk assessment into `02_DEVELOPMENT_FLOW.md`.
 
@@ -31,7 +54,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - **Docs**: Added `docs/internal/99_reference_generic.md` as a generic reference pack for the Living Architect Model.
-- **Docs**: Updated `GEMINI.md` to include `99_reference_generic.md` in the SSOT priority list.
+- **Docs**: Updated `CLAUDE.md` to include `99_reference_generic.md` in the SSOT priority list.
 
 ## [v1.2.1] - 2025-11-22
 

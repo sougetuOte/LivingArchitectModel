@@ -162,12 +162,12 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 
 Project root:
 
-- GEMINI.md
+- CLAUDE.md
   docs/internal/:
-- 00..05
+- 00..07
 - 99_reference_generic.md (this file)
 
 First prompt to AI:
 
-1. 「GEMINI.md と internal docs を読み、Living Architect として初期化して」
+1. 「CLAUDE.md と internal docs を読み、Living Architect として初期化して」
 2. 「今から Phase 0 の Ready 作成から始める。Ready 通過までは実装禁止」
