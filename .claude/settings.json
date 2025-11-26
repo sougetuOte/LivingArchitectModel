@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(pwd)",
+      "Bash(du:*)",
+      "Bash(file:*)",
+      "Bash(git status)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(pytest:*)",
+      "Bash(npm test:*)",
+      "Bash(go test:*)",
+      "Bash(npm list:*)",
+      "Bash(pip list:*)",
+      "Bash(ps:*)"
+    ],
+    "deny": [
+      "Bash(rm:*)",
+      "Bash(rm -rf:*)",
+      "Bash(mv:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(systemctl:*)",
+      "Bash(service:*)",
+      "Bash(reboot)",
+      "Bash(shutdown:*)",
+      "Bash(apt:*)",
+      "Bash(yum:*)",
+      "Bash(brew:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git pull:*)",
+      "Bash(git fetch:*)",
+      "Bash(git clone:*)",
+      "Bash(git commit:*)",
+      "Bash(git merge:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(ssh:*)",
+      "Bash(npm start:*)",
+      "Bash(npm run:*)",
+      "Bash(python:*)",
+      "Bash(make:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)"
+    ]
+  }
+}

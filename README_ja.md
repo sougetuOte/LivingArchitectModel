@@ -56,7 +56,9 @@ Claude Code 用のオプションコマンドを提供しています:
 |:--------|:--------|
 | `/focus` | 現在のタスクに集中 - 必要最小限の情報に絞る |
 | `/daily` | 日次振り返り - 3分間のステータス更新 |
-| `/adr:create` | 新しい Architecture Decision Record を作成 |
+| `/adr-create` | 新しい Architecture Decision Record を作成 |
+| `/security-review` | セキュリティレビュー - 変更内容の安全性を検証 |
+| `/impact-analysis` | 影響分析 - 変更の波及範囲を事前に特定 |
 
 詳細は `.claude/commands/` を参照してください。
 

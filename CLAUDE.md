@@ -80,6 +80,44 @@
 - **[BUILDING]**: 実装フェーズ。TDD を厳守。`02_DEVELOPMENT_FLOW.md` の "Phase 2" を参照。
 - **[AUDITING]**: レビュー、リファクタリングフェーズ。`03_QUALITY_STANDARDS.md` を参照。
 
+## 5. Claude Code 統合仕様
+
+Claude Code で本プロジェクトを運用する際の追加ルールを定義する。
+
+### 5.1. ディレクトリ構成
+
+```
+.claude/
+├── commands/           # カスタム Slash Commands
+│   ├── focus.md        # タスク集中モード
+│   ├── daily.md        # 日次振り返り
+│   ├── adr-create.md   # ADR 作成支援
+│   ├── security-review.md   # セキュリティレビュー
+│   └── impact-analysis.md   # 影響分析
+└── settings.json       # 権限・環境設定
+```
+
+### 5.2. Slash Commands 命名規則
+
+- 形式: `/kebab-case-command`
+- 配置: `.claude/commands/{name}.md`
+- 言語: 日本語を基本とする
+
+### 5.3. Permission Model (権限モデル)
+
+`.claude/settings.json` で管理し、`docs/internal/07_SECURITY_AND_AUTOMATION.md` と整合させる。
+
+- **allow**: 承認なしで実行可能（読み取り専用、ローカルテスト等）
+- **deny**: 実行禁止（破壊的操作、外部通信等）
+- **ask**: 都度確認（グレーゾーン）
+
+### 5.4. MCP サーバー連携
+
+`docs/internal/05_MCP_INTEGRATION.md` に従い、以下の優先順位でツールを選択する:
+
+1. **MCP ツール** (Serena, Heimdall 等): 高機能・文脈理解に優れる
+2. **標準ツール** (ls, cat 等): 単純操作・低オーバーヘッド
+
 ---
 
 **Initial Instruction**:

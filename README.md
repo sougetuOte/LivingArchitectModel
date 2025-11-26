@@ -56,7 +56,9 @@ This project includes optional slash commands for Claude Code:
 |:--------|:--------|
 | `/focus` | Focus on current task - narrow down to essential information |
 | `/daily` | Daily retrospective - 3-minute status update |
-| `/adr:create` | Create a new Architecture Decision Record |
+| `/adr-create` | Create a new Architecture Decision Record |
+| `/security-review` | Security review - validate changes for safety |
+| `/impact-analysis` | Impact analysis - identify scope of changes before implementation |
 
 See `.claude/commands/` for details.
 

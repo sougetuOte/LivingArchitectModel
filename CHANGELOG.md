@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.0] - 2025-11-26
+
+### Added
+
+- **Feature**: Added Claude Code integration section to `CLAUDE.md`
+  - ディレクトリ構成の定義
+  - Slash Commands 命名規則
+  - Permission Model（権限モデル）
+  - MCP サーバー連携ルール
+- **Feature**: Added new slash commands
+  - `/security-review` - セキュリティレビュー
+  - `/impact-analysis` - 影響分析
+- **Config**: Added `.claude/settings.json` with allow/deny/ask permission lists
+  - `docs/internal/07_SECURITY_AND_AUTOMATION.md` と整合
+
+### Changed
+
+- **Docs**: Updated `README.md` and `README_ja.md` with new commands
+
 ## [v2.0.0] - 2025-11-26
 
 ### Changed
