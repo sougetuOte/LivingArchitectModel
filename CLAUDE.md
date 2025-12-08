@@ -72,13 +72,39 @@
 - **Impact Analysis**: コードを変更する前に、その変更がプロジェクトの「最も遠い場所」にあるモジュールに与える影響をシミュレーションする。
 - **Spec Synchronization**: 実装コードを変更する場合、必ず対応するドキュメントも**同一の不可分な単位（Atomic Commit）**として更新する。
 
-## 4. Execution Modes
+## 4. Execution Modes & Phase Control
 
 あなたはユーザーの指示の種類に応じて、以下のモードを自律的に切り替えてください。
 
 - **[PLANNING]**: 設計、調査、タスク分解フェーズ。コード生成は禁止。`02_DEVELOPMENT_FLOW.md` の "Phase 1" を参照。
 - **[BUILDING]**: 実装フェーズ。TDD を厳守。`02_DEVELOPMENT_FLOW.md` の "Phase 2" を参照。
 - **[AUDITING]**: レビュー、リファクタリングフェーズ。`03_QUALITY_STANDARDS.md` を参照。
+
+### 4.1. フェーズ制御コマンド
+
+明示的なフェーズ切り替えには以下のコマンドを使用する:
+
+| コマンド | 用途 | ガードレール |
+|---------|------|-------------|
+| `/planning` | 要件定義・設計・タスク分解 | コード生成禁止、.md出力強制 |
+| `/building` | TDD実装 | 仕様確認必須、Red-Green-Refactor強制 |
+| `/auditing` | レビュー・監査・リファクタ | 修正禁止（指摘のみ）、チェックリスト適用 |
+
+### 4.2. サブエージェント
+
+専門的なタスクには以下のサブエージェントを活用する:
+
+| エージェント | 専門領域 | 推奨フェーズ |
+|-------------|---------|-------------|
+| `requirement-analyst` | 要件分析、ユーザーストーリー、DoR | PLANNING |
+| `design-architect` | データモデル、API設計、アーキテクチャ | PLANNING |
+| `task-decomposer` | タスク分割、依存関係、工数概算 | PLANNING |
+| `tdd-developer` | Red-Green-Refactor、テスト実装 | BUILDING |
+| `quality-auditor` | コード品質、ドキュメント整合性、セキュリティ | AUDITING |
+
+### 4.3. 状態管理
+
+現在のフェーズは `.claude/current-phase.md` で管理される。
 
 ## 5. Claude Code 統合仕様
 
@@ -88,13 +114,33 @@ Claude Code で本プロジェクトを運用する際の追加ルールを定�
 
 ```
 .claude/
-├── commands/           # カスタム Slash Commands
-│   ├── focus.md        # タスク集中モード
-│   ├── daily.md        # 日次振り返り
-│   ├── adr-create.md   # ADR 作成支援
-│   ├── security-review.md   # セキュリティレビュー
-│   └── impact-analysis.md   # 影響分析
-└── settings.json       # 権限・環境設定
+├── commands/               # Slash Commands
+│   ├── planning.md         # PLANNINGフェーズ開始
+│   ├── building.md         # BUILDINGフェーズ開始
+│   ├── auditing.md         # AUDITINGフェーズ開始
+│   ├── focus.md            # タスク集中モード
+│   ├── daily.md            # 日次振り返り
+│   ├── adr-create.md       # ADR 作成支援
+│   ├── security-review.md  # セキュリティレビュー
+│   └── impact-analysis.md  # 影響分析
+│
+├── agents/                 # Subagents
+│   ├── requirement-analyst.md
+│   ├── design-architect.md
+│   ├── task-decomposer.md
+│   ├── tdd-developer.md
+│   └── quality-auditor.md
+│
+├── skills/                 # Auto-applied Skills
+│   ├── planning-guardrail/
+│   ├── building-guardrail/
+│   ├── auditing-guardrail/
+│   ├── spec-template/
+│   └── adr-template/
+│
+├── current-phase.md        # 現在フェーズの状態
+├── CHEATSHEET.md           # クイックリファレンス
+└── settings.json           # 権限・環境設定
 ```
 
 ### 5.2. Slash Commands 命名規則
