@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.0.0] - 2025-12-08
+
+### Added
+
+- **Feature**: Phase control system for explicit PLANNING/BUILDING/AUDITING mode switching
+  - `/planning` - 要件定義・設計フェーズ（コード生成禁止）
+  - `/building` - TDD実装フェーズ（仕様確認必須）
+  - `/auditing` - 監査・レビューフェーズ（修正禁止）
+- **Feature**: Specialized subagents (`.claude/agents/`)
+  - `requirement-analyst` - 要件分析専門
+  - `design-architect` - 設計・アーキテクチャ専門
+  - `task-decomposer` - タスク分解専門
+  - `tdd-developer` - TDD実装専門
+  - `quality-auditor` - 品質監査専門
+- **Feature**: Auto-applied skills (`.claude/skills/`)
+  - `planning-guardrail` - PLANNINGフェーズのガードレール
+  - `building-guardrail` - BUILDINGフェーズのガードレール
+  - `auditing-guardrail` - AUDITINGフェーズのガードレール
+  - `spec-template` - 仕様書テンプレート
+  - `adr-template` - ADRテンプレート
+- **Docs**: Added `.claude/CHEATSHEET.md` quick reference
+- **Docs**: Added `.claude/current-phase.md` phase state file
+- **Docs**: Added implementation records in `docs/memos/`
+  - `03-living-architect-adaptation-plan.md`
+  - `04-phase-support-mechanisms-analysis.md`
+  - `05-phase-control-implementation-record.md`
+
+### Changed
+
+- **Breaking**: Restructured `.claude/` directory
+  - Added `agents/` directory for subagents
+  - Added `skills/` directory for auto-applied skills
+- **Docs**: Updated `CLAUDE.md` with phase control section (Section 4)
+- **Docs**: Reorganized README files
+  - `README_ja.md` → `README.md` (Japanese as primary)
+  - `README.md` → `README_en.md` (English as secondary)
+- **Docs**: Updated both READMEs with phase commands, subagents, and new structure
+
 ## [v2.1.0] - 2025-11-26
 
 ### Added
