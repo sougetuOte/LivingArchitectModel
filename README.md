@@ -1,67 +1,101 @@
 # The Living Architect Model
 
-**"AI as a Partner, Not Just a Tool."**
+**"AI は単なるツールではない。パートナーだ。"**
 
-This repository defines the **"Living Architect Model"**, a protocol set designed to enable Large Language Models (specifically Claude) to act as an autonomous "Architect" and "Gatekeeper" for medium-to-large scale software development projects.
+このリポジトリは、大規模言語モデル（特に Claude）が中〜大規模ソフトウェア開発プロジェクトにおいて、自律的な「アーキテクト」兼「ゲートキーパー」として振る舞うためのプロトコルセット **"Living Architect Model"** を定義します。
 
-By placing these definition files in your project root, you transform a standard coding assistant into a proactive guardian of project consistency and health.
+これらの定義ファイルをプロジェクトルートに配置することで、標準的なコーディングアシスタントを、プロジェクトの整合性と健全性を守る「能動的な守護者」へと変貌させることができます。
 
-## Core Concepts
+## コアコンセプト
 
-- **Active Retrieval**: The AI must actively search and load context, rather than relying on passive memory.
-- **Gatekeeper Role**: The AI blocks low-quality code and ambiguous specs before they enter the codebase.
-- **Zero-Regression**: Strict impact analysis and TDD cycles to prevent regressions.
-- **Multi-Perspective Decisions**: Use the "Three Agents" model (Affirmative, Critical, Mediator) for robust decision-making.
-- **Command Safety**: Strict Allow/Deny lists for terminal commands to prevent accidental damage.
-- **Living Documentation**: Documentation is treated as code, updated dynamically in every cycle.
+- **Active Retrieval (能動的検索)**: AI は受動的な記憶に頼るのではなく、能動的にコンテキストを検索・ロードしなければならない。
+- **Gatekeeper Role (門番の役割)**: AI は低品質なコードや曖昧な仕様がコードベースに混入するのを阻止する。
+- **Zero-Regression (退行ゼロ)**: 厳格な影響分析と TDD サイクルにより、リグレッション（先祖返り）を防ぐ。
+- **Multi-Perspective Decisions (多角的意志決定)**: "Three Agents" モデル（肯定・批判・調停）を用いた堅牢な意思決定プロセス。
+- **Command Safety (コマンド安全性)**: 厳格な Allow/Deny リストによる、偶発的な事故の防止。
+- **Living Documentation (生きたドキュメント)**: ドキュメントをコードと同様に扱い、すべてのサイクルで動的に更新する。
+- **Phase Control (フェーズ制御)**: PLANNING/BUILDING/AUDITING の明示的な切り替えにより、「つい実装してしまう」問題を防止。
 
-## Contents
+## 収録内容
 
-- **`CLAUDE.md`**: The Constitution. Defines the AI's identity, core principles, and authority.
-- **`docs/internal/`**: Operational Protocols.
-  - `00_PROJECT_STRUCTURE.md`: Physical layout and naming conventions.
-  - `01_REQUIREMENT_MANAGEMENT.md`: From idea to spec (Definition of Ready).
-  - `02_DEVELOPMENT_FLOW.md`: Impact analysis, TDD, and review cycles.
-  - `03_QUALITY_STANDARDS.md`: Coding standards and quality gates.
-  - `04_RELEASE_OPS.md`: Deployment and emergency protocols.
-  - `05_MCP_INTEGRATION.md`: Guide for integrating MCP servers (Serena, Heimdall).
-  - `06_DECISION_MAKING.md`: Multi-Perspective Decision Making Protocol (Three Agents Model).
-  - `07_SECURITY_AND_AUTOMATION.md`: Command Safety Protocols (Allow/Deny Lists).
-  - `99_reference_generic.md`: General advice and best practices (Non-SSOT).
+### 憲法・チートシート
 
-## How to Use
+| ファイル | 説明 |
+|---------|------|
+| `CLAUDE.md` | 憲法。AI のアイデンティティ、基本原則、権限を定義 |
+| `.claude/CHEATSHEET.md` | クイックリファレンス。コマンド・エージェント一覧 |
 
-### Option A: Use as a Template (Recommended)
+### 運用プロトコル (`docs/internal/`)
 
-Click the **"Use this template"** button at the top of this repository to create a new repository with this structure pre-configured.
+| ファイル | 説明 |
+|---------|------|
+| `00_PROJECT_STRUCTURE.md` | 物理構成と命名規則 |
+| `01_REQUIREMENT_MANAGEMENT.md` | アイデアから仕様へ (Definition of Ready) |
+| `02_DEVELOPMENT_FLOW.md` | 影響分析、TDD、レビューサイクル |
+| `03_QUALITY_STANDARDS.md` | コーディング規約と品質ゲート |
+| `04_RELEASE_OPS.md` | デプロイと緊急対応プロトコル |
+| `05_MCP_INTEGRATION.md` | MCP サーバー連携ガイド (Serena, Heimdall) |
+| `06_DECISION_MAKING.md` | 意思決定プロトコル (3 Agents Model) |
+| `07_SECURITY_AND_AUTOMATION.md` | コマンド実行の安全基準 (Allow/Deny List) |
+| `99_reference_generic.md` | 一般的な助言とベストプラクティス (Non-SSOT) |
 
-### Option B: Manual Installation
+### Claude Code 拡張 (`.claude/`)
 
-1. Copy `CLAUDE.md` to your project root.
-2. Copy the `docs/internal/` directory to your project's `docs/` folder.
-3. Instruct your AI assistant: _"Read CLAUDE.md and initialize yourself as the Living Architect."_
+| ディレクトリ | 説明 |
+|-------------|------|
+| `commands/` | スラッシュコマンド（フェーズ制御 + 補助） |
+| `agents/` | 専門サブエージェント（要件分析、設計、TDD等） |
+| `skills/` | 自動適用スキル（ガードレール、テンプレート） |
 
-## Recommended Models
+## 使い方
 
-| Role                              | Model                                                     |
-| :-------------------------------- | :-------------------------------------------------------- |
-| **Architect (Planning/Auditing)** | **Claude Opus / Sonnet**                                  |
-| **Builder (Coding)**              | **Claude Sonnet** (or Claude Haiku for simple tasks)      |
+### Option A: テンプレートとして使用 (推奨)
 
-## Slash Commands (Optional)
+リポジトリ上部の **"Use this template"** ボタンをクリックし、この構成済み構造で新しいリポジトリを作成してください。
 
-This project includes optional slash commands for Claude Code:
+### Option B: 手動インストール
 
-| Command | Purpose |
-|:--------|:--------|
-| `/focus` | Focus on current task - narrow down to essential information |
-| `/daily` | Daily retrospective - 3-minute status update |
-| `/adr-create` | Create a new Architecture Decision Record |
-| `/security-review` | Security review - validate changes for safety |
-| `/impact-analysis` | Impact analysis - identify scope of changes before implementation |
+1. `CLAUDE.md` をプロジェクトルートにコピーする。
+2. `docs/internal/` ディレクトリをプロジェクトの `docs/` フォルダにコピーする。
+3. `.claude/` ディレクトリをプロジェクトルートにコピーする。
+4. AI アシスタントに指示する: _"CLAUDE.md を読み込み、Living Architect として初期化してください。"_
 
-See `.claude/commands/` for details.
+## フェーズコマンド
 
-## License
+| コマンド | 用途 | 禁止事項 |
+|---------|------|---------|
+| `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
+| `/building` | TDD実装 | 仕様なし実装禁止 |
+| `/auditing` | レビュー・監査・リファクタ | 修正の直接実施禁止 |
+
+## サブエージェント
+
+| エージェント | 用途 | 推奨フェーズ |
+|-------------|------|-------------|
+| `requirement-analyst` | 要件分析・ユーザーストーリー | PLANNING |
+| `design-architect` | API設計・アーキテクチャ | PLANNING |
+| `task-decomposer` | タスク分割・依存関係整理 | PLANNING |
+| `tdd-developer` | Red-Green-Refactor 実装 | BUILDING |
+| `quality-auditor` | 品質監査・セキュリティ | AUDITING |
+
+## 補助コマンド
+
+| コマンド | 用途 |
+|---------|------|
+| `/focus` | 現在のタスクに集中 |
+| `/daily` | 日次振り返り |
+| `/adr-create` | ADR 作成支援 |
+| `/security-review` | セキュリティレビュー |
+| `/impact-analysis` | 影響分析 |
+
+## 推奨モデル
+
+| フェーズ | 推奨モデル |
+|---------|----------|
+| **PLANNING** | Claude Opus / Sonnet |
+| **BUILDING** | Claude Sonnet (単純作業なら Haiku) |
+| **AUDITING** | Claude Opus (Long Context) |
+
+## ライセンス
 
 MIT License
