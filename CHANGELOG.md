@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.1.0] - 2025-12-09
+
+### Added
+
+- **Feature**: Approval gate system for sub-phase transitions
+  - 要件定義 → [承認] → 設計 → [承認] → タスク分解 → [承認] → 実装
+  - 各サブフェーズ完了時にユーザー承認が必須
+  - 未承認での次フェーズ進行をブロック
+- **Feature**: State management system (`.claude/states/`)
+  - 機能ごとの進捗状態を JSON で管理
+  - ステータス値: `pending` / `in_progress` / `approved`
+  - 承認日時の記録
+- **Feature**: `/status` command for progress visualization
+  - 機能ごとの進捗状況を表形式で表示
+  - 次のアクション提案
+
+### Changed
+
+- **Enhancement**: Updated `/planning` command with approval gate logic
+- **Enhancement**: Updated `/building` command with prerequisite checks
+- **Enhancement**: Updated `/auditing` command with state management
+- **Enhancement**: Updated `planning-guardrail` skill with approval enforcement
+- **Docs**: Updated `.claude/CHEATSHEET.md` with approval flow and state management
+
 ## [v3.0.0] - 2025-12-08
 
 ### Added

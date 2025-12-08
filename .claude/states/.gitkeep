@@ -1,0 +1,22 @@
+# States Directory
+
+機能ごとの状態ファイル（<feature-name>.json）を配置する。
+
+## ファイル形式
+
+```json
+{
+  "feature": "機能名",
+  "subPhase": "requirements|design|tasks|implementation",
+  "status": {
+    "requirements": "pending|in_progress|approved",
+    "design": "pending|in_progress|approved",
+    "tasks": "pending|in_progress|approved",
+    "implementation": "pending|in_progress|approved"
+  },
+  "approvals": {
+    "requirements": "ISO8601日時",
+    "design": "ISO8601日時"
+  }
+}
+```

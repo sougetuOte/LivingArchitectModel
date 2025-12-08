@@ -7,6 +7,16 @@
 | `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
 | `/building` | TDD実装 | 仕様なし実装禁止 |
 | `/auditing` | レビュー・監査・リファクタ | 修正の直接実施禁止 |
+| `/status` | 進捗状況の表示 | - |
+
+## 承認ゲート
+
+```
+requirements → [承認] → design → [承認] → tasks → [承認] → BUILDING → [承認] → AUDITING
+```
+
+- 各サブフェーズ完了時に「承認」が必要
+- 未承認のまま次に進むことは禁止
 
 ## サブエージェント
 
@@ -23,23 +33,30 @@
 ```
 1. /planning
    ├── 要件整理 (requirement-analyst)
+   │   └── → 「承認」
    ├── 設計 (design-architect)
-   ├── 仕様書作成 → docs/specs/
-   ├── ADR作成 → docs/adr/
+   │   └── → 「承認」
    └── タスク分割 (task-decomposer)
+       └── → 「承認」
 
 2. /building
    └── タスクごとに TDD サイクル (tdd-developer)
        Red → Green → Refactor → 次のタスク
+       └── → 「承認」
 
 3. /auditing
    └── 品質監査 (quality-auditor)
-       ├── コード品質
-       ├── ドキュメント整合性
-       └── セキュリティ
+       └── → 「承認」→ 完了
 ```
 
-## 既存コマンド（補助）
+## 状態管理
+
+| ファイル | 用途 |
+|---------|------|
+| `.claude/current-phase.md` | 現在のフェーズ |
+| `.claude/states/<feature>.json` | 機能ごとの進捗・承認状態 |
+
+## 補助コマンド
 
 | コマンド | 用途 |
 |---------|------|
@@ -63,11 +80,14 @@
 **PLANNINGで実装を頼まれたら？**
 → 警告を表示し、3つの選択肢を提示
 
+**成果物が完成したら？**
+→ 承認を求めるメッセージを表示
+
+**進捗を確認したい？**
+→ `/status` を実行
+
 **仕様書はどこ？**
 → `docs/specs/`
 
 **ADRはどこ？**
 → `docs/adr/`
-
-**現在のフェーズは？**
-→ `.claude/current-phase.md`

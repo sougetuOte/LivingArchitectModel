@@ -4,6 +4,7 @@ description: |
   PLANNINGフェーズでの作業時に自動適用するガードレール。
   要件定義、設計検討、仕様策定、タスク分解のセッションで、
   コード生成を抑制しドキュメント作成に集中させる。
+  サブフェーズ間の承認ゲートを強制する。
   .claude/current-phase.md が PLANNING の場合、または
   /planning コマンド実行後のセッションで適用される。
 allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Task
@@ -13,7 +14,7 @@ allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Task
 
 ## 目的
 
-このスキルは、PLANNINGフェーズにおいて Claude が「つい実装しようとする」傾向を抑制し、ドキュメント作成に集中させるためのガードレールを提供する。
+このスキルは、PLANNINGフェーズにおいて Claude が「つい実装しようとする」傾向を抑制し、ドキュメント作成に集中させるためのガードレールを提供する。また、サブフェーズ間の承認ゲートを強制する。
 
 ## 適用条件
 
@@ -22,6 +23,49 @@ allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Task
 - `.claude/current-phase.md` の内容が `PLANNING` である
 - ユーザーが要件定義、設計、仕様策定について議論している
 - `docs/specs/`, `docs/adr/`, `docs/tasks/` への出力を求められている
+
+## 承認ゲート
+
+### サブフェーズの流れ
+
+```
+requirements → [承認] → design → [承認] → tasks → [承認] → BUILDING へ
+```
+
+### 成果物完成時の承認要求
+
+各サブフェーズの成果物が完成したら、必ず以下を表示:
+
+```
+[サブフェーズ名] が完了しました。
+
+成果物: [ファイルパス]
+
+確認後「承認」と入力してください。
+修正が必要な場合は指示してください。
+```
+
+### 承認操作
+
+ユーザーが「承認」と入力したら:
+1. `.claude/states/<feature>.json` の該当サブフェーズを `approved` に更新
+2. `approvals` に日時を記録
+3. 次のサブフェーズに進行可能であることを伝える
+
+### 未承認での進行禁止
+
+次のサブフェーズへ進もうとした際、前サブフェーズが未承認なら警告:
+
+```
+⚠️ 承認ゲート
+
+[次サブフェーズ] に進むには、[前サブフェーズ] の承認が必要です。
+
+現在の状態:
+- [前サブフェーズ]: [in_progress]
+
+成果物を確認し「承認」と入力してください。
+```
 
 ## 禁止事項（MUST NOT）
 
@@ -37,6 +81,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Task
    - `package.json`, `tsconfig.json`, `pyproject.toml` 等の変更
    - ただし、仕様書内での設定方針の記述は許可
 
+4. **未承認での次サブフェーズ進行禁止**
+   - 前サブフェーズが approved でないまま次へ進むこと
+
 ## 許可事項（MAY）
 
 1. **ドキュメント作成**
@@ -51,6 +98,9 @@ allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Task
 
 3. **図表の作成**
    - Mermaid記法によるER図、シーケンス図、クラス図
+
+4. **状態ファイルの更新**
+   - `.claude/states/<feature>.json` の読み書き
 
 ## 警告義務
 
@@ -72,20 +122,23 @@ allowed-tools: Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Task
 
 ## 推奨ワークフロー
 
-1. **要件の明確化**
+1. **要件の明確化** (requirements)
    - ユーザーストーリーの作成
    - 受け入れ条件の定義
    - 3 Agents Model による検証
+   - **→ 完了後、承認を求める**
 
-2. **設計の検討**
+2. **設計の検討** (design)
    - データモデルの定義（ER図）
    - インターフェースの定義（API仕様）
    - アーキテクチャの決定（ADR）
+   - **→ 完了後、承認を求める**
 
-3. **タスクの分解**
+3. **タスクの分解** (tasks)
    - 1 PR 単位への分割
    - 依存関係の明確化
    - Definition of Ready の確認
+   - **→ 完了後、承認を求める → BUILDING へ**
 
 ## 成果物テンプレート
 

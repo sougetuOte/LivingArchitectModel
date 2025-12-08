@@ -11,20 +11,50 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
 1. **フェーズ状態を更新**
    - `.claude/current-phase.md` を `BUILDING` に更新する
 
-2. **必須ドキュメントを読み込む**
+2. **状態ファイルを確認**
+   - `.claude/states/<feature>.json` を読み込む
+   - PLANNING の全サブフェーズ（requirements, design, tasks）が approved か確認
+   - 未承認があれば警告し、PLANNING に戻ることを提案
+
+3. **必須ドキュメントを読み込む**
    - `docs/internal/02_DEVELOPMENT_FLOW.md` の Phase 2 を精読
    - `docs/internal/03_QUALITY_STANDARDS.md` を確認
    - 関連する `docs/specs/` の仕様書を読み込む
 
-3. **BUILDINGルールを適用**
+4. **状態ファイルを更新**
+   - `subPhase` を `implementation` に更新
+   - `status.implementation` を `in_progress` に更新
+
+5. **BUILDINGルールを適用**
    - **TDDサイクル厳守**: Red → Green → Refactor
    - 仕様書とコードの同期は絶対
    - 1サイクル完了ごとにユーザーに報告
 
-4. **作業の進め方**
+6. **作業の進め方**
    - TDD実装には `tdd-developer` サブエージェントを推奨
    - 実装前に必ず `docs/specs/` の対応仕様を確認
    - コード変更時は対応ドキュメントも同時更新（Atomic Commit）
+
+## 前提条件チェック
+
+BUILDING に入る前に以下を確認:
+
+```
+PLANNING 承認状態:
+- requirements: [approved/未承認]
+- design: [approved/未承認]
+- tasks: [approved/未承認]
+```
+
+未承認がある場合:
+```
+⚠️ BUILDING に移行できません
+
+以下のサブフェーズが未承認です:
+- [未承認サブフェーズ]
+
+/planning で承認を完了してください。
+```
 
 ## TDDサイクル（t-wada style）
 
@@ -52,6 +82,7 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
 - 仕様書なしでの実装開始
 - テストなしでの本実装
 - ドキュメント更新なしのコード変更
+- **PLANNING が未承認のまま実装を開始すること**
 
 ## フェーズ終了条件
 
@@ -60,6 +91,7 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
 - [ ] 全テストがパス
 - [ ] 仕様書とコードが同期している
 - [ ] `walkthrough.md` で検証完了
+- [ ] 状態ファイルの `implementation` を `approved` に更新
 
 ## 確認メッセージ
 
@@ -67,6 +99,11 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
 
 ```
 [BUILDING] フェーズを開始しました。
+
+PLANNING 承認状態:
+- requirements: ✅ approved
+- design: ✅ approved
+- tasks: ✅ approved
 
 適用ルール:
 - TDDサイクル: Red → Green → Refactor
@@ -78,5 +115,4 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
 - 03_QUALITY_STANDARDS.md
 
 どのタスクから実装しますか？
-（対応する仕様書のパスを教えてください）
 ```

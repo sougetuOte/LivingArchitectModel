@@ -15,6 +15,7 @@ By placing these definition files in your project root, you transform a standard
 - **Command Safety**: Strict Allow/Deny lists for terminal commands to prevent accidental damage.
 - **Living Documentation**: Documentation is treated as code, updated dynamically in every cycle.
 - **Phase Control**: Explicit switching between PLANNING/BUILDING/AUDITING phases to prevent "accidental implementation".
+- **Approval Gates**: Explicit approvals between sub-phases prevent rushing ahead with incomplete deliverables.
 
 ## Contents
 
@@ -51,7 +52,11 @@ By placing these definition files in your project root, you transform a standard
 
 ### Option A: Use as a Template (Recommended)
 
-Click the **"Use this template"** button at the top of this repository to create a new repository with this structure pre-configured.
+On GitHub, click the **"Use this template"** button at the top of this repository page to create a new repository with this structure pre-configured.
+
+**Reference Documentation:**
+- [Creating a repository from a template - GitHub Docs (English)](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
+- [テンプレートからリポジトリを作成する - GitHub Docs (日本語)](https://docs.github.com/ja/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
 
 ### Option B: Manual Installation
 
@@ -67,6 +72,15 @@ Click the **"Use this template"** button at the top of this repository to create
 | `/planning` | Requirements, design, task decomposition | Code generation |
 | `/building` | TDD implementation | Implementation without specs |
 | `/auditing` | Review, audit, refactoring | Direct fixes |
+| `/status` | Display progress status | - |
+
+### Approval Gates
+
+```
+requirements → [approval] → design → [approval] → tasks → [approval] → BUILDING → [approval] → AUDITING
+```
+
+User approval is required at the completion of each sub-phase. Proceeding without approval is prohibited.
 
 ## Subagents
 

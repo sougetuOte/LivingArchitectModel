@@ -15,6 +15,7 @@
 - **Command Safety (コマンド安全性)**: 厳格な Allow/Deny リストによる、偶発的な事故の防止。
 - **Living Documentation (生きたドキュメント)**: ドキュメントをコードと同様に扱い、すべてのサイクルで動的に更新する。
 - **Phase Control (フェーズ制御)**: PLANNING/BUILDING/AUDITING の明示的な切り替えにより、「つい実装してしまう」問題を防止。
+- **Approval Gates (承認ゲート)**: サブフェーズ間の明示的な承認により、不完全な成果物での先走りを防止。
 
 ## 収録内容
 
@@ -51,7 +52,11 @@
 
 ### Option A: テンプレートとして使用 (推奨)
 
-リポジトリ上部の **"Use this template"** ボタンをクリックし、この構成済み構造で新しいリポジトリを作成してください。
+GitHub 上でリポジトリページ上部の **"Use this template"** ボタンをクリックし、この構成済み構造で新しいリポジトリを作成してください。
+
+**参考ドキュメント:**
+- [テンプレートからリポジトリを作成する - GitHub Docs (日本語)](https://docs.github.com/ja/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
+- [Creating a repository from a template - GitHub Docs (English)](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
 
 ### Option B: 手動インストール
 
@@ -67,6 +72,15 @@
 | `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
 | `/building` | TDD実装 | 仕様なし実装禁止 |
 | `/auditing` | レビュー・監査・リファクタ | 修正の直接実施禁止 |
+| `/status` | 進捗状況の表示 | - |
+
+### 承認ゲート
+
+```
+requirements → [承認] → design → [承認] → tasks → [承認] → BUILDING → [承認] → AUDITING
+```
+
+各サブフェーズ完了時にユーザー承認が必要。未承認のまま次に進むことは禁止。
 
 ## サブエージェント
 
