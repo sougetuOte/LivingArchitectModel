@@ -99,71 +99,37 @@ flowchart LR
 | 4 | TASK-005 | - |
 ```
 
-### Step 3.5: AoT フレームワークの適用
+### Step 3.5: AoT によるタスク分解
 
-タスク分解において、Atom of Thought の原則を適用する。
+> **参照**: Atom の定義は `docs/internal/06_DECISION_MAKING.md` Section 5.1 を参照
 
-#### Atom としてのタスク定義
+タスク分解において AoT の原則を適用し、各タスクを Atom として定義する。
 
-各タスクは以下の条件を満たす「Atom」として定義する:
+#### タスク Atom テーブル
 
-1. **自己完結性**: 他タスクの実装詳細に依存しない
-2. **インターフェース契約**: 入出力が明確に定義されている
-3. **エラー隔離**: 失敗しても他タスクに伝播しない
+| Atom | 内容 | 依存 |
+|------|------|------|
+| T1 | Model 定義 | なし |
+| T2 | Repository 実装 | T1 |
+| T3 | Validation 実装 | T1 |
+| T4 | Service 統合 | T2, T3 |
 
-#### インターフェース契約の記述
+#### インターフェース契約
 
 ```markdown
 ### TASK-XXX: [タスク名]
 
-**概要**: [説明]
-
 **インターフェース契約**:
 | 種別 | 定義 |
 |------|------|
-| Input | [受け取るデータ構造・前提条件] |
-| Output | [提供するデータ構造・成果物] |
-| Contract | [守るべき制約・不変条件] |
-
-**依存関係**:
-- 依存元: TASK-YYY の Output を Input として使用
-- 依存先: TASK-ZZZ が本タスクの Output を使用
-
-**完了条件**:
-- [ ] Input に対して正しい Output を生成
-- [ ] Contract を満たすことをテストで検証
+| Input | [前提条件・入力データ] |
+| Output | [成果物・出力データ] |
+| Contract | [不変条件・制約] |
 ```
 
-#### 依存関係の DAG 表現
+#### 並列実行の判定
 
-```mermaid
-flowchart TB
-    subgraph "Phase 1: Foundation"
-        T001[TASK-001: Model定義]
-    end
-    subgraph "Phase 2: Core"
-        T002[TASK-002: Repository]
-        T003[TASK-003: Validation]
-    end
-    subgraph "Phase 3: Integration"
-        T004[TASK-004: Service]
-    end
-
-    T001 -->|"Interface: Entity型"| T002
-    T001 -->|"Interface: Entity型"| T003
-    T002 -->|"Interface: CRUD操作"| T004
-    T003 -->|"Interface: Validator"| T004
-```
-
-#### 並列実行可能性の判定
-
-依存関係がない Atom（タスク）は並列実行可能:
-
-| Phase | タスク | 並列可能 | 理由 |
-|-------|--------|----------|------|
-| 1 | TASK-001 | - | 最初のタスク |
-| 2 | TASK-002, TASK-003 | Yes | 相互依存なし |
-| 3 | TASK-004 | - | Phase 2 完了待ち |
+依存関係がない Atom は並列実行可能（例: T2 と T3）
 
 ### Step 4: タスク詳細の定義
 
