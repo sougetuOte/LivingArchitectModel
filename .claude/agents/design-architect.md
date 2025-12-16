@@ -59,6 +59,68 @@ model: sonnet
 - [非機能要求]
 ```
 
+### Step 1.5: AoT による設計分解
+
+設計対象を独立した Atom に分解し、インターフェース契約を先に定義する。
+
+```markdown
+## 設計の Atom 分解
+
+### 設計対象
+[機能名・システム名]
+
+### Atom 分解
+| Atom | 設計領域 | 責務 |
+|------|----------|------|
+| D-A1 | データモデル | エンティティ定義、関係性 |
+| D-A2 | ビジネスロジック | コアアルゴリズム、ルール |
+| D-A3 | API層 | エンドポイント、契約 |
+| D-A4 | UI層 | コンポーネント、状態管理 |
+
+### インターフェース契約（先行定義）
+
+**重要**: 各 Atom の実装詳細より先にインターフェースを定義する
+
+#### D-A1 ↔ D-A2 間の契約
+```typescript
+// D-A1 が提供する型
+interface Entity {
+  id: string;
+  // ...
+}
+
+// D-A2 が期待する操作
+interface Repository<T> {
+  findById(id: string): Promise<T | null>;
+  save(entity: T): Promise<void>;
+}
+```
+
+#### D-A2 ↔ D-A3 間の契約
+```typescript
+// D-A2 が提供するサービス
+interface Service {
+  execute(input: InputDTO): Promise<OutputDTO>;
+}
+
+// D-A3 が期待するレスポンス
+interface OutputDTO {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+```
+
+### 設計順序
+1. 全 Atom のインターフェース契約を定義
+2. 各 Atom の内部設計を並列実施
+3. 統合テスト設計
+```
+
+**AoT 原則の適用**:
+- 「Atom B が Atom A を必要とするなら、まず Atom A のインターフェースを定義する」
+- 実装詳細が他 Atom へ漏れ出さない
+
 ### Step 2: データモデル設計
 
 ```markdown

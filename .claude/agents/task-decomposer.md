@@ -99,6 +99,72 @@ flowchart LR
 | 4 | TASK-005 | - |
 ```
 
+### Step 3.5: AoT フレームワークの適用
+
+タスク分解において、Atom of Thought の原則を適用する。
+
+#### Atom としてのタスク定義
+
+各タスクは以下の条件を満たす「Atom」として定義する:
+
+1. **自己完結性**: 他タスクの実装詳細に依存しない
+2. **インターフェース契約**: 入出力が明確に定義されている
+3. **エラー隔離**: 失敗しても他タスクに伝播しない
+
+#### インターフェース契約の記述
+
+```markdown
+### TASK-XXX: [タスク名]
+
+**概要**: [説明]
+
+**インターフェース契約**:
+| 種別 | 定義 |
+|------|------|
+| Input | [受け取るデータ構造・前提条件] |
+| Output | [提供するデータ構造・成果物] |
+| Contract | [守るべき制約・不変条件] |
+
+**依存関係**:
+- 依存元: TASK-YYY の Output を Input として使用
+- 依存先: TASK-ZZZ が本タスクの Output を使用
+
+**完了条件**:
+- [ ] Input に対して正しい Output を生成
+- [ ] Contract を満たすことをテストで検証
+```
+
+#### 依存関係の DAG 表現
+
+```mermaid
+flowchart TB
+    subgraph "Phase 1: Foundation"
+        T001[TASK-001: Model定義]
+    end
+    subgraph "Phase 2: Core"
+        T002[TASK-002: Repository]
+        T003[TASK-003: Validation]
+    end
+    subgraph "Phase 3: Integration"
+        T004[TASK-004: Service]
+    end
+
+    T001 -->|"Interface: Entity型"| T002
+    T001 -->|"Interface: Entity型"| T003
+    T002 -->|"Interface: CRUD操作"| T004
+    T003 -->|"Interface: Validator"| T004
+```
+
+#### 並列実行可能性の判定
+
+依存関係がない Atom（タスク）は並列実行可能:
+
+| Phase | タスク | 並列可能 | 理由 |
+|-------|--------|----------|------|
+| 1 | TASK-001 | - | 最初のタスク |
+| 2 | TASK-002, TASK-003 | Yes | 相互依存なし |
+| 3 | TASK-004 | - | Phase 2 完了待ち |
+
 ### Step 4: タスク詳細の定義
 
 ```markdown

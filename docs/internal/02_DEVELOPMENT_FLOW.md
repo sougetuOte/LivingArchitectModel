@@ -17,6 +17,18 @@
 4.  **Implementation Plan (Artifact)**:
     - 変更内容、検証計画をまとめた `implementation_plan.md` を作成し、ユーザーの承認を得ることを必須とする。
 
+### AoT フレームワークとの連携
+
+Phase 1 の各ステップにおいて、Atom of Thought フレームワークを活用できる:
+
+| ステップ | AoT 適用 | 参照 |
+|----------|----------|------|
+| 要件定義 | 要件の Atom 分解 | `.claude/agents/requirement-analyst.md` |
+| 設計 | 設計の Atom 分解 | `.claude/agents/design-architect.md` |
+| タスク分割 | タスクの Atom 化 | `.claude/agents/task-decomposer.md` |
+
+詳細は `docs/internal/06_DECISION_MAKING.md` Section 5 を参照。
+
 ## Phase 2: The TDD & Implementation Cycle (実装サイクル)
 
 **[BUILDING]** モードにて、以下の厳格なサイクル（t-wada style）を回す。
