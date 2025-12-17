@@ -27,7 +27,10 @@ Phase 1 の各ステップにおいて、Atom of Thought フレームワーク�
 | 設計 | 設計の Atom 分解 | `.claude/agents/design-architect.md` |
 | タスク分割 | タスクの Atom 化 | `.claude/agents/task-decomposer.md` |
 
-詳細は `docs/internal/06_DECISION_MAKING.md` Section 5 を参照。
+詳細は `docs/internal/06_DECISION_MAKING.md` Section 5: AoT を参照。
+
+> **Note**: AoT は主に Phase 1 で使用するが、Phase 2 での実装中に新たな設計判断が発生した場合や、
+> Phase 3 でのリファクタリング方針決定時にも適用可能である。
 
 ## Phase 2: The TDD & Implementation Cycle (実装サイクル)
 
