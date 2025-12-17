@@ -36,7 +36,7 @@
 | `03_QUALITY_STANDARDS.md` | コーディング規約と品質ゲート |
 | `04_RELEASE_OPS.md` | デプロイと緊急対応プロトコル |
 | `05_MCP_INTEGRATION.md` | MCP サーバー連携ガイド (Serena, Heimdall) |
-| `06_DECISION_MAKING.md` | 意思決定プロトコル (3 Agents Model) |
+| `06_DECISION_MAKING.md` | 意思決定プロトコル (3 Agents + AoT) |
 | `07_SECURITY_AND_AUTOMATION.md` | コマンド実行の安全基準 (Allow/Deny List) |
 | `99_reference_generic.md` | 一般的な助言とベストプラクティス (Non-SSOT) |
 

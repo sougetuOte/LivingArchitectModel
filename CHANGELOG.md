@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.2.0] - 2025-12-17
+
+### Added
+
+- **Feature**: Atom of Thought (AoT) framework integration
+  - 複雑な議題を構造化するためのフレームワーク
+  - 判断ポイント2つ以上、影響レイヤー3つ以上、選択肢3つ以上の場合に適用
+  - Three Agents との組み合わせワークフロー
+- **Docs**: AoT SSOT section in `docs/internal/06_DECISION_MAKING.md`
+  - 適用基準の定量化（閾値明示）
+  - Decomposition → Debate → Synthesis ワークフロー
+  - Atom テーブル形式の標準化
+- **Docs**: AoT quick guide in `.claude/CHEATSHEET.md`
+
+### Changed
+
+- **Enhancement**: Updated `docs/internal/02_DEVELOPMENT_FLOW.md` with AoT integration
+  - Phase 1 の各ステップでの AoT 活用ガイド
+- **Enhancement**: Updated subagent definitions with AoT sections
+  - `requirement-analyst.md`: Step 1.5 AoT による要件分解
+  - `design-architect.md`: Step 1.5 AoT による設計分解
+  - `task-decomposer.md`: Step 3.5 AoT によるタスク分解
+- **Docs**: Standardized Atom table format with optional 並列可否 column
+
 ## [v3.1.0] - 2025-12-09
 
 ### Added

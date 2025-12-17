@@ -36,7 +36,7 @@ By placing these definition files in your project root, you transform a standard
 | `03_QUALITY_STANDARDS.md` | Coding standards and quality gates |
 | `04_RELEASE_OPS.md` | Deployment and emergency protocols |
 | `05_MCP_INTEGRATION.md` | Guide for integrating MCP servers (Serena, Heimdall) |
-| `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (Three Agents Model) |
+| `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (3 Agents + AoT) |
 | `07_SECURITY_AND_AUTOMATION.md` | Command Safety Protocols (Allow/Deny Lists) |
 | `99_reference_generic.md` | General advice and best practices (Non-SSOT) |
 
