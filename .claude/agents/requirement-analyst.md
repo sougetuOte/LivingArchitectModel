@@ -63,11 +63,13 @@ model: sonnet
 
 ### Step 1.5: AoT による要件分解
 
-> **参照**: Atom の定義は `docs/internal/06_DECISION_MAKING.md` Section 5.1 を参照
+> **参照**: Atom の定義は `docs/internal/06_DECISION_MAKING.md` Section 5: AoT を参照
 
 複雑な要件は、分析前に Atom に分解する。
 
-#### 要件 Atom テーブル
+#### 要件 Atom テーブル（例）
+
+以下は一般的な例である。実際の要件に応じて Atom を定義すること。
 
 | Atom | 内容 | 依存 |
 |------|------|------|

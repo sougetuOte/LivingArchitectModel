@@ -101,7 +101,10 @@ flowchart LR
 
 ### Step 3.5: AoT によるタスク分解
 
-> **参照**: Atom の定義は `docs/internal/06_DECISION_MAKING.md` Section 5.1 を参照
+> **参照**: Atom の定義は `docs/internal/06_DECISION_MAKING.md` Section 5: AoT を参照
+
+**Step 3.5 の位置について**: 依存関係の整理（Step 3）が完了した後に AoT 原則を適用する。
+これは、依存関係の全体像を把握してから Atom 化することで、より適切なインターフェース契約を定義できるためである。
 
 タスク分解において AoT の原則を適用し、各タスクを Atom として定義する。
 
