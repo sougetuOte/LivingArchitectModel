@@ -73,7 +73,26 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `docs/internal/01_REQUIREMENT_MANAGEMENT.md` | 要件定義プロセス |
 | `docs/internal/02_DEVELOPMENT_FLOW.md` | 開発フロー・TDD |
 | `docs/internal/03_QUALITY_STANDARDS.md` | 品質基準 |
-| `docs/internal/06_DECISION_MAKING.md` | 意思決定（3 Agents） |
+| `docs/internal/06_DECISION_MAKING.md` | 意思決定（3 Agents + AoT） |
+
+## AoT（Atom of Thought）クイックガイド
+
+**いつ使う？**（いずれかに該当）
+- 判断ポイントが **2つ以上**
+- 影響レイヤー/モジュールが **3つ以上**
+- 有効な選択肢が **3つ以上**
+
+**ワークフロー**
+```
+1. Decomposition: 議題を Atom に分解
+2. Debate: 各 Atom で 3 Agents 議論
+3. Synthesis: 統合結論 → 実装
+```
+
+**Atom テーブル形式**
+```
+| Atom | 内容 | 依存 | 並列可否(任意) |
+```
 
 ## クイックリファレンス
 
