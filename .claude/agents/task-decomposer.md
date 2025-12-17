@@ -110,12 +110,12 @@ flowchart LR
 
 #### タスク Atom テーブル
 
-| Atom | 内容 | 依存 |
-|------|------|------|
-| T1 | Model 定義 | なし |
-| T2 | Repository 実装 | T1 |
-| T3 | Validation 実装 | T1 |
-| T4 | Service 統合 | T2, T3 |
+| Atom | 内容 | 依存 | 並列可否 |
+|------|------|------|---------|
+| T1 | Model 定義 | なし | - |
+| T2 | Repository 実装 | T1 | 可 (T3) |
+| T3 | Validation 実装 | T1 | 可 (T2) |
+| T4 | Service 統合 | T2, T3 | - |
 
 #### インターフェース契約
 
