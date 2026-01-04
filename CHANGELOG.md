@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.3.0] - 2026-01-05
+
+### Added
+
+- **Feature**: Claude Code Rules integration (`.claude/rules/`)
+  - `core-identity.md` - Living Architect 行動規範
+  - `phase-planning.md` - PLANNING フェーズガードレール
+  - `phase-building.md` - BUILDING フェーズガードレール
+  - `phase-auditing.md` - AUDITING フェーズガードレール
+  - `security-commands.md` - コマンド安全基準（Allow/Deny List）
+  - `model-selection.md` - モデル選定ガイドライン
+  - `decision-making.md` - 意思決定プロトコル（3 Agents + AoT）
+
+### Changed
+
+- **Enhancement**: Simplified `CLAUDE.md` (205 → 53 lines, 74% reduction)
+  - コア原則のみを保持し、詳細は Rules へ移行
+  - 参照構造を明確化
+- **Enhancement**: Updated `.claude/CHEATSHEET.md` with Rules file listing
+- **Docs**: Terminology alignment in security-commands.md
+  - SSOT（07_SECURITY_AND_AUTOMATION.md）と用語統一
+
+### Removed
+
+- **Breaking**: Removed guardrail Skills (migrated to Rules)
+  - `.claude/skills/planning-guardrail/`
+  - `.claude/skills/building-guardrail/`
+  - `.claude/skills/auditing-guardrail/`
+
+### Migration Notes
+
+- Skills ガードレールは Rules に統合されました
+- 既存のコマンド（`/planning`, `/building`, `/auditing`）は引き続き動作します
+- Rules は自動的にロードされるため、追加設定は不要です
+
 ## [v3.2.0] - 2025-12-17
 
 ### Added

@@ -44,9 +44,10 @@ By placing these definition files in your project root, you transform a standard
 
 | Directory | Description |
 |-----------|-------------|
+| `rules/` | Behavioral guidelines and guardrails (auto-loaded) |
 | `commands/` | Slash commands (phase control + utilities) |
 | `agents/` | Specialized subagents (requirements, design, TDD, etc.) |
-| `skills/` | Auto-applied skills (guardrails, templates) |
+| `skills/` | Template outputs (specs, ADR) |
 
 ## How to Use
 
