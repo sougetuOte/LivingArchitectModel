@@ -1,5 +1,35 @@
 # Living Architect Model チートシート
 
+## ディレクトリ構造
+
+```
+.claude/
+├── rules/                 # ガードレール・行動規範
+├── commands/              # スラッシュコマンド
+├── agents/                # サブエージェント
+├── skills/                # テンプレート出力
+├── states/                # 機能ごとの進捗状態
+├── current-phase.md       # 現在のフェーズ
+└── CHEATSHEET.md          # このファイル
+
+CLAUDE.md                  # 憲法（コア原則のみ）
+docs/internal/             # プロセス SSOT
+docs/specs/                # 仕様書
+docs/adr/                  # アーキテクチャ決定記録
+```
+
+## Rules ファイル一覧
+
+| ファイル | 内容 |
+|---------|------|
+| `core-identity.md` | Living Architect 行動規範 |
+| `phase-planning.md` | PLANNING ガードレール |
+| `phase-building.md` | BUILDING ガードレール |
+| `phase-auditing.md` | AUDITING ガードレール |
+| `security-commands.md` | コマンド安全基準（Allow/Deny List） |
+| `model-selection.md` | モデル選定ガイド |
+| `decision-making.md` | 意思決定プロトコル |
+
 ## フェーズコマンド
 
 | コマンド | 用途 | 禁止事項 |
@@ -110,3 +140,6 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 
 **ADRはどこ？**
 → `docs/adr/`
+
+**Rulesはどこ？**
+→ `.claude/rules/`

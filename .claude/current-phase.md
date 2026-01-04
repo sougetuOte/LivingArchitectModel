@@ -1,8 +1,8 @@
 # Current Phase
 
-**NONE**
+**PLANNING**
 
-_No active phase_
+_要件定義・設計・タスク分解フェーズ_
 
 ---
 
@@ -20,7 +20,7 @@ _No active phase_
 - `/building` コマンド実行時 → `BUILDING`
 - `/auditing` コマンド実行時 → `AUDITING`
 
-### 参照するスキル
-- `planning-guardrail` - PLANNINGフェーズのガードレール
-- `building-guardrail` - BUILDINGフェーズのガードレール
-- `auditing-guardrail` - AUDITINGフェーズのガードレール
+### 参照するルール
+- `rules/phase-planning.md` - PLANNINGフェーズのガードレール
+- `rules/phase-building.md` - BUILDINGフェーズのガードレール
+- `rules/phase-auditing.md` - AUDITINGフェーズのガードレール
