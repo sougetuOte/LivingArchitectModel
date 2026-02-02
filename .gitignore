@@ -34,3 +34,6 @@ yarn-error.log*
 memos/
 .serena/
 data/
+
+# Reference materials
+_reference/
