@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.5.0] - 2026-02-15
+
+### Changed
+
+- **Spec**: `lam-orchestrate-design.md` v1.0.0 → v2.0.0
+  - ステータス: On Hold → Active (Public API Aligned)
+  - Skill 定義を公式 SKILL.md 形式に移行（ディレクトリ構造、kebab-case frontmatter）
+  - Subagent 定義を公式 `.claude/agents/` 仕様に準拠（`memory`, `hooks`, `skills` 等の新フィールド対応）
+  - Section 7: 「Swarm 機能待ち」→「Agent Teams（Experimental → Stable 後に移行検討）」
+  - 実装チェックリスト更新（ビルトイン Subagent との重複確認追加）
+  - 参照 Claude Code バージョン: 2.1.42
+
 ## [v3.4.0] - 2026-02-15
 
 ### Added

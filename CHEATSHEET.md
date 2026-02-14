@@ -93,6 +93,17 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `task-decomposer` | 「タスクを分割して」 | PLANNING |
 | `tdd-developer` | 「TASK-001を実装して」 | BUILDING |
 | `quality-auditor` | 「src/を監査して」 | AUDITING |
+| `doc-writer` | 「ドキュメントを更新して」 | BUILDING / AUDITING |
+| `test-runner` | 「テストを実行して」 | BUILDING |
+| `code-reviewer` | 「コードレビューして」 | AUDITING |
+
+## スキル
+
+| スキル | 用途 | 呼び出し例 |
+|--------|------|-----------|
+| `lam-orchestrate` | タスク分解・並列実行の自動調整 | 「lam-orchestrateで実行して」 |
+| `adr-template` | ADR作成テンプレート | `/adr-create` 実行時に自動適用 |
+| `spec-template` | 仕様書作成テンプレート | 仕様書作成時に自動適用 |
 
 ## 状態管理
 

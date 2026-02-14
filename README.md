@@ -47,7 +47,7 @@
 | `rules/` | 行動規範・ガードレール（自動ロード） |
 | `commands/` | スラッシュコマンド（フェーズ制御 + 補助） |
 | `agents/` | 専門サブエージェント（要件分析、設計、TDD等） |
-| `skills/` | テンプレート出力（仕様書、ADR） |
+| `skills/` | スキル（タスクオーケストレーション、テンプレート出力） |
 
 ## 使い方
 
@@ -92,6 +92,9 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `task-decomposer` | タスク分割・依存関係整理 | PLANNING |
 | `tdd-developer` | Red-Green-Refactor 実装 | BUILDING |
 | `quality-auditor` | 品質監査・セキュリティ | AUDITING |
+| `doc-writer` | ドキュメント作成・更新 | BUILDING / AUDITING |
+| `test-runner` | テスト実行・分析 | BUILDING |
+| `code-reviewer` | コードレビュー（LAM品質基準） | AUDITING |
 
 ## セッション管理コマンド
 

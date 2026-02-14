@@ -1,9 +1,16 @@
 # LAM Orchestrate 設計書
 
-**バージョン**: 1.0.0
+**バージョン**: 2.0.0
 **作成日**: 2026-01-29
-**ステータス**: On Hold (Pending Official Release)
+**改訂日**: 2026-02-15
+**ステータス**: Active (Revision - Public API Aligned)
+**前バージョン**: 1.0.0 (On Hold)
+**参照 Claude Code バージョン**: 2.1.42
 **関連文書**: `_reference/2026-01-29.md`
+
+> **改訂履歴**:
+> - v1.0.0 (2026-01-29): 初版。Anthropic Swarm 機能リリース待ちで On Hold。
+> - v2.0.0 (2026-02-15): Claude Code 公式 Subagent/Skills API に準拠して全面改訂。Agent Teams は将来拡張パスとして記載。
 
 ---
 
@@ -165,23 +172,27 @@ stateDiagram-v2
 ```
 .claude/
 └── skills/
-    └── lam-orchestrate.md
+    └── lam-orchestrate/
+        ├── SKILL.md           # メイン指示（必須）
+        └── examples/
+            └── execution-plan-sample.md  # 出力例
 ```
 
-#### 3.1.2 Skill 定義
+> **Note**: Claude Code 2.x 以降、Skills は `SKILL.md` をエントリポイントとするディレクトリ構造。
+> `.claude/commands/` との互換性は維持されるが、Skills 形式を推奨。
+
+#### 3.1.2 Skill 定義（公式 SKILL.md 形式準拠）
 
 ```yaml
+# .claude/skills/lam-orchestrate/SKILL.md
 ---
 name: lam-orchestrate
-description: |
-  LAM Coordinator - タスクを分解し、適切な Agent で並列実行する。
-  shogun アーキテクチャの「将軍」に相当。
-allowed_tools:
-  - Task
-  - Read
-  - Write
-  - Glob
-  - Grep
+description: >
+  LAM Coordinator - タスクを分解し、適切な Subagent で並列実行する。
+  複数ファイル/モジュールにまたがる作業の自動分解・並列実行に使用。
+  Use proactively when the user requests multi-file operations.
+disable-model-invocation: true
+allowed-tools: Task, Read, Glob, Grep
 ---
 
 # LAM Orchestrate Coordinator
@@ -194,7 +205,7 @@ allowed_tools:
 ### Phase 1: 分析
 1. タスクの全体像を把握
 2. 独立して実行可能な単位に分解
-3. 各単位に最適な Agent を割り当て
+3. 各単位に最適な Subagent を割り当て
 
 ### Phase 2: 実行
 1. 並列実行可能なタスクを特定
@@ -219,20 +230,22 @@ allowed_tools:
   ✗ 出力が次の入力になる → Wave 分離
 ```
 
-## Agent 選択ルール
+## Subagent 選択ルール
 
-| ファイルパターン | 推奨 Agent |
-|------------------|------------|
+| ファイルパターン | 推奨 Subagent |
+|------------------|---------------|
 | `*.rs`, `Cargo.toml` | rust-specialist |
 | `*.ts`, `*.tsx`, `*.vue` | frontend-dev |
 | `*test*`, `*spec*` | test-runner |
 | `*.md`, `docs/` | doc-writer |
-| その他 | general-purpose |
+| その他 | general-purpose（ビルトイン） |
+
+> **Note**: `general-purpose` は Claude Code ビルトイン Subagent。
+> カスタム Subagent が未定義のパターンではビルトインにフォールバックする。
 
 ## 禁止事項
 
-- `run_in_background: true` の使用（バグ回避）
-- Subagent からの Subagent 起動（技術的に不可）
+- Subagent からの Subagent 起動（技術的に不可 — Claude Code の制約）
 - 未分析でのタスク実行
 
 ## 出力フォーマット
@@ -242,8 +255,8 @@ allowed_tools:
 ```
 ## 実行計画
 
-| # | タスク | Agent | 並列 |
-|---|--------|-------|:----:|
+| # | タスク | Subagent | 並列 |
+|---|--------|----------|:----:|
 | 1 | ... | rust-specialist | Wave 1 |
 | 2 | ... | frontend-dev | Wave 1 |
 | 3 | ... | test-runner | Wave 2 |
@@ -276,21 +289,30 @@ allowed_tools:
     └── explorer.md
 ```
 
-#### 3.2.2 Agent テンプレート
+#### 3.2.2 Subagent テンプレート（公式仕様準拠）
 
 ```yaml
 # .claude/agents/{agent-name}.md
 ---
 name: {agent-name}
-description: {役割の簡潔な説明}
-model: sonnet  # haiku | sonnet | opus
-tools:
-  - Read
-  - Write
-  - Edit
-  - Bash
-  - Grep
-  - Glob
+description: >
+  {役割の簡潔な説明}。
+  {どのような場面で使用されるかの説明}。
+  Use proactively when {自動起動の条件}。
+model: sonnet  # haiku | sonnet | opus | inherit
+tools: Read, Write, Edit, Bash, Grep, Glob
+# disallowedTools: Task  # Subagent は Task を使用不可（制約）
+# permissionMode: default  # default | acceptEdits | dontAsk | plan
+# maxTurns: 20  # 最大ターン数
+# memory: project  # user | project | local（永続メモリ）
+# hooks:  # Subagent 固有のライフサイクルフック
+#   PreToolUse:
+#     - matcher: "Bash"
+#       hooks:
+#         - type: command
+#           command: "./scripts/validate.sh"
+# skills:  # プリロードする Skill（Subagent 起動時に注入）
+#   - api-conventions
 ---
 
 # {Agent 名}
@@ -308,6 +330,22 @@ tools:
 ## 出力形式
 - {期待される出力フォーマット}
 ```
+
+> **公式仕様との対応**（Claude Code 2.1.42 時点）:
+>
+> | フィールド | 必須 | 説明 |
+> |-----------|:----:|------|
+> | `name` | Yes | 一意識別子（小文字+ハイフン） |
+> | `description` | Yes | Claude が委任判断に使用する説明文 |
+> | `tools` | No | 使用可能ツール（省略時は全ツール継承） |
+> | `disallowedTools` | No | 拒否ツールリスト |
+> | `model` | No | `sonnet`, `opus`, `haiku`, `inherit`（デフォルト: `inherit`） |
+> | `permissionMode` | No | 権限モード |
+> | `maxTurns` | No | 最大ターン数 |
+> | `memory` | No | 永続メモリスコープ（セッション横断学習） |
+> | `hooks` | No | ライフサイクルフック |
+> | `skills` | No | プリロード Skill |
+> | `mcpServers` | No | 使用可能 MCP サーバー |
 
 #### 3.2.3 標準 Agent 一覧
 
@@ -598,28 +636,47 @@ flowchart TD
 |------|------|--------|
 | 2階層のみ | Subagent → Subagent 不可 | Wave パターンで擬似3層 |
 | 最大10並列 | Claude Code の制限 | Wave 分割 |
-| 同期実行 | `run_in_background` バグ | 1メッセージ複数 Task |
-| Agent 間通信なし | 直接通信不可 | Main 経由で中継 |
+| Background Subagent | MCP ツール使用不可、権限の事前承認必要 | Foreground 実行を基本とする |
+| Subagent 間通信なし | 直接通信不可 | Main 経由で中継（Agent Teams で解消予定） |
 
-### 7.2 将来拡張（Swarm 機能待ち）
+### 7.2 将来拡張: Agent Teams（Experimental → Stable 後に移行検討）
+
+> **旧称**: Swarm 機能。Opus 4.6 (2026-02) と同時に **Agent Teams** としてリリース。
+> 現在は **Experimental**（`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1` で有効化）。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ 将来: Anthropic Swarm 機能がリリースされた場合                          │
+│ 将来: Agent Teams が Stable になった場合                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│ 現在の lam-orchestrate Skill は以下に置き換え可能:                      │
+│ 現在 (v2.0 - Subagent ベース):                                         │
+│   Skill → Main → Subagents (Task tool)                                 │
+│   ・安定 API、低コスト (1.5-2x)                                        │
+│   ・Subagent 間通信なし（Main 経由）                                   │
 │                                                                         │
-│ Before (LAM Orchestrate):                                               │
-│   Skill → Main → Subagents                                             │
+│ 将来 (Agent Teams ベース):                                              │
+│   Team Lead → Teammates (TeammateTool)                                  │
+│   ・Teammate 間直接通信                                                 │
+│   ・共有タスクリスト + 自動依存解決                                     │
+│   ・高コスト (3-4x、plan mode 時 7x)                                   │
 │                                                                         │
-│ After (Swarm):                                                          │
-│   Swarm Coordinator → Agent Pool → Dynamic Allocation                  │
+│ 移行判断基準:                                                           │
+│   ✓ Agent Teams が Experimental を脱した                               │
+│   ✓ セッション再開 (/resume) が Teammate に対応                        │
+│   ✓ Windows Terminal での split-pane サポート                          │
+│   ✓ トークンコストの改善（または許容範囲に）                           │
 │                                                                         │
 │ マイグレーション:                                                       │
-│   - .claude/agents/ の定義は再利用可能                                 │
-│   - Skill は Swarm 設定に変換                                          │
+│   - .claude/agents/ の定義はそのまま再利用可能                         │
+│   - Skill は Team Lead への指示に変換                                   │
 │   - 呼び出し方法は変更なし（/lam-orchestrate 維持）                    │
+│                                                                         │
+│ 現時点で Agent Teams を採用しない理由:                                  │
+│   ✗ セッション再開不可（LAM の save/load と非互換）                    │
+│   ✗ タスクステータスのドリフト（信頼性不足）                           │
+│   ✗ Lead が委任せず自分で実装を始める問題                              │
+│   ✗ トークンコスト 3-7x（個人〜小規模チームには過大）                  │
+│   ✗ Windows Terminal で split-pane 非対応                               │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -628,19 +685,18 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph Current["現在の構成"]
+    subgraph Current["現在の構成（v2.0）"]
         S1[Skill] --> M1[Main]
-        M1 --> W1[Workers]
+        M1 --> W1[Subagents]
     end
 
-    subgraph Future["将来の構成（オプション）"]
-        S2[Skill] --> M2[Main]
-        M2 <--> TQ[taskqueue-mcp]
-        M2 --> W2[Workers]
-        TQ --> |状態永続化| DB[(tasks.json)]
+    subgraph Future["将来の構成（Agent Teams）"]
+        S2[Skill] --> TL[Team Lead]
+        TL <--> TM[Teammates]
+        TL --> |共有タスクリスト| TQ[(~/.claude/tasks/)]
     end
 
-    Current -.->|拡張| Future
+    Current -.->|Stable 後に移行| Future
 ```
 
 ---
@@ -712,24 +768,28 @@ Wave 2: [========================================] 1/1 完了
 
 ### 9.1 実装チェックリスト
 
-- [ ] `.claude/skills/lam-orchestrate.md` 作成
-- [ ] `.claude/agents/` に標準 Agent 作成
+- [ ] `.claude/skills/lam-orchestrate/SKILL.md` 作成（公式 SKILL.md 形式）
+- [ ] `.claude/agents/` に Subagent 定義作成（公式 frontmatter 形式）
   - [ ] rust-specialist.md
   - [ ] frontend-dev.md
   - [ ] test-runner.md
-  - [ ] code-reviewer.md
+  - [ ] code-reviewer.md（ビルトインとの差別化を検討）
   - [ ] doc-writer.md
-  - [ ] explorer.md
-- [ ] 動作確認（ドライラン）
+  - [ ] ~~explorer.md~~（ビルトイン `Explore` で代替）
+- [ ] ビルトイン Subagent との重複確認（Explore, Plan, general-purpose）
+- [ ] 動作確認（ドライラン: `--dry-run`）
 - [ ] 動作確認（実行）
-- [ ] ドキュメント更新
+- [ ] ドキュメント更新（CHANGELOG, README）
+- [ ] 参照 Claude Code バージョンの記録
 
 ### 9.2 レビューチェックリスト
 
-- [ ] Skill の指示が明確か
-- [ ] Agent の役割が重複していないか
+- [ ] Skill の指示が明確か（`description` が委任判断に十分か）
+- [ ] Subagent の役割がビルトインと重複していないか
+- [ ] `tools` フィールドが最小権限原則に従っているか
 - [ ] エラーハンドリングが適切か
-- [ ] 並列実行の安全性が担保されているか
+- [ ] 並列実行の安全性が担保されているか（同一ファイル書き込みの排除）
+- [ ] `memory` 設定の適切性（不要な永続化を避ける）
 
 ---
 
@@ -741,4 +801,5 @@ Wave 2: [========================================] 1/1 完了
 ---
 
 *本設計書は LAM v4.0 の一部として作成された。*
-*Anthropic Swarm 機能のリリース後は、本設計を Swarm ベースにマイグレーションする予定。*
+*v2.0 改訂: Claude Code 公式 Subagent/Skills API (v2.1.42) に準拠。*
+*Agent Teams (旧 Swarm) が Stable になった段階で、Section 7.2 の移行基準に基づき再評価する。*

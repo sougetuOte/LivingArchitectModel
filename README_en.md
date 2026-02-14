@@ -47,7 +47,7 @@ By placing these definition files in your project root, you transform a standard
 | `rules/` | Behavioral guidelines and guardrails (auto-loaded) |
 | `commands/` | Slash commands (phase control + utilities) |
 | `agents/` | Specialized subagents (requirements, design, TDD, etc.) |
-| `skills/` | Template outputs (specs, ADR) |
+| `skills/` | Skills (task orchestration, template outputs) |
 
 ## How to Use
 
@@ -92,6 +92,9 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 | `task-decomposer` | Task breakdown, dependencies | PLANNING |
 | `tdd-developer` | Red-Green-Refactor implementation | BUILDING |
 | `quality-auditor` | Quality audit, security | AUDITING |
+| `doc-writer` | Documentation creation and updates | BUILDING / AUDITING |
+| `test-runner` | Test execution and analysis | BUILDING |
+| `code-reviewer` | Code review (LAM quality standards) | AUDITING |
 
 ## Session Management Commands
 
