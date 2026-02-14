@@ -35,7 +35,7 @@ By placing these definition files in your project root, you transform a standard
 | `02_DEVELOPMENT_FLOW.md` | Impact analysis, TDD, and review cycles |
 | `03_QUALITY_STANDARDS.md` | Coding standards and quality gates |
 | `04_RELEASE_OPS.md` | Deployment and emergency protocols |
-| `05_MCP_INTEGRATION.md` | Guide for integrating MCP servers (optional) |
+| `05_MCP_INTEGRATION.md` | MCP server integration & MEMORY.md policy (optional) |
 | `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (3 Agents + AoT) |
 | `07_SECURITY_AND_AUTOMATION.md` | Command Safety Protocols (Allow/Deny Lists) |
 | `99_reference_generic.md` | General advice and best practices (Non-SSOT) |
@@ -96,7 +96,7 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 | `task-decomposer` | Task breakdown, dependencies | PLANNING |
 | `tdd-developer` | Red-Green-Refactor implementation | BUILDING |
 | `quality-auditor` | Quality audit, security | AUDITING |
-| `doc-writer` | Documentation creation and updates | BUILDING / AUDITING |
+| `doc-writer` | Documentation creation, spec drafting, and updates | ALL |
 | `test-runner` | Test execution and analysis | BUILDING |
 | `code-reviewer` | Code review (LAM quality standards) | AUDITING |
 

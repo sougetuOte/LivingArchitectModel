@@ -23,7 +23,7 @@
 ├── rules/                 # ガードレール・行動規範（自動ロード）
 ├── commands/              # スラッシュコマンド
 ├── agents/                # サブエージェント
-├── skills/                # テンプレート出力
+├── skills/                # オーケストレーション・テンプレート出力
 ├── states/                # 機能ごとの進捗状態
 └── current-phase.md       # 現在のフェーズ
 
@@ -95,7 +95,7 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `task-decomposer` | 「タスクを分割して」 | PLANNING |
 | `tdd-developer` | 「TASK-001を実装して」 | BUILDING |
 | `quality-auditor` | 「src/を監査して」 | AUDITING |
-| `doc-writer` | 「ドキュメントを更新して」 | BUILDING / AUDITING |
+| `doc-writer` | 「ドキュメントを更新して」「仕様を策定して」 | ALL |
 | `test-runner` | 「テストを実行して」 | BUILDING |
 | `code-reviewer` | 「コードレビューして」 | AUDITING |
 
@@ -129,11 +129,14 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 
 | ファイル | 内容 |
 |---------|------|
+| `docs/internal/00_PROJECT_STRUCTURE.md` | ディレクトリ構成・命名規則・状態管理 |
 | `docs/internal/01_REQUIREMENT_MANAGEMENT.md` | 要件定義プロセス |
 | `docs/internal/02_DEVELOPMENT_FLOW.md` | 開発フロー・TDD |
 | `docs/internal/03_QUALITY_STANDARDS.md` | 品質基準 |
-| `docs/internal/05_MCP_INTEGRATION.md` | MCP サーバー連携（オプション） |
+| `docs/internal/04_RELEASE_OPS.md` | リリース・デプロイ・緊急対応 |
+| `docs/internal/05_MCP_INTEGRATION.md` | MCP 連携・MEMORY.md 運用ポリシー |
 | `docs/internal/06_DECISION_MAKING.md` | 意思決定（3 Agents + AoT） |
+| `docs/internal/07_SECURITY_AND_AUTOMATION.md` | コマンド安全基準（Allow/Deny List） |
 
 ## AoT（Atom of Thought）クイックガイド
 

@@ -28,6 +28,7 @@
   - **Context Compression の代替**: Heimdall が有効な場合、手動での `docs/memos/` への書き出し（圧縮）は必須ではなくなる。代わりに「Heimdall に記憶させる」アクションを意識する。
   - **Knowledge Retrieval**: 過去の意思決定や、類似の実装パターンを探す際は、Heimdall の検索機能を使用する。
 
+
 ### C. Database Visualization — Optional
 
 - **Tools**: `SingleStore MCP`, `ChartDB` (Self-hosted)
@@ -115,3 +116,25 @@ Claude Code は標準的な MCP クライアントとして動作するため、
 ```
 
 ※ `/absolute/path/to/your/project` は実際のプロジェクトルートに書き換えること。
+
+## 6. MEMORY.md Policy (auto memory 運用ポリシー)
+
+Claude Code の auto memory 機能（`MEMORY.md`）の運用方針を定義する。
+
+### 禁止事項
+- メインセッションで MEMORY.md にプロジェクト固有情報（仕様、設計判断、タスク状態）を記録しないこと
+- SESSION_STATE.md の代替として使用しないこと
+- `docs/internal/`, `docs/specs/`, `docs/adr/` に記録すべき情報を MEMORY.md に書かないこと
+
+### 許可事項
+- Subagent が役割ノウハウ（レビューパターン、TDD報告フォーマット等）を蓄積する用途で使用可
+- プロジェクト横断で有用な一般的知見の記録
+
+### 記憶メカニズムの棲み分け
+
+| メカニズム | 用途 | 時間軸 | 管理 |
+|-----------|------|--------|------|
+| `docs/internal/`, `docs/specs/`, `docs/adr/` | プロジェクトの真実（SSOT） | 永続 | git 管理 |
+| `SESSION_STATE.md` | セッション状態のハンドオフ | 使い捨て | 手動（/quick-save） |
+| `MEMORY.md` (auto memory) | Subagent の役割ノウハウ蓄積 | 永続（累積） | 自動 |
+| Heimdall | ベクトル検索による過去の意思決定検索 | 永続 | MCP サーバー |

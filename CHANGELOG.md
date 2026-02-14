@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.7.0] - 2026-02-15
+
+### Changed
+
+- **Enhancement**: lam-orchestrate 設計書フィードバック反映
+  - `SKILL.md` Phase 1: Git 状態確認・フェーズ状態確認ステップ追加
+  - `SKILL.md` Phase 2: 承認範囲の明確化（計画承認 = 全Wave承認）
+  - `SKILL.md` Phase 5: 計画変更プロトコル新設（実行中の要件追加対応）
+  - `SKILL.md` Subagent 選択ルール: doc-writer 役割定義を拡充（仕様策定+清書）
+- **Enhancement**: `docs/internal/02_DEVELOPMENT_FLOW.md`
+  - Phase 1 に Git State Verification / Phase State Verification 追加
+- **Enhancement**: `docs/internal/00_PROJECT_STRUCTURE.md`
+  - Section 2.A: 中間成果物（Intermediate Reports）の用途追加
+  - Section 2.D: State Management セクション新設（SESSION_STATE / states/ / current-phase の棲み分け）
+- **Enhancement**: `docs/internal/05_MCP_INTEGRATION.md`
+  - Section 6: MEMORY.md Policy（auto memory 運用ポリシー）新設
+- **Enhancement**: `docs/internal/07_SECURITY_AND_AUTOMATION.md`
+  - ファイルリネーム代替手段の Note 追加
+- **Enhancement**: `.claude/agents/doc-writer.md`
+  - 仕様策定モード（lam-orchestrate 経由）の担当範囲追加
+- **Docs**: CLAUDE.md に MEMORY.md Policy 追記（詳細は 05_MCP へ委譲）
+- **Docs**: README.md / README_en.md / CHEATSHEET.md 整合性更新
+  - doc-writer フェーズを ALL に変更
+  - 05_MCP 説明に MEMORY.md Policy 追加
+  - CHEATSHEET 参照ドキュメントに 00/04/07 追加
+- `.gitignore` に `docs/daily/` を追加
+
 ## [v3.6.0] - 2026-02-15
 
 ### Added

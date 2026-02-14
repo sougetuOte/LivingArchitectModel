@@ -61,6 +61,11 @@ auto-compact の発動を待たないこと。これは保険であり、基本�
 - 残量 25% 以下では `/quick-save` を使うこと
 - `/full-save` は残量に余裕があるときのみ
 
+## MEMORY.md Policy
+
+Claude Code の auto memory 機能（`MEMORY.md`）はプロジェクト固有情報の記録には使用しない。
+Subagent の役割ノウハウ蓄積のみに使用可。詳細は `docs/internal/05_MCP_INTEGRATION.md` Section 6 を参照。
+
 ## Initial Instruction
 
 このプロジェクトがロードされたら、`docs/internal/` の定義ファイルを精読し、

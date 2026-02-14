@@ -35,7 +35,7 @@
 | `02_DEVELOPMENT_FLOW.md` | 影響分析、TDD、レビューサイクル |
 | `03_QUALITY_STANDARDS.md` | コーディング規約と品質ゲート |
 | `04_RELEASE_OPS.md` | デプロイと緊急対応プロトコル |
-| `05_MCP_INTEGRATION.md` | MCP サーバー連携ガイド（オプション） |
+| `05_MCP_INTEGRATION.md` | MCP サーバー連携・MEMORY.md 運用ポリシー（オプション） |
 | `06_DECISION_MAKING.md` | 意思決定プロトコル (3 Agents + AoT) |
 | `07_SECURITY_AND_AUTOMATION.md` | コマンド実行の安全基準 (Allow/Deny List) |
 | `99_reference_generic.md` | 一般的な助言とベストプラクティス (Non-SSOT) |
@@ -96,7 +96,7 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `task-decomposer` | タスク分割・依存関係整理 | PLANNING |
 | `tdd-developer` | Red-Green-Refactor 実装 | BUILDING |
 | `quality-auditor` | 品質監査・セキュリティ | AUDITING |
-| `doc-writer` | ドキュメント作成・更新 | BUILDING / AUDITING |
+| `doc-writer` | ドキュメント作成・仕様策定・更新 | ALL |
 | `test-runner` | テスト実行・分析 | BUILDING |
 | `code-reviewer` | コードレビュー（LAM品質基準） | AUDITING |
 

@@ -11,10 +11,16 @@
     - `grep_search` 等を用いて、変更対象モジュールの依存元・依存先を物理的に特定する。
 2.  **Static & Mental Simulation**:
     - コードを実行せず、静的解析と論理的思考実験により、DB スキーマや API への波及効果を予測する。
-3.  **Risk Assessment (Critical Agent)**:
+3.  **Git State Verification (Git 状態の検証)**:
+    - `git status` および `git diff` を用いて、変更対象ファイルの現在の状態を確認する。
+    - 未コミット変更がある場合、その差分を分析に含める。
+4.  **Phase State Verification (フェーズ状態の検証)**:
+    - `.claude/current-phase.md` を確認し、現在の開発フェーズ（PLANNING/BUILDING/AUDITING）を把握する。
+    - フェーズとタスク内容が一致しない場合（例: BUILDING 中に仕様策定を要求された）、ユーザーに確認する。
+5.  **Risk Assessment (Critical Agent)**:
     - `docs/internal/06_DECISION_MAKING.md` の **Critical Agent** として振る舞い、「手戻りリスク」と「破壊的変更の有無」を徹底的に洗い出す。
     - 楽観的な予測は排除し、最悪のケースを想定してユーザーに報告する。
-4.  **Implementation Plan (Artifact)**:
+6.  **Implementation Plan (Artifact)**:
     - 変更内容、検証計画をまとめた `implementation_plan.md` を作成し、ユーザーの承認を得ることを必須とする。
 
 ### AoT フレームワークとの連携
