@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.4.0] - 2026-02-15
+
+### Added
+
+- **Feature**: Session management commands
+  - `/quick-save` - 軽量セーブ（SESSION_STATE.md のみ、3-4% コンテキスト消費）
+  - `/full-save` - フルセーブ（commit + push + daily）
+  - `/full-load` - セッション復元
+- **Feature**: StatusLine script (`statusline.py`)
+  - コンテキスト残量をバー表示（緑/黄/赤）
+  - クロスプラットフォーム対応（Windows/macOS/Linux）
+- **Docs**: Context Management section in `CLAUDE.md`
+- **Docs**: Session management section in `CHEATSHEET.md`
+- **Docs**: Getting started guide in `CHEATSHEET.md`
+- **Docs**: Environment requirements section in `README.md` / `README_en.md`
+
+### Changed
+
+- **Enhancement**: Renamed `/status` to `/project-status` (reflected in all docs)
+- **Enhancement**: Updated `docs/internal/05_MCP_INTEGRATION.md`
+  - All MCP servers marked as optional
+  - Updated terminology from "Antigravity" to "Claude Code"
+- **Enhancement**: Updated `CHEATSHEET.md` for first-time users
+- **Docs**: Updated `README.md` / `README_en.md` with new commands and requirements
+
+### Removed
+
+- **Config**: Removed Serena MCP from active configuration
+  - コンテキストコスト（5-10K トークン + セーブ時 3-5%）の削減
+  - 個人開発規模では grep/find で十分と判断
+
 ## [v3.3.0] - 2026-01-05
 
 ### Added
@@ -20,7 +51,7 @@ All notable changes to this project will be documented in this file.
 - **Enhancement**: Simplified `CLAUDE.md` (205 → 53 lines, 74% reduction)
   - コア原則のみを保持し、詳細は Rules へ移行
   - 参照構造を明確化
-- **Enhancement**: Updated `.claude/CHEATSHEET.md` with Rules file listing
+- **Enhancement**: Updated `CHEATSHEET.md` with Rules file listing
 - **Docs**: Terminology alignment in security-commands.md
   - SSOT（07_SECURITY_AND_AUTOMATION.md）と用語統一
 
@@ -49,7 +80,7 @@ All notable changes to this project will be documented in this file.
   - 適用基準の定量化（閾値明示）
   - Decomposition → Debate → Synthesis ワークフロー
   - Atom テーブル形式の標準化
-- **Docs**: AoT quick guide in `.claude/CHEATSHEET.md`
+- **Docs**: AoT quick guide in `CHEATSHEET.md`
 
 ### Changed
 
@@ -83,7 +114,7 @@ All notable changes to this project will be documented in this file.
 - **Enhancement**: Updated `/building` command with prerequisite checks
 - **Enhancement**: Updated `/auditing` command with state management
 - **Enhancement**: Updated `planning-guardrail` skill with approval enforcement
-- **Docs**: Updated `.claude/CHEATSHEET.md` with approval flow and state management
+- **Docs**: Updated `CHEATSHEET.md` with approval flow and state management
 
 ## [v3.0.0] - 2025-12-08
 
@@ -105,7 +136,7 @@ All notable changes to this project will be documented in this file.
   - `auditing-guardrail` - AUDITINGフェーズのガードレール
   - `spec-template` - 仕様書テンプレート
   - `adr-template` - ADRテンプレート
-- **Docs**: Added `.claude/CHEATSHEET.md` quick reference
+- **Docs**: Added `CHEATSHEET.md` quick reference
 - **Docs**: Added `.claude/current-phase.md` phase state file
 - **Docs**: Added implementation records in `docs/memos/`
   - `03-living-architect-adaptation-plan.md`

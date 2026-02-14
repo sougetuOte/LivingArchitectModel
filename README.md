@@ -24,7 +24,7 @@
 | ファイル | 説明 |
 |---------|------|
 | `CLAUDE.md` | 憲法。AI のアイデンティティ、基本原則、権限を定義 |
-| `.claude/CHEATSHEET.md` | クイックリファレンス。コマンド・エージェント一覧 |
+| `CHEATSHEET.md` | クイックリファレンス。コマンド・エージェント一覧 |
 
 ### 運用プロトコル (`docs/internal/`)
 
@@ -35,7 +35,7 @@
 | `02_DEVELOPMENT_FLOW.md` | 影響分析、TDD、レビューサイクル |
 | `03_QUALITY_STANDARDS.md` | コーディング規約と品質ゲート |
 | `04_RELEASE_OPS.md` | デプロイと緊急対応プロトコル |
-| `05_MCP_INTEGRATION.md` | MCP サーバー連携ガイド (Serena, Heimdall) |
+| `05_MCP_INTEGRATION.md` | MCP サーバー連携ガイド（オプション） |
 | `06_DECISION_MAKING.md` | 意思決定プロトコル (3 Agents + AoT) |
 | `07_SECURITY_AND_AUTOMATION.md` | コマンド実行の安全基準 (Allow/Deny List) |
 | `99_reference_generic.md` | 一般的な助言とベストプラクティス (Non-SSOT) |
@@ -73,7 +73,7 @@ GitHub 上でリポジトリページ上部の **"Use this template"** ボタン
 | `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
 | `/building` | TDD実装 | 仕様なし実装禁止 |
 | `/auditing` | レビュー・監査・リファクタ | 修正の直接実施禁止 |
-| `/status` | 進捗状況の表示 | - |
+| `/project-status` | 進捗状況の表示 | - |
 
 ### 承認ゲート
 
@@ -93,6 +93,14 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `tdd-developer` | Red-Green-Refactor 実装 | BUILDING |
 | `quality-auditor` | 品質監査・セキュリティ | AUDITING |
 
+## セッション管理コマンド
+
+| コマンド | 用途 |
+|---------|------|
+| `/quick-save` | 軽量セーブ（SESSION_STATE.md のみ） |
+| `/full-save` | フルセーブ（commit + push + daily） |
+| `/full-load` | セッション復元 |
+
 ## 補助コマンド
 
 | コマンド | 用途 |
@@ -110,6 +118,16 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | **PLANNING** | Claude Opus / Sonnet |
 | **BUILDING** | Claude Sonnet (単純作業なら Haiku) |
 | **AUDITING** | Claude Opus (Long Context) |
+
+## 環境要件
+
+| 要件 | 用途 | 必須/任意 |
+|------|------|----------|
+| [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI アシスタント実行環境 | 必須 |
+| Python 3.x | StatusLine（コンテキスト残量表示） | 任意 |
+| Git | バージョン管理 | 必須 |
+
+> StatusLine を使用しない場合、Python は不要です。
 
 ## ライセンス
 

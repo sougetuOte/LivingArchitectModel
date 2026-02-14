@@ -1,18 +1,32 @@
 # Living Architect Model チートシート
 
+## はじめに（初めて使う方へ）
+
+1. Claude Code CLI を起動する
+2. プロジェクトルートで Claude が `CLAUDE.md` を読み込む
+3. 「Living Architect Model として初期化してください」と指示する
+4. `/planning` で設計フェーズを開始する
+
+```
+典型的な流れ:
+  /planning → 要件定義 → [承認] → 設計 → [承認] → タスク分解 → [承認]
+  /building → TDD実装（Red → Green → Refactor）→ [承認]
+  /auditing → 品質監査 → [承認] → 完了
+```
+
 ## ディレクトリ構造
 
 ```
 .claude/
-├── rules/                 # ガードレール・行動規範
+├── rules/                 # ガードレール・行動規範（自動ロード）
 ├── commands/              # スラッシュコマンド
 ├── agents/                # サブエージェント
 ├── skills/                # テンプレート出力
 ├── states/                # 機能ごとの進捗状態
-├── current-phase.md       # 現在のフェーズ
-└── CHEATSHEET.md          # このファイル
+└── current-phase.md       # 現在のフェーズ
 
 CLAUDE.md                  # 憲法（コア原則のみ）
+CHEATSHEET.md              # このファイル（クイックリファレンス）
 docs/internal/             # プロセス SSOT
 docs/specs/                # 仕様書
 docs/adr/                  # アーキテクチャ決定記録
@@ -37,7 +51,7 @@ docs/adr/                  # アーキテクチャ決定記録
 | `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
 | `/building` | TDD実装 | 仕様なし実装禁止 |
 | `/auditing` | レビュー・監査・リファクタ | 修正の直接実施禁止 |
-| `/status` | 進捗状況の表示 | - |
+| `/project-status` | 進捗状況の表示 | - |
 
 ## 承認ゲート
 
@@ -47,6 +61,28 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 
 - 各サブフェーズ完了時に「承認」が必要
 - 未承認のまま次に進むことは禁止
+
+## セッション管理コマンド
+
+| コマンド | 用途 | コンテキスト消費 |
+|---------|------|----------------|
+| `/quick-save` | 軽量セーブ（SESSION_STATE.md のみ） | 3-4% |
+| `/full-save` | フルセーブ（commit + push + daily） | 約10% |
+| `/full-load` | セッション復元（次セッション開始時） | 2-3% |
+
+### セーブの使い分け
+- **普段**: `/quick-save`（残量 25% 以下でも安全）
+- **一日の終わり**: `/full-save`（残量に余裕があるとき）
+- **次セッション開始時**: `/full-load`
+
+### StatusLine
+画面下部にコンテキスト残量を常時表示（要 Python 3.x）:
+```
+[Opus 4.6] ▓▓▓░░░░░░░ 70% $1.23
+```
+- 緑 (>30%): 安全
+- 黄 (15-30%): 注意
+- 赤 (<=15%): `/quick-save` 推奨
 
 ## サブエージェント
 
@@ -58,33 +94,13 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `tdd-developer` | 「TASK-001を実装して」 | BUILDING |
 | `quality-auditor` | 「src/を監査して」 | AUDITING |
 
-## 典型的なプロジェクトの進め方
-
-```
-1. /planning
-   ├── 要件整理 (requirement-analyst)
-   │   └── → 「承認」
-   ├── 設計 (design-architect)
-   │   └── → 「承認」
-   └── タスク分割 (task-decomposer)
-       └── → 「承認」
-
-2. /building
-   └── タスクごとに TDD サイクル (tdd-developer)
-       Red → Green → Refactor → 次のタスク
-       └── → 「承認」
-
-3. /auditing
-   └── 品質監査 (quality-auditor)
-       └── → 「承認」→ 完了
-```
-
 ## 状態管理
 
 | ファイル | 用途 |
 |---------|------|
 | `.claude/current-phase.md` | 現在のフェーズ |
 | `.claude/states/<feature>.json` | 機能ごとの進捗・承認状態 |
+| `SESSION_STATE.md` | セッション間の引き継ぎ（自動生成） |
 
 ## 補助コマンド
 
@@ -103,6 +119,7 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `docs/internal/01_REQUIREMENT_MANAGEMENT.md` | 要件定義プロセス |
 | `docs/internal/02_DEVELOPMENT_FLOW.md` | 開発フロー・TDD |
 | `docs/internal/03_QUALITY_STANDARDS.md` | 品質基準 |
+| `docs/internal/05_MCP_INTEGRATION.md` | MCP サーバー連携（オプション） |
 | `docs/internal/06_DECISION_MAKING.md` | 意思決定（3 Agents + AoT） |
 
 ## AoT（Atom of Thought）クイックガイド
@@ -133,7 +150,13 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 → 承認を求めるメッセージを表示
 
 **進捗を確認したい？**
-→ `/status` を実行
+→ `/project-status` を実行
+
+**コンテキストが少なくなったら？**
+→ `/quick-save` でセーブして `exit`
+
+**次のセッションを始めるときは？**
+→ `/full-load` で前回の状態を復元
 
 **仕様書はどこ？**
 → `docs/specs/`

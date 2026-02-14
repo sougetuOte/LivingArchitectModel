@@ -24,7 +24,7 @@ By placing these definition files in your project root, you transform a standard
 | File | Description |
 |------|-------------|
 | `CLAUDE.md` | The Constitution. Defines the AI's identity, core principles, and authority |
-| `.claude/CHEATSHEET.md` | Quick reference. Commands and agents list |
+| `CHEATSHEET.md` | Quick reference. Commands and agents list |
 
 ### Operational Protocols (`docs/internal/`)
 
@@ -35,7 +35,7 @@ By placing these definition files in your project root, you transform a standard
 | `02_DEVELOPMENT_FLOW.md` | Impact analysis, TDD, and review cycles |
 | `03_QUALITY_STANDARDS.md` | Coding standards and quality gates |
 | `04_RELEASE_OPS.md` | Deployment and emergency protocols |
-| `05_MCP_INTEGRATION.md` | Guide for integrating MCP servers (Serena, Heimdall) |
+| `05_MCP_INTEGRATION.md` | Guide for integrating MCP servers (optional) |
 | `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (3 Agents + AoT) |
 | `07_SECURITY_AND_AUTOMATION.md` | Command Safety Protocols (Allow/Deny Lists) |
 | `99_reference_generic.md` | General advice and best practices (Non-SSOT) |
@@ -73,7 +73,7 @@ On GitHub, click the **"Use this template"** button at the top of this repositor
 | `/planning` | Requirements, design, task decomposition | Code generation |
 | `/building` | TDD implementation | Implementation without specs |
 | `/auditing` | Review, audit, refactoring | Direct fixes |
-| `/status` | Display progress status | - |
+| `/project-status` | Display progress status | - |
 
 ### Approval Gates
 
@@ -93,6 +93,14 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 | `tdd-developer` | Red-Green-Refactor implementation | BUILDING |
 | `quality-auditor` | Quality audit, security | AUDITING |
 
+## Session Management Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/quick-save` | Lightweight save (SESSION_STATE.md only) |
+| `/full-save` | Full save (commit + push + daily) |
+| `/full-load` | Restore session state |
+
 ## Utility Commands
 
 | Command | Purpose |
@@ -110,6 +118,16 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 | **PLANNING** | Claude Opus / Sonnet |
 | **BUILDING** | Claude Sonnet (or Haiku for simple tasks) |
 | **AUDITING** | Claude Opus (Long Context) |
+
+## Requirements
+
+| Requirement | Purpose | Required |
+|-------------|---------|----------|
+| [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI assistant runtime | Required |
+| Python 3.x | StatusLine (context usage display) | Optional |
+| Git | Version control | Required |
+
+> Python is only needed if you use the StatusLine feature.
 
 ## License
 

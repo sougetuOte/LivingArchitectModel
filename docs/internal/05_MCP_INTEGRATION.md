@@ -1,20 +1,25 @@
 # MCP Integration Guide
 
 本ドキュメントは、**Model Context Protocol (MCP)** サーバーを活用して、Living Architect の能力を拡張するためのガイドラインである。
-特に、ローカル環境で **Serena** や **Heimdall** が稼働している場合の連携方法と注意点を記述する。
+プロジェクト規模やチーム構成に応じて、適切な MCP サーバーを選択・導入する。
 
-## 1. Recommended MCP Servers (推奨サーバー)
+> **Note**: MCP サーバーはすべてオプションである。Living Architect Model のコア機能は MCP なしで動作する。
+> 個人開発や小〜中規模プロジェクトでは、Claude Code 標準のツール（grep, find, Read 等）で十分な場合が多い。
 
-### A. Serena (Coding Agent Toolkit)
+## 1. MCP Servers (サーバー一覧)
+
+### A. Serena (Coding Agent Toolkit) — Optional
 
 - **Repository**: `oraios/serena`
 - **Role**: **"The Hands" (手)**
 - **Capability**: 高度なコード検索、シンボルレベルの編集、LSP (Language Server Protocol) ライクな静的解析能力を提供する。
+- **推奨規模**: 数万行以上のコードベース、複数人開発
+- **注意**: コンテキストコスト（MCP 定義で 5-10K トークン）を消費する。小規模プロジェクトでは grep/find で代替可能。
 - **Integration Rule**:
-  - コードの調査・修正を行う際は、標準の `grep` や `replace` よりも **Serena のツールを優先的に使用する** こと。
-  - 特に大規模なリファクタリングや、依存関係が複雑な変更において、その真価を発揮する。
+  - CLAUDE.md に「Serena を優先使用する」旨を明記しないと、Claude Code は grep に流れる傾向がある。
+  - 導入する場合は、CLAUDE.md のツール使用ルールに明示的に記載すること。
 
-### B. Heimdall (Long-Term Memory)
+### B. Heimdall (Long-Term Memory) — Optional
 
 - **Repository**: `lcbcFoo/heimdall-mcp-server`
 - **Role**: **"The Brain" (脳)**
@@ -23,7 +28,7 @@
   - **Context Compression の代替**: Heimdall が有効な場合、手動での `docs/memos/` への書き出し（圧縮）は必須ではなくなる。代わりに「Heimdall に記憶させる」アクションを意識する。
   - **Knowledge Retrieval**: 過去の意思決定や、類似の実装パターンを探す際は、Heimdall の検索機能を使用する。
 
-### C. Database Visualization (Optional)
+### C. Database Visualization — Optional
 
 - **Tools**: `SingleStore MCP`, `ChartDB` (Self-hosted)
 - **Role**: **"The Eyes" (目)**
@@ -68,7 +73,7 @@
 
 ## 4. Finding More MCP Servers (MCP サーバーの探し方)
 
-Antigravity は標準的な MCP クライアントとして動作するため、以下のリソースから用途に合ったサーバーを探して追加することができる。
+Claude Code は標準的な MCP クライアントとして動作するため、以下のリソースから用途に合ったサーバーを探して追加することができる。
 
 - **Official MCP Registry**: [modelcontextprotocol.io](https://modelcontextprotocol.io/examples)
   - 公式および検証済みの主要サーバー（Filesystem, Git, Postgres, Slack 等）が掲載されている。
@@ -77,7 +82,7 @@ Antigravity は標準的な MCP クライアントとして動作するため、
 
 ## 5. Configuration Examples (設定例)
 
-以下は `claude.json` (または Antigravity の設定ファイル) への記述例である。
+以下は `.mcp.json` (または Claude Code の設定ファイル) への記述例である。
 **注意**: `serena` や `heimdall` はプロジェクトごとにパスを指定する必要があるため、新しいプロジェクトを始めるたびに設定を追加（または更新）する必要がある。
 
 ```json
