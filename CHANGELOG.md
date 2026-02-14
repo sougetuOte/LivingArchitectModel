@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.6.0] - 2026-02-15
+
+### Added
+
+- **Feature**: LAM スライドサイト (`docs/slides/`)
+  - `index.html`: 目次ハブページ（カード型リンク集）
+  - `concept.html`: コンセプト説明スライド（全25枚、"Living" 解説含む）
+  - `usecase.html`: ユースケースシナリオスライド（全18枚、会話形式）
+  - `lifecycle.html`: ライフサイクルスライド（全16枚、複数サイクルの進化を体験）
+  - reveal.js 5.2.1 (CDN)、Mermaid フロー図、Google Fonts 対応
+  - npm / Node.js 不要、HTML ファイル単体で動作
+  - Mermaid lazy rendering（reveal.js 非表示スライドとの互換性対応）
+- **Feature**: lam-orchestrate スキル + カスタムサブエージェント
+  - `.claude/skills/lam-orchestrate/SKILL.md` - タスクオーケストレーション
+  - `.claude/agents/doc-writer.md` - ドキュメント作成
+  - `.claude/agents/test-runner.md` - テスト実行
+  - `.claude/agents/code-reviewer.md` - コードレビュー
+- **Docs**: スライドへのリンクを README, README_en, CHEATSHEET, CLAUDE.md に追加
+- **Docs**: スキル・エージェント情報を CHEATSHEET, README, README_en に追加
+- **Spec**: `ui-lam-slides.md` - スライド UI 仕様書
+
+### Changed
+
+- **Spec**: `lam-orchestrate-design.md` v1.0.0 → v2.0.0
+- `.gitignore` に `SESSION_STATE.md` を追加
+
 ## [v3.5.0] - 2026-02-15
 
 ### Changed

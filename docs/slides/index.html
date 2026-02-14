@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Living Architect Model - Slides</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --bg: #1e1e1e;
+      --text: #d4d4d4;
+      --text-heading: #ffffff;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: var(--accent-primary);
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-bottom: 3rem;
+      text-align: center;
+    }
+
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      max-width: 1100px;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 2rem;
+      border: 2px solid transparent;
+      transition: border-color 0.3s, transform 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+      transform: translateY(-4px);
+    }
+
+    .card h2 {
+      font-size: 1.4rem;
+      color: var(--text-heading);
+      margin-bottom: 0.5rem;
+    }
+
+    .card .badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 0.2em 0.6em;
+      border-radius: 4px;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .badge-concept {
+      background: var(--accent-primary);
+      color: #000;
+    }
+
+    .badge-usecase {
+      background: var(--accent-secondary);
+      color: #fff;
+    }
+
+    .badge-lifecycle {
+      background: var(--accent-warning);
+      color: #000;
+    }
+
+    .card p {
+      font-size: 0.9rem;
+      line-height: 1.6;
+      margin-bottom: 0.8rem;
+    }
+
+    .card .meta {
+      font-size: 0.75rem;
+      color: #999;
+    }
+
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: #666;
+    }
+
+    footer a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      color: var(--accent-primary);
+    }
+  </style>
+</head>
+<body>
+  <h1>The Living Architect Model</h1>
+  <p class="subtitle">AI は単なるツールではない。パートナーだ。</p>
+
+  <div class="card-grid">
+    <a href="concept.html" class="card">
+      <span class="badge badge-concept">CONCEPT</span>
+      <h2>コンセプト</h2>
+      <p>LAM の哲学、コア原則、フェーズ制御、3 Agents Model を視覚的に解説。初めての方はここから。</p>
+      <span class="meta">25 スライド</span>
+    </a>
+
+    <a href="usecase.html" class="card">
+      <span class="badge badge-usecase">USE CASE</span>
+      <h2>ユースケース</h2>
+      <p>「ユーザー認証機能を追加する」シナリオを通じて、PLANNING → BUILDING → AUDITING の実践フローを体験。</p>
+      <span class="meta">18 スライド</span>
+    </a>
+
+    <a href="lifecycle.html" class="card">
+      <span class="badge badge-lifecycle">LIFECYCLE</span>
+      <h2>ライフサイクル</h2>
+      <p>複数の開発サイクルを通じて、CLAUDE.md・rules・skills・docs/internal がどう進化するか。"Living" の真価を体験。</p>
+      <span class="meta">16 スライド</span>
+    </a>
+  </div>
+
+  <footer>
+    <a href="https://github.com/sougetuOte/LivingArchitectModel" target="_blank">GitHub Repository</a>
+    &nbsp;|&nbsp;
+    <a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a>
+  </footer>
+</body>
+</html>

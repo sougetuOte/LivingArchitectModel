@@ -49,6 +49,10 @@ By placing these definition files in your project root, you transform a standard
 | `agents/` | Specialized subagents (requirements, design, TDD, etc.) |
 | `skills/` | Skills (task orchestration, template outputs) |
 
+## Getting Started
+
+To quickly understand LAM concepts, see the [Concept Overview Slides](docs/slides/index.html).
+
 ## How to Use
 
 ### Option A: Use as a Template (Recommended)

@@ -46,6 +46,7 @@
 | 行動規範 | `.claude/rules/` |
 | プロセス SSOT | `docs/internal/` |
 | クイックリファレンス | `CHEATSHEET.md` |
+| 概念説明スライド | `docs/slides/index.html` |
 
 ## Context Management
 

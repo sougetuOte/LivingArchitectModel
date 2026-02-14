@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Living Architect Model - ライフサイクル</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .reveal h1 {
+      font-size: 2.2em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* Cycle badge */
+    .cycle-badge {
+      display: inline-block;
+      padding: 0.2em 0.6em;
+      border-radius: 4px;
+      font-size: 0.7em;
+      font-weight: 600;
+      margin-right: 0.5em;
+    }
+
+    .cycle-1 { background: var(--accent-warning); color: #000; }
+    .cycle-2 { background: var(--phase-planning); color: #fff; }
+    .cycle-3 { background: var(--phase-building); color: #000; }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "▸ ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.1em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ul {
+      margin: 0.3rem 0;
+    }
+
+    /* Evolution indicator */
+    .evolution-arrow {
+      text-align: center;
+      font-size: 1.5em;
+      color: var(--accent-primary);
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- 1. Title -->
+      <section>
+        <h1>ユースケース:<br>プロジェクトを育てる</h1>
+        <p class="catchphrase">フレームワーク自体が成長する<br>— それが "Living" の意味</p>
+        <p class="small-text">複数の開発サイクルを通じて<br>LAM とプロジェクト資産がどう進化するかを追う</p>
+      </section>
+
+      <!-- 2. Scenario -->
+      <section>
+        <h2>シナリオ</h2>
+        <div class="emphasis-box">
+          <p><strong>目標</strong>: 新規 Web アプリを LAM で開発する</p>
+        </div>
+        <ul style="margin-top: 1rem;">
+          <li><span class="cycle-badge cycle-1">1st</span> ユーザー認証機能</li>
+          <li><span class="cycle-badge cycle-2">2nd</span> 商品管理機能</li>
+          <li><span class="cycle-badge cycle-3">3rd</span> 注文処理機能</li>
+        </ul>
+        <p class="small-text" style="margin-top: 1.5em;">注目点: 機能そのものではなく、<strong>プロジェクト資産の蓄積</strong>と<strong>フレームワークの進化</strong></p>
+      </section>
+
+      <!-- 3. Phase 0: Setup -->
+      <section>
+        <h2>Phase 0: 初期セットアップ</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">配置するもの</h3>
+            <ul style="font-size: 0.75em;">
+              <li><code>CLAUDE.md</code>（テンプレート）</li>
+              <li><code>.claude/rules/</code>（基本ルール）</li>
+              <li><code>.claude/skills/</code>（標準コマンド）</li>
+              <li><code>docs/internal/</code>（汎用プロセス）</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-secondary);">まだ空のもの</h3>
+            <ul style="font-size: 0.75em;">
+              <li><code>docs/specs/</code>（仕様書）</li>
+              <li><code>docs/adr/</code>（決定記録）</li>
+              <li><code>docs/tasks/</code>（タスク定義）</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p style="font-size: 0.85em;">この時点では LAM はまだ<strong>「汎用テンプレート」</strong>に過ぎない</p>
+        </div>
+      </section>
+
+      <!-- 4. 1st Cycle: PLANNING -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">1st</span> 認証機能の PLANNING</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/planning<br>ユーザー認証機能を追加したい</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>要件定義を開始します。<br>3 Agents Model で技術選定を行い、仕様書と ADR を作成します。</p>
+        </div>
+        <div class="task-list fragment">
+          <strong>初めて生成されるドキュメント</strong>
+          <ul>
+            <li><code>docs/specs/auth-feature.md</code> — 初めての仕様書</li>
+            <li><code>docs/adr/001-jwt-auth.md</code> — 初めての ADR</li>
+            <li><code>docs/tasks/sprint-01.md</code> — 初めてのタスク定義</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 5. 1st Cycle: BUILD → AUDIT -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">1st</span> BUILDING → AUDITING</h2>
+        <p style="font-size: 0.9em;">TDD サイクルで実装し、品質監査で検証する</p>
+        <pre class="mermaid">
+graph LR
+  A["/building"] --> B[TDD<br/>Red→Green→Refactor]
+  B --> C[Doc同期]
+  C --> D["/auditing"]
+  D --> E[監査レポート]
+  style A fill:#4ec9b0,stroke:#fff,color:#000
+  style B fill:#4ec9b0,stroke:#fff,color:#000
+  style C fill:#4ec9b0,stroke:#fff,color:#000
+  style D fill:#ce9178,stroke:#fff,color:#000
+  style E fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+        <p class="small-text">機能レベルの詳細は <a href="usecase.html">ユースケーススライド</a> を参照</p>
+      </section>
+
+      <!-- 6. 1st Cycle: What was born -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">1st</span> Cycle 完了: 何が生まれたか</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-secondary);">プロジェクト資産</h3>
+            <ul style="font-size: 0.75em;">
+              <li>仕様書 1件</li>
+              <li>ADR 1件</li>
+              <li>テストスイート</li>
+              <li>実装コード</li>
+            </ul>
+          </div>
+          <div class="fragment">
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">得られた知見</h3>
+            <ul style="font-size: 0.75em;">
+              <li>JWT の運用方針が確立</li>
+              <li>セキュリティ要件のパターン</li>
+              <li>テスト戦略の基準</li>
+              <li>コードレビュー観点</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box warning-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;"><strong>問題</strong>: この知見はまだ「暗黙知」のまま。次のサイクルで活かすには？</p>
+        </div>
+      </section>
+
+      <!-- 7. Framework Update 1 -->
+      <section>
+        <h2>フレームワーク更新 ①</h2>
+        <h3>暗黙知をフレームワークに還元する</h3>
+        <ul style="margin-top: 1rem;">
+          <li class="fragment"><code>CLAUDE.md</code> 更新 — セキュリティ方針・技術スタック選定基準を追記</li>
+          <li class="fragment"><code>docs/internal/</code> 改訂 — 認証設計の標準パターンを追加</li>
+          <li class="fragment"><code>.claude/rules/</code> 追加 — プロジェクト固有のセキュリティルール</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p>テンプレートだった LAM が<strong>「このプロジェクト専用のフレームワーク」</strong>に変わり始める</p>
+        </div>
+      </section>
+
+      <!-- 8. 2nd Cycle: Improved PLANNING -->
+      <section>
+        <h2><span class="cycle-badge cycle-2">2nd</span> 商品管理の PLANNING</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/planning<br>商品管理機能を追加したい</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>既存の仕様書 auth-feature.md と ADR 001 を参照し一貫性を確認します。<br>セキュリティルールに基づき、商品データのアクセス制御も設計に含めます。</p>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.5rem;">
+          <p style="font-size: 0.85em;"><strong>1st との違い</strong>: 過去の仕様・ADR・ルールが自動的に参照され、一貫性のある設計が促される</p>
+        </div>
+      </section>
+
+      <!-- 9. 2nd Cycle Complete -->
+      <section>
+        <h2><span class="cycle-badge cycle-2">2nd</span> Cycle 完了: さらに何が育ったか</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-secondary);">蓄積された資産</h3>
+            <ul style="font-size: 0.75em;">
+              <li>仕様書 2件（相互参照あり）</li>
+              <li>ADR 3件</li>
+              <li>テスト基盤の再利用</li>
+            </ul>
+          </div>
+          <div class="fragment">
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">フレームワーク更新 ②</h3>
+            <ul style="font-size: 0.75em;">
+              <li><code>CLAUDE.md</code> — DB設計規約を追記</li>
+              <li><code>skills/</code> — CRUD生成スキルを追加</li>
+              <li><code>docs/internal/</code> — テスト戦略を改訂</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">CLAUDE.md は「テンプレート」から<strong>「プロジェクトの知恵の結晶」</strong>に進化している</p>
+        </div>
+      </section>
+
+      <!-- 10. 3rd Cycle: Full Maturity -->
+      <section>
+        <h2><span class="cycle-badge cycle-3">3rd</span> 注文処理の開発</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p style="font-size: 0.72em;">認証(spec/001)・商品管理(spec/002)との整合性を確認しました。<br>
+          ADR-003 のDB設計規約に準拠し、既存の CRUD スキルを活用してタスク分解を効率化します。</p>
+        </div>
+        <div class="task-list fragment" style="margin-top: 0.4rem;">
+          <strong>3rd Cycle で活用される資産</strong>
+          <ul style="font-size: 0.95em;">
+            <li>仕様書 2件 → 一貫した API 設計の参照元</li>
+            <li>ADR 3件 → 過去の技術決定を踏襲</li>
+            <li>CRUD スキル → 定型作業の自動化</li>
+            <li>セキュリティルール → 自動適用</li>
+          </ul>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.4rem;">
+          <p style="font-size: 0.8em;">1st Cycle で苦労した設計判断が、3rd では<strong>自動的にガイド</strong>される</p>
+        </div>
+      </section>
+
+      <!-- 11. Growth Compound Effect -->
+      <section>
+        <h2>成長の複利効果</h2>
+        <div class="bento-grid" style="margin-top: 0.5rem;">
+          <div class="card" style="border-color: var(--accent-warning);">
+            <h3><span class="cycle-badge cycle-1">1st</span></h3>
+            <p><strong>基盤構築</strong></p>
+            <ul>
+              <li>すべてゼロから</li>
+              <li>テンプレート活用</li>
+              <li>時間がかかる</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--phase-planning);">
+            <h3><span class="cycle-badge cycle-2">2nd</span></h3>
+            <p><strong>資産活用</strong></p>
+            <ul>
+              <li>既存 spec/ADR 参照</li>
+              <li>ルールが自動適用</li>
+              <li>効率が上がる</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--phase-building);">
+            <h3><span class="cycle-badge cycle-3">3rd</span></h3>
+            <p><strong>自動ガイド</strong></p>
+            <ul>
+              <li>豊富な資産で高精度</li>
+              <li>skills で自動化</li>
+              <li>大幅に加速</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12. CLAUDE.md Evolution -->
+      <section>
+        <h2>CLAUDE.md の進化</h2>
+        <h3>プロジェクト憲法は生きている</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+          <div>
+            <h3 style="font-size: 0.85em; color: var(--accent-warning);">導入直後</h3>
+            <ul style="font-size: 0.7em;">
+              <li>Identity 定義（テンプレート）</li>
+              <li>Hierarchy of Truth（汎用）</li>
+              <li>Core Principles（汎用）</li>
+              <li>Execution Modes（基本3モード）</li>
+            </ul>
+          </div>
+          <div class="fragment">
+            <h3 style="font-size: 0.85em; color: var(--accent-primary);">3 Cycle 後</h3>
+            <ul style="font-size: 0.7em;">
+              <li>Identity 定義 + <strong>プロジェクト固有の責務</strong></li>
+              <li>Hierarchy of Truth + <strong>技術スタック選定基準</strong></li>
+              <li>Core Principles + <strong>セキュリティ方針・DB規約</strong></li>
+              <li>Execution Modes + <strong>カスタムワークフロー</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">CLAUDE.md が育つ = <strong>AI パートナーの判断基準が洗練される</strong></p>
+        </div>
+      </section>
+
+      <!-- 13. With vs Without -->
+      <section>
+        <h2>LAM あり vs なし</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-warning);">LAM なし</h3>
+            <ul style="font-size: 0.8em;">
+              <li>毎回ゼロから設計</li>
+              <li>過去の決定を忘れる</li>
+              <li>ドキュメントが腐る</li>
+              <li>AI の品質が一定のまま</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">LAM あり</h3>
+            <ul style="font-size: 0.8em;">
+              <li>資産が蓄積・再利用</li>
+              <li>能動的に過去を検索</li>
+              <li>ドキュメントが常に同期</li>
+              <li>AI パートナーが賢くなる</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p>使うほど差が開く。それが <strong>"Living"</strong> の複利効果</p>
+        </div>
+      </section>
+
+      <!-- 14. Living's True Value -->
+      <section>
+        <h2>"Living" の真価</h2>
+        <ul style="font-size: 0.85em;">
+          <li class="fragment"><code>CLAUDE.md</code> はテンプレートのままではない。<strong>プロジェクトの知恵が凝縮される</strong></li>
+          <li class="fragment"><code>docs/internal/</code> は書いて終わりではない。<strong>実運用で磨かれ続ける</strong></li>
+          <li class="fragment"><code>rules/</code> と <code>skills/</code> は追加され続ける。<strong>AI の行動が最適化される</strong></li>
+          <li class="fragment"><code>specs/</code> と <code>adr/</code> は参照され続ける。<strong>決定が忘れ去られない</strong></li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">プロジェクトが進むほど AI パートナーが賢くなる。<br>それが Living Architect Model。</p>
+        </div>
+      </section>
+
+      <!-- 15. Resources -->
+      <section>
+        <h2>詳細はドキュメントを参照</h2>
+        <ul>
+          <li><a href="concept.html">コンセプトスライド</a> - LAM の基本原則</li>
+          <li><a href="usecase.html">ユースケーススライド</a> - 機能単位の開発フロー</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a> - コマンド・エージェント一覧</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/README.md" target="_blank">README.md</a> - プロジェクト全体像</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/tree/master/docs/internal" target="_blank">docs/internal/</a> - プロセス詳細（SSOT）</li>
+        </ul>
+      </section>
+
+      <!-- 16. Summary -->
+      <section>
+        <h2>AI をパートナーとして迎え入れよう</h2>
+        <div class="emphasis-box">
+          <p>Living Architect Model は、AI を「道具」ではなく「設計パートナー」として機能させるフレームワークです</p>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="https://github.com/sougetuOte/LivingArchitectModel" target="_blank" style="font-size: 1.2em;">
+            GitHub Repository
+          </a>
+        </p>
+        <p class="small-text">Star をいただけると嬉しいです</p>
+        <p style="margin-top: 1em;">
+          <a href="index.html" style="font-size: 0.9em;">目次に戻る</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    // Store original sources before any rendering
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.textContent.trim());
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.innerHTML = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>

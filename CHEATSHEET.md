@@ -2,6 +2,8 @@
 
 ## はじめに（初めて使う方へ）
 
+> まず [概念説明スライド](docs/slides/index.html) で LAM の全体像を掴むことをお勧めします。
+
 1. Claude Code CLI を起動する
 2. プロジェクトルートで Claude が `CLAUDE.md` を読み込む
 3. 「Living Architect Model として初期化してください」と指示する

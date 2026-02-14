@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Living Architect Model - ユースケース</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .reveal h1 {
+      font-size: 2.5em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid (3 Agents) */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    .card.affirmative {
+      border-color: var(--phase-building);
+    }
+
+    .card.critical {
+      border-color: var(--accent-warning);
+    }
+
+    .card.mediator {
+      border-color: var(--phase-planning);
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "▸ ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.2em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles for usecase scenario */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ol {
+      margin: 0.3rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .task-list li {
+      margin: 0.15rem 0;
+    }
+
+    /* Report styling */
+    .audit-report {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .audit-report table {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+
+    .audit-report th,
+    .audit-report td {
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #444;
+    }
+
+    /* Code snippet styling */
+    .code-snippet {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55em;
+      text-align: left;
+      margin: 0.3rem auto;
+      max-width: 90%;
+      line-height: 1.3;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Title Slide -->
+      <section>
+        <h1>ユースケース:<br>新機能を追加する</h1>
+        <p class="catchphrase">ユーザー認証機能の追加を例に、<br>LAM の開発フローを体験する</p>
+        <p class="small-text">PLANNING → BUILDING → AUDITING の3フェーズを通じて<br>仕様書からコードまでの全工程を追跡可能に</p>
+      </section>
+
+      <!-- Scenario Introduction -->
+      <section>
+        <h2>シナリオ導入</h2>
+        <div class="emphasis-box">
+          <p><strong>目標</strong>: ユーザー認証機能を追加する</p>
+        </div>
+        <ul>
+          <li>ログイン機能（メール + パスワード）</li>
+          <li>ログアウト機能</li>
+          <li>セッション管理</li>
+        </ul>
+        <p class="small-text" style="margin-top: 2em;">Living Architect として機能する Claude が、<br>どのように開発をガイドするかを見ていきましょう</p>
+      </section>
+
+      <!-- PLANNING: Phase Start -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> フェーズ開始</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/planning</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>PLANNING フェーズに移行しました。要件定義から始めましょう。<br>まず、ユーザー認証機能の要件を整理します。</p>
+        </div>
+      </section>
+
+      <!-- PLANNING: Requirements -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> 要件定義</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>以下の要件を確認しました:</p>
+        </div>
+        <div class="task-list fragment" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; font-size: 0.65em; padding: 0.4rem 0.6rem;">
+          <div>
+            <strong>機能要件</strong>
+            <ol>
+              <li>ログイン（メール+パスワード）</li>
+              <li>ログアウト</li>
+              <li>セッション管理（24h）</li>
+              <li>パスワードハッシュ化（bcrypt）</li>
+            </ol>
+          </div>
+          <div>
+            <strong>非機能要件</strong>
+            <ol>
+              <li>レスポンス: 500ms以内</li>
+              <li>セキュリティ: OWASP準拠</li>
+            </ol>
+          </div>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>この要件で承認しますか？</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>承認</p>
+        </div>
+      </section>
+
+      <!-- PLANNING: Design (3 Agents) -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> 設計（3 Agents Model）</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>技術選定について、3つの視点から検討します</p>
+        </div>
+        <div class="bento-grid fragment">
+          <div class="card affirmative">
+            <h3>Affirmative</h3>
+            <p><strong>JWT採用を推奨</strong></p>
+            <ul>
+              <li>ステートレスで拡張性高</li>
+              <li>マイクロサービス対応容易</li>
+              <li>トークンリフレッシュ可能</li>
+            </ul>
+          </div>
+          <div class="card critical">
+            <h3>Critical</h3>
+            <p><strong>リスク指摘</strong></p>
+            <ul>
+              <li>トークン漏洩リスク</li>
+              <li>リフレッシュトークンの管理必須</li>
+              <li>XSS対策が重要</li>
+            </ul>
+          </div>
+          <div class="card mediator">
+            <h3>Mediator</h3>
+            <p><strong>最終決定</strong></p>
+            <ul>
+              <li>JWT + リフレッシュトークン</li>
+              <li>HttpOnly Cookie で格納</li>
+              <li>CSRF対策も実装</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- PLANNING: Design Approval -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> 設計承認</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>設計を docs/specs/auth-feature.md に記録しました。</p>
+          <p style="margin-top: 0.3rem;"><strong>技術スタック</strong>: JWT + リフレッシュトークン / HttpOnly Cookie / bcrypt / CSRF対策</p>
+          <p style="margin-top: 0.3rem;">この設計で承認しますか？</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>承認</p>
+        </div>
+      </section>
+
+      <!-- PLANNING: Task Decomposition -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> タスク分解</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>実装タスクを分割しました</p>
+        </div>
+        <div class="task-list fragment">
+          <ol>
+            <li>ユーザーモデル作成（User entity, repository）</li>
+            <li>認証エンドポイント実装（/login, /logout, /refresh）</li>
+            <li>JWT生成・検証ミドルウェア実装</li>
+            <li>CSRF対策ミドルウェア実装</li>
+            <li>統合テスト実装</li>
+          </ol>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>タスク分解を承認しますか？</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>承認</p>
+        </div>
+      </section>
+
+      <!-- BUILDING: Phase Start -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> フェーズ移行</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/building</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>BUILDING フェーズに移行しました。<br>仕様書 docs/specs/auth-feature.md を確認しました。<br><br>TDD サイクルで実装を開始します。</p>
+        </div>
+      </section>
+
+      <!-- BUILDING: TDD Red -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> TDD Cycle: Red</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>まず失敗するテストを書きます</p>
+        </div>
+        <div class="code-snippet fragment">
+          <code>// tests/auth.test.ts
+it('should login with valid credentials', async () => {
+  const res = await request(app).post('/auth/login')
+    .send({ email: 'test@example.com', password: 'pass123' });
+  expect(res.status).toBe(200);
+  expect(res.body).toHaveProperty('accessToken');
+});
+it('should reject invalid credentials', /* ... */);
+</code>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>テスト実行... <span style="color: var(--accent-warning);">Failed (期待通り)</span></p>
+        </div>
+      </section>
+
+      <!-- BUILDING: TDD Green -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> TDD Cycle: Green</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>テストを通す最小限のコードを実装しました</p>
+        </div>
+        <div class="code-snippet fragment">
+          <code>// src/auth/auth.controller.ts
+async login(req: Request, res: Response) {
+  const user = await this.userRepo.findByEmail(req.body.email);
+  if (!user || !(await bcrypt.compare(req.body.password, user.hash)))
+    return res.status(401).json({ error: 'Invalid credentials' });
+  const accessToken = this.jwt.generateAccessToken(user);
+  res.cookie('refreshToken', /* ... */ { httpOnly: true });
+  return res.status(200).json({ accessToken });
+}</code>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>テスト実行... <span style="color: var(--phase-building);">Passed</span></p>
+        </div>
+      </section>
+
+      <!-- BUILDING: TDD Refactor -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> TDD Cycle: Refactor</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>コード品質を向上させました</p>
+        </div>
+        <ul class="fragment">
+          <li>認証ロジックを AuthService に分離</li>
+          <li>エラーハンドリングの統一</li>
+          <li>型安全性の強化</li>
+        </ul>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>テスト実行... <span style="color: var(--phase-building);">All Passed</span> &mdash; <strong>Cycle 1 完了</strong></p>
+        </div>
+      </section>
+
+      <!-- BUILDING: Documentation Sync -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> ドキュメント同期</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>実装に合わせてドキュメントを更新しました</p>
+        </div>
+        <div class="task-list fragment">
+          <strong>更新したドキュメント</strong>
+          <ul>
+            <li>docs/specs/auth-feature.md（実装詳細を追記）</li>
+            <li>README.md（認証APIの使い方を追加）</li>
+            <li>docs/adr/003-jwt-authentication.md（決定記録）</li>
+          </ul>
+        </div>
+        <div class="emphasis-box fragment">
+          <p><strong>Zero-Regression Policy</strong>: 仕様とコードは不可分な単位として同期</p>
+        </div>
+      </section>
+
+      <!-- AUDITING: Phase Start -->
+      <section>
+        <h2><span class="phase-badge phase-auditing">AUDITING</span> フェーズ移行</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/auditing</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>AUDITING フェーズに移行しました。<br>品質監査を開始します。</p>
+        </div>
+      </section>
+
+      <!-- AUDITING: Audit Report -->
+      <section>
+        <h2><span class="phase-badge phase-auditing">AUDITING</span> 監査レポート</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>体系的な監査を実施しました</p>
+        </div>
+        <div class="audit-report fragment">
+          <table>
+            <tr>
+              <th>重要度</th>
+              <th>件数</th>
+            </tr>
+            <tr>
+              <td>Critical</td>
+              <td>0件</td>
+            </tr>
+            <tr>
+              <td>Warning</td>
+              <td>1件</td>
+            </tr>
+            <tr>
+              <td>Info</td>
+              <td>2件</td>
+            </tr>
+          </table>
+          <p style="margin-top: 0.5rem;"><strong>総合評価: A</strong></p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p><strong>Warning 1件</strong>: bcryptのソルトラウンド数が10です。本番環境では12以上を推奨します。</p>
+        </div>
+      </section>
+
+      <!-- AUDITING: Note -->
+      <section>
+        <h2><span class="phase-badge phase-auditing">AUDITING</span> 監査の原則</h2>
+        <div class="emphasis-box warning-box">
+          <p><strong>重要</strong>: AUDITING フェーズでは指摘のみを行い、直接修正は行いません</p>
+        </div>
+        <ul class="fragment">
+          <li>修正が必要な場合は BUILDING フェーズに戻る</li>
+          <li>ユーザーに修正方針を提示し、承認を得る</li>
+          <li>修正後、再度 AUDITING で確認</li>
+        </ul>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>指摘事項を修正しますか？それとも現状で完了としますか？</p>
+        </div>
+      </section>
+
+      <!-- Completion -->
+      <section>
+        <h2>完了</h2>
+        <div class="emphasis-box">
+          <p>3フェーズを経て、ユーザー認証機能が完成しました</p>
+        </div>
+        <ul class="fragment">
+          <li><strong>仕様書</strong>: docs/specs/auth-feature.md</li>
+          <li><strong>テスト</strong>: tests/auth.test.ts</li>
+          <li><strong>コード</strong>: src/auth/</li>
+          <li><strong>監査</strong>: 総合評価 A</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 2em;">
+          <p>全工程が追跡可能で、ドキュメントとコードが同期しています</p>
+        </div>
+      </section>
+
+      <!-- Flow Diagram -->
+      <section>
+        <h2>開発フロー全体像</h2>
+        <pre class="mermaid">
+graph LR
+  A["/planning"] --> B[要件定義]
+  B -->|承認| C[設計]
+  C -->|承認| D[タスク分解]
+  D -->|承認| E["/building"]
+  E --> F[TDD Cycle]
+  F --> G[Doc同期]
+  G -->|承認| H["/auditing"]
+  H --> I[品質監査]
+  I --> J[完了]
+  style A fill:#569cd6,stroke:#fff,color:#000
+  style B fill:#569cd6,stroke:#fff,color:#000
+  style C fill:#569cd6,stroke:#fff,color:#000
+  style D fill:#569cd6,stroke:#fff,color:#000
+  style E fill:#4ec9b0,stroke:#fff,color:#000
+  style F fill:#4ec9b0,stroke:#fff,color:#000
+  style G fill:#4ec9b0,stroke:#fff,color:#000
+  style H fill:#ce9178,stroke:#fff,color:#000
+  style I fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+      </section>
+
+      <!-- Key Takeaways -->
+      <section>
+        <h2>LAM の価値</h2>
+        <ul>
+          <li class="fragment"><strong>承認ゲート</strong>: 「つい実装してしまう」問題の防止</li>
+          <li class="fragment"><strong>TDD 強制</strong>: テストなき実装を許さない</li>
+          <li class="fragment"><strong>ドキュメント同期</strong>: 仕様とコードの乖離を防止</li>
+          <li class="fragment"><strong>3 Agents Model</strong>: 多角的な意思決定</li>
+          <li class="fragment"><strong>監査分離</strong>: レビューと実装の明確な分離</li>
+        </ul>
+      </section>
+
+      <!-- Commands Reference -->
+      <section>
+        <h2>よく使うコマンド</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem;">
+          <div>
+            <h3 style="font-size: 0.85em;">フェーズ制御</h3>
+            <ul style="font-size: 0.65em;">
+              <li><code>/planning</code></li>
+              <li><code>/building</code></li>
+              <li><code>/auditing</code></li>
+              <li><code>/project-status</code></li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.85em;">セッション管理</h3>
+            <ul style="font-size: 0.65em;">
+              <li><code>/quick-save</code></li>
+              <li><code>/full-save</code></li>
+              <li><code>/full-load</code></li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.85em;">オーケストレーション</h3>
+            <ul style="font-size: 0.65em;">
+              <li><code>/lam-orchestrate</code></li>
+              <li><code>--parallel=N</code></li>
+              <li><code>--dry-run</code></li>
+            </ul>
+          </div>
+        </div>
+        <p class="small-text" style="margin-top: 1em;">詳細は <a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a> を参照</p>
+      </section>
+
+      <!-- Resources -->
+      <section>
+        <h2>詳細はドキュメントを参照</h2>
+        <ul>
+          <li><a href="concept.html">コンセプトスライド</a> - LAM の基本原則</li>
+          <li><a href="lifecycle.html">ライフサイクルスライド</a> - プロジェクト単位の成長</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a> - コマンド・エージェント一覧</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/README.md" target="_blank">README.md</a> - プロジェクト全体像</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/tree/master/docs/internal" target="_blank">docs/internal/</a> - プロセス詳細（SSOT）</li>
+        </ul>
+      </section>
+
+      <!-- Summary -->
+      <section>
+        <h2>AI をパートナーとして迎え入れよう</h2>
+        <div class="emphasis-box">
+          <p>Living Architect Model は、AI を「道具」ではなく「設計パートナー」として機能させるフレームワークです</p>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="https://github.com/sougetuOte/LivingArchitectModel" target="_blank" style="font-size: 1.2em;">
+            GitHub Repository
+          </a>
+        </p>
+        <p class="small-text">Star をいただけると嬉しいです</p>
+        <p style="margin-top: 1em;">
+          <a href="index.html" style="font-size: 0.9em;">目次に戻る</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.textContent.trim());
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.innerHTML = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>
