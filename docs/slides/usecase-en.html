@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Living Architect Model - Use Case</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .reveal h1 {
+      font-size: 2.5em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.2em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid (3 Agents) */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    .card.affirmative {
+      border-color: var(--phase-building);
+    }
+
+    .card.critical {
+      border-color: var(--accent-warning);
+    }
+
+    .card.mediator {
+      border-color: var(--phase-planning);
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "▸ ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.2em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles for usecase scenario */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ol {
+      margin: 0.3rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .task-list li {
+      margin: 0.15rem 0;
+    }
+
+    /* Report styling */
+    .audit-report {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .audit-report table {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+
+    .audit-report th,
+    .audit-report td {
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #444;
+    }
+
+    /* Code snippet styling */
+    .code-snippet {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55em;
+      text-align: left;
+      margin: 0.3rem auto;
+      max-width: 90%;
+      line-height: 1.3;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Title Slide -->
+      <section>
+        <h1>Use Case:<br>Adding a New Feature</h1>
+        <p class="catchphrase">Experience the LAM development flow<br>through the example of adding user authentication</p>
+        <p class="small-text">Trace the entire process from specification to code<br>through the three phases: PLANNING → BUILDING → AUDITING</p>
+      </section>
+
+      <!-- Scenario Introduction -->
+      <section>
+        <h2>Scenario Introduction</h2>
+        <div class="emphasis-box">
+          <p><strong>Goal</strong>: Add user authentication</p>
+        </div>
+        <ul>
+          <li>Login functionality (email + password)</li>
+          <li>Logout functionality</li>
+          <li>Session management</li>
+        </ul>
+        <p class="small-text" style="margin-top: 2em;">Let's see how Claude, functioning as a Living Architect,<br>guides the development process</p>
+      </section>
+
+      <!-- PLANNING: Phase Start -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> Phase Start</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/planning</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Entered PLANNING phase. Starting requirements definition.<br>Let me organize the auth feature requirements.</p>
+        </div>
+      </section>
+
+      <!-- PLANNING: Requirements -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> Requirements</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>Identified requirements:</p>
+        </div>
+        <div class="task-list fragment" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem; font-size: 0.6em; padding: 0.3rem 0.5rem;">
+          <div>
+            <strong>Functional</strong>
+            <ol>
+              <li>Login (email + password)</li>
+              <li>Logout</li>
+              <li>Session management (24h)</li>
+              <li>Password hashing (bcrypt)</li>
+            </ol>
+          </div>
+          <div>
+            <strong>Non-Functional</strong>
+            <ol>
+              <li>Response: under 500ms</li>
+              <li>Security: OWASP compliant</li>
+            </ol>
+          </div>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Approve these requirements?</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>Approved</p>
+        </div>
+      </section>
+
+      <!-- PLANNING: Design (3 Agents) -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> Design (3 Agents)</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>Evaluating tech selection from three perspectives</p>
+        </div>
+        <div class="bento-grid fragment">
+          <div class="card affirmative">
+            <h3>Affirmative</h3>
+            <p><strong>JWT Recommended</strong></p>
+            <ul>
+              <li>Stateless, scalable</li>
+              <li>Microservices-ready</li>
+              <li>Token refresh support</li>
+            </ul>
+          </div>
+          <div class="card critical">
+            <h3>Critical</h3>
+            <p><strong>Risk Assessment</strong></p>
+            <ul>
+              <li>Token leakage risk</li>
+              <li>Refresh token mgmt needed</li>
+              <li>XSS protection critical</li>
+            </ul>
+          </div>
+          <div class="card mediator">
+            <h3>Mediator</h3>
+            <p><strong>Final Decision</strong></p>
+            <ul>
+              <li>JWT + refresh tokens</li>
+              <li>HttpOnly Cookie storage</li>
+              <li>CSRF protection included</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- PLANNING: Design Approval -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> Design Approval</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>The design has been documented in docs/specs/auth-feature.md.</p>
+          <p style="margin-top: 0.3rem;"><strong>Tech Stack</strong>: JWT + refresh tokens / HttpOnly Cookies / bcrypt / CSRF protection</p>
+          <p style="margin-top: 0.3rem;">Do you approve this design?</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>Approved</p>
+        </div>
+      </section>
+
+      <!-- PLANNING: Task Decomposition -->
+      <section>
+        <h2><span class="phase-badge phase-planning">PLANNING</span> Task Breakdown</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>I've broken down the implementation tasks</p>
+        </div>
+        <div class="task-list fragment">
+          <ol>
+            <li>Create user model (User entity, repository)</li>
+            <li>Implement auth endpoints (/login, /logout, /refresh)</li>
+            <li>Implement JWT generation &amp; validation middleware</li>
+            <li>Implement CSRF protection middleware</li>
+            <li>Implement integration tests</li>
+          </ol>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Do you approve this task breakdown?</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>Approved</p>
+        </div>
+      </section>
+
+      <!-- BUILDING: Phase Start -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> Phase Transition</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/building</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Transitioned to the BUILDING phase.<br>I've reviewed the spec at docs/specs/auth-feature.md.<br><br>Starting implementation with TDD cycles.</p>
+        </div>
+      </section>
+
+      <!-- BUILDING: TDD Red -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> TDD Cycle: Red</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>First, I'll write a failing test</p>
+        </div>
+        <div class="code-snippet fragment">
+          <code>// tests/auth.test.ts
+it('should login with valid credentials', async () => {
+  const res = await request(app).post('/auth/login')
+    .send({ email: 'test@example.com', password: 'pass123' });
+  expect(res.status).toBe(200);
+  expect(res.body).toHaveProperty('accessToken');
+});
+it('should reject invalid credentials', /* ... */);
+</code>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Running tests... <span style="color: var(--accent-warning);">Failed (as expected)</span></p>
+        </div>
+      </section>
+
+      <!-- BUILDING: TDD Green -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> TDD Cycle: Green</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>Implemented the minimum code to pass tests</p>
+        </div>
+        <div class="code-snippet fragment">
+          <code>// src/auth/auth.controller.ts
+async login(req: Request, res: Response) {
+  const user = await this.userRepo.findByEmail(req.body.email);
+  if (!user || !(await bcrypt.compare(req.body.password, user.hash)))
+    return res.status(401).json({ error: 'Invalid credentials' });
+  const accessToken = this.jwt.generateAccessToken(user);
+  res.cookie('refreshToken', /* ... */ { httpOnly: true });
+  return res.status(200).json({ accessToken });
+}</code>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Running tests... <span style="color: var(--phase-building);">Passed</span></p>
+        </div>
+      </section>
+
+      <!-- BUILDING: TDD Refactor -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> TDD Cycle: Refactor</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>I've improved the code quality</p>
+        </div>
+        <ul class="fragment">
+          <li>Extracted auth logic into AuthService</li>
+          <li>Unified error handling</li>
+          <li>Strengthened type safety</li>
+        </ul>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Running tests... <span style="color: var(--phase-building);">All Passed</span> &mdash; <strong>Cycle 1 Complete</strong></p>
+        </div>
+      </section>
+
+      <!-- BUILDING: Documentation Sync -->
+      <section>
+        <h2><span class="phase-badge phase-building">BUILDING</span> Doc Sync</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>I've updated the documentation to match the implementation</p>
+        </div>
+        <div class="task-list fragment">
+          <strong>Updated Documents</strong>
+          <ul>
+            <li>docs/specs/auth-feature.md (added implementation details)</li>
+            <li>README.md (added auth API usage guide)</li>
+            <li>docs/adr/003-jwt-authentication.md (decision record)</li>
+          </ul>
+        </div>
+        <div class="emphasis-box fragment">
+          <p><strong>Zero-Regression Policy</strong>: Specs and code are synchronized as an inseparable unit</p>
+        </div>
+      </section>
+
+      <!-- AUDITING: Phase Start -->
+      <section>
+        <h2><span class="phase-badge phase-auditing">AUDITING</span> Phase Transition</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/auditing</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Transitioned to the AUDITING phase.<br>Starting the quality audit.</p>
+        </div>
+      </section>
+
+      <!-- AUDITING: Audit Report -->
+      <section>
+        <h2><span class="phase-badge phase-auditing">AUDITING</span> Audit Report</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>Systematic audit completed</p>
+        </div>
+        <div class="audit-report fragment">
+          <table>
+            <tr>
+              <th>Severity</th>
+              <th>Count</th>
+            </tr>
+            <tr>
+              <td>Critical</td>
+              <td>0</td>
+            </tr>
+            <tr>
+              <td>Warning</td>
+              <td>1</td>
+            </tr>
+            <tr>
+              <td>Info</td>
+              <td>2</td>
+            </tr>
+          </table>
+          <p style="margin-top: 0.5rem;"><strong>Overall Rating: A</strong></p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p><strong>1 Warning</strong>: bcrypt salt rounds set to 10. Recommend 12+ for production.</p>
+        </div>
+      </section>
+
+      <!-- AUDITING: Note -->
+      <section>
+        <h2><span class="phase-badge phase-auditing">AUDITING</span> Audit Principles</h2>
+        <div class="emphasis-box warning-box">
+          <p><strong>Important</strong>: AUDITING reports findings only &mdash; no direct fixes</p>
+        </div>
+        <ul class="fragment" style="font-size: 0.85em;">
+          <li>If fixes needed, return to BUILDING</li>
+          <li>Present fix strategy, obtain approval</li>
+          <li>After fixing, re-verify in AUDITING</li>
+        </ul>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Fix the reported issues, or mark as complete?</p>
+        </div>
+      </section>
+
+      <!-- Completion -->
+      <section>
+        <h2>Done</h2>
+        <div class="emphasis-box">
+          <p>User auth feature complete after all three phases</p>
+        </div>
+        <ul class="fragment" style="font-size: 0.85em;">
+          <li><strong>Spec</strong>: docs/specs/auth-feature.md</li>
+          <li><strong>Tests</strong>: tests/auth.test.ts</li>
+          <li><strong>Code</strong>: src/auth/</li>
+          <li><strong>Audit</strong>: Overall Rating A</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 1.5em;">
+          <p>Entire process is traceable, docs and code stay in sync</p>
+        </div>
+      </section>
+
+      <!-- Flow Diagram -->
+      <section>
+        <h2>Development Flow Overview</h2>
+        <pre class="mermaid">
+graph LR
+  A["/planning"] --> B[Requirements]
+  B -->|Approval| C[Design]
+  C -->|Approval| D[Task Breakdown]
+  D -->|Approval| E["/building"]
+  E --> F[TDD Cycle]
+  F --> G[Doc Sync]
+  G -->|Approval| H["/auditing"]
+  H --> I[Quality Audit]
+  I --> J[Done]
+  style A fill:#569cd6,stroke:#fff,color:#000
+  style B fill:#569cd6,stroke:#fff,color:#000
+  style C fill:#569cd6,stroke:#fff,color:#000
+  style D fill:#569cd6,stroke:#fff,color:#000
+  style E fill:#4ec9b0,stroke:#fff,color:#000
+  style F fill:#4ec9b0,stroke:#fff,color:#000
+  style G fill:#4ec9b0,stroke:#fff,color:#000
+  style H fill:#ce9178,stroke:#fff,color:#000
+  style I fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+      </section>
+
+      <!-- Key Takeaways -->
+      <section>
+        <h2>The Value of LAM</h2>
+        <ul>
+          <li class="fragment"><strong>Approval Gates</strong>: Prevents the "just started coding" problem</li>
+          <li class="fragment"><strong>Enforced TDD</strong>: No implementation without tests</li>
+          <li class="fragment"><strong>Doc Sync</strong>: Prevents drift between specs and code</li>
+          <li class="fragment"><strong>3 Agents Model</strong>: Multi-perspective decision making</li>
+          <li class="fragment"><strong>Audit Separation</strong>: Clear separation of review and implementation</li>
+        </ul>
+      </section>
+
+      <!-- Commands Reference -->
+      <section>
+        <h2>Commonly Used Commands</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.8rem; margin-top: 0.8rem;">
+          <div>
+            <h3 style="font-size: 0.85em;">Phase Control</h3>
+            <ul style="font-size: 0.65em;">
+              <li><code>/planning</code></li>
+              <li><code>/building</code></li>
+              <li><code>/auditing</code></li>
+              <li><code>/project-status</code></li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.85em;">Session Management</h3>
+            <ul style="font-size: 0.65em;">
+              <li><code>/quick-save</code></li>
+              <li><code>/full-save</code></li>
+              <li><code>/full-load</code></li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.85em;">Orchestration</h3>
+            <ul style="font-size: 0.65em;">
+              <li><code>/lam-orchestrate</code></li>
+              <li><code>--parallel=N</code></li>
+              <li><code>--dry-run</code></li>
+            </ul>
+          </div>
+        </div>
+        <p class="small-text" style="margin-top: 1em;">See <a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a> for details</p>
+      </section>
+
+      <!-- Resources -->
+      <section>
+        <h2>Refer to Documentation for Details</h2>
+        <ul>
+          <li><a href="concept-en.html">Concept Slides</a> - Core principles of LAM</li>
+          <li><a href="lifecycle-en.html">Lifecycle Slides</a> - Project-level growth</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a> - Commands &amp; agents reference</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/README.md" target="_blank">README.md</a> - Project overview</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/tree/master/docs/internal" target="_blank">docs/internal/</a> - Process details (SSOT)</li>
+        </ul>
+      </section>
+
+      <!-- Summary -->
+      <section>
+        <h2>Welcome AI as Your Partner</h2>
+        <div class="emphasis-box">
+          <p>The Living Architect Model is a framework that enables AI to function not as a "tool" but as a "design partner"</p>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="https://github.com/sougetuOte/LivingArchitectModel" target="_blank" style="font-size: 1.2em;">
+            GitHub Repository
+          </a>
+        </p>
+        <p class="small-text">A star would be appreciated</p>
+        <p style="margin-top: 1em;">
+          <a href="index-en.html" style="font-size: 0.9em;">Back to Index</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.textContent = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>

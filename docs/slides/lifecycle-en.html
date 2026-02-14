@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Living Architect Model - Lifecycle</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .reveal h1 {
+      font-size: 2.2em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* Cycle badge */
+    .cycle-badge {
+      display: inline-block;
+      padding: 0.2em 0.6em;
+      border-radius: 4px;
+      font-size: 0.7em;
+      font-weight: 600;
+      margin-right: 0.5em;
+    }
+
+    .cycle-1 { background: var(--accent-warning); color: #000; }
+    .cycle-2 { background: var(--phase-planning); color: #fff; }
+    .cycle-3 { background: var(--phase-building); color: #000; }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "▸ ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.1em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ul {
+      margin: 0.3rem 0;
+    }
+
+    /* Evolution indicator */
+    .evolution-arrow {
+      text-align: center;
+      font-size: 1.5em;
+      color: var(--accent-primary);
+      margin: 0.5rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- 1. Title -->
+      <section>
+        <h1>Use Case:<br>Growing Your Project</h1>
+        <p class="catchphrase">The framework itself grows<br>— that's what "Living" means</p>
+        <p class="small-text">Tracing how LAM and project assets evolve<br>across multiple development cycles</p>
+      </section>
+
+      <!-- 2. Scenario -->
+      <section>
+        <h2>Scenario</h2>
+        <div class="emphasis-box">
+          <p><strong>Goal</strong>: Develop a new web app using LAM</p>
+        </div>
+        <ul style="margin-top: 1rem;">
+          <li><span class="cycle-badge cycle-1">1st</span> User Authentication</li>
+          <li><span class="cycle-badge cycle-2">2nd</span> Product Management</li>
+          <li><span class="cycle-badge cycle-3">3rd</span> Order Processing</li>
+        </ul>
+        <p class="small-text" style="margin-top: 1.5em;">Key focus: Not the features themselves, but the <strong>accumulation of project assets</strong> and the <strong>evolution of the framework</strong></p>
+      </section>
+
+      <!-- 3. Phase 0: Setup -->
+      <section>
+        <h2>Phase 0: Initial Setup</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">What you deploy</h3>
+            <ul style="font-size: 0.75em;">
+              <li><code>CLAUDE.md</code> (template)</li>
+              <li><code>.claude/rules/</code> (base rules)</li>
+              <li><code>.claude/skills/</code> (standard commands)</li>
+              <li><code>docs/internal/</code> (general processes)</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-secondary);">Still empty</h3>
+            <ul style="font-size: 0.75em;">
+              <li><code>docs/specs/</code> (specifications)</li>
+              <li><code>docs/adr/</code> (decision records)</li>
+              <li><code>docs/tasks/</code> (task definitions)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p style="font-size: 0.85em;">At this point, LAM is still just a <strong>"generic template"</strong></p>
+        </div>
+      </section>
+
+      <!-- 4. 1st Cycle: PLANNING -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">1st</span> Authentication PLANNING</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/planning<br>I want to add user authentication</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Starting requirements definition.<br>I'll use the 3 Agents Model for technology selection and create specs and an ADR.</p>
+        </div>
+        <div class="task-list fragment">
+          <strong>Documents generated for the first time</strong>
+          <ul>
+            <li><code>docs/specs/auth-feature.md</code> — First specification</li>
+            <li><code>docs/adr/001-jwt-auth.md</code> — First ADR</li>
+            <li><code>docs/tasks/sprint-01.md</code> — First task definition</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- 5. 1st Cycle: BUILD → AUDIT -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">1st</span> BUILDING → AUDITING</h2>
+        <p style="font-size: 0.9em;">Implement with TDD cycles, verify with quality audits</p>
+        <pre class="mermaid">
+graph LR
+  A["/building"] --> B[TDD<br/>Red→Green→Refactor]
+  B --> C[Doc Sync]
+  C --> D["/auditing"]
+  D --> E[Audit Report]
+  style A fill:#4ec9b0,stroke:#fff,color:#000
+  style B fill:#4ec9b0,stroke:#fff,color:#000
+  style C fill:#4ec9b0,stroke:#fff,color:#000
+  style D fill:#ce9178,stroke:#fff,color:#000
+  style E fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+        <p class="small-text">For feature-level details, see the <a href="usecase-en.html">Use Case slides</a></p>
+      </section>
+
+      <!-- 6. 1st Cycle: What was born -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">1st</span> Cycle Complete: What Was Born</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-secondary);">Project Assets</h3>
+            <ul style="font-size: 0.75em;">
+              <li>1 specification</li>
+              <li>1 ADR</li>
+              <li>Test suite</li>
+              <li>Implementation code</li>
+            </ul>
+          </div>
+          <div class="fragment">
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">Insights Gained</h3>
+            <ul style="font-size: 0.75em;">
+              <li>JWT operational policy established</li>
+              <li>Security requirement patterns</li>
+              <li>Testing strategy standards</li>
+              <li>Code review perspectives</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box warning-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;"><strong>Problem</strong>: These insights remain "tacit knowledge." How do we leverage them in the next cycle?</p>
+        </div>
+      </section>
+
+      <!-- 7. Framework Update 1 -->
+      <section>
+        <h2>Framework Update 1</h2>
+        <h3>Feeding tacit knowledge back</h3>
+        <ul style="margin-top: 0.8rem; font-size: 0.85em;">
+          <li class="fragment"><code>CLAUDE.md</code> — Security policies &amp; tech stack criteria added</li>
+          <li class="fragment"><code>docs/internal/</code> — Auth design patterns added</li>
+          <li class="fragment"><code>.claude/rules/</code> — Project-specific security rules</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">LAM transforms from a template into a <strong>"project-tailored framework"</strong></p>
+        </div>
+      </section>
+
+      <!-- 8. 2nd Cycle: Improved PLANNING -->
+      <section>
+        <h2><span class="cycle-badge cycle-2">2nd</span> Product Management PLANNING</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/planning<br>I want to add product management</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>I'll reference the existing spec auth-feature.md and ADR 001 to ensure consistency.<br>Based on the security rules, I'll also include access control for product data in the design.</p>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.5rem;">
+          <p style="font-size: 0.85em;"><strong>Difference from 1st</strong>: Past specs, ADRs, and rules are automatically referenced, promoting consistent design</p>
+        </div>
+      </section>
+
+      <!-- 9. 2nd Cycle Complete -->
+      <section>
+        <h2><span class="cycle-badge cycle-2">2nd</span> Cycle Complete: What Else Has Grown</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-secondary);">Accumulated Assets</h3>
+            <ul style="font-size: 0.75em;">
+              <li>2 specifications (cross-referenced)</li>
+              <li>3 ADRs</li>
+              <li>Test infrastructure reuse</li>
+            </ul>
+          </div>
+          <div class="fragment">
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">Framework Update 2</h3>
+            <ul style="font-size: 0.75em;">
+              <li><code>CLAUDE.md</code> — DB design conventions added</li>
+              <li><code>skills/</code> — CRUD generation skill added</li>
+              <li><code>docs/internal/</code> — Testing strategy revised</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">CLAUDE.md has evolved from a "template" into a <strong>"crystallization of project wisdom"</strong></p>
+        </div>
+      </section>
+
+      <!-- 10. 3rd Cycle: Full Maturity -->
+      <section>
+        <h2><span class="cycle-badge cycle-3">3rd</span> Order Processing</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p style="font-size: 0.7em;">Verified consistency with auth (spec/001) and products (spec/002).<br>
+          Following DB conventions from ADR-003, leveraging CRUD skills for efficient task decomposition.</p>
+        </div>
+        <div class="task-list fragment" style="margin-top: 0.3rem;">
+          <strong style="font-size: 0.9em;">Assets leveraged</strong>
+          <ul style="font-size: 0.85em;">
+            <li>2 specs → Consistent API design reference</li>
+            <li>3 ADRs → Building on past decisions</li>
+            <li>CRUD skill → Routine task automation</li>
+            <li>Security rules → Auto-applied</li>
+          </ul>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.3rem;">
+          <p style="font-size: 0.8em;">1st Cycle's hard decisions are now <strong>automatically guided</strong> in the 3rd</p>
+        </div>
+      </section>
+
+      <!-- 11. Growth Compound Effect -->
+      <section>
+        <h2>The Compound Effect of Growth</h2>
+        <div class="bento-grid" style="margin-top: 0.5rem;">
+          <div class="card" style="border-color: var(--accent-warning);">
+            <h3><span class="cycle-badge cycle-1">1st</span></h3>
+            <p><strong>Building the Foundation</strong></p>
+            <ul>
+              <li>Everything from scratch</li>
+              <li>Using templates</li>
+              <li>Takes time</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--phase-planning);">
+            <h3><span class="cycle-badge cycle-2">2nd</span></h3>
+            <p><strong>Leveraging Assets</strong></p>
+            <ul>
+              <li>Referencing existing specs/ADRs</li>
+              <li>Rules auto-applied</li>
+              <li>Efficiency improves</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--phase-building);">
+            <h3><span class="cycle-badge cycle-3">3rd</span></h3>
+            <p><strong>Automated Guidance</strong></p>
+            <ul>
+              <li>Rich assets enable high precision</li>
+              <li>Skills automate tasks</li>
+              <li>Significantly accelerated</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- 12. CLAUDE.md Evolution -->
+      <section>
+        <h2>Evolution of CLAUDE.md</h2>
+        <h3 style="font-size: 0.95em;">The project constitution is alive</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-top: 0.4rem;">
+          <div>
+            <h3 style="font-size: 0.8em; color: var(--accent-warning);">Right after adoption</h3>
+            <ul style="font-size: 0.65em;">
+              <li>Identity (template)</li>
+              <li>Hierarchy of Truth (generic)</li>
+              <li>Core Principles (generic)</li>
+              <li>Execution Modes (basic 3)</li>
+            </ul>
+          </div>
+          <div class="fragment">
+            <h3 style="font-size: 0.8em; color: var(--accent-primary);">After 3 Cycles</h3>
+            <ul style="font-size: 0.65em;">
+              <li>Identity + <strong>Project-specific duties</strong></li>
+              <li>Truth + <strong>Tech stack criteria</strong></li>
+              <li>Principles + <strong>Security &amp; DB rules</strong></li>
+              <li>Modes + <strong>Custom workflows</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.6rem;">
+          <p style="font-size: 0.85em;">CLAUDE.md grows = <strong>AI partner's judgment refines</strong></p>
+        </div>
+      </section>
+
+      <!-- 13. With vs Without -->
+      <section>
+        <h2>With LAM vs Without</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem;">
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-warning);">Without LAM</h3>
+            <ul style="font-size: 0.8em;">
+              <li>Design from scratch every time</li>
+              <li>Past decisions are forgotten</li>
+              <li>Documentation decays</li>
+              <li>AI quality stays flat</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="font-size: 0.9em; color: var(--accent-primary);">With LAM</h3>
+            <ul style="font-size: 0.8em;">
+              <li>Assets accumulate and get reused</li>
+              <li>Proactively searches past records</li>
+              <li>Documentation stays in sync</li>
+              <li>AI partner gets smarter</li>
+            </ul>
+          </div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p>The more you use it, the wider the gap. That's the compound effect of <strong>"Living"</strong></p>
+        </div>
+      </section>
+
+      <!-- 14. Living's True Value -->
+      <section>
+        <h2>The True Value of "Living"</h2>
+        <ul style="font-size: 0.85em;">
+          <li class="fragment"><code>CLAUDE.md</code> doesn't stay a template. <strong>It becomes a crystallization of project wisdom</strong></li>
+          <li class="fragment"><code>docs/internal/</code> isn't write-and-forget. <strong>It gets refined through real-world use</strong></li>
+          <li class="fragment"><code>rules/</code> and <code>skills/</code> keep growing. <strong>AI behavior becomes optimized</strong></li>
+          <li class="fragment"><code>specs/</code> and <code>adr/</code> keep being referenced. <strong>Decisions are never forgotten</strong></li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">The further the project progresses, the smarter your AI partner becomes.<br>That is the Living Architect Model.</p>
+        </div>
+      </section>
+
+      <!-- 15. Resources -->
+      <section>
+        <h2>See the Documentation for Details</h2>
+        <ul>
+          <li><a href="concept-en.html">Concept Slides</a> - Core principles of LAM</li>
+          <li><a href="usecase-en.html">Use Case Slides</a> - Feature-level development flow</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/CHEATSHEET.md" target="_blank">CHEATSHEET.md</a> - Commands & agents reference</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/blob/master/README.md" target="_blank">README.md</a> - Project overview</li>
+          <li><a href="https://github.com/sougetuOte/LivingArchitectModel/tree/master/docs/internal" target="_blank">docs/internal/</a> - Process details (SSOT)</li>
+        </ul>
+      </section>
+
+      <!-- 16. Summary -->
+      <section>
+        <h2>Welcome AI as Your Partner</h2>
+        <div class="emphasis-box">
+          <p>The Living Architect Model is a framework that makes AI function as a "design partner," not just a tool</p>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="https://github.com/sougetuOte/LivingArchitectModel" target="_blank" style="font-size: 1.2em;">
+            GitHub Repository
+          </a>
+        </p>
+        <p class="small-text">A star would be appreciated</p>
+        <p style="margin-top: 1em;">
+          <a href="index-en.html" style="font-size: 0.9em;">Back to Index</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    // Store original sources before any rendering
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.textContent = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>
