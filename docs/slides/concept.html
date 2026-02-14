@@ -631,7 +631,7 @@ curl -O https://raw.githubusercontent.com/sougetuOte/LivingArchitectModel/master
     });
 
     document.querySelectorAll('.mermaid').forEach(el => {
-      el.setAttribute('data-mermaid-src', el.textContent.trim());
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
     });
 
     async function renderMermaid(slide) {
@@ -642,7 +642,7 @@ curl -O https://raw.githubusercontent.com/sougetuOte/LivingArchitectModel/master
         if (!svg || svg.getBoundingClientRect().width < 50) {
           const src = el.getAttribute('data-mermaid-src');
           if (src) {
-            el.innerHTML = src;
+            el.textContent = src;
             el.removeAttribute('data-processed');
             toRender.push(el);
           }
