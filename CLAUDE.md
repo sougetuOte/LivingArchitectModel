@@ -45,7 +45,20 @@
 |---------|------|
 | 行動規範 | `.claude/rules/` |
 | プロセス SSOT | `docs/internal/` |
-| クイックリファレンス | `.claude/CHEATSHEET.md` |
+| クイックリファレンス | `CHEATSHEET.md` |
+
+## Context Management
+
+コンテキスト残量が **20% を下回った** と判断したら、現在のタスクの区切りの良いところで
+ユーザーに「残り少ないので `/quick-save` を推奨します」と提案すること。
+auto-compact の発動を待たないこと。これは保険であり、基本はユーザーが StatusLine を監視する。
+
+### セーブコマンドの使い分け
+- `/quick-save`: SESSION_STATE.md のみ記録（軽量、3-4%消費）。普段使い
+- `/full-save`: SESSION_STATE.md + git commit + push + daily（一日の終わり）
+- `/full-load`: セッション復元（次セッション開始時）
+- 残量 25% 以下では `/quick-save` を使うこと
+- `/full-save` は残量に余裕があるときのみ
 
 ## Initial Instruction
 
