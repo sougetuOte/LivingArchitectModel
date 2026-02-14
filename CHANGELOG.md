@@ -27,6 +27,12 @@ All notable changes to this project will be documented in this file.
   - doc-writer フェーズを ALL に変更
   - 05_MCP 説明に MEMORY.md Policy 追加
   - CHEATSHEET 参照ドキュメントに 00/04/07 追加
+- **Spec**: `lam-orchestrate-design.md` v2.0.0 → v3.0.0
+  - 運用フィードバック反映: Phase 構成を 5 段階に拡張
+  - 承認フロー・計画変更プロトコル追加
+  - Agent 一覧を実装（8 agent）に合わせて更新
+  - 状態遷移図に PlanApproved / PlanChange 追加
+  - 実装チェックリスト全項目完了
 - `.gitignore` に `docs/daily/` を追加
 
 ## [v3.6.0] - 2026-02-15

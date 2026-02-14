@@ -1,16 +1,17 @@
 # LAM Orchestrate 設計書
 
-**バージョン**: 2.0.0
+**バージョン**: 3.0.0
 **作成日**: 2026-01-29
 **改訂日**: 2026-02-15
-**ステータス**: Active (Revision - Public API Aligned)
-**前バージョン**: 1.0.0 (On Hold)
+**ステータス**: Active (Operational Feedback Applied)
+**前バージョン**: 2.0.0 (Active)
 **参照 Claude Code バージョン**: 2.1.42
 **関連文書**: `_reference/2026-01-29.md`
 
 > **改訂履歴**:
 > - v1.0.0 (2026-01-29): 初版。Anthropic Swarm 機能リリース待ちで On Hold。
 > - v2.0.0 (2026-02-15): Claude Code 公式 Subagent/Skills API に準拠して全面改訂。Agent Teams は将来拡張パスとして記載。
+> - v3.0.0 (2026-02-15): 運用フィードバック反映。Phase 構成を 5 段階に拡張、承認フロー・計画変更プロトコル追加、Agent 一覧を実装に合わせて更新。
 
 ---
 
@@ -147,11 +148,16 @@ stateDiagram-v2
     Analyzing --> Planning: タスク分解完了
     Analyzing --> Idle: 分解不可（単一タスク）
 
-    Planning --> Executing: 並列実行開始
+    Planning --> PlanApproved: ユーザー承認
     Planning --> Idle: キャンセル
 
+    PlanApproved --> Executing: 実行開始
+
+    Executing --> PlanChange: 追加要望（Phase 5）
     Executing --> Aggregating: 全 Worker 完了
     Executing --> Error: Worker 失敗
+
+    PlanChange --> Executing: 変更承認後
 
     Aggregating --> Reporting: 結果統合完了
 
@@ -190,9 +196,10 @@ name: lam-orchestrate
 description: >
   LAM Coordinator - タスクを分解し、適切な Subagent で並列実行する。
   複数ファイル/モジュールにまたがる作業の自動分解・並列実行に使用。
-  Use proactively when the user requests multi-file operations.
+  Use proactively when the user requests multi-file or multi-module operations.
 disable-model-invocation: true
 allowed-tools: Task, Read, Glob, Grep
+argument-hint: "[タスク説明] [--parallel=N] [--dry-run]"
 ---
 
 # LAM Orchestrate Coordinator
@@ -203,19 +210,80 @@ allowed-tools: Task, Read, Glob, Grep
 ## 実行フロー
 
 ### Phase 1: 分析
-1. タスクの全体像を把握
-2. 独立して実行可能な単位に分解
-3. 各単位に最適な Subagent を割り当て
 
-### Phase 2: 実行
-1. 並列実行可能なタスクを特定
-2. **1メッセージで複数の Task を呼び出し**（並列実行）
-3. 依存関係があるタスクは Wave を分けて逐次実行
+1. タスクの全体像を把握する
+2. 対象ファイル/ディレクトリを `Glob` と `Grep` で調査する
+3. **Git 状態の確認**:
+   - `git status` でワーキングツリーの状態を把握
+   - 対象ファイルに未コミット変更がある場合、`git diff` で差分を確認
+   - `.claude/current-phase.md` を読み取り、現在のフェーズを把握
+4. 独立して実行可能な単位に分解する
+5. 各単位に最適な Subagent を割り当てる
 
-### Phase 3: 統合
-1. 各 Worker の結果を収集
-2. 整合性を確認
-3. 統合レポートを作成
+### Phase 2: 実行計画の提示
+
+分解結果を以下の形式で表示し、ユーザーの承認を得る:
+
+```
+## 実行計画
+
+| # | タスク | Subagent | Wave |
+|---|--------|----------|:----:|
+| 1 | [タスク説明] | [subagent-name] | 1 |
+| 2 | [タスク説明] | [subagent-name] | 1 |
+| 3 | [タスク説明] | [subagent-name] | 2 |
+
+**並列数**: N（Wave 内で並列実行）
+**推定 Subagent 数**: M
+
+続行しますか？ [Y/n]
+```
+
+**承認の範囲**:
+- ユーザーが計画を承認した場合、全 Wave の実行が許可されたものとする
+- Wave 完了ごとの再承認は不要（ただし FATAL エラー発生時は停止し報告）
+- 途中で計画変更が必要になった場合は「Phase 5: 計画変更プロトコル」に従う
+
+`--dry-run` が指定された場合、計画表示のみで実行しない。
+
+### Phase 3: 実行
+
+1. 並列実行可能なタスクを **1メッセージで複数の Task を呼び出す**
+2. 依存関係があるタスクは Wave を分けて逐次実行する
+3. 各 Wave の完了を待ってから次の Wave を開始する
+
+### Phase 4: 統合
+
+1. 各 Subagent の結果を収集する
+2. 変更ファイル一覧を統合する
+3. 整合性チェック（インポートの競合等）を行う
+4. 統合レポートを作成する
+
+### Phase 5: 計画変更プロトコル（Phase 3 実行中に発動）
+
+Phase 3（実行）の途中でユーザーから追加要望が発生した場合、以下の手順で対応する:
+
+1. **差分計画の作成**: 既存計画との差分を明示した「変更計画」を作成する
+2. **影響範囲の分析**: 既に完了した Wave への影響（ファイル再編集の要否等）を分析する
+3. **変更計画の提示**: 以下の形式で提示し、承認を得る
+
+```
+## 計画変更提案
+
+**追加要件**: [ユーザーの追加要望]
+
+**影響**:
+- Wave X（完了済み）: 再実行不要 / ファイル Z の再編集が必要
+
+**追加タスク**:
+| # | タスク | Subagent | Wave |
+|---|--------|----------|:----:|
+| N | [新規タスク] | [agent] | M |
+
+続行しますか？ [Y/n]
+```
+
+4. **承認後実行**: 承認されれば Phase 3 の実行ルールに従って追加タスクを実行する
 
 ## 並列実行ルール
 
@@ -224,7 +292,7 @@ allowed-tools: Task, Read, Glob, Grep
 引数 --parallel=N で上書き可能
 
 並列化の条件:
-  ✓ 異なるファイル/ディレクトリを対象
+  ✓ 異なるファイル/ディレクトリを対象としている
   ✓ 相互に依存しないタスク
   ✗ 同一ファイルへの書き込み → 直列化
   ✗ 出力が次の入力になる → Wave 分離
@@ -232,36 +300,46 @@ allowed-tools: Task, Read, Glob, Grep
 
 ## Subagent 選択ルール
 
-| ファイルパターン | 推奨 Subagent |
-|------------------|---------------|
-| `*.rs`, `Cargo.toml` | rust-specialist |
-| `*.ts`, `*.tsx`, `*.vue` | frontend-dev |
-| `*test*`, `*spec*` | test-runner |
-| `*.md`, `docs/` | doc-writer |
-| その他 | general-purpose（ビルトイン） |
+`.claude/agents/` に定義されたカスタム Subagent を優先し、
+未定義のパターンにはビルトイン Subagent を使用する。
 
-> **Note**: `general-purpose` は Claude Code ビルトイン Subagent。
-> カスタム Subagent が未定義のパターンではビルトインにフォールバックする。
+| ファイルパターン | 推奨 Subagent | 備考 |
+|------------------|---------------|------|
+| `*test*`, `*spec*` | test-runner | カスタム定義 |
+| `*.md`, `docs/` | doc-writer | カスタム定義。仕様策定と清書の両方 |
+| コードレビュー系 | code-reviewer | カスタム定義（LAM品質基準） |
+| 調査・探索系 | Explore | ビルトイン |
+| その他 | general-purpose | ビルトイン |
+
+> プロジェクト固有の Subagent（例: `rust-specialist`, `frontend-dev`）は
+> `.claude/agents/` に追加すれば自動的に選択候補に含まれる。
 
 ## 禁止事項
 
-- Subagent からの Subagent 起動（技術的に不可 — Claude Code の制約）
+- Subagent からの Subagent 起動（Claude Code の技術的制約）
 - 未分析でのタスク実行
+- ユーザー承認なしでの実行開始（`--no-confirm` 指定時を除く）
 
-## 出力フォーマット
+## エラー処理
 
-タスク分解後、以下を表示してから実行:
+| エラー種別 | 対応 |
+|-----------|------|
+| RECOVERABLE（タイムアウト等） | 最大3回リトライ |
+| PARTIAL_FAILURE（一部失敗） | 成功結果を保持し、失敗タスクを報告 |
+| FATAL（前提条件エラー） | 全体停止、エラーレポート出力 |
+
+## 実行結果フォーマット
 
 ```
-## 実行計画
+## 実行結果
 
-| # | タスク | Subagent | 並列 |
-|---|--------|----------|:----:|
-| 1 | ... | rust-specialist | Wave 1 |
-| 2 | ... | frontend-dev | Wave 1 |
-| 3 | ... | test-runner | Wave 2 |
+| タスク | 状態 | 変更 | 詳細 |
+|--------|:----:|------|------|
+| [タスク1] | ✅ | N files | [概要] |
+| [タスク2] | ✅ | N files | [概要] |
+| [タスク3] | ❌ | - | [エラー内容] |
 
-続行しますか？ [Y/n]
+**合計**: X ファイル変更、Y エラー
 ```
 ```
 
@@ -281,12 +359,14 @@ allowed-tools: Task, Read, Glob, Grep
 ```
 .claude/
 └── agents/
-    ├── rust-specialist.md
-    ├── frontend-dev.md
-    ├── test-runner.md
-    ├── code-reviewer.md
+    ├── requirement-analyst.md
+    ├── design-architect.md
+    ├── task-decomposer.md
+    ├── tdd-developer.md
+    ├── quality-auditor.md
     ├── doc-writer.md
-    └── explorer.md
+    ├── test-runner.md
+    └── code-reviewer.md
 ```
 
 #### 3.2.2 Subagent テンプレート（公式仕様準拠）
@@ -350,34 +430,34 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 #### 3.2.3 標準 Agent 一覧
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         Standard Agents                                  │
-├─────────────────┬───────────────────────────────────────────────────────┤
-│ rust-specialist │ Rust / Tauri / Cargo 専門                             │
-│                 │ 対象: src-tauri/, *.rs, Cargo.toml                    │
-│                 │ モデル: sonnet                                        │
-├─────────────────┼───────────────────────────────────────────────────────┤
-│ frontend-dev    │ フロントエンド開発（React/Vue/TS）                    │
-│                 │ 対象: src/, *.ts, *.tsx, *.vue, *.css                 │
-│                 │ モデル: sonnet                                        │
-├─────────────────┼───────────────────────────────────────────────────────┤
-│ test-runner     │ テスト実行・分析                                      │
-│                 │ 対象: *test*, *spec*, __tests__/                      │
-│                 │ モデル: haiku（高速）                                 │
-├─────────────────┼───────────────────────────────────────────────────────┤
-│ code-reviewer   │ コードレビュー・品質チェック                          │
-│                 │ 対象: 全ソースコード                                  │
-│                 │ モデル: opus（深い分析）                              │
-├─────────────────┼───────────────────────────────────────────────────────┤
-│ doc-writer      │ ドキュメント作成・更新                                │
-│                 │ 対象: docs/, *.md, README                             │
-│                 │ モデル: sonnet                                        │
-├─────────────────┼───────────────────────────────────────────────────────┤
-│ explorer        │ コードベース調査・分析                                │
-│                 │ 対象: 全体（読み取り専用）                            │
-│                 │ モデル: haiku（広範囲探索）                           │
-└─────────────────┴───────────────────────────────────────────────────────┘
+┌─────────────────────┬──────────────────────────────────────────────────┐
+│ requirement-analyst  │ 要件分析・ユーザーストーリー                      │
+│                     │ フェーズ: PLANNING │ モデル: sonnet              │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ design-architect     │ API設計・アーキテクチャ設計                       │
+│                     │ フェーズ: PLANNING │ モデル: sonnet              │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ task-decomposer      │ タスク分割・依存関係整理                          │
+│                     │ フェーズ: PLANNING │ モデル: sonnet              │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ tdd-developer        │ Red-Green-Refactor TDD実装                       │
+│                     │ フェーズ: BUILDING │ モデル: sonnet              │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ quality-auditor      │ 品質監査・セキュリティチェック                    │
+│                     │ フェーズ: AUDITING │ モデル: sonnet              │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ doc-writer           │ ドキュメント作成・仕様策定・更新                  │
+│                     │ フェーズ: ALL │ モデル: sonnet                   │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ test-runner          │ テスト実行・分析                                  │
+│                     │ フェーズ: BUILDING │ モデル: haiku               │
+├─────────────────────┼──────────────────────────────────────────────────┤
+│ code-reviewer        │ コードレビュー（LAM品質基準適用）                │
+│                     │ フェーズ: AUDITING │ モデル: sonnet              │
+└─────────────────────┴──────────────────────────────────────────────────┘
 ```
+
+> Note: `rust-specialist`, `frontend-dev`, `explorer` はプロジェクト固有の例であり、必要に応じて `.claude/agents/` に追加する。
 
 ---
 
@@ -393,23 +473,44 @@ tools: Read, Write, Edit, Bash, Grep, Glob
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ Phase 1: Analysis (Skill)                                               │
+│ Phase 1: Analysis (Git/Phase State + Structure)                        │
 ├─────────────────────────────────────────────────────────────────────────┤
-│ 1. src/ の構造を調査                                                    │
+│ 1. Git 状態確認                                                         │
+│    ├── git status でワーキングツリー確認                                │
+│    └── .claude/current-phase.md で現在のフェーズ把握                   │
+│                                                                         │
+│ 2. src/ の構造を調査                                                    │
 │    └── Glob("src/**/*") で対象ファイル列挙                             │
 │                                                                         │
-│ 2. 独立性を分析                                                         │
+│ 3. 独立性を分析                                                         │
 │    ├── src/auth/     → 独立（認証モジュール）                          │
 │    ├── src/api/      → 独立（API エンドポイント）                      │
 │    └── src/utils/    → 独立（ユーティリティ）                          │
 │                                                                         │
-│ 3. Agent を割り当て                                                     │
+│ 4. Agent を割り当て                                                     │
 │    └── すべて frontend-dev（TypeScript）                               │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ Phase 2: Execution (Main → Workers)                                     │
+│ Phase 2: Plan Presentation                                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ ## 実行計画                                                             │
+│                                                                         │
+│ | # | タスク | Subagent | Wave |                                        │
+│ |---|--------|----------|:----:|                                        │
+│ | 1 | src/auth/ リファクタリング | frontend-dev | 1 |                  │
+│ | 2 | src/api/ リファクタリング | frontend-dev | 1 |                   │
+│ | 3 | src/utils/ リファクタリング | frontend-dev | 1 |                 │
+│                                                                         │
+│ 続行しますか？ [Y/n]                                                    │
+└────────────────────────────────────┬────────────────────────────────────┘
+                                     │
+                           ユーザー承認（全 Wave の実行許可）
+                                     │
+                                     ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Phase 3: Execution (Main → Workers)                                     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  Main Process (1メッセージで3つの Task を発行)                         │
@@ -445,7 +546,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
                                      │
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│ Phase 3: Aggregation                                                    │
+│ Phase 4: Aggregation                                                    │
 ├─────────────────────────────────────────────────────────────────────────┤
 │ 1. 各 Worker の結果を収集                                               │
 │ 2. 変更ファイル一覧を統合                                               │
@@ -583,12 +684,13 @@ flowchart TD
 ```
 .claude/
 ├── skills/
-│   └── lam-orchestrate.md      # Coordinator Skill
+│   └── lam-orchestrate/
+│       └── SKILL.md              # Coordinator Skill
 ├── agents/
-│   ├── rust-specialist.md      # カスタム Agent
-│   ├── frontend-dev.md
+│   ├── requirement-analyst.md    # LAM 標準 Agent
+│   ├── doc-writer.md
 │   └── ...
-└── settings.json               # グローバル設定（将来）
+└── settings.json                 # グローバル設定（将来）
 ```
 
 ### 6.2 Agent の追加手順
@@ -649,7 +751,7 @@ flowchart TD
 │ 将来: Agent Teams が Stable になった場合                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│ 現在 (v2.0 - Subagent ベース):                                         │
+│ 現在 (v3.0 - Subagent ベース):                                         │
 │   Skill → Main → Subagents (Task tool)                                 │
 │   ・安定 API、低コスト (1.5-2x)                                        │
 │   ・Subagent 間通信なし（Main 経由）                                   │
@@ -768,19 +870,21 @@ Wave 2: [========================================] 1/1 完了
 
 ### 9.1 実装チェックリスト
 
-- [ ] `.claude/skills/lam-orchestrate/SKILL.md` 作成（公式 SKILL.md 形式）
-- [ ] `.claude/agents/` に Subagent 定義作成（公式 frontmatter 形式）
-  - [ ] rust-specialist.md
-  - [ ] frontend-dev.md
-  - [ ] test-runner.md
-  - [ ] code-reviewer.md（ビルトインとの差別化を検討）
-  - [ ] doc-writer.md
-  - [ ] ~~explorer.md~~（ビルトイン `Explore` で代替）
-- [ ] ビルトイン Subagent との重複確認（Explore, Plan, general-purpose）
-- [ ] 動作確認（ドライラン: `--dry-run`）
-- [ ] 動作確認（実行）
-- [ ] ドキュメント更新（CHANGELOG, README）
-- [ ] 参照 Claude Code バージョンの記録
+- [x] `.claude/skills/lam-orchestrate/SKILL.md` 作成（公式 SKILL.md 形式）
+- [x] `.claude/agents/` に Subagent 定義作成（公式 frontmatter 形式）
+  - [x] requirement-analyst.md
+  - [x] design-architect.md
+  - [x] task-decomposer.md
+  - [x] tdd-developer.md
+  - [x] quality-auditor.md
+  - [x] doc-writer.md
+  - [x] test-runner.md
+  - [x] code-reviewer.md
+- [x] ビルトイン Subagent との重複確認（Explore, Plan, general-purpose）
+- [x] 動作確認（ドライラン: `--dry-run`）
+- [x] 動作確認（実行）
+- [x] ドキュメント更新（CHANGELOG, README）
+- [x] 参照 Claude Code バージョンの記録
 
 ### 9.2 レビューチェックリスト
 
@@ -800,6 +904,6 @@ Wave 2: [========================================] 1/1 完了
 
 ---
 
-*本設計書は LAM v4.0 の一部として作成された。*
-*v2.0 改訂: Claude Code 公式 Subagent/Skills API (v2.1.42) に準拠。*
+*本設計書は LAM の一部として作成された。*
+*v3.0 改訂: 運用フィードバック反映（Phase 5 計画変更プロトコル、承認範囲明確化、Agent 一覧更新）。*
 *Agent Teams (旧 Swarm) が Stable になった段階で、Section 7.2 の移行基準に基づき再評価する。*
