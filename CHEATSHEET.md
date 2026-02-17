@@ -69,13 +69,15 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | コマンド | 用途 | コンテキスト消費 |
 |---------|------|----------------|
 | `/quick-save` | 軽量セーブ（SESSION_STATE.md のみ） | 3-4% |
+| `/quick-load` | 軽量ロード（SESSION_STATE.md のみ） | ~1% |
 | `/full-save` | フルセーブ（commit + push + daily） | 約10% |
-| `/full-load` | セッション復元（次セッション開始時） | 2-3% |
+| `/full-load` | フルロード（状態確認 + 詳細報告） | 2-3% |
 
-### セーブの使い分け
-- **普段**: `/quick-save`（残量 25% 以下でも安全）
+### セーブ/ロードの使い分け
+- **普段のセーブ**: `/quick-save`（残量 25% 以下でも安全）
 - **一日の終わり**: `/full-save`（残量に余裕があるとき）
-- **次セッション開始時**: `/full-load`
+- **前回の続き**: `/quick-load`（日常の再開）
+- **数日ぶりの復帰**: `/full-load`（詳細な状態確認）
 
 ### StatusLine
 画面下部にコンテキスト残量を常時表示（要 Python 3.x）:
@@ -172,7 +174,8 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 → `/quick-save` でセーブして `exit`
 
 **次のセッションを始めるときは？**
-→ `/full-load` で前回の状態を復元
+→ `/quick-load` で前回の続きから（日常）
+→ `/full-load` で詳細な状態確認（数日ぶり）
 
 **仕様書はどこ？**
 → `docs/specs/`
