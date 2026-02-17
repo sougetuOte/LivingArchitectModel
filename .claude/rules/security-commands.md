@@ -1,14 +1,6 @@
 # コマンド実行安全基準
 
-## Purpose
-
-ターミナルコマンド実行時の安全基準を定義する。
-
-## Permission Categories
-
-### Allow List（自動実行可）
-
-副作用がなく、ローカル環境で完結するもの（`SafeToAutoRun: true`）:
+## Allow List（自動実行可）
 
 | カテゴリ | コマンド |
 |---------|---------|
@@ -18,9 +10,7 @@
 | パッケージ情報 | `npm list`, `pip list` |
 | プロセス情報 | `ps` |
 
-### Deny List（承認必須）
-
-システムに変更を加える、または外部通信するもの（`SafeToAutoRun: false`）:
+## Deny List（承認必須）
 
 | カテゴリ | コマンド | リスク |
 |---------|---------|--------|
@@ -32,14 +22,5 @@
 | ネットワーク | `curl`, `wget`, `ssh` | 外部通信 |
 | 実行 | `npm start`, `python main.py`, `make` | リソース枯渇 |
 
-## Gray Area Protocol
-
 上記に含まれないコマンドは **Deny List 扱い**（承認必須）。
-
-## Emergency Stop
-
 「止めて」「ストップ」等の指示で直ちに停止。
-
-## References
-
-- `docs/internal/07_SECURITY_AND_AUTOMATION.md`

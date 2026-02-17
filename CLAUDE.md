@@ -31,13 +31,13 @@
 
 ## Execution Modes
 
-| モード | 用途 | ガードレール |
-|--------|------|-------------|
-| `/planning` | 設計・タスク分解 | コード生成禁止 |
-| `/building` | TDD 実装 | 仕様確認必須 |
-| `/auditing` | レビュー・監査 | 修正禁止（指摘のみ） |
+| モード | 用途 | ガードレール | 推奨モデル |
+|--------|------|-------------|-----------|
+| `/planning` | 設計・タスク分解 | コード生成禁止 | Opus / Sonnet |
+| `/building` | TDD 実装 | 仕様確認必須 | Sonnet |
+| `/auditing` | レビュー・監査 | 修正禁止（指摘のみ） | Opus |
 
-詳細は `.claude/rules/phase-*.md` を参照。
+詳細は `.claude/rules/phase-rules.md` を参照。
 
 ## References
 
@@ -54,10 +54,11 @@
 ユーザーに「残り少ないので `/quick-save` を推奨します」と提案すること。
 auto-compact の発動を待たないこと。これは保険であり、基本はユーザーが StatusLine を監視する。
 
-### セーブコマンドの使い分け
+### セーブ/ロードの使い分け
 - `/quick-save`: SESSION_STATE.md のみ記録（軽量、3-4%消費）。普段使い
+- `/quick-load`: SESSION_STATE.md のみ読込（日常の再開）
 - `/full-save`: SESSION_STATE.md + git commit + push + daily（一日の終わり）
-- `/full-load`: セッション復元（次セッション開始時）
+- `/full-load`: 詳細な状態確認 + 復帰報告（数日ぶりの復帰）
 - 残量 25% 以下では `/quick-save` を使うこと
 - `/full-save` は残量に余裕があるときのみ
 

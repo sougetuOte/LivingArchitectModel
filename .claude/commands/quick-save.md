@@ -27,6 +27,7 @@ SESSION_STATE.md への記録のみ。git commit は行わない。
 - 残っている課題、確認事項（なければ「なし」）
 
 ### コンテキスト情報
+- 現在のフェーズ (PLANNING / BUILDING / AUDITING)
 - 現在のgitブランチ
 - 関連するSPEC/ADR/設計書ファイル名
 
