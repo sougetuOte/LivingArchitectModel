@@ -21,6 +21,4 @@ _要件定義・設計・タスク分解フェーズ_
 - `/auditing` コマンド実行時 → `AUDITING`
 
 ### 参照するルール
-- `rules/phase-planning.md` - PLANNINGフェーズのガードレール
-- `rules/phase-building.md` - BUILDINGフェーズのガードレール
-- `rules/phase-auditing.md` - AUDITINGフェーズのガードレール
+- `rules/phase-rules.md` - フェーズ別ガードレール（PLANNING/BUILDING/AUDITING）

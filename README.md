@@ -105,8 +105,9 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | コマンド | 用途 |
 |---------|------|
 | `/quick-save` | 軽量セーブ（SESSION_STATE.md のみ） |
+| `/quick-load` | 軽量ロード（日常の再開） |
 | `/full-save` | フルセーブ（commit + push + daily） |
-| `/full-load` | セッション復元 |
+| `/full-load` | フルロード（数日ぶりの復帰） |
 
 ## 補助コマンド
 

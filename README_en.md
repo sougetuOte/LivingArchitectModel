@@ -105,8 +105,9 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 | Command | Purpose |
 |---------|---------|
 | `/quick-save` | Lightweight save (SESSION_STATE.md only) |
+| `/quick-load` | Lightweight load (daily resume) |
 | `/full-save` | Full save (commit + push + daily) |
-| `/full-load` | Restore session state |
+| `/full-load` | Full load (resuming after days away) |
 
 ## Utility Commands
 

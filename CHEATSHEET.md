@@ -39,11 +39,8 @@ docs/adr/                  # アーキテクチャ決定記録
 | ファイル | 内容 |
 |---------|------|
 | `core-identity.md` | Living Architect 行動規範 |
-| `phase-planning.md` | PLANNING ガードレール |
-| `phase-building.md` | BUILDING ガードレール |
-| `phase-auditing.md` | AUDITING ガードレール |
+| `phase-rules.md` | フェーズ別ガードレール（PLANNING/BUILDING/AUDITING） |
 | `security-commands.md` | コマンド安全基準（Allow/Deny List） |
-| `model-selection.md` | モデル選定ガイド |
 | `decision-making.md` | 意思決定プロトコル |
 
 ## フェーズコマンド

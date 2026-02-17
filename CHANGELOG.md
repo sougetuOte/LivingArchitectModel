@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.8.0] - 2026-02-17
+
+### Changed
+
+- **Refactor**: コンテキスト注入量を 34% 削減（406行 → 266行）
+  - `rules/phase-planning.md` + `phase-building.md` + `phase-auditing.md` → `phase-rules.md` に統合
+  - `rules/model-selection.md` → `CLAUDE.md` の Execution Modes 表に統合して削除
+  - 全 rules ファイルから定型セクション（Purpose/Activation/References）を除去
+  - `rules/core-identity.md` と `CLAUDE.md` の重複内容を排除
+  - `rules/security-commands.md` を簡素化
+- **Enhancement**: `/quick-load` コマンド新規追加（日常の軽量セッション再開）
+- **Enhancement**: `/full-load` を最適化（dead code 削除 + テンプレート簡素化）
+- **Enhancement**: `/quick-save` にフェーズ情報を追加
+- **Docs**: CLAUDE.md セーブ/ロード説明を4コマンド体系に更新
+- **Docs**: CHEATSHEET.md Rules ファイル一覧・セーブ/ロード説明を更新
+- **Docs**: README.md / README_en.md セッション管理コマンド一覧を更新
+- **Docs**: スライド（usecase.html / usecase-en.html）に `/quick-load` 追加
+- **Docs**: `.claude/current-phase.md` の参照ルールを `phase-rules.md` に更新
+
 ## [v3.7.0] - 2026-02-15
 
 ### Changed
