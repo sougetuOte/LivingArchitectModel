@@ -103,6 +103,8 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | スキル | 用途 | 呼び出し例 |
 |--------|------|-----------|
 | `lam-orchestrate` | タスク分解・並列実行の自動調整 | 「lam-orchestrateで実行して」 |
+| `ultimate-think` | AoT + Three Agents + Reflection 統合思考 | `/ultimate-think 議題` |
+| `skill-creator` | スキル作成ガイド | 「新しいスキルを作りたい」 |
 | `adr-template` | ADR作成テンプレート | `/adr-create` 実行時に自動適用 |
 | `spec-template` | 仕様書作成テンプレート | 仕様書作成時に自動適用 |
 

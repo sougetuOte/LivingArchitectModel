@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.8.1] - 2026-02-20
+
+### Added
+
+- **Feature**: `ultimate-think` スキル（AoT + Three Agents + Reflection 統合思考）
+  - Phase 0: Web サーチによる事実接地 + 複雑度自動判定
+  - Level 1-3 の適応的深度制御
+  - アンカーファイルによる思考の永続化と漂流防止
+  - 仕様書: `docs/specs/ultimate-think.md`
+- **Feature**: `skill-creator` スキル（スキル作成ガイド）
+  - Progressive Disclosure 設計パターン
+  - ワークフロー・出力パターンのリファレンス付き
+
+### Fixed
+
+- **Security**: `.gitignore` に `.claude/settings.local.json` を追加
+  - ローカル許可設定（パス・ドメイン・MCP 名）の誤 push を防止
+
 ## [v3.8.0] - 2026-02-17
 
 ### Changed

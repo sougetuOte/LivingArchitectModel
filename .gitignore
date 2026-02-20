@@ -36,6 +36,7 @@ memos/
 data/
 SESSION_STATE.md
 docs/daily/
+.claude/settings.local.json
 
 # Reference materials
 _reference/
