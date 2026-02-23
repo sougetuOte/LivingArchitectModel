@@ -37,6 +37,7 @@ data/
 SESSION_STATE.md
 docs/daily/
 .claude/settings.local.json
+.claude/commands/release.md
 
 # Reference materials
 _reference/

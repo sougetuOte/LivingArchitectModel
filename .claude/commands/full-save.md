@@ -1,6 +1,6 @@
 # フルセーブ
 
-SESSION_STATE.md + 論理グループ別 git commit + git push + Daily 記録。
+プロジェクトルートの `SESSION_STATE.md` + 論理グループ別 git commit + git push + Daily 記録。
 一日の終わりや大きな区切りで使用する。
 
 配置先: `<project>/.claude/commands/full-save.md`
@@ -19,7 +19,7 @@ git commit/push と Daily は次セッションで実行してください。
 ```
 → /quick-save の手順を実行して終了。
 
-## 2. SESSION_STATE.md を書き出す
+## 2. プロジェクトルートの SESSION_STATE.md を書き出す
 
 以下の内容を **簡潔に** 記録（各項目は箇条書き数行で十分）:
 

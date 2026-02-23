@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.8.2] - 2026-02-23
+
+### Fixed
+
+- **Fix**: セーブ/ロードコマンドの SESSION_STATE.md パス表記を統一
+  - `quick-save.md`, `quick-load.md`, `full-save.md` に「プロジェクトルートの」を明記
+  - `full-load.md` は既に明記済み（変更なし）
+  - 別プロジェクトへのテンプレート適用時にパスが曖昧になる問題を解消
+- **Config**: `.gitignore` に `.claude/commands/release.md` を追加
+
 ## [v3.8.1] - 2026-02-20
 
 ### Added
