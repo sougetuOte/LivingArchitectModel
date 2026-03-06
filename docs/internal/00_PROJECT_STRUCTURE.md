@@ -45,7 +45,26 @@
 - **.claude/states/*.json**: フェーズごとの承認ゲート管理、タスク進捗の永続的な状態記録。機能開発の進行管理に使用。
 - **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。`/planning`, `/building`, `/auditing` コマンドで更新される。
 
-## 3. File Naming Conventions (命名規則)
+## 3. SSOT 3層アーキテクチャ
+
+```
+Layer 1: docs/internal/ — プロセス SSOT（What & Why）
+  |
+  v 参照・実装
+Layer 2: .claude/rules/    — ガードレール（自動ロード）
+         .claude/commands/ — ワークフロー（手動実行）
+         .claude/agents/   — エージェント定義
+         .claude/skills/   — スキル定義
+  |
+  v 要約
+Layer 3: CHEATSHEET.md — クイックリファレンス
+```
+
+- Layer 1 が最高権限。Layer 2 は Layer 1 の「実装」
+- Layer 2 に新機能を追加したら、Layer 1 への反映を確認する
+- Layer 3 は Layer 1-2 の要約であり、独自情報を持たない
+
+## 4. File Naming Conventions (命名規則)
 
 - **Directories**: `snake_case` (例: `user_auth`)
 - **Files (Code)**: 言語標準に従う (Python: `snake_case.py`, JS/TS: `PascalCase.tsx` or `camelCase.ts`)

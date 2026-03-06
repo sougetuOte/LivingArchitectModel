@@ -116,6 +116,14 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `.claude/states/<feature>.json` | 機能ごとの進捗・承認状態 |
 | `SESSION_STATE.md` | セッション間の引き継ぎ（自動生成） |
 
+## ワークフローコマンド
+
+| コマンド | 用途 |
+|---------|------|
+| `/ship` | 論理グループ分けコミット（棚卸し -> 分類 -> コミット） |
+| `/full-review <対象>` | 並列監査 + 全修正 + 検証（一気通貫） |
+| `/release <version>` | リリース（CHANGELOG -> commit -> push -> tag） |
+
 ## 補助コマンド
 
 | コマンド | 用途 |

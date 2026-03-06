@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.9.0] - 2026-03-06
+
+### Added
+
+- **Command**: `/ship` — 論理グループ分けコミット（棚卸し -> Doc Sync -> 分類 -> 確認 -> 実行）
+  - 秘密情報自動検出・除外、dry-run モード対応
+  - push は分離（安全側に倒す設計）
+- **Command**: `/full-review` — 並列監査 + 全修正 + 検証の一気通貫レビュー
+  - 複数エージェント並列監査 -> レポート統合 -> audit-fix-policy に基づく全修正 -> 検証
+  - `/auditing`（フェーズ切替）との使い分けを明確化
+- **Rule**: TDD 品質チェック（R-1: 仕様突合、R-4: テスト網羅）を BUILDING ルールに追加
+- **Rule**: 仕様同期ルール（S-1, S-3, S-4）を BUILDING ルールに追加
+- **Docs**: SSOT 3層アーキテクチャ（docs/internal -> .claude/ -> CHEATSHEET）を明文化
+- **Docs**: AUDITING チェックリストに SSOT 整合性チェック 2項目追加
+
+### Changed
+
+- **Spec**: `docs/specs/v3.9.0-improvement-adoption.md` 新規作成（採用判定の仕様書）
+- **Docs**: CHEATSHEET / README / README_en にワークフローコマンドセクション追加
+
 ## [v3.8.2] - 2026-02-23
 
 ### Fixed

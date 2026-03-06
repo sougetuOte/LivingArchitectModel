@@ -109,6 +109,14 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 | `/full-save` | Full save (commit + push + daily) |
 | `/full-load` | Full load (resuming after days away) |
 
+## Workflow Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/ship` | Logical grouping commits (inventory -> classify -> commit) |
+| `/full-review <target>` | Parallel audit + fix all + verify (end-to-end) |
+| `/release <version>` | Release (CHANGELOG -> commit -> push -> tag) |
+
 ## Utility Commands
 
 | Command | Purpose |
