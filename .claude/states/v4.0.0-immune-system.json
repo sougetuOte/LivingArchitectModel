@@ -1,0 +1,23 @@
+{
+  "feature": "v4.0.0-immune-system",
+  "description": "LAM第3世代進化: 憲法型ハーネス→免疫系への移行",
+  "phase": "PLANNING",
+  "status": {
+    "requirements": "approved",
+    "design": "approved",
+    "tasks": "in_progress"
+  },
+  "approvals": {
+    "requirements": "2026-03-08",
+    "design": "2026-03-08"
+  },
+  "created_at": "2026-03-08T00:00:00Z",
+  "updated_at": "2026-03-08T00:00:00Z",
+  "pillars": [
+    "権限等級システム (PG/SE/PM)",
+    "ループ統合 (full-review + 構造チェック)",
+    "TDD内省→ルール自動生成",
+    "ドキュメント自動追従",
+    "収束条件・停止基準"
+  ]
+}
