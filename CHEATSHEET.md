@@ -25,6 +25,8 @@
 ├── agents/                # サブエージェント
 ├── skills/                # オーケストレーション・テンプレート出力
 ├── states/                # 機能ごとの進捗状態
+├── hooks/                 # PreToolUse / PostToolUse / Stop / PreCompact
+├── logs/                  # permission.log, loop-*.json（実行時生成）
 └── current-phase.md       # 現在のフェーズ
 
 CLAUDE.md                  # 憲法（コア原則のみ）
@@ -42,6 +44,35 @@ docs/adr/                  # アーキテクチャ決定記録
 | `phase-rules.md` | フェーズ別ガードレール（PLANNING/BUILDING/AUDITING） |
 | `security-commands.md` | コマンド安全基準（Allow/Deny List） |
 | `decision-making.md` | 意思決定プロトコル |
+| `permission-levels.md` | 権限等級分類基準（PG/SE/PM）**v4.0.0 新規** |
+
+## 権限等級（PG/SE/PM）**v4.0.0 新規**
+
+変更のリスクレベルに応じた三段階分類:
+
+| 等級 | 動作 | 例 |
+|------|------|-----|
+| **PG** | 自動修正・報告不要 | フォーマット、typo、lint 修正 |
+| **SE** | 修正後に報告 | テスト追加、内部リファクタリング |
+| **PM** | 判断を仰ぐ（承認必須） | 仕様変更、ルール変更 |
+
+**迷ったら SE級**（安全側に倒す）。詳細: `.claude/rules/permission-levels.md`
+
+### PreToolUse hook
+
+ファイルパスベースで PG/SE/PM を自動判定:
+- `docs/specs/`, `docs/adr/`, `.claude/rules/`, `.claude/settings*.json` → **PM級**（block）
+- `docs/` 配下（上記以外） → **SE級**（allow + ログ）
+- `Read/Glob/Grep` → 常に許可
+
+全判定結果は `.claude/logs/permission.log` に記録。
+
+### フック分類の誤判定率計測
+
+Wave 1 完了後に `.claude/logs/permission.log` を分析し、誤判定のベースラインを確立する:
+1. `permission.log` からランダムに N 件サンプリング
+2. 各判定の正否を人間がレビュー
+3. 誤判定率 = 誤判定数 / サンプル数
 
 ## フェーズコマンド
 
@@ -49,7 +80,7 @@ docs/adr/                  # アーキテクチャ決定記録
 |---------|------|---------|
 | `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
 | `/building` | TDD実装 | 仕様なし実装禁止 |
-| `/auditing` | レビュー・監査・リファクタ | 修正の直接実施禁止 |
+| `/auditing` | レビュー・監査・リファクタ | PM級の修正禁止（PG/SE級は許可） |
 | `/project-status` | 進捗状況の表示 | - |
 
 ## 承認ゲート
@@ -129,10 +160,10 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | コマンド | 用途 |
 |---------|------|
 | `/focus` | 現在のタスクに集中 |
-| `/daily` | 日次振り返り |
+| `/daily` | 日次振り返り（KPI 集計含む） |
 | `/adr-create` | ADR作成支援 |
 | `/security-review` | セキュリティレビュー |
-| `/impact-analysis` | 変更の影響分析 |
+| `/impact-analysis` | 変更の影響分析（PG/SE/PM 分類含む） |
 
 ## 参照ドキュメント (SSOT)
 
