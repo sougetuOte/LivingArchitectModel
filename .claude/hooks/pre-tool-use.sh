@@ -12,6 +12,9 @@
 
 set -euo pipefail
 
+# hook 障害時にも Claude をブロックしない: エラー時は exit 0 で許可
+trap 'exit 0' ERR
+
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LOG_FILE="${PROJECT_ROOT}/.claude/logs/permission.log"
 PHASE_FILE="${PROJECT_ROOT}/.claude/current-phase.md"
@@ -73,44 +76,36 @@ LEVEL="SE"
 REASON="default (safe side)"
 
 if [ -n "${FILE_PATH}" ]; then
-  case "${FILE_PATH}" in
-    # PM級: 仕様書
-    docs/specs/*.md|*/docs/specs/*.md)
-      LEVEL="PM"
-      REASON="specs/ path"
-      ;;
-    # PM級: ADR
-    docs/adr/*.md|*/docs/adr/*.md)
-      LEVEL="PM"
-      REASON="adr/ path"
-      ;;
-    # PM級: ルールファイル（サブディレクトリ含む。bash case の * はスラッシュをまたぐため、
-    # .claude/rules/*.md で .claude/rules/auto-generated/foo.md にもマッチする）
-    .claude/rules/*.md|*/.claude/rules/*.md)
-      LEVEL="PM"
-      REASON="rules/ path"
-      ;;
-    # PM級: 設定ファイル
-    .claude/settings*.json|*/.claude/settings*.json)
-      LEVEL="PM"
-      REASON="settings path"
-      ;;
-    # SE級: docs/ 配下（上記以外）
-    docs/*|*/docs/*)
-      LEVEL="SE"
-      REASON="docs/ path (non-specs/adr)"
-      ;;
-    # SE級: src/ 配下（実装コード）
-    src/*|*/src/*)
-      LEVEL="SE"
-      REASON="src/ path"
-      ;;
-    # SE級: その他（デフォルト、安全側）
-    *)
-      LEVEL="SE"
-      REASON="default path"
-      ;;
-  esac
+  # 絶対パスを相対パスに正規化（post-tool-use.sh と同一ロジック）
+  NORMALIZED_PATH="${FILE_PATH}"
+  if [ -n "${PROJECT_ROOT}" ] && [ "${FILE_PATH}" != "${FILE_PATH#"${PROJECT_ROOT}"/}" ]; then
+    NORMALIZED_PATH="${FILE_PATH#"${PROJECT_ROOT}"/}"
+  fi
+
+  # パス判定にはgrep -qEを使用（case の * がサブディレクトリをまたがない問題を回避）
+  if echo "${NORMALIZED_PATH}" | grep -qE '^docs/specs/.*\.md$' 2>/dev/null; then
+    LEVEL="PM"
+    REASON="specs/ path"
+  elif echo "${NORMALIZED_PATH}" | grep -qE '^docs/adr/.*\.md$' 2>/dev/null; then
+    LEVEL="PM"
+    REASON="adr/ path"
+  elif echo "${NORMALIZED_PATH}" | grep -qE '^\.claude/rules/.*\.md$' 2>/dev/null; then
+    # サブディレクトリ（auto-generated/ 等）も含めて PM 保護
+    LEVEL="PM"
+    REASON="rules/ path"
+  elif echo "${NORMALIZED_PATH}" | grep -qE '^\.claude/settings.*\.json$' 2>/dev/null; then
+    LEVEL="PM"
+    REASON="settings path"
+  elif echo "${NORMALIZED_PATH}" | grep -qE '^docs/' 2>/dev/null; then
+    LEVEL="SE"
+    REASON="docs/ path (non-specs/adr)"
+  elif echo "${NORMALIZED_PATH}" | grep -qE '^src/' 2>/dev/null; then
+    LEVEL="SE"
+    REASON="src/ path"
+  else
+    LEVEL="SE"
+    REASON="default path"
+  fi
 fi
 
 # 3. AUDITING フェーズの特別処理
@@ -123,16 +118,17 @@ fi
 # AUDITING フェーズでは PG級ツール（lint修正等）は allow
 if [ "${CURRENT_PHASE}" = "AUDITING" ] && [ -n "${COMMAND}" ]; then
   case "${COMMAND}" in
-    "npx prettier"*|"npx eslint --fix"*|"ruff check --fix"*|"ruff format"*)
+    "npx prettier "*|"npx prettier"|"npx eslint --fix "*|"npx eslint --fix"|"ruff check --fix "*|"ruff check --fix"|"ruff format "*|"ruff format")
       LEVEL="PG"
       REASON="AUDITING phase PG allow"
       ;;
   esac
 fi
 
-# 4. ログ記録
+# 4. ログ記録（機密情報保護: コマンド文字列は100文字にトランケート）
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 TARGET="${FILE_PATH:-${COMMAND}}"
+TARGET=$(printf '%s' "${TARGET}" | tr -d '\n\r\t' | cut -c1-100)
 echo "${TIMESTAMP}  ${LEVEL}  ${TOOL_NAME}  ${TARGET}  \"${REASON}\"" >> "${LOG_FILE}" 2>/dev/null || true
 
 # 5. 応答
@@ -146,10 +142,10 @@ case "${LEVEL}" in
     ;;
   PM)
     # PM級: deny（hookSpecificOutput 形式、最新 Claude Code 仕様準拠）
+    # context7 確認済み: permissionDecision + permissionDecisionReason のみ。hookEventName は不要
     if command -v jq >/dev/null 2>&1; then
       jq -n --arg reason "PM級変更です。承認してください: ${TARGET}" '{
         hookSpecificOutput: {
-          hookEventName: "PreToolUse",
           permissionDecision: "deny",
           permissionDecisionReason: $reason
         }
@@ -157,7 +153,7 @@ case "${LEVEL}" in
     else
       # " と \ と改行を除去してJSON安全な文字列にする
       SAFE_TARGET=$(printf '%s' "${TARGET}" | tr -d '"\\' | tr -d '\n\r')
-      echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"PM級変更です。承認してください: ${SAFE_TARGET}\"}}"
+      echo "{\"hookSpecificOutput\":{\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"PM級変更です。承認してください: ${SAFE_TARGET}\"}}"
     fi
     exit 0
     ;;
