@@ -84,8 +84,9 @@ if [ -n "${FILE_PATH}" ]; then
       LEVEL="PM"
       REASON="adr/ path"
       ;;
-    # PM級: ルールファイル（サブディレクトリ含む）
-    .claude/rules/*.md|*/.claude/rules/*.md|.claude/rules/*/*.md|*/.claude/rules/*/*.md)
+    # PM級: ルールファイル（サブディレクトリ含む。bash case の * はスラッシュをまたぐため、
+    # .claude/rules/*.md で .claude/rules/auto-generated/foo.md にもマッチする）
+    .claude/rules/*.md|*/.claude/rules/*.md)
       LEVEL="PM"
       REASON="rules/ path"
       ;;
@@ -154,7 +155,8 @@ case "${LEVEL}" in
         }
       }'
     else
-      SAFE_TARGET=$(echo "${TARGET}" | tr -d '"\\')
+      # " と \ と改行を除去してJSON安全な文字列にする
+      SAFE_TARGET=$(printf '%s' "${TARGET}" | tr -d '"\\' | tr -d '\n\r')
       echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"PM級変更です。承認してください: ${SAFE_TARGET}\"}}"
     fi
     exit 0

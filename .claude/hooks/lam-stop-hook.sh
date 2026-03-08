@@ -129,8 +129,9 @@ PYEOF
 # ================================================================
 STOP_HOOK_ACTIVE=$(json_get_bool "${INPUT}" "stop_hook_active")
 
-if [ "${STOP_HOOK_ACTIVE}" = "true" ] && [ ! -f "${STATE_FILE}" ]; then
-  log_entry "INFO" "stop_hook_active=true, no state file → recursion guard exit"
+if [ "${STOP_HOOK_ACTIVE}" = "true" ]; then
+  # 再帰防止: Stop hook が発動させたセッション内では常に終了
+  log_entry "INFO" "stop_hook_active=true → recursion guard exit"
   exit 0
 fi
 
@@ -397,19 +398,30 @@ check_issue_recurrence() {
       prev_fixed=$(echo "${STATE_JSON}" | jq -r '.log[-2].issues_fixed // 0' 2>/dev/null || echo "0")
     fi
   elif command -v python3 >/dev/null 2>&1; then
-    eval "$(echo "${STATE_JSON}" | python3 -c "
+    # eval を使わず、python3 出力を個別に安全に読み取る（インジェクション防止）
+    PY_OUTPUT=$(echo "${STATE_JSON}" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 log = d.get('log', [])
 if len(log) >= 2:
-    print(f'log_len={len(log)}')
-    print(f'last_found={log[-1].get(\"issues_found\", 0)}')
-    print(f'last_fixed={log[-1].get(\"issues_fixed\", 0)}')
-    print(f'prev_found={log[-2].get(\"issues_found\", 0)}')
-    print(f'prev_fixed={log[-2].get(\"issues_fixed\", 0)}')
+    # 整数値のみ出力（改行区切り）
+    print(len(log))
+    print(int(log[-1].get('issues_found', 0)))
+    print(int(log[-1].get('issues_fixed', 0)))
+    print(int(log[-2].get('issues_found', 0)))
+    print(int(log[-2].get('issues_fixed', 0)))
 else:
-    print('log_len=0')
-" 2>/dev/null || echo "log_len=0")"
+    print(0)
+" 2>/dev/null || echo "0")
+    # 出力を行ごとに読み取り、整数として検証
+    IFS=$'\n' read -r -d '' py_log_len py_lf py_lfx py_pf py_pfx <<< "${PY_OUTPUT}" || true
+    if [[ "${py_log_len:-0}" =~ ^[0-9]+$ ]]; then
+      log_len="${py_log_len}"
+      last_found="${py_lf:-0}"
+      last_fixed="${py_lfx:-0}"
+      prev_found="${py_pf:-0}"
+      prev_fixed="${py_pfx:-0}"
+    fi
   else
     log_entry "WARN" "ESC: jq/python3 unavailable, skipping recurrence check"
     return 1
@@ -449,6 +461,11 @@ if [ "${GREEN_STATE}" -eq 1 ]; then
   FULLSCAN_PENDING=0
   if command -v jq >/dev/null 2>&1; then
     FS=$(echo "${STATE_JSON}" | jq -r '.fullscan_pending // false' 2>/dev/null || echo "false")
+    if [ "${FS}" = "true" ]; then
+      FULLSCAN_PENDING=1
+    fi
+  elif command -v python3 >/dev/null 2>&1; then
+    FS=$(echo "${STATE_JSON}" | python3 -c "import sys,json;d=json.load(sys.stdin);print('true' if d.get('fullscan_pending') else 'false')" 2>/dev/null || echo "false")
     if [ "${FS}" = "true" ]; then
       FULLSCAN_PENDING=1
     fi
