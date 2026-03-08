@@ -74,15 +74,26 @@ Phase 0 完了後、Phase 1 に進む。
 | `code-reviewer` (1) | ソースコード品質（命名、構造、エラー処理） | 各 Issue に PG/SE/PM 分類を付与 |
 | `code-reviewer` (2) | テストコード品質（網羅性、可読性、テストパターン） | 各 Issue に PG/SE/PM 分類を付与 |
 | `quality-auditor` | アーキテクチャ・仕様整合性（依存関係、**仕様ドリフト**、**構造整合性**） | 仕様ドリフト + 構造整合性結果を含む |
+| `code-reviewer` (3) | セキュリティ（OWASP Top 10、シークレット漏洩、依存脆弱性、インジェクション） | 各 Issue にリスクレベル (Critical/High/Medium/Low) + PG/SE/PM 分類を付与 |
 
 プロジェクト規模に応じてエージェント構成を調整可能。
-小規模の場合は `code-reviewer` x1 + `quality-auditor` x1 でもよい。
+小規模の場合は `code-reviewer` x1 + `quality-auditor` x1 でもよい（ただしセキュリティ観点は省略しないこと）。
 
 各エージェントは独立した監査レポートを生成する。
 
 **イテレーション2回目以降の差分チェック**: 2回目以降のサイクルでは、前サイクルで修正されたファイルのみを対象にする（差分チェック）。これにより不要な再監査を避け、収束を早める。
 
 **仕様ドリフトチェック（quality-auditor）**: quality-auditor は `docs/specs/` と対象コードの整合性を検証する。仕様に記述されているが実装されていない機能、または実装されているが仕様に記述されていない機能を「仕様ドリフト」として報告する。
+
+**セキュリティチェック（code-reviewer セキュリティ）**: OWASP Top 10 に基づくコードレベルの脆弱性検出を行う。具体的には:
+- **インジェクション**: SQL/NoSQL/コマンドインジェクション、eval 使用
+- **認証・認可**: ハードコードされた認証情報、不適切なアクセス制御
+- **シークレット漏洩**: API キー、パスワード、トークンのコード内露出
+- **依存脆弱性**: 既知の脆弱性を持つライブラリの使用
+- **データ露出**: ログへの機密情報出力、エラーメッセージでの内部情報漏洩
+- **安全でないデシリアライゼーション**: pickle、yaml.load 等の危険なパターン
+
+公式参考: [Anthropic security-guidance plugin](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/security-guidance)
 
 **構造整合性チェック（quality-auditor）**: コンポーネント間の「接続」が正しいかを検証する。Wave やタスクを跨いで構築されたコンポーネント（hooks, commands, skills, agents）間で、以下の整合性を確認する:
 
@@ -129,12 +140,24 @@ PM級の問題がある場合、ループを停止しユーザーに判断を委
 
 ## Phase 4: 検証（Green State 判定）
 
-全修正完了後、Green State 4条件を検証:
+全修正完了後、Green State 5条件を検証:
 
 1. **G1**: テスト全パス（pytest / npm test 等）
 2. **G2**: lint エラーゼロ（設定がある場合）
 3. **G3**: Critical Issue ゼロ
 4. **G4**: 修正した箇所の仕様書との整合性を再確認
+5. **G5**: セキュリティチェック通過（依存脆弱性 + シークレットスキャン）
+
+### G5 セキュリティチェックの詳細
+
+| チェック項目 | ツール例 | 判定基準 |
+|:---|:---|:---|
+| 依存脆弱性 | `npm audit` / `pip audit` / `safety check` | Critical/High 脆弱性ゼロ |
+| シークレット漏洩 | `grep` パターンマッチ | API キー・パスワード等のハードコードなし |
+| 危険パターン | OWASP Top 10 チェック | eval/exec、SQL文字列結合、pickle.load 等なし |
+
+ツールが未インストールの場合は PASS（スキップ）扱いとし、ログに記録する。
+プロジェクトに Anthropic 公式 `security-guidance` plugin がインストールされている場合は、そちらの検出結果も考慮する。
 
 ### 差分チェックとフルスキャン
 

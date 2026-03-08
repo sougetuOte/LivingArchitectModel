@@ -63,7 +63,25 @@ description: "セキュリティレビュー - 変更内容の安全性を検証
 
 権限等級の詳細: `.claude/rules/permission-levels.md`
 
+## 自動化ツール連携
+
+以下のツールが利用可能な場合、自動実行して結果をレポートに含める:
+
+| チェック項目 | ツール | コマンド |
+|:---|:---|:---|
+| 依存脆弱性 (JS) | npm audit | `npm audit --audit-level=high` |
+| 依存脆弱性 (Python) | pip-audit / safety | `pip-audit --desc` / `safety check` |
+| シークレット漏洩 | grep パターン | `grep -rE '(password\|secret\|api_key)\\s*=\\s*["\x27][^"\x27]{8,}' src/` |
+
+ツールが未インストールの場合は手動チェックリストのみ実施する。
+
+## 公式セキュリティツール参照
+
+- **[security-guidance plugin](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/security-guidance)**: Anthropic 公式のリアルタイムセキュリティ警告 plugin。9 パターン（コマンドインジェクション、XSS、eval、pickle 等）を自動検出
+- **[claude-code-security-review](https://github.com/anthropics/claude-code-security-review)**: GitHub Action。PR 単位の AI セキュリティレビュー
+- **[OWASP Top 10 (2025)](https://owasp.org/www-project-top-ten/)**: セキュリティチェックリストの基盤
+
 ## 関連ドキュメント
 
 - `docs/internal/06_DECISION_MAKING.md` - Critical Agent の役割
-- `docs/internal/07_SECURITY_AND_AUTOMATION.md` - コマンド安全基準
+- `docs/internal/07_SECURITY_AND_AUTOMATION.md` - コマンド安全基準 + 推奨セキュリティツール

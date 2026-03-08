@@ -353,6 +353,75 @@ detect_and_run_lint() {
 detect_and_run_tests "${CHECK_DIR}"
 detect_and_run_lint "${CHECK_DIR}"
 
+# -- G5: セキュリティチェック (依存脆弱性 + シークレットスキャン) --
+SECURITY_PASS=${RESULT_UNKNOWN}
+
+detect_and_run_security() {
+  local dir="$1"
+  local sec_fail=0
+
+  # 依存脆弱性チェック: npm audit / pip audit を自動検出
+  if [ -f "${dir}/package-lock.json" ] || [ -f "${dir}/package.json" ]; then
+    if command -v npm >/dev/null 2>&1; then
+      log_entry "INFO" "G5: running npm audit"
+      local audit_output
+      audit_output=$(cd "${dir}" && timeout 60 npm audit --audit-level=critical 2>&1) || {
+        local audit_exit=$?
+        if [ "${audit_exit}" -ne 124 ]; then
+          log_entry "INFO" "G5: npm audit found critical vulnerabilities"
+          sec_fail=1
+        else
+          log_entry "WARN" "G5: npm audit timeout (60s)"
+        fi
+      }
+    fi
+  elif [ -f "${dir}/pyproject.toml" ] || [ -f "${dir}/requirements.txt" ]; then
+    if command -v pip-audit >/dev/null 2>&1; then
+      log_entry "INFO" "G5: running pip-audit"
+      (cd "${dir}" && timeout 60 pip-audit --desc 2>/dev/null) || {
+        local audit_exit=$?
+        if [ "${audit_exit}" -ne 124 ] && [ "${audit_exit}" -ne 0 ]; then
+          log_entry "INFO" "G5: pip-audit found vulnerabilities"
+          sec_fail=1
+        fi
+      }
+    elif command -v safety >/dev/null 2>&1; then
+      log_entry "INFO" "G5: running safety check"
+      (cd "${dir}" && timeout 60 safety check 2>/dev/null) || {
+        local audit_exit=$?
+        if [ "${audit_exit}" -ne 124 ] && [ "${audit_exit}" -ne 0 ]; then
+          log_entry "INFO" "G5: safety check found vulnerabilities"
+          sec_fail=1
+        fi
+      }
+    fi
+  fi
+
+  # シークレットスキャン: 基本パターンのみ（高速）
+  local secret_found=0
+  if [ -d "${dir}/src" ]; then
+    # API キー、パスワード、トークンのハードコードパターン検出
+    secret_found=$(grep -rE \
+      '(password|secret|api_key|apikey|token|private_key)\s*=\s*["\x27][^"\x27]{8,}' \
+      "${dir}/src" 2>/dev/null | grep -vcE '(test|spec|mock|example|placeholder|TODO|FIXME|xxx|changeme)' 2>/dev/null || echo "0")
+  fi
+
+  if [ "${secret_found:-0}" -gt 0 ]; then
+    log_entry "WARN" "G5: potential secret leak detected in src/ (${secret_found} matches)"
+    sec_fail=1
+  fi
+
+  if [ "${sec_fail}" -eq 0 ]; then
+    log_entry "INFO" "G5: security checks PASSED"
+    SECURITY_PASS=${RESULT_PASS}
+  else
+    log_entry "INFO" "G5: security checks FAILED"
+    SECURITY_PASS=${RESULT_FAIL}
+  fi
+}
+
+detect_and_run_security "${CHECK_DIR}"
+
 # ================================================================
 # STEP 5: エスカレーション条件チェック (AC-2.9)
 # ================================================================
@@ -452,6 +521,8 @@ if [ "${TEST_PASS}" -eq "${RESULT_FAIL}" ]; then
   FAIL_REASON="テスト失敗"
 elif [ "${LINT_PASS}" -eq "${RESULT_FAIL}" ]; then
   FAIL_REASON="lint 失敗"
+elif [ "${SECURITY_PASS}" -eq "${RESULT_FAIL}" ]; then
+  FAIL_REASON="セキュリティチェック失敗"
 else
   GREEN_STATE=1
 fi
@@ -509,8 +580,12 @@ if [ "${TEST_COUNT}" -gt 0 ] && command -v jq >/dev/null 2>&1; then
 fi
 
 REMAINING_MSG="${FAIL_REASON:-Green State 未達}"
-if [ "${TEST_PASS}" -eq "${RESULT_FAIL}" ] && [ "${LINT_PASS}" -eq "${RESULT_FAIL}" ]; then
-  REMAINING_MSG="テスト失敗 + lint 失敗"
+FAIL_PARTS=""
+[ "${TEST_PASS}" -eq "${RESULT_FAIL}" ] && FAIL_PARTS="テスト失敗"
+[ "${LINT_PASS}" -eq "${RESULT_FAIL}" ] && FAIL_PARTS="${FAIL_PARTS:+${FAIL_PARTS} + }lint 失敗"
+[ "${SECURITY_PASS}" -eq "${RESULT_FAIL}" ] && FAIL_PARTS="${FAIL_PARTS:+${FAIL_PARTS} + }セキュリティ失敗"
+if [ -n "${FAIL_PARTS}" ]; then
+  REMAINING_MSG="${FAIL_PARTS}"
 fi
 
 REASON="Green State 未達。サイクル ${NEW_ITERATION} を開始。残Issue: ${REMAINING_MSG}"
