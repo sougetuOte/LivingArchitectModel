@@ -1,85 +1,81 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)",
-      "Bash(cat:*)",
-      "Bash(grep:*)",
-      "Bash(find:*)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(find *)",
       "Bash(pwd)",
-      "Bash(du:*)",
-      "Bash(file:*)",
+      "Bash(du *)",
+      "Bash(file *)",
       "Bash(git status)",
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git show:*)",
-      "Bash(git branch:*)",
-      "Bash(pytest:*)",
-      "Bash(npm test:*)",
-      "Bash(go test:*)",
-      "Bash(npm list:*)",
-      "Bash(pip list:*)",
-      "Bash(ps:*)",
-      "Bash(npx prettier:*)",
-      "Bash(npx eslint --fix:*)",
-      "Bash(ruff check --fix:*)",
-      "Bash(ruff format:*)"
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git branch *)",
+      "Bash(pytest *)",
+      "Bash(npm test *)",
+      "Bash(go test *)",
+      "Bash(npm list *)",
+      "Bash(pip list *)",
+      "Bash(ps *)",
+      "Bash(npx prettier *)",
+      "Bash(npx eslint --fix *)",
+      "Bash(ruff check --fix *)",
+      "Bash(ruff format *)"
     ],
     "deny": [
-      "Bash(rm:*)",
-      "Bash(rm -rf:*)",
-      "Bash(mv:*)",
-      "Bash(chmod:*)",
-      "Bash(chown:*)",
-      "Bash(systemctl:*)",
-      "Bash(service:*)",
+      "Bash(rm *)",
+      "Bash(rm -rf *)",
+      "Bash(mv *)",
+      "Bash(chmod *)",
+      "Bash(chown *)",
+      "Bash(systemctl *)",
+      "Bash(service *)",
       "Bash(reboot)",
-      "Bash(shutdown:*)",
-      "Bash(apt:*)",
-      "Bash(yum:*)",
-      "Bash(brew:*)"
+      "Bash(shutdown *)",
+      "Bash(apt *)",
+      "Bash(yum *)",
+      "Bash(brew *)"
     ],
     "ask": [
-      "Bash(git push:*)",
-      "Bash(git pull:*)",
-      "Bash(git fetch:*)",
-      "Bash(git clone:*)",
-      "Bash(git commit:*)",
-      "Bash(git merge:*)",
-      "Bash(curl:*)",
-      "Bash(wget:*)",
-      "Bash(ssh:*)",
-      "Bash(npm start:*)",
-      "Bash(npm run:*)",
-      "Bash(python:*)",
-      "Bash(make:*)",
-      "Bash(mkdir:*)",
-      "Bash(touch:*)",
-      "Bash(cp:*)"
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git fetch *)",
+      "Bash(git clone *)",
+      "Bash(git commit *)",
+      "Bash(git merge *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(ssh *)",
+      "Bash(npm start *)",
+      "Bash(npm run *)",
+      "Bash(python *)",
+      "Bash(make *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
+      "Bash(cp *)"
     ]
   },
   "hooks": {
     "PreToolUse": [
       {
-        "type": "command",
-        "command": ".claude/hooks/pre-tool-use.sh"
+        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use.sh" }]
       }
     ],
     "PostToolUse": [
       {
-        "type": "command",
-        "command": ".claude/hooks/post-tool-use.sh"
+        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.sh" }]
       }
     ],
     "Stop": [
       {
-        "type": "command",
-        "command": ".claude/hooks/lam-stop-hook.sh"
+        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lam-stop-hook.sh" }]
       }
     ],
     "PreCompact": [
       {
-        "type": "command",
-        "command": ".claude/hooks/pre-compact.sh"
+        "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.sh" }]
       }
     ]
   }

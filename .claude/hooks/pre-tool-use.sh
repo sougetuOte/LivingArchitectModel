@@ -130,14 +130,18 @@ case "${LEVEL}" in
     exit 0
     ;;
   PM)
-    # PM級: block
-    # jq で安全に JSON を生成（特殊文字エスケープ）
+    # PM級: deny（hookSpecificOutput 形式、最新 Claude Code 仕様準拠）
     if command -v jq >/dev/null 2>&1; then
-      jq -n --arg reason "PM級変更です。承認してください: ${TARGET}" '{"decision":"block","reason":$reason}'
+      jq -n --arg reason "PM級変更です。承認してください: ${TARGET}" '{
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: $reason
+        }
+      }'
     else
-      # jq がない場合: TARGET の危険文字を除去してフォールバック
       SAFE_TARGET=$(echo "${TARGET}" | tr -d '"\\')
-      echo "{\"decision\": \"block\", \"reason\": \"PM級変更です。承認してください: ${SAFE_TARGET}\"}"
+      echo "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"PM級変更です。承認してください: ${SAFE_TARGET}\"}}"
     fi
     exit 0
     ;;
