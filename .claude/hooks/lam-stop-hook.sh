@@ -25,6 +25,11 @@ LOG_FILE="${PROJECT_ROOT}/.claude/logs/loop.log"
 # ログディレクトリが存在しなければ作成
 mkdir -p "$(dirname "${LOG_FILE}")" 2>/dev/null || true
 
+# 結果定数
+RESULT_UNKNOWN=0
+RESULT_PASS=1
+RESULT_FAIL=2
+
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 log_entry() {
@@ -80,7 +85,11 @@ json_get_bool() {
     if command -v python3 >/dev/null 2>&1; then
       result=$(echo "${json}" | python3 -c "import sys,json; d=json.load(sys.stdin); print('true' if d.get('${key}',False) else 'false')" 2>/dev/null || echo "false")
     else
-      result=$(echo "${json}" | grep -o "\"${key}\"[[:space:]]*:[[:space:]]*true" >/dev/null 2>&1 && echo "true" || echo "false")
+      if echo "${json}" | grep -q "\"${key}\"[[:space:]]*:[[:space:]]*true" 2>/dev/null; then
+        result="true"
+      else
+        result="false"
+      fi
     fi
   fi
   echo "${result}"
@@ -135,6 +144,14 @@ fi
 
 # 状態ファイルの内容を読み取る
 STATE_JSON=$(cat "${STATE_FILE}" 2>/dev/null || echo '{}')
+
+# active フラグ確認 — false ならループ無効
+ACTIVE=$(json_get_bool "${STATE_JSON}" "active")
+if [ "${ACTIVE}" != "true" ]; then
+  log_entry "INFO" "active=false → loop disabled, normal stop"
+  exit 0
+fi
+
 ITERATION=$(json_get_number "${STATE_JSON}" "iteration")
 MAX_ITERATIONS=$(json_get_number "${STATE_JSON}" "max_iterations")
 COMMAND=$(json_get_string "${STATE_JSON}" "command")
@@ -194,8 +211,8 @@ fi
 CWD=$(json_get_string "${INPUT}" "cwd")
 CHECK_DIR="${CWD:-${PROJECT_ROOT}}"
 
-TEST_PASS=0   # 0=unknown/skip, 1=pass, 2=fail
-LINT_PASS=0   # 0=unknown/skip, 1=pass, 2=fail
+TEST_PASS=${RESULT_UNKNOWN}
+LINT_PASS=${RESULT_UNKNOWN}
 TEST_COUNT=0  # 現在のテスト数
 
 # -- G1: テストフレームワーク自動検出と実行 (AC-2.8a) --
@@ -232,9 +249,8 @@ detect_and_run_tests() {
   fi
 
   if [ -z "${test_cmd}" ]; then
-    log_entry "INFO" "G1: no test framework detected → PASS (skip)"
-    log_entry "WARN" "G1: no test framework found in ${dir}"
-    TEST_PASS=1
+    log_entry "INFO" "G1: no test framework found in ${dir} → PASS (skip)"
+    TEST_PASS=${RESULT_PASS}
     return
   fi
 
@@ -247,7 +263,7 @@ detect_and_run_tests() {
 
   if [ "${test_exit}" -eq 0 ]; then
     log_entry "INFO" "G1: tests PASSED (${test_framework})"
-    TEST_PASS=1
+    TEST_PASS=${RESULT_PASS}
 
     # テスト数の抽出（エスカレーション条件チェック用）
     case "${test_framework}" in
@@ -264,10 +280,10 @@ detect_and_run_tests() {
     TEST_COUNT=${TEST_COUNT:-0}
   elif [ "${test_exit}" -eq 124 ]; then
     log_entry "WARN" "G1: test timeout (120s) → FAIL"
-    TEST_PASS=2
+    TEST_PASS=${RESULT_FAIL}
   else
     log_entry "INFO" "G1: tests FAILED (exit ${test_exit})"
-    TEST_PASS=2
+    TEST_PASS=${RESULT_FAIL}
   fi
 }
 
@@ -310,9 +326,8 @@ detect_and_run_lint() {
   fi
 
   if [ -z "${lint_cmd}" ]; then
-    log_entry "INFO" "G2: no lint tool detected → PASS (skip)"
-    log_entry "WARN" "G2: no lint tool found in ${dir}"
-    LINT_PASS=1
+    log_entry "INFO" "G2: no lint tool found in ${dir} → PASS (skip)"
+    LINT_PASS=${RESULT_PASS}
     return
   fi
 
@@ -324,13 +339,13 @@ detect_and_run_lint() {
 
   if [ "${lint_exit}" -eq 0 ]; then
     log_entry "INFO" "G2: lint PASSED (${lint_tool})"
-    LINT_PASS=1
+    LINT_PASS=${RESULT_PASS}
   elif [ "${lint_exit}" -eq 124 ]; then
     log_entry "WARN" "G2: lint timeout (60s) → FAIL"
-    LINT_PASS=2
+    LINT_PASS=${RESULT_FAIL}
   else
     log_entry "INFO" "G2: lint FAILED (exit ${lint_exit})"
-    LINT_PASS=2
+    LINT_PASS=${RESULT_FAIL}
   fi
 }
 
@@ -369,33 +384,61 @@ fi
 
 # 同一 Issue 再発チェック（前サイクルで issues_found があり、かつ今回も何も解決されていないケース）
 # MVP では: 前サイクルで issues_found > 0 かつ issues_fixed == 0 が連続した場合にエスカレーション
-if command -v jq >/dev/null 2>&1; then
-  LOG_LEN=$(echo "${STATE_JSON}" | jq '.log | length' 2>/dev/null || echo "0")
-  if [ "${LOG_LEN}" -ge 2 ]; then
-    LAST_FOUND=$(echo "${STATE_JSON}" | jq -r '.log[-1].issues_found // 0' 2>/dev/null || echo "0")
-    LAST_FIXED=$(echo "${STATE_JSON}" | jq -r '.log[-1].issues_fixed // 0' 2>/dev/null || echo "0")
-    PREV_FOUND=$(echo "${STATE_JSON}" | jq -r '.log[-2].issues_found // 0' 2>/dev/null || echo "0")
-    PREV_FIXED=$(echo "${STATE_JSON}" | jq -r '.log[-2].issues_fixed // 0' 2>/dev/null || echo "0")
+check_issue_recurrence() {
+  local last_found=0 last_fixed=0 prev_found=0 prev_fixed=0
+  local log_len=0
 
-    # 直近2サイクルでどちらも issues_found > 0 かつ issues_fixed == 0 → スタック状態
-    if [ "${LAST_FOUND}" -gt 0 ] && [ "${LAST_FIXED}" -eq 0 ] && [ "${PREV_FOUND}" -gt 0 ] && [ "${PREV_FIXED}" -eq 0 ]; then
-      log_entry "WARN" "ESC: same issues recurring (no fix for 2 cycles) → escalate to human"
-      rm -f "${STATE_FILE}" 2>/dev/null || true
-      exit 0
+  if command -v jq >/dev/null 2>&1; then
+    log_len=$(echo "${STATE_JSON}" | jq '.log | length' 2>/dev/null || echo "0")
+    if [ "${log_len}" -ge 2 ]; then
+      last_found=$(echo "${STATE_JSON}" | jq -r '.log[-1].issues_found // 0' 2>/dev/null || echo "0")
+      last_fixed=$(echo "${STATE_JSON}" | jq -r '.log[-1].issues_fixed // 0' 2>/dev/null || echo "0")
+      prev_found=$(echo "${STATE_JSON}" | jq -r '.log[-2].issues_found // 0' 2>/dev/null || echo "0")
+      prev_fixed=$(echo "${STATE_JSON}" | jq -r '.log[-2].issues_fixed // 0' 2>/dev/null || echo "0")
     fi
+  elif command -v python3 >/dev/null 2>&1; then
+    eval "$(echo "${STATE_JSON}" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+log = d.get('log', [])
+if len(log) >= 2:
+    print(f'log_len={len(log)}')
+    print(f'last_found={log[-1].get(\"issues_found\", 0)}')
+    print(f'last_fixed={log[-1].get(\"issues_fixed\", 0)}')
+    print(f'prev_found={log[-2].get(\"issues_found\", 0)}')
+    print(f'prev_fixed={log[-2].get(\"issues_fixed\", 0)}')
+else:
+    print('log_len=0')
+" 2>/dev/null || echo "log_len=0")"
+  else
+    log_entry "WARN" "ESC: jq/python3 unavailable, skipping recurrence check"
+    return 1
   fi
+
+  if [ "${log_len}" -ge 2 ] && \
+     [ "${last_found}" -gt 0 ] && [ "${last_fixed}" -eq 0 ] && \
+     [ "${prev_found}" -gt 0 ] && [ "${prev_fixed}" -eq 0 ]; then
+    return 0  # recurrence detected
+  fi
+  return 1
+}
+
+if check_issue_recurrence; then
+  log_entry "WARN" "ESC: same issues recurring (no fix for 2 cycles) → escalate to human"
+  rm -f "${STATE_FILE}" 2>/dev/null || true
+  exit 0
 fi
 
 # ================================================================
-# STEP 4 (評価): Green State 条件の総合判定
+# STEP 5b: Green State 条件の総合判定
 # ================================================================
 
 GREEN_STATE=0
 FAIL_REASON=""
 
-if [ "${TEST_PASS}" -eq 2 ]; then
+if [ "${TEST_PASS}" -eq "${RESULT_FAIL}" ]; then
   FAIL_REASON="テスト失敗"
-elif [ "${LINT_PASS}" -eq 2 ]; then
+elif [ "${LINT_PASS}" -eq "${RESULT_FAIL}" ]; then
   FAIL_REASON="lint 失敗"
 else
   GREEN_STATE=1
@@ -449,7 +492,7 @@ if [ "${TEST_COUNT}" -gt 0 ] && command -v jq >/dev/null 2>&1; then
 fi
 
 REMAINING_MSG="${FAIL_REASON:-Green State 未達}"
-if [ "${TEST_PASS}" -eq 2 ] && [ "${LINT_PASS}" -eq 2 ]; then
+if [ "${TEST_PASS}" -eq "${RESULT_FAIL}" ] && [ "${LINT_PASS}" -eq "${RESULT_FAIL}" ]; then
   REMAINING_MSG="テスト失敗 + lint 失敗"
 fi
 

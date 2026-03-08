@@ -109,9 +109,8 @@ if [ "${TOOL_NAME}" = "Edit" ] || [ "${TOOL_NAME}" = "Write" ]; then
     NORMALIZED_PATH="${FILE_PATH#"${PROJECT_ROOT}"/}"
   fi
 
-  # src/ 配下かどうかチェック（絶対パスパターンも含む）
-  if echo "${NORMALIZED_PATH}" | grep -qE '^src/' 2>/dev/null || \
-     echo "${FILE_PATH}" | grep -qE '/src/' 2>/dev/null; then
+  # src/ 配下かどうかチェック（正規化済みの相対パスで判定）
+  if echo "${NORMALIZED_PATH}" | grep -qE '^src/' 2>/dev/null; then
     echo "${FILE_PATH}" >> "${DOC_SYNC_FLAG}" 2>/dev/null || true
   fi
 fi

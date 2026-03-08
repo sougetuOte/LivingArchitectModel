@@ -22,11 +22,19 @@ mkdir -p "$(dirname "${LOG_FILE}")" 2>/dev/null || true
 # stdin から JSON を読み取る
 INPUT=$(cat)
 
-# ツール名を抽出
-TOOL_NAME=$(echo "${INPUT}" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+# ツール名を抽出（jq なし環境でもフォールバック）
+if command -v jq >/dev/null 2>&1; then
+  TOOL_NAME=$(echo "${INPUT}" | jq -r '.tool_name // empty' 2>/dev/null || echo "")
+else
+  # jq なしフォールバック: grep + sed で簡易抽出
+  TOOL_NAME=$(echo "${INPUT}" | grep -o '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null \
+    | sed 's/.*:[[:space:]]*"\([^"]*\)"/\1/' | head -1 || echo "")
+fi
 
-# ツール名が取得できない場合は許可（安全側: hook 障害時は ask に劣化）
+# ツール名が取得できない場合は SE 級扱い（安全側に倒す）
 if [ -z "${TOOL_NAME}" ]; then
+  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  echo "${TIMESTAMP}  SE  unknown  -  \"tool_name extraction failed (no jq?)\"" >> "${LOG_FILE}" 2>/dev/null || true
   exit 0
 fi
 
@@ -40,10 +48,16 @@ case "${TOOL_NAME}" in
 esac
 
 # ファイルパスを抽出（Edit/Write の場合）
-FILE_PATH=$(echo "${INPUT}" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
-
 # Bash コマンドの場合、コマンド文字列を取得
-COMMAND=$(echo "${INPUT}" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+if command -v jq >/dev/null 2>&1; then
+  FILE_PATH=$(echo "${INPUT}" | jq -r '.tool_input.file_path // empty' 2>/dev/null || echo "")
+  COMMAND=$(echo "${INPUT}" | jq -r '.tool_input.command // empty' 2>/dev/null || echo "")
+else
+  FILE_PATH=$(echo "${INPUT}" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null \
+    | sed 's/.*:[[:space:]]*"\([^"]*\)"/\1/' | head -1 || echo "")
+  COMMAND=$(echo "${INPUT}" | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null \
+    | sed 's/.*:[[:space:]]*"\([^"]*\)"/\1/' | head -1 || echo "")
+fi
 
 # ファイルパスもコマンドもない場合（Agent 等）は SE級扱い
 if [ -z "${FILE_PATH}" ] && [ -z "${COMMAND}" ]; then
