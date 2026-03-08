@@ -5,7 +5,7 @@ description: "セキュリティレビュー - 変更内容の安全性を検証
 # セキュリティレビュー
 
 変更内容に対する包括的なセキュリティ分析を実施する。
-`docs/internal/06_DECISION_MAKING.md` の **Critical Agent（批判者）** の視点で評価する。
+セキュリティチェック完了後、改善提案フェーズで `docs/internal/06_DECISION_MAKING.md` の **Critical Agent（批判者）** の視点も適用する。
 
 ## 実行ステップ
 

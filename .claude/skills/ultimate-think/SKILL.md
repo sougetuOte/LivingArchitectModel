@@ -5,7 +5,7 @@ description: >
   複雑な意思決定・設計判断・リスク評価でハルシネーションを抑制する。
   全フェーズ（PLANNING/BUILDING/AUDITING）で利用可能。
   手動起動専用: /ultimate-think で呼び出す。
-disable-model-invocation: true
+version: 1.0.0
 ---
 
 # ultimate-think

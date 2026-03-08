@@ -5,6 +5,7 @@ description: |
   docs/adr/ へのADR作成時に自動適用され、
   06_DECISION_MAKING.md の3 Agents Modelに準拠した構造を提案する。
   アーキテクチャ決定、技術選定、設計方針の記録時に活用される。
+version: 1.0.0
 ---
 
 # ADRテンプレートスキル

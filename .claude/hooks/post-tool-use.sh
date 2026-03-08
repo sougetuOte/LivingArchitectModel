@@ -82,6 +82,7 @@ if [ "${TOOL_NAME}" = "Bash" ] && is_test_command "${COMMAND}"; then
     PREV_RESULT=$(head -1 "${LAST_RESULT}" 2>/dev/null || echo "")
   fi
 
+  # EXIT_CODE が空の場合は取得失敗扱いとして記録しない
   if [ "${EXIT_CODE}" != "0" ] && [ -n "${EXIT_CODE}" ]; then
     # 失敗パターンを記録
     SUMMARY=$(echo "${STDOUT}" | head -3 | tr '\n' ' ' | cut -c1-120)
@@ -144,7 +145,9 @@ if [ -f "${LOOP_STATE}" ]; then
       'if .tool_events then .tool_events += [$event] else .tool_events = [$event] end' \
       2>/dev/null) || UPDATED="${LOOP_JSON}"
 
-    echo "${UPDATED}" > "${LOOP_STATE}" 2>/dev/null || true
+    # アトミック書き込み（Stop hook との競合防止）
+    LOOP_TMP=$(mktemp "${LOOP_STATE}.tmp.XXXXXX" 2>/dev/null) || LOOP_TMP="${LOOP_STATE}.tmp"
+    echo "${UPDATED}" > "${LOOP_TMP}" 2>/dev/null && mv "${LOOP_TMP}" "${LOOP_STATE}" 2>/dev/null || true
   else
     # jq なし: 末尾にコメント行として追記（JSON は壊れるが記録は残る）
     # ループ状態ファイルへの書き込みは best-effort

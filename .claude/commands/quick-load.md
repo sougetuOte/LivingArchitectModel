@@ -1,3 +1,7 @@
+---
+description: "SESSION_STATE.md を読んで簡潔に報告"
+---
+
 # クイックロード
 
 プロジェクトルートの `SESSION_STATE.md` を読み、以下の形式で簡潔に報告:

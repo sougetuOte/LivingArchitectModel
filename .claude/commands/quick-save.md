@@ -3,9 +3,6 @@
 プロジェクトルートの `SESSION_STATE.md` への記録のみ。git commit は行わない。
 コンテキスト消費を最小限に抑えるため、簡潔に実行すること。
 
-配置先: `<project>/.claude/commands/quick-save.md`
-呼び出し: Claude Code 内で `/quick-save`
-
 ## 1. プロジェクトルートの SESSION_STATE.md を書き出す
 
 以下の内容を **簡潔に** 記録（各項目は箇条書き数行で十分）:
