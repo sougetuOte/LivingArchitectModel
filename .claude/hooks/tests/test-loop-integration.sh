@@ -3,7 +3,7 @@
 # Stop hook + full-review 状態ファイルの連携をシミュレーション
 # 実行: bash .claude/hooks/tests/test-loop-integration.sh
 
-set -uo pipefail
+set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 HOOK="${PROJECT_ROOT}/.claude/hooks/lam-stop-hook.sh"
@@ -24,74 +24,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-assert_exit() {
-  local test_name="$1"
-  local expected_exit="$2"
-  local actual_exit="$3"
-
-  if [ "${actual_exit}" -eq "${expected_exit}" ]; then
-    echo "  PASS: ${test_name}"
-    PASS=$((PASS + 1))
-  else
-    echo "  FAIL: ${test_name} (expected exit ${expected_exit}, got ${actual_exit})"
-    FAIL=$((FAIL + 1))
-  fi
-}
-
-assert_stdout_contains() {
-  local test_name="$1"
-  local pattern="$2"
-  local actual="$3"
-
-  if echo "${actual}" | grep -q "${pattern}"; then
-    echo "  PASS: ${test_name}"
-    PASS=$((PASS + 1))
-  else
-    echo "  FAIL: ${test_name} (expected pattern '${pattern}' in stdout)"
-    echo "    actual: ${actual}"
-    FAIL=$((FAIL + 1))
-  fi
-}
-
-assert_stdout_empty() {
-  local test_name="$1"
-  local actual="$2"
-
-  if [ -z "${actual}" ]; then
-    echo "  PASS: ${test_name}"
-    PASS=$((PASS + 1))
-  else
-    echo "  FAIL: ${test_name} (expected empty stdout)"
-    echo "    actual: ${actual}"
-    FAIL=$((FAIL + 1))
-  fi
-}
-
-assert_file_exists() {
-  local test_name="$1"
-  local file_path="$2"
-
-  if [ -f "${file_path}" ]; then
-    echo "  PASS: ${test_name}"
-    PASS=$((PASS + 1))
-  else
-    echo "  FAIL: ${test_name} (file not found: ${file_path})"
-    FAIL=$((FAIL + 1))
-  fi
-}
-
-assert_file_not_exists() {
-  local test_name="$1"
-  local file_path="$2"
-
-  if [ ! -f "${file_path}" ]; then
-    echo "  PASS: ${test_name}"
-    PASS=$((PASS + 1))
-  else
-    echo "  FAIL: ${test_name} (file still exists: ${file_path})"
-    FAIL=$((FAIL + 1))
-  fi
-}
+# 共通ヘルパー読み込み
+# shellcheck source=test-helpers.sh
+source "$(dirname "$0")/test-helpers.sh"
 
 # ================================================================
 # S-1: 正常収束シミュレーション
@@ -150,7 +85,7 @@ echo ""
 echo "=== S-2: PM級エスカレーション シミュレーション ==="
 echo ""
 
-echo "S-2-1: PM級問題検出のメッセージ → Stop hook の通常動作確認"
+echo "S-2-1: テスト失敗 → block で継続（PM級検出は Claude の責務のため hook では未検証）"
 
 cleanup
 
