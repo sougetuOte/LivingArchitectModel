@@ -2,6 +2,8 @@
 
 ## Three Agents Model
 
+> **SSOT**: `docs/internal/06_DECISION_MAKING.md`。本ファイルは実行時の要約版。
+
 | Agent | ペルソナ | フォーカス |
 |-------|---------|-----------|
 | **Affirmative** | 推進者 | Value, Speed, Innovation |

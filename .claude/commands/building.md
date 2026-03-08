@@ -75,13 +75,13 @@ PLANNING 承認状態:
 
 ### Step 5: Commit & Review
 - ユーザーに報告
-- `walkthrough.md` に検証結果をまとめる
+- 必要に応じて `docs/memos/walkthrough-<feature>.md` に検証結果をまとめる
 
-## TDD 内省パイプライン（Wave 4）
+## TDD 内省パイプライン（v4.0.0 Wave 4 実装済み）
 
-BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパターンは PostToolUse hook によって自動記録される。
-繰り返し観測されたパターンは `.claude/rules/auto-generated/` にルール候補として生成される（Wave 4 で実装）。
-詳細: `docs/tasks/v4.0.0-immune-system-tasks.md` TASK 4-1, 4-2
+BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパターンは PostToolUse hook によって `.claude/tdd-patterns.log` に自動記録される。
+閾値（3回）に達したパターンは `/pattern-review` コマンドで審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
+詳細: `.claude/rules/auto-generated/trust-model.md`
 
 ## 禁止事項
 
@@ -96,7 +96,7 @@ BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパ
 
 - [ ] 全テストがパス
 - [ ] 仕様書とコードが同期している
-- [ ] `walkthrough.md` で検証完了
+- [ ] `docs/memos/walkthrough-<feature>.md` で検証完了（任意）
 - [ ] 状態ファイルの `implementation` を `approved` に更新
 
 ## 確認メッセージ

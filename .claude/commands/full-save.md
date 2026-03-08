@@ -7,14 +7,11 @@ description: "フルセーブ（SESSION_STATE.md + git commit + push + daily）"
 プロジェクトルートの `SESSION_STATE.md` + 論理グループ別 git commit + git push + Daily 記録。
 一日の終わりや大きな区切りで使用する。
 
-配置先: `<project>/.claude/commands/full-save.md`
-呼び出し: Claude Code 内で `/full-save`
-
-**コンテキストガード**: 残量が 15% 未満の場合、フルセーブはコンテキストを大量消費するため `/quick-save` にフォールバックしてユーザーに通知すること。
+**コンテキストガード**: 残量が 25% 未満の場合、フルセーブはコンテキストを大量消費するため `/quick-save` にフォールバックしてユーザーに通知すること（CLAUDE.md の閾値基準に準拠）。
 
 ## 1. コンテキスト残量チェック
 
-残量 15% 未満と判断した場合:
+残量 25% 未満と判断した場合:
 ```
 --- フルセーブ中断 ---
 コンテキスト残量が少ないため /quick-save に切り替えます。
@@ -49,7 +46,7 @@ git commit/push と Daily は次セッションで実行してください。
 
 ## 3. ループログ保存
 
-`.claude/logs/loop-*.{txt|json}` が存在する場合、未コミットのループログを次のステップの git commit に含める。
+`.claude/logs/loop.log` が存在する場合、未コミットのループログを次のステップの git commit に含める。
 ループログは「ドキュメント更新」グループに分類する。
 詳細: `docs/specs/loop-log-schema.md`
 

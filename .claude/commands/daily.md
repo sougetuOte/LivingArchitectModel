@@ -48,7 +48,7 @@ description: "日次振り返り"
 
 ### 集計手順
 
-1. `.claude/logs/loop-*.json` を走査し、K1〜K5 を計算
+1. `.claude/logs/loop.log` を走査し、K1〜K5 を計算
 2. `.claude/logs/permission.log` を走査し、等級分布（PG/SE/PM）を集計
 3. 以下のテンプレートで出力
 
