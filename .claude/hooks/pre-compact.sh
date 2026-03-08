@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # LAM PreCompact hook: コンテキスト圧縮前の状態保存
 # 設計書 Section 3.5 準拠
+# NOTE: PreCompact は公式ドキュメント未掲載だが動作確認済み（2026-03時点）
 #
 # PreCompact hook は圧縮前に SESSION_STATE.md を自動保存する。
 # エラーが発生しても exit 0 を返し、圧縮をブロックしない。

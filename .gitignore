@@ -39,6 +39,12 @@ docs/daily/
 .claude/settings.local.json
 .claude/commands/release.md
 
+# LAM runtime state files
+.claude/lam-loop-state.json
+.claude/doc-sync-flag
+.claude/pre-compact-fired
+.claude/last-test-result
+
 # Reference materials
 _reference/
 last-test-result

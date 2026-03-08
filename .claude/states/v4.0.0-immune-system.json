@@ -8,7 +8,8 @@
     "tasks": "approved"
   },
   "current_wave": 4,
-  "current_task": "T4-2",
+  "current_task": null,
+  "completed_at": "2026-03-08",
   "completed_tasks": [
     "T0-1",
     "T0-2",

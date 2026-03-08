@@ -21,4 +21,4 @@ _TDD実装フェーズ_
 - `/auditing` コマンド実行時 → `AUDITING`
 
 ### 参照するルール
-- `rules/phase-rules.md` - フェーズ別ガードレール（PLANNING/BUILDING/AUDITING）
+- `.claude/rules/phase-rules.md` - フェーズ別ガードレール（PLANNING/BUILDING/AUDITING）

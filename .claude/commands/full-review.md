@@ -17,7 +17,8 @@ description: "並列監査 + 全修正 + 検証の一気通貫レビュー"
 
 ```bash
 # 状態ファイルを生成（Bash で実行）
-cat > .claude/lam-loop-state.json << 'EOF'
+# 注: $TARGET と $TIMESTAMP はシェル変数。heredoc 内で展開される
+cat > .claude/lam-loop-state.json << EOF
 {
   "active": true,
   "command": "full-review",
@@ -65,6 +66,23 @@ Phase 0 完了後、Phase 1 に進む。
 
 **自動ループの仕組み**: Phase 4 の検証で Green State 未達の場合、Claude の応答が終了すると Stop hook (`lam-stop-hook.sh`) が発火し、状態ファイルを確認して自動的に Phase 1 に戻る。ユーザーの操作は不要。
 
+## Phase 0.5: context7 MCP 検出
+
+full-review 開始時に context7 MCP の利用可否を確認する。
+
+- **利用可能**: 仕様確認（G4/G5）で context7 を使用
+- **利用不可**: 以下の警告を表示し、仕様確認をスキップして処理を続行
+
+```
+⚠️ context7 MCP が未設定のため、仕様確認（G5）をスキップしました。
+  最新仕様との整合性確認が必要な場合は、対話モードで
+  /planning または upstream-first ルールを利用してください。
+  （full-review 内での WebFetch は無応答リスクがあるため使用しません）
+```
+
+> WebFetch は対話モード（`/planning`, upstream-first）でのみフォールバックとして使用する。
+> 自動フロー内での WebFetch は無応答・無限待機のリスクがあるため使用しない。
+
 ## Phase 1: 並列監査
 
 対象に対して以下のサブエージェントを並列起動:
@@ -109,10 +127,14 @@ Phase 0 完了後、Phase 1 に進む。
 2. 重複 Issue を排除
 3. 重要度分類: Critical / Warning / Info
 4. **各 Issue を PG/SE/PM に分類**（権限等級に基づく）
-5. 統合レポートをユーザーに提示し、修正方針の承認を得る
+5. **統合レポートを `docs/memos/audit-reports/` に永続化**（ファイル名: `YYYY-MM-DD-iterN.md`）
+6. 統合レポートをユーザーに提示し、修正方針の承認を得る
+
+**レポート永続化**: 監査レポートはコンテキスト内だけでなく、必ずファイルに書き出す。セッション断絶時にも Issue が追跡可能であること。
 
 ```
 === 監査統合レポート（イテレーション N） ===
+保存先: docs/memos/audit-reports/YYYY-MM-DD-iterN.md
 Critical: X件 / Warning: X件 / Info: X件
 PG: X件（自動修正可） / SE: X件（修正後報告） / PM: X件（承認必要）
 
@@ -133,8 +155,13 @@ PM級の問題がある場合、ループを停止しユーザーに判断を委
 - **PM級**: **ループ停止 + エスカレーション** — 仕様変更、アーキテクチャ変更等
 
 共通ポリシー:
-- **A-1**: 全重篤度（Critical / Warning / Info）に対応する
-- **A-2**: 対応不可の Issue は理由 + 追跡先 + 暫定対策を明記
+- **A-1**: 全重篤度（Critical / Warning / Info）に対応する。検出した Issue の defer（先送り）は禁止
+- **A-2**: **スコープ外 Issue の扱い** — 以下の条件を**すべて**満たす場合のみ、当該イテレーションでの修正を免除できる:
+  1. 依存先が未実装（別 Phase/Wave のスコープ）等、**技術的に着手不可能**であること
+  2. 「コンテキスト不足」「工数が多い」「面倒」は理由にならない。コンテキスト逼迫時は `/quick-save` でセッション分割せよ
+  3. スタブや暫定対策で塞げる場合はその場で実施すること
+  4. 免除する場合は **理由 + 対象 Wave/Phase + 追跡 Issue（`docs/tasks/` に起票）** を明記
+  5. 免除 Issue は完了報告に件数・一覧を含めること（黙って消えることを許さない）
 - **A-3**: 仕様ズレが発見された場合は `docs/specs/` も同時修正
 - **A-4**: 修正は1件ずつ、テストが壊れないことを確認しながら進める
 
@@ -144,9 +171,24 @@ PM級の問題がある場合、ループを停止しユーザーに判断を委
 
 1. **G1**: テスト全パス（pytest / npm test 等）
 2. **G2**: lint エラーゼロ（設定がある場合）
-3. **G3**: Critical Issue ゼロ
-4. **G4**: 修正した箇所の仕様書との整合性を再確認
+3. **G3**: 対応可能 Issue ゼロ（PG/SE級は修正済み、PM級は理由付き保留済み）※完全実装
+4. **G4**: 仕様差分ゼロ（docs/specs/ と実装の整合性確認）※完全実装
 5. **G5**: セキュリティチェック通過（依存脆弱性 + シークレットスキャン）
+
+### 真の Green State の定義
+
+**Green State とは「スキャンして Issue がゼロ」の状態である。「修正後にゼロ」ではない。**
+
+つまり、あるイテレーションで Issue を全件修正しても、それは Green State ではない。
+次のイテレーションで再スキャンし、**Phase 1 の監査で新規 Issue が 0件** であって初めて Green State となる。
+
+```
+iter 1: 発見 37件 → 修正 37件 → ❌ まだ Green State ではない
+iter 2: 発見 19件 → 修正 19件 → ❌ まだ Green State ではない
+iter 3: 発見  0件 →             → ✅ Green State 達成
+```
+
+この原則により、修正の副作用で生まれた新たな問題が見逃されることを防ぐ。
 
 ### G5 セキュリティチェックの詳細
 
@@ -171,7 +213,7 @@ PM級の問題がある場合、ループを停止しユーザーに判断を委
 ```bash
 # Phase 4 で差分チェック Green State 達成時に実行
 # jq で fullscan_pending フラグをセット
-jq '.fullscan_pending = true' .claude/lam-loop-state.json > /tmp/lam-tmp.json && mv /tmp/lam-tmp.json .claude/lam-loop-state.json
+TMP_FILE=$(mktemp) && jq '.fullscan_pending = true' .claude/lam-loop-state.json > "${TMP_FILE}" && mv "${TMP_FILE}" .claude/lam-loop-state.json
 ```
 
 Stop hook がこのフラグを検出すると、もう1サイクル（フルスキャン）を実行する。フルスキャンでも Green State なら本当の停止となる。
@@ -186,22 +228,22 @@ Phase 4 完了時に `.claude/lam-loop-state.json` を更新する:
 
 ### ループ継続/停止の判定
 
-**Green State 達成** → Phase 5 へ
-**Green State 未達** → 「Green State 未達。残 Issue: X件」と応答して終了 → Stop hook が自動的に Phase 1 に戻す
+**Phase 1 で Issue 0件（Before=0）** → Green State 達成 → Phase 5 へ
+**Phase 1 で Issue 1件以上** → Phase 2〜4 を実行 → 「修正完了。再スキャンへ」と応答 → Stop hook が自動的に Phase 1 に戻す
 
 ## Phase 5: 完了報告 + ループログ出力
 
 ```
 === Full Review 完了 ===
 
-イテレーション数: N
-Before: Critical X / Warning X / Info X
-After:  Critical 0 / Warning 0 / Info X（対応不可: X件）
+イテレーション数: N（最終イテレーションの Before=0 で Green State 確定）
+最終イテレーション: Before 0件（スキャンで Issue ゼロ = 真の Green State）
+累計修正: Critical X / Warning X / Info X
 
 修正ファイル: X件
 テスト: PASSED (X tests)
 lint: PASSED
-Green State: 達成
+Green State: 達成（Before=0 確認済み）
 
 対応不可 Issue:
 - [I-3] <理由> → 追跡先: docs/tasks/xxx.md

@@ -189,7 +189,7 @@ Wave やタスクを跨いで構築されたコンポーネント間の「接続
 |------|----------|----------|:----:|------|
 | lam-loop-state スキーマ | full-review.md | lam-orchestrate SKILL.md | ✓/✗ | |
 | PG/SE/PM 分類基準 | permission-levels.md | code-reviewer.md | ✓/✗ | |
-| Green State 条件 | green-state-definition.md | full-review.md Phase 4 | ✓/✗ | |
+| Green State 条件 | full-review.md Phase 4 | lam-stop-hook.sh | ✓/✗ | |
 | エスカレーション条件 | lam-stop-hook.sh | lam-orchestrate SKILL.md | ✓/✗ | |
 ```
 

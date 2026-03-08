@@ -22,8 +22,8 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
    - 関連する `docs/specs/` の仕様書を読み込む
 
 4. **状態ファイルを更新**
-   - `subPhase` を `implementation` に更新
-   - `status.implementation` を `in_progress` に更新
+   - `phase` を `BUILDING` に更新
+   - `current_task` を実装対象タスクIDに更新
 
 5. **BUILDINGルールを適用**
    - **TDDサイクル厳守**: Red → Green → Refactor
@@ -97,7 +97,7 @@ BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパ
 - [ ] 全テストがパス
 - [ ] 仕様書とコードが同期している
 - [ ] `docs/memos/walkthrough-<feature>.md` で検証完了（任意）
-- [ ] 状態ファイルの `implementation` を `approved` に更新
+- [ ] 状態ファイルの `current_task` を null に、`completed_tasks` にタスクIDを追加
 
 ## 確認メッセージ
 

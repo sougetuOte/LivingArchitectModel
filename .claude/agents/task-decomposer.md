@@ -7,7 +7,7 @@ description: |
   PLANNINGフェーズの最終段階で使用推奨。
 # permission-level: SE
 tools: Read, Glob, Grep, Write, Edit
-model: haiku
+model: haiku  # コスト最適化のため意図的に Haiku を採用（タスク分解は出力品質より速度重視）
 ---
 
 # Task Decomposer サブエージェント

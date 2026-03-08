@@ -54,7 +54,7 @@ else
     | sed 's/.*:[[:space:]]*"\([^"]*\)"/\1/' | head -1 || echo "")
   FILE_PATH=$(echo "${INPUT}" | grep -o '"file_path"[[:space:]]*:[[:space:]]*"[^"]*"' 2>/dev/null \
     | sed 's/.*:[[:space:]]*"\([^"]*\)"/\1/' | head -1 || echo "")
-  EXIT_CODE=$(echo "${INPUT}" | grep -o '"exitCode"[[:space:]]*:[[:space:]]*[0-9]*' 2>/dev/null \
+  EXIT_CODE=$(echo "${INPUT}" | grep -oE '"(exitCode|exit_code)"[[:space:]]*:[[:space:]]*[0-9]*' 2>/dev/null \
     | sed 's/.*:[[:space:]]*//' | head -1 || echo "")
 fi
 
@@ -123,6 +123,8 @@ if [ "${TOOL_NAME}" = "Edit" ] || [ "${TOOL_NAME}" = "Write" ]; then
 fi
 
 # ----- 3. ループログ記録 -----
+# tool_events はMVPではログ目的のみ（読み手は現時点で未実装）
+# 将来的にイテレーション分析に活用予定
 
 if [ -f "${LOOP_STATE}" ]; then
   if "${HAS_JQ}"; then

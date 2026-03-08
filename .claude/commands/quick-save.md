@@ -1,3 +1,7 @@
+---
+description: "SESSION_STATE.md への軽量セーブ（git commitなし）"
+---
+
 # クイックセーブ（軽量版）
 
 プロジェクトルートの `SESSION_STATE.md` への記録のみ。git commit は行わない。
