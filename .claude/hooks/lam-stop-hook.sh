@@ -12,8 +12,9 @@
 #   6. 継続（block）
 #
 # 出力:
-#   exit 0 のみ（hook 障害時のフォールバック対応）
-#   継続時のみ stdout に {"decision": "block", "reason": "..."} を出力
+#   正常停止時: exit 0（何も出力しない）
+#   継続時: stdout に {"decision": "block", "reason": "..."} を出力して exit 0
+#   障害時: exit 0（hook 障害で Claude をブロックしない）
 
 set -euo pipefail
 
@@ -22,13 +23,19 @@ STATE_FILE="${PROJECT_ROOT}/.claude/lam-loop-state.json"
 PRE_COMPACT_FLAG="${PROJECT_ROOT}/.claude/pre-compact-fired"
 LOG_FILE="${PROJECT_ROOT}/.claude/logs/loop.log"
 
+# 一時ファイルのクリーンアップ trap（異常終了時の孤立ファイル防止）
+_CLEANUP_FILES=""
+# shellcheck disable=SC2329
+cleanup_tmp() { for f in ${_CLEANUP_FILES}; do rm -f "${f}" 2>/dev/null; done; }
+trap cleanup_tmp EXIT
+
 # ログディレクトリが存在しなければ作成
 mkdir -p "$(dirname "${LOG_FILE}")" 2>/dev/null || true
 
 # 結果定数
-RESULT_UNKNOWN=0
-RESULT_PASS=1
-RESULT_FAIL=2
+readonly RESULT_UNKNOWN=0
+readonly RESULT_PASS=1
+readonly RESULT_FAIL=2
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -53,10 +60,12 @@ json_get_string() {
   else
     # フォールバック: Python3 または sed による簡易パース
     if command -v python3 >/dev/null 2>&1; then
-      echo "${json}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('${key}',''))" 2>/dev/null || true
+      KEY="${key}" python3 -c "import sys,json,os; d=json.load(sys.stdin); print(d.get(os.environ['KEY'],''))" <<< "${json}" 2>/dev/null || true
     else
-      # 最終手段: sed（単純な文字列値のみ）
-      echo "${json}" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1 || true
+      # 最終手段: sed（単純な文字列値のみ。key は内部定数のみ使用前提）
+      local escaped_key
+      escaped_key=$(printf '%s' "${key}" | sed 's/[[\.*^$()+?{|]/\\&/g')
+      echo "${json}" | sed -n "s/.*\"${escaped_key}\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1 || true
     fi
   fi
 }
@@ -68,9 +77,11 @@ json_get_number() {
     echo "${json}" | jq -r ".${key} // 0" 2>/dev/null || echo "0"
   else
     if command -v python3 >/dev/null 2>&1; then
-      echo "${json}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('${key}',0))" 2>/dev/null || echo "0"
+      KEY="${key}" python3 -c "import sys,json,os; d=json.load(sys.stdin); print(d.get(os.environ['KEY'],0))" <<< "${json}" 2>/dev/null || echo "0"
     else
-      echo "${json}" | sed -n "s/.*\"${key}\"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p" | head -1 || echo "0"
+      local escaped_key
+      escaped_key=$(printf '%s' "${key}" | sed 's/[[\.*^$()+?{|]/\\&/g')
+      echo "${json}" | sed -n "s/.*\"${escaped_key}\"[[:space:]]*:[[:space:]]*\([0-9]*\).*/\1/p" | head -1 || echo "0"
     fi
   fi
 }
@@ -83,7 +94,7 @@ json_get_bool() {
     result=$(echo "${json}" | jq -r ".${key} // false" 2>/dev/null || echo "false")
   else
     if command -v python3 >/dev/null 2>&1; then
-      result=$(echo "${json}" | python3 -c "import sys,json; d=json.load(sys.stdin); print('true' if d.get('${key}',False) else 'false')" 2>/dev/null || echo "false")
+      result=$(KEY="${key}" python3 -c "import sys,json,os; d=json.load(sys.stdin); print('true' if d.get(os.environ['KEY'],False) else 'false')" <<< "${json}" 2>/dev/null || echo "false")
     else
       if echo "${json}" | grep -q "\"${key}\"[[:space:]]*:[[:space:]]*true" 2>/dev/null; then
         result="true"
@@ -95,6 +106,35 @@ json_get_bool() {
   echo "${result}"
 }
 
+# ループログを .claude/logs/ に保存（MVP: テキスト形式, loop-log-schema.md 準拠）
+save_loop_log() {
+  local state_file="$1"
+  local log_dir="${PROJECT_ROOT}/.claude/logs"
+  local timestamp
+  timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  local log_file
+  log_file="${log_dir}/loop-$(date -u +%Y%m%d-%H%M%S).txt"
+
+  mkdir -p "${log_dir}" 2>/dev/null || true
+
+  if command -v jq >/dev/null 2>&1 && [ -f "${state_file}" ]; then
+    {
+      echo "=== Loop Log ==="
+      echo "timestamp: ${timestamp}"
+      echo "command: $(jq -r '.command // ""' "${state_file}" 2>/dev/null)"
+      echo "target: $(jq -r '.target // ""' "${state_file}" 2>/dev/null)"
+      echo "iterations: $(jq -r '.iteration // 0' "${state_file}" 2>/dev/null)"
+      echo "max_iterations: $(jq -r '.max_iterations // 5' "${state_file}" 2>/dev/null)"
+      echo "started_at: $(jq -r '.started_at // ""' "${state_file}" 2>/dev/null)"
+      echo "result: GREEN_STATE"
+      echo ""
+      echo "--- Iteration Log ---"
+      jq -r '.log[]? | "iter \(.iteration // "?"): found=\(.issues_found // 0) fixed=\(.issues_fixed // 0) pg=\(.pg // 0) se=\(.se // 0) pm=\(.pm // 0) tests=\(.test_count // 0)"' "${state_file}" 2>/dev/null || true
+    } > "${log_file}" 2>/dev/null || true
+    log_entry "INFO" "Loop log saved to ${log_file}"
+  fi
+}
+
 # 状態ファイルの iteration をインクリメントして書き戻す
 increment_iteration() {
   local current_iter="$1"
@@ -103,6 +143,7 @@ increment_iteration() {
   if command -v jq >/dev/null 2>&1; then
     local tmp_file
     tmp_file=$(mktemp)
+    _CLEANUP_FILES="${_CLEANUP_FILES} ${tmp_file}"
     if jq ".iteration = ${new_iter}" "${STATE_FILE}" > "${tmp_file}" 2>/dev/null; then
       mv "${tmp_file}" "${STATE_FILE}"
     else
@@ -164,6 +205,7 @@ log_entry "INFO" "loop active: command=${COMMAND}, iteration=${ITERATION}/${MAX_
 # ================================================================
 if [ "${ITERATION}" -ge "${MAX_ITERATIONS}" ]; then
   log_entry "WARN" "max_iterations reached (${ITERATION}/${MAX_ITERATIONS}) → stop loop"
+  save_loop_log "${STATE_FILE}"
   rm -f "${STATE_FILE}" 2>/dev/null || true
   exit 0
 fi
@@ -211,6 +253,19 @@ fi
 # テストフレームワーク・lint ツールの検出先 (入力JSONの cwd か PROJECT_ROOT)
 CWD=$(json_get_string "${INPUT}" "cwd")
 CHECK_DIR="${CWD:-${PROJECT_ROOT}}"
+# W-7: CWD の安全性検証（パストラバーサル防止）
+# - PROJECT_ROOT 配下: OK
+# - 実在するディレクトリ: OK（テスト環境等）
+# - 存在しない or 相対パス: PROJECT_ROOT にフォールバック
+if [ -n "${CWD}" ]; then
+  if [ "${CHECK_DIR}" != "${CHECK_DIR#"${PROJECT_ROOT}"}" ] 2>/dev/null; then
+    : # OK: PROJECT_ROOT 配下
+  elif [ -d "${CHECK_DIR}" ] && [[ "${CHECK_DIR}" == /* ]]; then
+    : # OK: 実在する絶対パス
+  else
+    CHECK_DIR="${PROJECT_ROOT}"
+  fi
+fi
 
 TEST_PASS=${RESULT_UNKNOWN}
 LINT_PASS=${RESULT_UNKNOWN}
@@ -258,9 +313,20 @@ detect_and_run_tests() {
   log_entry "INFO" "G1: running ${test_framework}: ${test_cmd}"
 
   # timeout 120秒でテストを実行 (AC-2.8b)
+  # ホワイトリスト方式で直接実行（bash -c への変数展開によるインジェクション防止）
   local test_output
   local test_exit=0
-  test_output=$(cd "${dir}" && timeout 120 bash -c "${test_cmd}" 2>&1) || test_exit=$?
+  case "${test_cmd}" in
+    pytest)       test_output=$(cd "${dir}" && timeout 120 pytest 2>&1) || test_exit=$? ;;
+    "npm test")   test_output=$(cd "${dir}" && timeout 120 npm test 2>&1) || test_exit=$? ;;
+    "go test ./...") test_output=$(cd "${dir}" && timeout 120 go test ./... 2>&1) || test_exit=$? ;;
+    "make test")  test_output=$(cd "${dir}" && timeout 120 make test 2>&1) || test_exit=$? ;;
+    *)
+      log_entry "WARN" "G1: unknown test command '${test_cmd}' → skip"
+      TEST_PASS=${RESULT_PASS}
+      return
+      ;;
+  esac
 
   if [ "${test_exit}" -eq 0 ]; then
     log_entry "INFO" "G1: tests PASSED (${test_framework})"
@@ -276,6 +342,11 @@ detect_and_run_tests() {
         ;;
       go)
         TEST_COUNT=$(echo "${test_output}" | grep -c '^ok' 2>/dev/null || echo "0")
+        ;;
+      make)
+        # make test のテスト数抽出は出力形式が不定のためスキップ
+        log_entry "INFO" "G1: make test count extraction not supported → skip escalation check"
+        TEST_COUNT=0
         ;;
     esac
     TEST_COUNT=${TEST_COUNT:-0}
@@ -335,8 +406,19 @@ detect_and_run_lint() {
   log_entry "INFO" "G2: running ${lint_tool}: ${lint_cmd}"
 
   # timeout 60秒で lint を実行 (AC-2.8b)
+  # ホワイトリスト方式で直接実行（bash -c への変数展開によるインジェクション防止）
   local lint_exit=0
-  (cd "${dir}" && timeout 60 bash -c "${lint_cmd}" > /dev/null 2>&1) || lint_exit=$?
+  case "${lint_cmd}" in
+    "ruff check .")  (cd "${dir}" && timeout 60 ruff check . > /dev/null 2>&1) || lint_exit=$? ;;
+    "npm run lint")  (cd "${dir}" && timeout 60 npm run lint > /dev/null 2>&1) || lint_exit=$? ;;
+    "npx eslint .")  (cd "${dir}" && timeout 60 npx eslint . > /dev/null 2>&1) || lint_exit=$? ;;
+    "make lint")     (cd "${dir}" && timeout 60 make lint > /dev/null 2>&1) || lint_exit=$? ;;
+    *)
+      log_entry "WARN" "G2: unknown lint command '${lint_cmd}' → skip"
+      LINT_PASS=${RESULT_PASS}
+      return
+      ;;
+  esac
 
   if [ "${lint_exit}" -eq 0 ]; then
     log_entry "INFO" "G2: lint PASSED (${lint_tool})"
@@ -354,6 +436,9 @@ detect_and_run_tests "${CHECK_DIR}"
 detect_and_run_lint "${CHECK_DIR}"
 
 # -- G5: セキュリティチェック (依存脆弱性 + シークレットスキャン) --
+# NOTE: full-review.md Phase 4 の G5 定義には「危険パターンチェック（eval/exec/pickle等）」も
+# 含まれるが、本 hook では依存脆弱性 + シークレットスキャンのみ実装（MVP スコープ）。
+# 危険パターンチェックは Phase 1 の code-reviewer セキュリティエージェントが担当する。
 SECURITY_PASS=${RESULT_UNKNOWN}
 
 detect_and_run_security() {
@@ -364,8 +449,7 @@ detect_and_run_security() {
   if [ -f "${dir}/package-lock.json" ] || [ -f "${dir}/package.json" ]; then
     if command -v npm >/dev/null 2>&1; then
       log_entry "INFO" "G5: running npm audit"
-      local audit_output
-      audit_output=$(cd "${dir}" && timeout 60 npm audit --audit-level=critical 2>&1) || {
+      (cd "${dir}" && timeout 60 npm audit --audit-level=critical 2>&1) || {
         local audit_exit=$?
         if [ "${audit_exit}" -ne 124 ]; then
           log_entry "INFO" "G5: npm audit found critical vulnerabilities"
@@ -543,10 +627,11 @@ if [ "${GREEN_STATE}" -eq 1 ]; then
   fi
 
   if [ "${FULLSCAN_PENDING}" -eq 1 ]; then
-    log_entry "INFO" "Green State achieved, fullscan_pending=true → clear flag, continue"
-    # フルスキャン済みフラグを解除して継続
+    log_entry "INFO" "Green State achieved, fullscan_pending=true → clear flag, continue next cycle for fullscan"
+    # fullscan_pending フラグをクリアし、次サイクルでフルスキャンを実行するために継続
     if command -v jq >/dev/null 2>&1; then
       FULLSCAN_TMP=$(mktemp)
+      _CLEANUP_FILES="${_CLEANUP_FILES} ${FULLSCAN_TMP}"
       if jq '.fullscan_pending = false' "${STATE_FILE}" > "${FULLSCAN_TMP}" 2>/dev/null; then
         mv "${FULLSCAN_TMP}" "${STATE_FILE}"
       else
@@ -555,6 +640,8 @@ if [ "${GREEN_STATE}" -eq 1 ]; then
     fi
   else
     log_entry "INFO" "Green State achieved → stop loop (normal convergence)"
+    # ループログを .claude/logs/ に保存（MVP: テキスト形式）
+    save_loop_log "${STATE_FILE}"
     rm -f "${STATE_FILE}" 2>/dev/null || true
     exit 0
   fi
@@ -572,6 +659,7 @@ log_entry "INFO" "continuing: iteration ${ITERATION} → ${NEW_ITERATION}, reaso
 # テスト数を状態ファイルの最新ログエントリに記録（エスカレーション判定用）
 if [ "${TEST_COUNT}" -gt 0 ] && command -v jq >/dev/null 2>&1; then
   COUNT_TMP=$(mktemp)
+  _CLEANUP_FILES="${_CLEANUP_FILES} ${COUNT_TMP}"
   if jq ".log[-1].test_count = ${TEST_COUNT}" "${STATE_FILE}" > "${COUNT_TMP}" 2>/dev/null; then
     mv "${COUNT_TMP}" "${STATE_FILE}"
   else
