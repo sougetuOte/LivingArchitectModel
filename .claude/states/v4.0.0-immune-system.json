@@ -8,7 +8,7 @@
     "tasks": "approved"
   },
   "current_wave": 2,
-  "current_task": "T2-3",
+  "current_task": "T2-5",
   "completed_tasks": [
     "T0-1",
     "T0-2",
@@ -24,7 +24,9 @@
     "T1-9",
     "T2-1",
     "T2-2",
-    "T2-3"
+    "T2-3",
+    "T2-4",
+    "T2-5"
   ],
   "approvals": {
     "requirements": "2026-03-08",
