@@ -42,6 +42,13 @@ EOF
 | `started_at` | string | ループ開始時刻（ISO 8601） |
 | `log` | array | 各イテレーションの記録（下記参照） |
 
+**追加フィールド**（hook が管理）:
+
+| フィールド | 型 | 説明 | 管理者 |
+|-----------|---|------|--------|
+| `fullscan_pending` | boolean | フルスキャン待ちフラグ（Phase 4 でセット、Stop hook で参照） | `/full-review` Phase 4 |
+| `tool_events` | array | ツール実行イベントの記録（PostToolUse hook が追記） | PostToolUse hook |
+
 **log エントリ**:
 
 | フィールド | 型 | 説明 |
@@ -52,6 +59,7 @@ EOF
 | `pg` | number | PG級の問題数 |
 | `se` | number | SE級の問題数 |
 | `pm` | number | PM級の問題数 |
+| `test_count` | number | テスト数（Stop hook がエスカレーション判定に使用） |
 
 Phase 0 完了後、Phase 1 に進む。
 
@@ -65,7 +73,7 @@ Phase 0 完了後、Phase 1 に進む。
 |-------------|------|---------|
 | `code-reviewer` (1) | ソースコード品質（命名、構造、エラー処理） | 各 Issue に PG/SE/PM 分類を付与 |
 | `code-reviewer` (2) | テストコード品質（網羅性、可読性、テストパターン） | 各 Issue に PG/SE/PM 分類を付与 |
-| `quality-auditor` | アーキテクチャ・仕様整合性（依存関係、**仕様ドリフトチェック**） | 仕様ドリフト結果を含む |
+| `quality-auditor` | アーキテクチャ・仕様整合性（依存関係、**仕様ドリフト**、**構造整合性**） | 仕様ドリフト + 構造整合性結果を含む |
 
 プロジェクト規模に応じてエージェント構成を調整可能。
 小規模の場合は `code-reviewer` x1 + `quality-auditor` x1 でもよい。
@@ -75,6 +83,14 @@ Phase 0 完了後、Phase 1 に進む。
 **イテレーション2回目以降の差分チェック**: 2回目以降のサイクルでは、前サイクルで修正されたファイルのみを対象にする（差分チェック）。これにより不要な再監査を避け、収束を早める。
 
 **仕様ドリフトチェック（quality-auditor）**: quality-auditor は `docs/specs/` と対象コードの整合性を検証する。仕様に記述されているが実装されていない機能、または実装されているが仕様に記述されていない機能を「仕様ドリフト」として報告する。
+
+**構造整合性チェック（quality-auditor）**: コンポーネント間の「接続」が正しいかを検証する。Wave やタスクを跨いで構築されたコンポーネント（hooks, commands, skills, agents）間で、以下の整合性を確認する:
+
+- **スキーマ整合性**: 状態ファイル（`lam-loop-state.json` 等）の書き手と読み手でフィールド名・型が一致しているか
+- **参照整合性**: コマンドやスキルが参照するファイル・エージェントが実在するか、パスが正しいか
+- **データフロー整合性**: hook 間の入出力チェーン（PreToolUse → ツール実行 → PostToolUse → Stop）でデータの受け渡しに断絶がないか
+- **設定整合性**: `settings.json` の hooks 定義と実際のスクリプトパス・イベント名が一致しているか
+- **ドキュメント間整合性**: 同一概念（スキーマ、フロー、等級定義等）が複数ファイルに記述されている場合、記述が一致しているか
 
 ## Phase 2: レポート統合 + PG/SE/PM 分類（v4.0.0）
 
@@ -126,6 +142,16 @@ PM級の問題がある場合、ループを停止しユーザーに判断を委
 |---------|------------|------|
 | 毎サイクル | **変更ファイルのみ**（Phase 3 で修正したファイル） | 修正による新規問題の検出、収束の加速 |
 | 最終サイクル（Green State 達成後） | **対象全体のフルスキャン** | 修正の副作用が他のファイルに波及していないことを最終確認 |
+
+**フルスキャンの発動手順**: 差分チェックで Green State を達成したら、`/full-review`（または lam-orchestrate）が状態ファイルに `fullscan_pending: true` をセットする:
+
+```bash
+# Phase 4 で差分チェック Green State 達成時に実行
+# jq で fullscan_pending フラグをセット
+jq '.fullscan_pending = true' .claude/lam-loop-state.json > /tmp/lam-tmp.json && mv /tmp/lam-tmp.json .claude/lam-loop-state.json
+```
+
+Stop hook がこのフラグを検出すると、もう1サイクル（フルスキャン）を実行する。フルスキャンでも Green State なら本当の停止となる。
 
 フルスキャンの結果、新たな問題が発見された場合は Green State 未達とし、ループを継続する。
 

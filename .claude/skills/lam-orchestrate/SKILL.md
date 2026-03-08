@@ -127,7 +127,8 @@ lam-orchestrate は `/full-review` コマンドと連携し、自動ループの
 
 ### 状態ファイル: `.claude/lam-loop-state.json`
 
-lam-orchestrate がループのライフサイクル全体を通じて管理する中核ファイル。
+lam-orchestrate または `/full-review` Phase 0 が生成し、ループのライフサイクル全体を通じて管理する中核ファイル。
+`/full-review` が単独実行された場合は `/full-review` 自身が生成する。lam-orchestrate 経由の場合は lam-orchestrate が生成する。
 
 | フィールド | 型 | 説明 |
 |-----------|---|------|
@@ -192,6 +193,17 @@ lam-orchestrate は `/full-review` の Phase 0 で呼び出され、以下を実
 `/full-review` が単独で実行された場合（lam-orchestrate を経由しない場合）も、
 `/full-review` 自身が Phase 0 で状態ファイルを生成するため、ループは正常に動作する。
 lam-orchestrate は、より複雑なマルチタスク実行時に `/full-review` を内包する形で使用される。
+
+### fullscan_pending フラグ管理
+
+Phase 4 の差分チェックで Green State を達成した場合、フルスキャンを発動するためにフラグをセットする:
+
+```bash
+# Phase 4 で差分チェック Green State 達成時に実行
+jq '.fullscan_pending = true' .claude/lam-loop-state.json > /tmp/lam-tmp.json && mv /tmp/lam-tmp.json .claude/lam-loop-state.json
+```
+
+Stop hook がこのフラグを検出すると、もう1サイクル（フルスキャン）を実行する。フルスキャンでも Green State なら本当の停止となる。
 
 ### エスカレーション条件
 

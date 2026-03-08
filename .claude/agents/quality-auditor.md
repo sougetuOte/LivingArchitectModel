@@ -146,6 +146,63 @@ model: sonnet
 | D-2 | 未文書化実装 | - | src/bar.py:L30 | 仕様書に記載なし | PM |
 ```
 
+### Step 3b: 構造整合性チェック（v4.0.0）
+
+Wave やタスクを跨いで構築されたコンポーネント間の「接続」が正しいかを検証する。
+
+```markdown
+## 構造整合性チェック
+
+### スキーマ整合性（状態ファイルの書き手と読み手の一致）
+| 状態ファイル | 書き手 | 読み手 | フィールド一致 | 備考 |
+|-------------|--------|--------|:------------:|------|
+| lam-loop-state.json | full-review Phase 0 | lam-stop-hook.sh | ✓/✗ | |
+| lam-loop-state.json | lam-stop-hook.sh | post-tool-use.sh | ✓/✗ | |
+| doc-sync-flag | post-tool-use.sh | /ship Phase 2 | ✓/✗ | |
+| tdd-patterns.log | post-tool-use.sh | (Wave 4) | ✓/✗ | |
+
+### 参照整合性（ファイル・エージェント参照の実在確認）
+| 参照元 | 参照先 | 存在 | 備考 |
+|--------|--------|:----:|------|
+| full-review.md | code-reviewer agent | ✓/✗ | |
+| full-review.md | quality-auditor agent | ✓/✗ | |
+| full-review.md | lam-stop-hook.sh | ✓/✗ | |
+| lam-orchestrate SKILL.md | lam-loop-state.json スキーマ | ✓/✗ | |
+
+### データフロー整合性（hook チェーンの断絶チェック）
+| フロー | 上流出力 | 下流入力 | 接続 | 備考 |
+|--------|---------|---------|:----:|------|
+| PreToolUse → ツール実行 | permission判定 | Claude実行 | ✓/✗ | |
+| ツール実行 → PostToolUse | tool_response | stdin JSON | ✓/✗ | |
+| PostToolUse → Stop | 状態ファイル更新 | 状態ファイル読取 | ✓/✗ | |
+| Stop → 次イテレーション | block/allow | Claude再開 | ✓/✗ | |
+
+### 設定整合性（settings.json と実ファイルの一致）
+| settings.json 定義 | 実スクリプト | パス一致 | イベント名一致 | 備考 |
+|-------------------|------------|:-------:|:------------:|------|
+| hooks.PreToolUse | pre-tool-use.sh | ✓/✗ | ✓/✗ | |
+| hooks.PostToolUse | post-tool-use.sh | ✓/✗ | ✓/✗ | |
+| hooks.Stop | lam-stop-hook.sh | ✓/✗ | ✓/✗ | |
+
+### ドキュメント間整合性（同一概念の記述一致）
+| 概念 | 記述箇所1 | 記述箇所2 | 一致 | 備考 |
+|------|----------|----------|:----:|------|
+| lam-loop-state スキーマ | full-review.md | lam-orchestrate SKILL.md | ✓/✗ | |
+| PG/SE/PM 分類基準 | permission-levels.md | code-reviewer.md | ✓/✗ | |
+| Green State 条件 | green-state-definition.md | full-review.md Phase 4 | ✓/✗ | |
+| エスカレーション条件 | lam-stop-hook.sh | lam-orchestrate SKILL.md | ✓/✗ | |
+```
+
+不一致を発見した場合、以下の形式で報告する:
+```markdown
+### 構造整合性チェック結果
+
+| # | 種別 | ファイルA | ファイルB | 説明 | PG/SE/PM |
+|---|------|----------|----------|------|---------|
+| S-1 | スキーマ不一致 | full-review.md | lam-stop-hook.sh | log エントリにフィールド差異 | SE |
+| S-2 | 参照切れ | full-review.md:L68 | - | 存在しないエージェント参照 | SE |
+```
+
 ### Step 4: セキュリティ監査
 
 ```markdown
@@ -253,10 +310,12 @@ model: sonnet
 
 ## 禁止事項
 
-- **修正の実施**（指摘のみ、修正は別エージェント）
+- **PM級の修正の実施**（指摘のみ、承認ゲート。仕様変更、アーキテクチャ変更等）
 - **主観的な好みの押し付け**
 - **重要度なしの指摘**
 - **解決策なしの批判**
+
+> v4.0.0 変更: PG級（フォーマット、typo等）・SE級（テスト追加、内部リファクタリング等）の修正は許可。詳細は `.claude/rules/permission-levels.md` を参照。
 
 ## 参照ドキュメント
 
