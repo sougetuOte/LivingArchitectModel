@@ -84,8 +84,8 @@ if [ -n "${FILE_PATH}" ]; then
       LEVEL="PM"
       REASON="adr/ path"
       ;;
-    # PM級: ルールファイル
-    .claude/rules/*.md|*/.claude/rules/*.md)
+    # PM級: ルールファイル（サブディレクトリ含む）
+    .claude/rules/*.md|*/.claude/rules/*.md|.claude/rules/*/*.md|*/.claude/rules/*/*.md)
       LEVEL="PM"
       REASON="rules/ path"
       ;;

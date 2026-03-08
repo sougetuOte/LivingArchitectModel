@@ -46,6 +46,17 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 - S-3: 仕様書の未実装項目には Phase/Wave マークを付与（暗黙スキップ禁止）
 - S-4: Refactor で公開 API/インターフェースが変わった場合、仕様書を即時更新
 
+### TDD 内省パイプライン（Wave 4）
+
+テスト失敗→成功のサイクルを PostToolUse hook が自動記録する。蓄積されたパターンが閾値（3回）に到達すると、ルール候補が自動生成される。
+
+- パターン記録: `.claude/tdd-patterns.log`（自動、PG級）
+- パターン詳細: `docs/memos/tdd-patterns/`
+- ルール候補: `.claude/rules/auto-generated/draft-*.md`（PM級で起票・承認）
+- 審査コマンド: `/pattern-review`
+
+詳細: `.claude/rules/auto-generated/trust-model.md`
+
 ### 禁止
 
 - 仕様書なし実装

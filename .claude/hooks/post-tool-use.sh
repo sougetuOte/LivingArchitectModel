@@ -60,7 +60,7 @@ fi
 
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# ----- 1. テスト結果の記録 (P3) -----
+# ----- 1. テスト結果の記録 -----
 
 is_test_command() {
   local cmd="$1"
@@ -97,7 +97,7 @@ if [ "${TOOL_NAME}" = "Bash" ] && is_test_command "${COMMAND}"; then
   fi
 fi
 
-# ----- 2. ドキュメント更新判定 (P4) -----
+# ----- 2. ドキュメント更新判定 -----
 
 if [ "${TOOL_NAME}" = "Edit" ] || [ "${TOOL_NAME}" = "Write" ]; then
   # FILE_PATH が src/ 配下かどうかを判定
@@ -111,11 +111,17 @@ if [ "${TOOL_NAME}" = "Edit" ] || [ "${TOOL_NAME}" = "Write" ]; then
 
   # src/ 配下かどうかチェック（正規化済みの相対パスで判定）
   if echo "${NORMALIZED_PATH}" | grep -qE '^src/' 2>/dev/null; then
-    echo "${FILE_PATH}" >> "${DOC_SYNC_FLAG}" 2>/dev/null || true
+    # 重複防止: 既に記録済みのパスはスキップ（AC-4.6: 承認疲れ防止）
+    # NORMALIZED_PATH（相対パス）で統一して書き込み・チェックする
+    if [ -f "${DOC_SYNC_FLAG}" ] && grep -qFx "${NORMALIZED_PATH}" "${DOC_SYNC_FLAG}" 2>/dev/null; then
+      :  # 既に記録済み
+    else
+      echo "${NORMALIZED_PATH}" >> "${DOC_SYNC_FLAG}" 2>/dev/null || true
+    fi
   fi
 fi
 
-# ----- 3. ループログ記録 (P2) -----
+# ----- 3. ループログ記録 -----
 
 if [ -f "${LOOP_STATE}" ]; then
   if "${HAS_JQ}"; then
