@@ -41,6 +41,21 @@ description: "日次振り返り"
 - 効率: 高/中/低
 ```
 
+## KPI 集計セクション
+
+ベースライン確立後（Wave 2 完了後）、以下の KPI を集計・表示する。
+詳細定義: `docs/specs/evaluation-kpi.md`
+
+### 集計手順
+
+1. `.claude/logs/loop-*.json` を走査し、K1〜K5 を計算
+2. `.claude/logs/permission.log` を走査し、等級分布（PG/SE/PM）を集計
+3. 以下のテンプレートで出力
+
+### KPI 出力
+
+テンプレートは `docs/specs/evaluation-kpi.md` Section 6 を参照。
+
 ## 更新不要な情報
 - プロジェクト概要
 - 技術スタック

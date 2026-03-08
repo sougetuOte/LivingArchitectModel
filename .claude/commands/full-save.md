@@ -1,3 +1,7 @@
+---
+description: "フルセーブ（SESSION_STATE.md + git commit + push + daily）"
+---
+
 # フルセーブ
 
 プロジェクトルートの `SESSION_STATE.md` + 論理グループ別 git commit + git push + Daily 記録。
@@ -43,11 +47,17 @@ git commit/push と Daily は次セッションで実行してください。
 - 現在のgitブランチ
 - 関連するSPEC/ADR/設計書ファイル名
 
-## 3. git commit（論理グループ別）
+## 3. ループログ保存
+
+`.claude/logs/loop-*.{txt|json}` が存在する場合、未コミットのループログを次のステップの git commit に含める。
+ループログは「ドキュメント更新」グループに分類する。
+詳細: `docs/specs/loop-log-schema.md`
+
+## 4. git commit（論理グループ別）
 
 1. `git status` で変更ファイルを確認
 2. 変更を **論理的なグループに分類**（最大3グループ）
-   - 例: 「機能A の実装」「テスト追加」「ドキュメント更新」「設定変更」
+   - 例: 「機能A の実装」「テスト追加」「ドキュメント更新」「設定変更」「ループログ」
    - 関連するファイルをまとめて1コミットにする
 3. グループごとに `git add` + `git commit`
    - コミットメッセージは変更の目的がわかる形式で
@@ -59,11 +69,11 @@ git commit/push と Daily は次セッションで実行してください。
 - 3グループを超える場合は無理に分けず、関連性で統合
 - 秘密情報（.env, credentials 等）は除外
 
-## 4. git push
+## 5. git push
 
 `git push` を実行。リモートが設定されていない場合はスキップして報告。
 
-## 5. Daily 記録
+## 6. Daily 記録
 
 `docs/daily/YYYY-MM-DD.md` に以下を記録:
 
@@ -76,7 +86,7 @@ git commit/push と Daily は次セッションで実行してください。
 ### 課題・気づき
 - あれば最大1つ
 
-## 6. 完了報告
+## 7. 完了報告
 
 以下を表示:
 
