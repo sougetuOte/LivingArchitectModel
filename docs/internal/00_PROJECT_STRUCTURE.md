@@ -18,6 +18,14 @@
 │   ├── internal/           # プロジェクト運用ルール (本フォルダ)
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
 ├── .claude/                # Claude Code用設定・コマンド・状態管理
+│   ├── commands/           # ワークフローコマンド（/ship, /building 等）
+│   ├── rules/              # ガードレール（自動ロード）
+│   ├── hooks/              # PreToolUse/PostToolUse/Stop/PreCompact hooks
+│   ├── skills/             # スキル定義（テンプレート、思考フレームワーク等）
+│   ├── agents/             # カスタムサブエージェント定義
+│   ├── states/             # フェーズ承認ゲート状態（*.json）
+│   ├── logs/               # 権限ログ、ループログ等
+│   └── settings.json       # 権限・hooks 設定
 └── CLAUDE.md               # プロジェクト憲法
 ```
 
@@ -36,7 +44,7 @@
 
 ### C. ADR (Architectural Decision Records)
 
-- **Naming**: `docs/adr/YYYY-MM-DD_{decision_title}.md`
+- **Naming**: `docs/adr/NNNN-kebab-case-title.md`（NNNN: 4桁連番、0001から）
 - **Immutable**: 一度確定した ADR は原則変更せず、変更が必要な場合は新しい ADR を作成して "Supersedes" と明記する。
 
 ### D. State Management (状態管理)
@@ -53,6 +61,7 @@ Layer 1: docs/internal/ — プロセス SSOT（What & Why）
   v 参照・実装
 Layer 2: .claude/rules/    — ガードレール（自動ロード）
          .claude/commands/ — ワークフロー（手動実行）
+         .claude/hooks/    — 自動化 hooks（PreToolUse/PostToolUse/Stop/PreCompact）
          .claude/agents/   — エージェント定義
          .claude/skills/   — スキル定義
   |

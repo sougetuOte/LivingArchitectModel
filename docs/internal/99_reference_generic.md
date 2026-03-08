@@ -16,7 +16,7 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 
 ## B. Phase-by-Phase Generic Example
 
-### Phase 0: Requirement → Spec (Definition of Ready)
+### Phase 0: Requirement → Spec (Definition of Ready) [PLANNING]
 
 **Input:** docs/memos/idea.md
 **Output:** docs/specs/feature_x.md (Ready)
@@ -43,7 +43,7 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 
 ---
 
-### Phase 1: Pre-Flight Impact Analysis (Planning)
+### Phase 1: Pre-Flight Impact Analysis [PLANNING]
 
 **Input:** Ready Spec
 **Output:** Task Plan + Risk Note
@@ -62,7 +62,7 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 
 ---
 
-### Phase 2: TDD Cycle (Building)
+### Phase 2: TDD Cycle [BUILDING]
 
 **Input:** Task Plan
 **Output:** Code + Tests + Updated Docs
@@ -82,7 +82,7 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 
 ---
 
-### Phase 3: Periodic Auditing (Auditing)
+### Phase 3: Periodic Auditing [AUDITING]
 
 **Input:** 現在のコード/ドキュメント資産
 **Output:** 修復/改善提案＋優先度
@@ -103,7 +103,7 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 
 ---
 
-### Phase 4: Release/Ops
+### Phase 4: Release/Ops [RELEASE]
 
 **Input:** Green なプロダクト
 **Output:** Release + 運用ログ
@@ -164,7 +164,7 @@ Project root:
 
 - CLAUDE.md
   docs/internal/:
-- 00..07
+- 00_PROJECT_STRUCTURE .. 07_SECURITY_AND_AUTOMATION
 - 99_reference_generic.md (this file)
 
 First prompt to AI:

@@ -55,3 +55,67 @@
 ## 4. Emergency Stop
 
 ユーザーから「止めて」「ストップ」等の指示があった場合、直ちに実行中のコマンドを停止（`Ctrl+C` / `SIGINT`）し、全ての自動化プロセスを中断すること。
+
+## 5. Hooks-Based Permission System (v4.0.0)
+
+v4.0.0 以降、コマンド安全基準は以下の多層モデルで運用される:
+
+| Layer | 名称 | 実装 | 粒度 |
+|:---:|:---|:---|:---|
+| 0 | 憲法的プロンプティング | 本ドキュメント Section 2 | コマンドカテゴリ |
+| 1 | ネイティブ権限 | `.claude/settings.json` の `permissions` | ツール×パターン |
+| 2 | 動的 hook 判定 | `.claude/hooks/pre-tool-use.sh` | ファイルパス×権限等級 |
+
+### 権限等級 (PG/SE/PM)
+
+Layer 2 の PreToolUse hook はファイルパスに基づき 3 段階の権限等級を判定する:
+
+- **PG級**: 自動許可（読取専用ツール、lint 修正等）
+- **SE級**: 許可 + ログ記録（src/ 配下の変更、ドキュメント更新等）
+- **PM級**: deny 応答でブロック（仕様書、ADR、ルールファイル、設定ファイルの変更）
+
+詳細は `.claude/rules/permission-levels.md` を参照。
+
+### PostToolUse による自動記録
+
+PostToolUse hook はツール実行後に以下を自動処理する:
+- テスト結果の記録（TDD パターン検出）
+- ドキュメント同期フラグの設定（src/ 配下の変更検知）
+- ループ状態ファイルへのイベント記録（自動ループ中）
+
+### Stop hook による自律ループ制御
+
+Stop hook は Claude の応答完了時に発火し、自律ループの収束を判定する:
+- Green State（テスト全パス + lint エラーゼロ + セキュリティチェック通過）達成で停止
+- 反復上限到達で強制停止
+- コンテキスト圧迫検出（PreCompact 連動）で安全停止
+
+## 6. Recommended Security Tools (推奨セキュリティツール)
+
+### Anthropic 公式
+
+| ツール | 用途 | 導入方法 |
+|:---|:---|:---|
+| [security-guidance plugin](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/security-guidance) | コード編集時のリアルタイムセキュリティ警告 | `/plugin install security-guidance@claude-plugin-directory` |
+| [claude-code-security-review](https://github.com/anthropics/claude-code-security-review) | PR 単位の AI セキュリティレビュー（GitHub Action） | `.github/workflows/` に追加 |
+| [Claude Code Security](https://www.anthropic.com/news/claude-code-security) | コードベース全体の脆弱性スキャン | Enterprise/Team プラン |
+
+### 依存脆弱性スキャン（プロジェクトに応じて選択）
+
+| 言語 | ツール | コマンド |
+|:---|:---|:---|
+| JavaScript/Node.js | npm audit | `npm audit --audit-level=critical` |
+| Python | pip-audit | `pip-audit --desc` |
+| Python | safety | `safety check` |
+| Go | govulncheck | `govulncheck ./...` |
+
+### CI/CD 統合
+
+GitHub Actions で `claude-code-security-review` を使用する場合の設定例:
+
+```yaml
+- uses: anthropics/claude-code-security-review@main
+  with:
+    comment-pr: true
+    claude-api-key: ${{ secrets.CLAUDE_API_KEY }}
+```
