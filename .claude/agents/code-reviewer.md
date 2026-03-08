@@ -4,6 +4,7 @@ description: >
   コードレビューの専門 Subagent。LAM の品質基準
   (03_QUALITY_STANDARDS.md) に基づいたレビューを実施。
   Use proactively after code changes to review quality, security, and maintainability.
+# permission-level: SE
 model: sonnet
 tools: Read, Grep, Glob, Bash
 ---

@@ -5,8 +5,9 @@ description: |
   コード品質、ドキュメント整合性、アーキテクチャ健全性を検証する。
   3 Agents Model を適用した改善提案を行う。
   AUDITINGフェーズでの監査作業で使用推奨。
+# permission-level: SE
 tools: Read, Glob, Grep, Bash
-model: opus
+model: sonnet
 ---
 
 # Quality Auditor サブエージェント

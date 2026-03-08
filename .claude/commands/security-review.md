@@ -51,6 +51,18 @@ description: "セキュリティレビュー - 変更内容の安全性を検証
 - [具体的な対応項目]
 ```
 
+## 権限等級対応表（v4.0.0）
+
+セキュリティリスクと権限等級の対応:
+
+| リスクレベル | 権限等級 | 対応 |
+|-------------|---------|------|
+| Critical/High | PM | 即時報告、承認ゲート。修正禁止 |
+| Medium | SE | 修正後報告。計画的に対応 |
+| Low | PG | 自動修正可。報告不要 |
+
+権限等級の詳細: `.claude/rules/permission-levels.md`
+
 ## 関連ドキュメント
 
 - `docs/internal/06_DECISION_MAKING.md` - Critical Agent の役割

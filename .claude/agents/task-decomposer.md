@@ -5,6 +5,7 @@ description: |
   仕様書と設計書から実装タスクを導出する。
   1 PR単位への分割、依存関係の整理を担当。
   PLANNINGフェーズの最終段階で使用推奨。
+# permission-level: SE
 tools: Read, Glob, Grep, Write, Edit
 model: haiku
 ---

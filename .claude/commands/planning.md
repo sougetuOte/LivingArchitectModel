@@ -60,6 +60,14 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 }
 ```
 
+## 権限等級（PG/SE/PM）
+
+PLANNING フェーズでの変更は原則 PM 級（承認ゲート）である。
+成果物（`docs/specs/`, `docs/adr/`, `docs/tasks/`）はすべて PM 級に分類され、
+サブフェーズごとの承認を経て確定する。
+
+権限等級の詳細: `.claude/rules/permission-levels.md`
+
 ## 禁止事項
 
 - `src/` ディレクトリへのファイル作成・編集

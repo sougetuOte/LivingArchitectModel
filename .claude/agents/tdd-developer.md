@@ -5,6 +5,7 @@ description: |
   Red-Green-Refactor サイクルを厳守して実装を行う。
   仕様書とタスク定義に基づいた品質の高い実装を担当。
   BUILDINGフェーズでの実装作業で使用推奨。
+# permission-level: SE
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
 ---

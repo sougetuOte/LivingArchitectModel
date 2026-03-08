@@ -4,6 +4,7 @@ description: >
   ドキュメント作成・更新の専門 Subagent。
   仕様書、ADR、README、CHANGELOG 等のドキュメントを担当。
   Use proactively when creating or updating documentation files.
+# permission-level: SE
 model: sonnet
 tools: Read, Write, Edit, Glob, Grep
 ---

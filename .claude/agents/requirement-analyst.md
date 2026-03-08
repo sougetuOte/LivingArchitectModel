@@ -5,6 +5,7 @@ description: |
   曖昧なユーザー要望を明確な仕様に変換する。
   3 Agents Model を内蔵し、多角的な要件検証を行う。
   PLANNINGフェーズでの要件定義作業で使用推奨。
+# permission-level: PM
 tools: Read, Glob, Grep, Write, Edit, WebSearch
 model: sonnet
 ---

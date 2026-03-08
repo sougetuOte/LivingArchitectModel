@@ -77,6 +77,12 @@ PLANNING 承認状態:
 - ユーザーに報告
 - `walkthrough.md` に検証結果をまとめる
 
+## TDD 内省パイプライン（Wave 4）
+
+BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパターンは PostToolUse hook によって自動記録される。
+繰り返し観測されたパターンは `.claude/rules/auto-generated/` にルール候補として生成される（Wave 4 で実装）。
+詳細: `docs/tasks/v4.0.0-immune-system-tasks.md` TASK 4-1, 4-2
+
 ## 禁止事項
 
 - 仕様書なしでの実装開始
