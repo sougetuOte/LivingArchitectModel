@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.1] - 2026-03-09
+
+### Fixed
+
+- **Docs**: QUICKSTART / README の導入フロー修正 — Step 2 で `/planning`（要件定義）、Step 3 で LAM 適応の順序に変更
+- **Docs**: CHEATSHEET の「初期化してください」指示を削除 — 初期化不要のフローに統一
+- **Docs**: スライド修正 — intro の Quick Start Step 3 から `.claude/` `docs/internal/` を適応対象外に修正、story-newproject に LAM 適応スライド追加、story-evolution の「生成される」→「含まれている」
+- 全修正は日英両方に適用（12ファイル）
+
 ## [v4.0.0] - 2026-03-09
 
 ### Added

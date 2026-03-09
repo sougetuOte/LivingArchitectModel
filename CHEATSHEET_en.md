@@ -4,10 +4,9 @@
 
 > We recommend starting with the [concept overview slides](docs/slides/index-en.html) to grasp the big picture of LAM, then following the [quickstart guide](QUICKSTART_en.md) to set up your environment.
 
-1. Launch the Claude Code CLI
-2. Claude loads `CLAUDE.md` at the project root
-3. Instruct: "Initialize as the Living Architect Model"
-4. Start the design phase with `/planning`
+1. Launch the Claude Code CLI (LAM settings are loaded automatically)
+2. Start the design phase with `/planning` and define requirements
+3. After requirements are set, adapt LAM to your project (just ask the AI)
 
 ```
 Typical flow:

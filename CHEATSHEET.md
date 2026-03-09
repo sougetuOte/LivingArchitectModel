@@ -4,10 +4,9 @@
 
 > まず [概念説明スライド](docs/slides/index.html) で LAM の全体像を掴み、[クイックスタートガイド](QUICKSTART.md) で環境構築を行うことをお勧めします。
 
-1. Claude Code CLI を起動する
-2. プロジェクトルートで Claude が `CLAUDE.md` を読み込む
-3. 「Living Architect Model として初期化してください」と指示する
-4. `/planning` で設計フェーズを開始する
+1. Claude Code CLI を起動する（LAM の設定は自動で読み込まれる）
+2. `/planning` で設計フェーズを開始し、要件を定義する
+3. 要件確定後、LAM をプロジェクトに適応させる（AI に依頼するだけ）
 
 ```
 典型的な流れ:

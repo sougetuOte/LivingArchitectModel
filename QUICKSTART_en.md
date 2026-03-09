@@ -22,34 +22,24 @@ cd my-project
 rm -rf .git && git init
 ```
 
-## Step 2: Launch Claude Code and Adapt to Your Project
+## Step 2: Launch Claude Code and Define Requirements with `/planning`
 
 ```bash
 claude
 ```
 
-Once launched, instruct the AI:
+When Claude Code starts, LAM's configuration (`.claude/`, `CLAUDE.md`, etc.) is loaded automatically.
+No need for `claude init` — the template includes everything.
+
+Once launched, type `/planning` to enter the PLANNING phase and describe your idea:
 
 ```
-Read CLAUDE.md and initialize yourself as a Living Architect.
-Adapt CLAUDE.md, .claude/, and docs/internal/ to fit this project.
-Clean up the LAM-specific specs in docs/specs/ that aren't relevant here.
+/planning
+
+"I want to build a web app that manages ..."
 ```
 
-The AI will analyze your project and adapt LAM's configuration accordingly.
-Feel free to discuss and iterate on the adjustments at this stage.
-
-### What you can leave as-is (for now)
-
-These are generic components that work out of the box:
-
-- `.claude/rules/` --- Generic guardrails
-- `.claude/hooks/` --- Immune system
-- `.claude/commands/` --- Phase controls
-
-## Step 3: Your First PLANNING Session
-
-Type `/planning` to enter the PLANNING phase. Walk through each approval gate:
+The AI will brainstorm with you, walking through each approval gate:
 
 ```
 1. Describe your idea in natural language
@@ -62,6 +52,38 @@ Type `/planning` to enter the PLANNING phase. Walk through each approval gate:
 Only after all approval gates are passed can you proceed to BUILDING.
 This deliberate process is what ensures LAM's quality.
 
+## Step 3: Adapt LAM to Your Project
+
+Once requirements are defined, adapt LAM to fit your project. Just tell the AI:
+
+```
+Requirements are complete. Please review all LAM files and adapt the necessary parts to this project.
+```
+
+### Files to adapt (replace with project-specific content)
+
+| File | What to change |
+|------|---------------|
+| `CLAUDE.md` | Update Identity section with your project name and description |
+| `README.md` / `README_en.md` | Rewrite with your project's description |
+| `CHANGELOG.md` | Start fresh |
+| `docs/specs/` | Remove LAM-specific specs |
+| `docs/adr/` | Remove LAM-specific ADRs |
+| `QUICKSTART.md` etc. | LAM onboarding guides — can be deleted |
+
+### Files to keep as-is (generic infrastructure)
+
+| Directory | Why |
+|-----------|-----|
+| `.claude/rules/` | Generic guardrails (effective for any project) |
+| `.claude/hooks/` | Immune system |
+| `.claude/commands/` | Phase controls and workflows |
+| `.claude/agents/`, `skills/` | Specialized subagents and skills |
+| `docs/internal/` | Development process SSOT |
+| `CHEATSHEET.md` | Command reference (generic) |
+
+> When in doubt, check the [slides](docs/slides/index-en.html) for an overview of the project structure.
+
 ## Step 4: Your First BUILDING Session
 
 Type `/building` to start TDD implementation.
@@ -73,7 +95,7 @@ When finished, run `/full-review` for an automated audit to reach Green State.
 
 ### Q: Do I need to manually edit CLAUDE.md?
 
-A: The easiest approach is to let the AI adapt it in Step 2. If editing manually, focus on the project description in the Identity section.
+A: Let the AI adapt it in Step 3 after requirements are defined. If editing manually, focus on the project description in the Identity section.
 
 ### Q: Should I modify docs/internal/?
 

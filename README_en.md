@@ -92,11 +92,16 @@ cd _lam_source
 2. Launch Claude Code and instruct it:
 
 ```
-Apply the Living Architect Model from _lam_source/ to this project.
-Place the necessary files and adapt them to this project's structure.
+Place the Living Architect Model from _lam_source/ into this project.
 ```
 
-The AI will analyze your existing project structure and propose adjustments to integrate LAM.
+3. If you have existing requirements or specs, have the AI reference them for adaptation:
+
+```
+Reference <your-requirements-file> and review all LAM files to adapt the necessary parts.
+```
+
+If no existing requirements exist, just start using LAM as-is. You can adapt after defining requirements with `/planning`.
 
 ## Phase Commands
 
