@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.0.0] - 2026-03-09
+
+### Added
+
+- **Feature**: 免疫システム（Immune System）— 5 Wave 全22タスク完了
+  - Wave 0: KPI定義・ループログスキーマ・Green State仕様
+  - Wave 1: 権限等級システム（PG/SE/PM）+ PreToolUse/Stop hooks基盤
+  - Wave 2: Stop hook本実装 + PostToolUse hook本実装 + full-review統合フロー
+  - Wave 3: Doc Sync パイプライン（/ship 連携）+ TDD内省パイプライン
+  - Wave 4: TDD内省 — パターン記録・信頼度モデル・ルール候補自動生成
+- **Feature**: ループログ生成 + lam-stop-hook 強化
+- **Feature**: Green State G5 セキュリティチェック統合
+- **Skill**: `ui-design-guide` — UI/UX設計チェックリスト（フレームワーク非依存）
+- **Docs**: スライド全面再構築 — ストーリー駆動5本構成（日英10本）
+  - intro / story-newproject / story-daily / story-evolution / architecture
+- **Docs**: `QUICKSTART.md` / `QUICKSTART_en.md` — 初心者向け5分導入ガイド
+- **Docs**: `CLAUDE_en.md` / `CHEATSHEET_en.md` — 全ドキュメント英語版完備
+- **Docs**: ADR-0003: context7 vs WebFetch 方針決定
+
+### Changed
+
+- **Security**: pre-tool-use フック強化（CWD検証・sed escape修正）
+- **Enhancement**: テスト基盤改善（test-helpers.sh共通化 + set -e耐性）
+- **Enhancement**: README.md / README_en.md — 初心者ナビ・Option B/C改善・「コマンド暗記不要」追加
+- **Enhancement**: CHEATSHEET.md — QUICKSTART相互リンク追加
+- **Docs**: docs/internal 全体ブラッシュアップ（v4.0.0整合 + セキュリティツール参照）
+
+### Removed
+
+- **Docs**: 旧スライド削除（concept / usecase / lifecycle — 日英6本）
+
+### Migration Notes
+
+- 権限等級（PG/SE/PM）が全操作に適用されます
+- AUDITING フェーズで PG/SE級の修正が許可に緩和（v3.x は修正禁止）
+- hooks が自動でファイル変更を監視し、Doc Sync フラグを生成します
+- `/pattern-review` で TDD内省パターンの確認・承認が可能です
+
 ## [v3.9.0] - 2026-03-06
 
 ### Added
