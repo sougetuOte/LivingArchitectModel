@@ -44,6 +44,14 @@
       text-align: center;
     }
 
+    .version {
+      font-size: 0.85rem;
+      color: var(--accent-primary);
+      opacity: 0.7;
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+
     .subtitle {
       font-size: 1.1rem;
       color: var(--accent-secondary);
@@ -54,16 +62,16 @@
 
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
-      max-width: 1100px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
       width: 100%;
     }
 
     .card {
       background: var(--code-background);
       border-radius: 12px;
-      padding: 2rem;
+      padding: 1.8rem;
       border: 2px solid transparent;
       transition: border-color 0.3s, transform 0.2s;
       text-decoration: none;
@@ -77,37 +85,38 @@
     }
 
     .card h2 {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       color: var(--text-heading);
       margin-bottom: 0.5rem;
     }
 
     .card .badge {
       display: inline-block;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       padding: 0.2em 0.6em;
       border-radius: 4px;
       font-weight: 600;
-      margin-bottom: 1rem;
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.05em;
     }
 
-    .badge-concept {
+    .badge-intro {
       background: var(--accent-primary);
       color: #000;
     }
 
-    .badge-usecase {
+    .badge-story {
       background: var(--accent-secondary);
       color: #fff;
     }
 
-    .badge-lifecycle {
+    .badge-arch {
       background: var(--accent-warning);
       color: #000;
     }
 
     .card p {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       line-height: 1.6;
       margin-bottom: 0.8rem;
     }
@@ -115,6 +124,22 @@
     .card .meta {
       font-size: 0.75rem;
       color: #999;
+    }
+
+    .card .recommended {
+      font-size: 0.7rem;
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    .section-label {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding-top: 1rem;
+      border-top: 1px solid #333;
     }
 
     footer {
@@ -136,29 +161,54 @@
 </head>
 <body>
   <h1>The Living Architect Model</h1>
-  <p class="subtitle">AI は単なるツールではない。パートナーだ。</p>
+  <p class="version">v4.0.0</p>
+  <p class="subtitle">AI は単なるツールではない。プロジェクトの設計者（Architect）だ。</p>
 
   <div class="card-grid">
-    <a href="concept.html" class="card">
-      <span class="badge badge-concept">CONCEPT</span>
-      <h2>コンセプト</h2>
-      <p>LAM の哲学、コア原則、フェーズ制御、3 Agents Model を視覚的に解説。初めての方はここから。</p>
-      <span class="meta">25 スライド</span>
+
+    <!-- Introduction -->
+    <a href="intro.html" class="card">
+      <span class="badge badge-intro">START HERE</span>
+      <h2>イントロダクション</h2>
+      <p>LAM とは何か、なぜ必要なのか。Before / After、コア原則、Quick Start を簡潔に紹介。</p>
+      <span class="recommended">初めての方はここから</span>
+      <br><span class="meta">8 スライド</span>
     </a>
 
-    <a href="usecase.html" class="card">
-      <span class="badge badge-usecase">USE CASE</span>
-      <h2>ユースケース</h2>
-      <p>「ユーザー認証機能を追加する」シナリオを通じて、PLANNING → BUILDING → AUDITING の実践フローを体験。</p>
-      <span class="meta">18 スライド</span>
+    <!-- Stories -->
+    <p class="section-label">ストーリーで体験する</p>
+
+    <a href="story-newproject.html" class="card">
+      <span class="badge badge-story">STORY</span>
+      <h2>新規プロジェクトへの導入</h2>
+      <p>テンプレートからプロダクトへ。アイデア提示 → 壁打ち → 仕様 → 設計 → TDD → 監査の全フローを体験。</p>
+      <span class="meta">20 スライド</span>
     </a>
 
-    <a href="lifecycle.html" class="card">
-      <span class="badge badge-lifecycle">LIFECYCLE</span>
-      <h2>ライフサイクル</h2>
-      <p>複数の開発サイクルを通じて、CLAUDE.md・rules・skills・docs/internal がどう進化するか。"Living" の真価を体験。</p>
+    <a href="story-daily.html" class="card">
+      <span class="badge badge-story">STORY</span>
+      <h2>LAM との毎日</h2>
+      <p>朝の /full-load から夕方の /full-save まで。TDD、quick-save/load、自動監査、リリースの日常を紹介。</p>
       <span class="meta">16 スライド</span>
     </a>
+
+    <a href="story-evolution.html" class="card">
+      <span class="badge badge-story">STORY</span>
+      <h2>フレームワークが育つ</h2>
+      <p>TDD 内省パイプラインによる自動学習、ルールの新陳代謝。"Living" の真価を体験。</p>
+      <span class="meta">12 スライド</span>
+    </a>
+
+    <!-- Deep Dive -->
+    <p class="section-label">深堀り</p>
+
+    <a href="architecture.html" class="card">
+      <span class="badge badge-arch">DEEP DIVE</span>
+      <h2>アーキテクチャ</h2>
+      <p>免疫システム（hooks）、Hierarchy of Truth、権限等級、Green State 5条件、思考スキル。内部構造を詳解。</p>
+      <span class="meta">16 スライド</span>
+    </a>
+
   </div>
 
   <p style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem;">

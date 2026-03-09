@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAM - Story: Evolution</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+      font-size: 28px;
+    }
+
+    .reveal .slides section {
+      word-break: auto-phrase;
+    }
+
+    .reveal h1 {
+      font-size: 1.8em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.0em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* Cycle badge */
+    .cycle-badge {
+      display: inline-block;
+      padding: 0.2em 0.6em;
+      border-radius: 4px;
+      font-size: 0.7em;
+      font-weight: 600;
+      margin-right: 0.5em;
+    }
+
+    .cycle-1 { background: var(--accent-warning); color: #000; }
+    .cycle-2 { background: var(--phase-planning); color: #fff; }
+    .cycle-3 { background: var(--phase-building); color: #000; }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "\25B8 ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.0em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ul {
+      margin: 0.3rem 0;
+    }
+
+    /* Evolution indicator */
+    .evolution-arrow {
+      text-align: center;
+      font-size: 1.5em;
+      color: var(--accent-primary);
+      margin: 0.5rem 0;
+    }
+
+    /* Top nav link */
+    .top-nav {
+      position: fixed;
+      top: 12px;
+      left: 16px;
+      z-index: 100;
+      font-size: 0.7em;
+    }
+
+    .top-nav a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+
+    .top-nav a:hover {
+      opacity: 1;
+      color: var(--accent-primary);
+    }
+
+    /* Comparison table */
+    .reveal table {
+      font-size: 0.7em;
+      margin: 0.5rem auto;
+      border-collapse: collapse;
+    }
+
+    .reveal table th {
+      background: var(--accent-secondary);
+      color: #000;
+      padding: 0.4em 0.8em;
+      font-weight: 600;
+    }
+
+    .reveal table td {
+      padding: 0.4em 0.8em;
+      border-bottom: 1px solid #444;
+    }
+
+    /* Code snippet box */
+    .code-snippet {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7em;
+      line-height: 1.5;
+      margin: 0.5rem 0;
+    }
+
+    /* Directory tree */
+    .dir-tree {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65em;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-nav"><a href="index.html">&larr; Top</a></div>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Slide 1: Title -->
+      <section>
+        <h1>Story:<br>フレームワークが育つ</h1>
+        <p class="catchphrase">使うほど賢くなる開発パートナー</p>
+      </section>
+
+      <!-- Slide 2: "Living" の意味 -->
+      <section>
+        <h2>"Living" の意味</h2>
+        <div class="emphasis-box">
+          <p>LAM は静的なテンプレートではない。<br><strong>プロジェクトと共に進化するフレームワーク</strong></p>
+        </div>
+        <pre class="mermaid" style="margin-top: 1rem;">
+graph LR
+  A[実践] --> B[失敗パターン検出]
+  B --> C[ルール候補生成]
+  C --> D[承認]
+  D --> E[フレームワーク強化]
+  E --> A
+  style A fill:#4ec9b0,stroke:#fff,color:#000
+  style B fill:#ce9178,stroke:#fff,color:#000
+  style C fill:#569cd6,stroke:#fff,color:#fff
+  style D fill:#ce9178,stroke:#fff,color:#000
+  style E fill:#4ec9b0,stroke:#fff,color:#000
+        </pre>
+      </section>
+
+      <!-- Slide 3: 最初のプロジェクト（Cycle 1） -->
+      <section>
+        <h2><span class="cycle-badge cycle-1">Cycle 1</span> 最初のプロジェクト</h2>
+        <ul style="margin-top: 1rem;">
+          <li>GitHub で「Use this template」→ プロジェクト作成</li>
+          <li>基本的な rules, commands, skills が生成される</li>
+          <li>最初は汎用的なルールのみ</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p style="font-size: 0.85em;">この時点では LAM はまだ<strong>「汎用テンプレート」</strong>に過ぎない</p>
+        </div>
+      </section>
+
+      <!-- Slide 4: TDD 内省パイプライン -->
+      <section>
+        <h2>TDD 内省パイプライン</h2>
+        <pre class="mermaid">
+graph LR
+  A[テスト失敗] --> B[PostToolUse hook<br/>が自動記録]
+  B --> C[tdd-patterns.log]
+  C --> D{パターン蓄積}
+  D -->|1回目| E[記録]
+  D -->|2回目| F[注意]
+  D -->|3回目| G[候補生成]
+  style A fill:#ce9178,stroke:#fff,color:#000
+  style B fill:#569cd6,stroke:#fff,color:#fff
+  style C fill:#2d2d2d,stroke:#569cd6,color:#fff
+  style D fill:#2d2d2d,stroke:#4ec9b0,color:#fff
+  style E fill:#2d2d2d,stroke:#999,color:#fff
+  style F fill:#ce9178,stroke:#fff,color:#000
+  style G fill:#4ec9b0,stroke:#fff,color:#000
+        </pre>
+        <p style="font-size: 0.85em; margin-top: 0.5rem;">同じ失敗パターンが <strong>3回</strong> 繰り返されると、自動的にルール候補が生成される</p>
+      </section>
+
+      <!-- Slide 5: パターン記録の例 -->
+      <section>
+        <h2>パターン記録の例</h2>
+        <div class="code-snippet">
+          <span style="color: var(--accent-secondary);">パターン:</span> import 文の順序<br>
+          <span style="color: var(--accent-secondary);">観測回数:</span> 3<br>
+          <span style="color: var(--accent-secondary);">ファイル:</span> src/auth/router.py, src/users/models.py, src/orders/service.py<br>
+          <span style="color: var(--accent-secondary);">失敗内容:</span> isort のルール違反でテスト失敗
+        </div>
+        <div class="evolution-arrow fragment">&darr;</div>
+        <div class="emphasis-box fragment">
+          <p><code>draft-001.md</code> が自動生成される</p>
+        </div>
+      </section>
+
+      <!-- Slide 6: /pattern-review で承認 -->
+      <section>
+        <h2>/pattern-review で承認</h2>
+        <div class="chat-bubble ai">
+          <span class="chat-label">Living Architect</span>
+          <p>ルール候補が1件あります。review しますか？</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p style="font-size: 0.72em;"><strong>draft-001:</strong> import 文の順序ルール<br>
+          観測回数: 3回 / 対象: src/**/*.py<br>
+          推奨: 「isort の設定を pyproject.toml に追加し、pre-commit で自動整形」</p>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>承認</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p><code>rule-001.md</code> として <code>.claude/rules/auto-generated/</code> に配置しました</p>
+        </div>
+        <div class="emphasis-box warning-box fragment" style="margin-top: 0.5rem;">
+          <p style="font-size: 0.85em;">ルールの追加は <strong>PM級</strong>。必ず人間が承認する</p>
+        </div>
+      </section>
+
+      <!-- Slide 7: Cycle 2 — ルールが効く -->
+      <section>
+        <h2><span class="cycle-badge cycle-2">Cycle 2</span> ルールが効く</h2>
+        <ul style="margin-top: 1rem;">
+          <li>新しいルールが PreToolUse hook で自動適用</li>
+          <li>同じ失敗が発生しなくなる</li>
+          <li>開発速度が向上</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p style="font-size: 0.85em;">Cycle 1 の<strong>失敗経験</strong>が、Cycle 2 の<strong>自動ガード</strong>に変わった</p>
+        </div>
+      </section>
+
+      <!-- Slide 8: ルール寿命管理 -->
+      <section>
+        <h2>ルール寿命管理</h2>
+        <ul style="margin-top: 1rem;">
+          <li>各ルールに <code>last_matched</code> 日付を記録</li>
+          <li>90日以上未使用のルールを <code>/daily</code> で棚卸し通知</li>
+          <li>削除は PM級（人間承認必須）</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p>ルールは増え続けるのではなく、<strong>新陳代謝する</strong></p>
+        </div>
+      </section>
+
+      <!-- Slide 9: v3 → v4 の進化 -->
+      <section>
+        <h2>v3 &rarr; v4 の進化</h2>
+        <table style="margin-top: 1rem;">
+          <thead>
+            <tr><th>v3.x</th><th>v4.0.0</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>AUDITING は指摘のみ</td><td>PG/SE級は自動修正可</td></tr>
+            <tr><td>手動ループ</td><td>/full-review 自動収束</td></tr>
+            <tr><td>ルールは手動作成</td><td>TDD 内省で自動候補生成</td></tr>
+            <tr><td>フラットな権限</td><td>PG/SE/PM 三段階</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Slide 10: docs/internal — 知識の構造化 -->
+      <section>
+        <h2>docs/internal/ &mdash; 知識の構造化</h2>
+        <div class="dir-tree">
+          docs/internal/<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 00_ARCHITECTURE_OVERVIEW.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 01_REQUIREMENT_MANAGEMENT.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 02_PHASE_CONTROL.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 03_QUALITY_STANDARDS.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 04_CONTEXT_MANAGEMENT.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 05_MCP_INTEGRATION.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 06_DECISION_MAKING.md<br>
+          &nbsp;&nbsp;&boxur;&nbsp; 07_CONTINUOUS_IMPROVEMENT.md
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">これはプロジェクトの<strong>方法論 SSOT</strong>。「どうやって開発するか」のノウハウと手順を構造化して定義する</p>
+        </div>
+      </section>
+
+      <!-- Slide 11: 3つの開発サイクルを経て -->
+      <section>
+        <h2>3つの開発サイクルを経て</h2>
+        <pre class="mermaid">
+graph LR
+  C1[Cycle 1<br/>認証] --> U1[Framework<br/>Update 1]
+  U1 --> C2[Cycle 2<br/>商品管理]
+  C2 --> U2[Framework<br/>Update 2]
+  U2 --> C3[Cycle 3<br/>注文処理]
+  C3 --> U3[...]
+  style C1 fill:#ce9178,stroke:#fff,color:#000
+  style U1 fill:#4ec9b0,stroke:#fff,color:#000
+  style C2 fill:#569cd6,stroke:#fff,color:#fff
+  style U2 fill:#4ec9b0,stroke:#fff,color:#000
+  style C3 fill:#4ec9b0,stroke:#fff,color:#000
+  style U3 fill:#2d2d2d,stroke:#4ec9b0,color:#fff
+        </pre>
+        <p style="font-size: 0.85em; margin-top: 0.5rem;">サイクルごとにルール・スキル・ドキュメントが蓄積され、<br><strong>プロジェクト固有の知識基盤</strong>が形成される</p>
+      </section>
+
+      <!-- Slide 12: まとめ -->
+      <section>
+        <h2>まとめ</h2>
+        <div class="emphasis-box" style="margin-top: 1rem;">
+          <p style="font-size: 0.9em;">
+            Living Architect Model は、あなたのプロジェクトと共に成長する。<br><br>
+            失敗から学び、ルールを生成し、品質を自律的に高めていく。<br><br>
+            <strong>それが "Living" の意味だ。</strong>
+          </p>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="index.html" style="font-size: 0.9em;">目次に戻る</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    // Store original sources before any rendering
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.textContent = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>

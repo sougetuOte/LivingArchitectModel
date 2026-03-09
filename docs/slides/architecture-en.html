@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAM - Architecture Deep Dive</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+      font-size: 28px;
+    }
+
+    .reveal .slides section {
+      word-break: auto-phrase;
+    }
+
+    .reveal h1 {
+      font-size: 1.8em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.0em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* Cycle badge */
+    .cycle-badge {
+      display: inline-block;
+      padding: 0.2em 0.6em;
+      border-radius: 4px;
+      font-size: 0.7em;
+      font-weight: 600;
+      margin-right: 0.5em;
+    }
+
+    .cycle-1 { background: var(--accent-warning); color: #000; }
+    .cycle-2 { background: var(--phase-planning); color: #fff; }
+    .cycle-3 { background: var(--phase-building); color: #000; }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "\25B8 ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.0em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ul {
+      margin: 0.3rem 0;
+    }
+
+    /* Evolution indicator */
+    .evolution-arrow {
+      text-align: center;
+      font-size: 1.5em;
+      color: var(--accent-primary);
+      margin: 0.5rem 0;
+    }
+
+    /* Top nav link */
+    .top-nav {
+      position: fixed;
+      top: 12px;
+      left: 16px;
+      z-index: 100;
+      font-size: 0.7em;
+    }
+
+    .top-nav a {
+      color: var(--accent-secondary);
+      text-decoration: none;
+      opacity: 0.7;
+      transition: opacity 0.3s;
+    }
+
+    .top-nav a:hover {
+      opacity: 1;
+      color: var(--accent-primary);
+    }
+
+    /* Tables */
+    .reveal table {
+      font-size: 0.7em;
+      margin: 0.5rem auto;
+      border-collapse: collapse;
+    }
+
+    .reveal table th {
+      background: var(--accent-secondary);
+      color: #000;
+      padding: 0.4em 0.8em;
+      font-weight: 600;
+    }
+
+    .reveal table td {
+      padding: 0.4em 0.8em;
+      border-bottom: 1px solid #444;
+    }
+
+    /* Pyramid */
+    .pyramid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      margin-top: 0.8rem;
+    }
+
+    .pyramid-level {
+      padding: 0.4em 1em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Directory tree */
+    .dir-tree {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      text-align: left;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55em;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-nav"><a href="index-en.html">&larr; Top</a></div>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Slide 1: Title -->
+      <section>
+        <h1>Architecture<br>Deep Dive</h1>
+        <p class="catchphrase">Understanding LAM's Internal Architecture</p>
+      </section>
+
+      <!-- Slide 2: Overall Architecture -->
+      <section>
+        <h2>Overall Architecture</h2>
+        <pre class="mermaid">
+graph TD
+  User["User"] --> CC["Claude Code"]
+  CC --> Hooks["Immune System hooks"]
+  CC --> Commands["Commands"]
+  CC --> Skills["Skills"]
+  CC --> Agents["Subagents"]
+  Hooks --> Pre["PreToolUse"]
+  Hooks --> Post["PostToolUse"]
+  Hooks --> Stop["Stop hook"]
+  Commands --> PL["planning"]
+  Commands --> BL["building"]
+  Commands --> AU["auditing"]
+  CC --> Rules["Rules"]
+  CC --> Docs["Documents"]
+  CC --> States["State Management"]
+  style User fill:#569cd6,stroke:#fff,color:#fff
+  style CC fill:#4ec9b0,stroke:#fff,color:#000
+  style Hooks fill:#ce9178,stroke:#fff,color:#000
+  style Commands fill:#569cd6,stroke:#fff,color:#fff
+  style Skills fill:#4ec9b0,stroke:#fff,color:#000
+  style Agents fill:#4ec9b0,stroke:#fff,color:#000
+  style Rules fill:#ce9178,stroke:#fff,color:#000
+  style Docs fill:#569cd6,stroke:#fff,color:#fff
+  style States fill:#2d2d2d,stroke:#4ec9b0,color:#fff
+        </pre>
+      </section>
+
+      <!-- Slide 3: Hierarchy of Truth -->
+      <section>
+        <h2>Hierarchy of Truth</h2>
+        <div class="pyramid">
+          <div class="pyramid-level" style="background: var(--accent-primary); color: #000; width: 40%;">1. User Intent</div>
+          <div class="pyramid-level" style="background: var(--accent-secondary); color: #fff; width: 55%;">2. Architecture &amp; Protocols (docs/internal/)</div>
+          <div class="pyramid-level" style="background: var(--accent-warning); color: #000; width: 70%;">3. Specifications (docs/specs/)</div>
+          <div class="pyramid-level" style="background: var(--code-background); color: #fff; width: 85%; border: 1px solid #555;">4. Existing Code</div>
+        </div>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">When specs and code contradict, <strong>the code is the bug</strong></p>
+        </div>
+      </section>
+
+      <!-- Slide 4: Immune System Overview -->
+      <section>
+        <h2>Immune System Overview</h2>
+        <pre class="mermaid">
+graph LR
+  Pre["PreToolUse<br/>Permission Check"] --> Tool[Tool Execution]
+  Tool --> Post["PostToolUse<br/>Pattern Recording"]
+  Post --> Stop["Stop hook<br/>Loop Control"]
+  style Pre fill:#ce9178,stroke:#fff,color:#000
+  style Tool fill:#4ec9b0,stroke:#fff,color:#000
+  style Post fill:#569cd6,stroke:#fff,color:#fff
+  style Stop fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+        <p style="font-size: 0.85em; margin-top: 0.8rem;">Monitoring all tool operations to protect the project with <strong>3 layers of defense</strong></p>
+      </section>
+
+      <!-- Slide 5: PreToolUse — The Gatekeeper -->
+      <section>
+        <h2>PreToolUse &mdash; The Gatekeeper</h2>
+        <p style="font-size: 0.85em; color: var(--accent-warning);">File path-based permission checks</p>
+        <ul style="margin-top: 0.8rem; font-size: 0.85em;">
+          <li>Changes to <code>docs/specs/</code>, <code>docs/adr/</code>, <code>.claude/rules/</code> &rarr; <strong>PM level</strong> (approval required)</li>
+          <li>Changes to <code>src/</code> &rarr; <strong>SE level</strong> (report after fix)</li>
+          <li>Formatting fixes, etc. &rarr; <strong>PG level</strong> (auto-approved)</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">Every write operation is permission-checked <strong>before</strong> execution</p>
+        </div>
+      </section>
+
+      <!-- Slide 6: PostToolUse — The Learner -->
+      <section>
+        <h2>PostToolUse &mdash; The Learner</h2>
+        <ul style="margin-top: 1rem; font-size: 0.85em;">
+          <li>Auto-detection of test failure &rarr; success patterns</li>
+          <li>Recording to <code>tdd-patterns.log</code> (PG level, automatic)</li>
+          <li>doc-sync-flag generation (on <code>src/</code> changes)</li>
+        </ul>
+        <div class="emphasis-box fragment" style="margin-top: 1rem;">
+          <p style="font-size: 0.85em;">Accumulating failure and success <strong>patterns</strong> to drive framework evolution</p>
+        </div>
+      </section>
+
+      <!-- Slide 7: Stop Hook — Loop Control -->
+      <section>
+        <h2>Stop Hook &mdash; Loop Control</h2>
+        <ul style="margin-top: 1rem; font-size: 0.85em;">
+          <li>State management via <code>lam-loop-state.json</code></li>
+          <li>Green State evaluation (tests + lint)</li>
+          <li>Iteration limit (default: 5 rounds)</li>
+          <li>Full scan control (diff &rarr; full, two-stage)</li>
+        </ul>
+        <div class="emphasis-box warning-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">A safety mechanism to prevent infinite loops and <strong>ensure convergence</strong></p>
+        </div>
+      </section>
+
+      <!-- Slide 8: Permission Levels PG/SE/PM -->
+      <section>
+        <h2>Permission Levels PG / SE / PM</h2>
+        <table style="margin-top: 0.8rem;">
+          <thead>
+            <tr><th>Level</th><th>Meaning</th><th>Action</th><th>Examples</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color: var(--accent-primary); font-weight: 600;">PG</td>
+              <td>Trivial fix</td>
+              <td>Auto-fix allowed</td>
+              <td>typo, import sorting, lint fix</td>
+            </tr>
+            <tr>
+              <td style="color: var(--accent-secondary); font-weight: 600;">SE</td>
+              <td>Technical judgment</td>
+              <td>Report after fix</td>
+              <td>Add tests, internal refactor</td>
+            </tr>
+            <tr>
+              <td style="color: var(--accent-warning); font-weight: 600;">PM</td>
+              <td>Spec impact</td>
+              <td>Approval required</td>
+              <td>API change, rule change, spec change</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">When in doubt between PG and SE, <strong>round up to SE</strong> (err on the safe side)</p>
+        </div>
+      </section>
+
+      <!-- Slide 9: Green State: 5 Conditions -->
+      <section>
+        <h2>Green State: 5 Conditions</h2>
+        <table style="margin-top: 0.8rem;">
+          <thead>
+            <tr><th>#</th><th>Condition</th><th>Details</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>G1</td><td>All tests pass</td><td>pytest / npm test, etc.</td></tr>
+            <tr><td>G2</td><td>Zero lint errors</td><td>ruff / eslint, etc.</td></tr>
+            <tr><td>G3</td><td>Zero actionable issues</td><td>PG/SE level issues resolved</td></tr>
+            <tr><td>G4</td><td>Zero spec drift</td><td>docs/specs/ aligned with implementation</td></tr>
+            <tr><td>G5</td><td>Security passed</td><td>Dependency vulnerabilities + secret scan</td></tr>
+          </tbody>
+        </table>
+        <div class="emphasis-box warning-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">Green State = scan finds <strong>0 issues</strong>. Not "0 issues after fixes"</p>
+        </div>
+      </section>
+
+      <!-- Slide 10: 3 Agents Model -->
+      <section>
+        <h2>3 Agents Model</h2>
+        <div class="bento-grid" style="margin-top: 0.5rem;">
+          <div class="card" style="border-color: var(--accent-primary);">
+            <h3 style="color: var(--accent-primary);">Affirmative</h3>
+            <p><strong>Advocate</strong></p>
+            <ul>
+              <li>Value</li>
+              <li>Speed</li>
+              <li>Innovation</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--accent-warning);">
+            <h3 style="color: var(--accent-warning);">Critical</h3>
+            <p><strong>Critic</strong></p>
+            <ul>
+              <li>Risk</li>
+              <li>Security</li>
+              <li>Debt</li>
+            </ul>
+          </div>
+          <div class="card" style="border-color: var(--accent-secondary);">
+            <h3 style="color: var(--accent-secondary);">Mediator</h3>
+            <p><strong>Mediator</strong></p>
+            <ul>
+              <li>Synthesis</li>
+              <li>Balance</li>
+              <li>Decision</li>
+            </ul>
+          </div>
+        </div>
+        <pre class="mermaid" style="margin-top: 0.8rem;">
+graph LR
+  A["Divergence<br/>Brainstorm"] --> B["Debate<br/>Resolve conflicts"]
+  B --> C["Convergence<br/>Final decision"]
+  style A fill:#4ec9b0,stroke:#fff,color:#000
+  style B fill:#ce9178,stroke:#fff,color:#000
+  style C fill:#569cd6,stroke:#fff,color:#fff
+        </pre>
+      </section>
+
+      <!-- Slide 11: AoT (Atom of Thought) -->
+      <section>
+        <h2>AoT (Atom of Thought)</h2>
+        <h3 style="font-size: 0.9em;">Trigger conditions (any one applies)</h3>
+        <ul style="margin-top: 0.8rem; font-size: 0.85em;">
+          <li>Decision points: <strong>2 or more</strong></li>
+          <li>Affected layers: <strong>3 or more</strong></li>
+          <li>Viable options: <strong>3 or more</strong></li>
+        </ul>
+        <p style="font-size: 0.85em; margin-top: 1rem;">Decompose complex decisions into independent <strong>Atoms</strong>,<br>then apply 3 Agents to each Atom</p>
+        <pre class="mermaid" style="margin-top: 0.5rem;">
+graph LR
+  D["AoT<br/>Decomposition"] --> A1["Atom 1<br/>3 Agents"]
+  D --> A2["Atom 2<br/>3 Agents"]
+  D --> A3["Atom 3<br/>3 Agents"]
+  A1 --> S["AoT<br/>Synthesis"]
+  A2 --> S
+  A3 --> S
+  style D fill:#569cd6,stroke:#fff,color:#fff
+  style A1 fill:#4ec9b0,stroke:#fff,color:#000
+  style A2 fill:#4ec9b0,stroke:#fff,color:#000
+  style A3 fill:#4ec9b0,stroke:#fff,color:#000
+  style S fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+      </section>
+
+      <!-- Slide 12: ultimate-think -->
+      <section>
+        <h2>/ultimate-think</h2>
+        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">A multi-layered thinking skill integrating AoT + 3 Agents + Reflection</p>
+        <pre class="mermaid">
+graph TD
+  Q["Complex question"] --> AoT["AoT Decomposition"]
+  AoT --> A1["Atom 1"]
+  AoT --> A2["Atom 2"]
+  A1 --> TA["3 Agents Debate"]
+  A2 --> TA2["3 Agents Debate"]
+  TA --> R["Reflection"]
+  TA2 --> R
+  R --> S["Integrated Conclusion"]
+  style Q fill:#569cd6,stroke:#fff,color:#000
+  style AoT fill:#569cd6,stroke:#fff,color:#000
+  style A1 fill:#4ec9b0,stroke:#fff,color:#000
+  style A2 fill:#4ec9b0,stroke:#fff,color:#000
+  style TA fill:#ce9178,stroke:#fff,color:#000
+  style TA2 fill:#ce9178,stroke:#fff,color:#000
+  style R fill:#569cd6,stroke:#fff,color:#000
+  style S fill:#4ec9b0,stroke:#fff,color:#000
+        </pre>
+        <div class="emphasis-box fragment">
+          <p style="font-size: 0.8em;"><strong>Suppresses hallucination</strong> in design decisions and risk assessments. Available in all phases</p>
+        </div>
+      </section>
+
+      <!-- Slide 13: lam-orchestrate -->
+      <section>
+        <h2>/lam-orchestrate</h2>
+        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">Decomposes tasks and executes them in parallel using appropriate subagents</p>
+        <pre class="mermaid">
+graph TD
+  T["Large task"] --> D["Task decomposition"]
+  D --> S1["Subagent 1<br>code-reviewer"]
+  D --> S2["Subagent 2<br>test-runner"]
+  D --> S3["Subagent 3<br>doc-writer"]
+  S1 --> M["Result integration"]
+  S2 --> M
+  S3 --> M
+  style T fill:#569cd6,stroke:#fff,color:#000
+  style D fill:#569cd6,stroke:#fff,color:#000
+  style S1 fill:#4ec9b0,stroke:#fff,color:#000
+  style S2 fill:#4ec9b0,stroke:#fff,color:#000
+  style S3 fill:#4ec9b0,stroke:#fff,color:#000
+  style M fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+        <div class="emphasis-box fragment">
+          <p style="font-size: 0.8em;"><strong>Automatic decomposition and parallel execution</strong> of work spanning multiple files/modules</p>
+        </div>
+      </section>
+
+      <!-- Slide 14: Save / Load Mechanism -->
+      <section>
+        <h2>Save / Load Mechanism</h2>
+        <table style="margin-top: 0.8rem;">
+          <thead>
+            <tr><th>Command</th><th>Purpose</th><th>Cost</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>/quick-save</code></td><td>SESSION_STATE.md only</td><td>Lightweight (3-4%)</td></tr>
+            <tr><td><code>/quick-load</code></td><td>Load SESSION_STATE.md</td><td>Daily resume</td></tr>
+            <tr><td><code>/full-save</code></td><td>STATE + commit + push + daily</td><td>End of day</td></tr>
+            <tr><td><code>/full-load</code></td><td>Detailed check + recovery report</td><td>Return after days off</td></tr>
+          </tbody>
+        </table>
+        <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
+          <p style="font-size: 0.85em;">Use <code>/quick-save</code> when context remaining is below 25%</p>
+        </div>
+      </section>
+
+      <!-- Slide 15: File Structure Map -->
+      <section>
+        <h2>File Structure Map</h2>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
+          <div class="dir-tree">
+            <span style="color: var(--accent-primary); font-weight: 600;">.claude/</span><br>
+            &nbsp;&nbsp;&boxvr;&nbsp; <span style="color: var(--accent-warning);">rules/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&larr; Behavioral Rules (PM level)<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; commands/&nbsp;&nbsp;&larr; Slash Commands<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; skills/&nbsp;&nbsp;&nbsp;&nbsp;&larr; Skill Definitions<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; agents/&nbsp;&nbsp;&nbsp;&nbsp;&larr; Subagents<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; <span style="color: var(--accent-warning);">hooks/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&larr; Immune System<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; states/&nbsp;&nbsp;&nbsp;&nbsp;&larr; State Files<br>
+            &nbsp;&nbsp;&boxur;&nbsp; <span style="color: var(--accent-warning);">settings.json</span>&nbsp;&larr; Permission Settings
+          </div>
+          <div class="dir-tree">
+            <span style="color: var(--accent-secondary); font-weight: 600;">docs/</span><br>
+            &nbsp;&nbsp;&boxvr;&nbsp; <span style="color: var(--accent-primary);">internal/</span>&nbsp;&larr; Process SSOT (00-07)<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; <span style="color: var(--accent-warning);">specs/</span>&nbsp;&nbsp;&nbsp;&nbsp;&larr; Specifications (PM level)<br>
+            &nbsp;&nbsp;&boxvr;&nbsp; <span style="color: var(--accent-warning);">adr/</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&larr; Architecture Decision Records<br>
+            &nbsp;&nbsp;&boxur;&nbsp; tasks/&nbsp;&nbsp;&nbsp;&nbsp;&larr; Task Management
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 16: Summary -->
+      <section>
+        <h2>Summary</h2>
+        <div class="emphasis-box" style="margin-top: 1rem;">
+          <p style="font-size: 0.9em;">
+            LAM is not "a system to make AI follow rules."<br><br>
+            It is a <strong>structured collaboration framework</strong><br>
+            for AI to autonomously maintain project health.
+          </p>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="index-en.html" style="font-size: 0.9em;">Back to Table of Contents</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    // Store original sources before any rendering
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.textContent = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>

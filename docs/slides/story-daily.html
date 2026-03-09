@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAM - Story: Daily Routine</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+      font-size: 28px;
+    }
+
+    .reveal .slides section {
+      word-break: auto-phrase;
+    }
+
+    .reveal h1 {
+      font-size: 1.8em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 0.4em;
+    }
+
+    .reveal h3 {
+      font-size: 1.0em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    .card.affirmative {
+      border-color: var(--phase-building);
+    }
+
+    .card.critical {
+      border-color: var(--accent-warning);
+    }
+
+    .card.mediator {
+      border-color: var(--phase-planning);
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "\25B8 ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.3em;
+    }
+
+    .reveal ul li {
+      margin-bottom: 0.2em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.0em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Chat bubbles */
+    .chat-bubble {
+      background: var(--code-background);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      margin: 0.3rem 0;
+      text-align: left;
+      max-width: 85%;
+    }
+
+    .chat-bubble.user {
+      border-left: 3px solid var(--accent-secondary);
+      margin-right: auto;
+    }
+
+    .chat-bubble.ai {
+      border-left: 3px solid var(--accent-primary);
+      margin-left: auto;
+    }
+
+    .chat-label {
+      font-size: 0.7em;
+      font-weight: 600;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+
+    .chat-bubble.user .chat-label {
+      color: var(--accent-secondary);
+    }
+
+    .chat-bubble.ai .chat-label {
+      color: var(--accent-primary);
+    }
+
+    .chat-bubble p {
+      margin: 0;
+      font-size: 0.78em;
+    }
+
+    /* Task list styling */
+    .task-list {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .task-list ol {
+      margin: 0.3rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .task-list li {
+      margin: 0.15rem 0;
+    }
+
+    /* Report styling */
+    .audit-report {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.75em;
+      text-align: left;
+      margin: 0.5rem auto;
+    }
+
+    .audit-report table {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+
+    .audit-report th,
+    .audit-report td {
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #444;
+    }
+
+    /* Code snippet styling */
+    .code-snippet {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55em;
+      text-align: left;
+      margin: 0.3rem auto;
+      max-width: 90%;
+      line-height: 1.3;
+      white-space: pre-wrap;
+    }
+
+    /* Timeline styling */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin: 0.8rem auto;
+      max-width: 85%;
+    }
+
+    .timeline-item {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      border-left: 3px solid var(--accent-primary);
+    }
+
+    .timeline-icon {
+      font-size: 1.4em;
+      min-width: 1.8em;
+      text-align: center;
+    }
+
+    .timeline-content {
+      text-align: left;
+    }
+
+    .timeline-content strong {
+      font-size: 0.85em;
+      color: var(--accent-primary);
+    }
+
+    .timeline-content p {
+      font-size: 0.7em;
+      margin: 0.15rem 0 0 0;
+      color: #ccc;
+    }
+
+    /* Comparison table */
+    .comparison-table {
+      width: 90%;
+      margin: 0.8rem auto;
+      border-collapse: collapse;
+      font-size: 0.7em;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 0.5rem 0.8rem;
+      border: 1px solid #444;
+      text-align: left;
+    }
+
+    .comparison-table th {
+      background: var(--code-background);
+      font-weight: 600;
+    }
+
+    .comparison-table td:first-child {
+      color: #999;
+    }
+
+    .comparison-table td:last-child {
+      color: var(--accent-primary);
+    }
+
+    /* Checklist styling */
+    .checklist {
+      list-style: none;
+      padding: 0;
+      text-align: left;
+      max-width: 80%;
+      margin: 0.5rem auto;
+    }
+
+    .checklist li {
+      font-size: 0.8em;
+      margin: 0.3rem 0;
+    }
+
+    .checklist li::before {
+      content: "\2705 " !important;
+      color: var(--phase-building) !important;
+      margin-right: 0.3em;
+    }
+
+    /* Scenario card for permission levels */
+    .scenario-card {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 0.5rem 0.8rem;
+      margin: 0.4rem 0;
+      text-align: left;
+      font-size: 0.72em;
+    }
+
+    .scenario-card .scenario-label {
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+
+    .scenario-card.pg { border-left: 3px solid var(--phase-building); }
+    .scenario-card.pg .scenario-label { color: var(--phase-building); }
+
+    .scenario-card.se { border-left: 3px solid var(--accent-secondary); }
+    .scenario-card.se .scenario-label { color: var(--accent-secondary); }
+
+    .scenario-card.pm { border-left: 3px solid var(--accent-warning); }
+    .scenario-card.pm .scenario-label { color: var(--accent-warning); }
+
+    .scenario-card p {
+      margin: 0.15rem 0;
+    }
+
+    /* Loop iteration styling */
+    .loop-iter {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65em;
+      text-align: left;
+      margin: 0.3rem auto;
+      max-width: 85%;
+      line-height: 1.6;
+    }
+
+    /* Back to top link */
+    .back-link {
+      position: fixed;
+      top: 1rem;
+      left: 1.5rem;
+      font-size: 0.75em;
+      z-index: 100;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-link">&larr; Top</a>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Slide 1: Title -->
+      <section>
+        <h1>Story: LAM との毎日</h1>
+        <p class="catchphrase">人間と AI の協働リズム</p>
+        <p class="small-text">セッション復帰から保存まで、一日の開発フローを追体験する</p>
+      </section>
+
+      <!-- Slide 2: Daily Overview -->
+      <section>
+        <h2>一日の流れ</h2>
+        <div class="timeline">
+          <div class="timeline-item fragment">
+            <div class="timeline-icon">&#x1F305;</div>
+            <div class="timeline-content">
+              <strong>朝: /full-load</strong>
+              <p>セッション復帰 &mdash; 前回の状態を完全復元</p>
+            </div>
+          </div>
+          <div class="timeline-item fragment">
+            <div class="timeline-icon">&#x1F528;</div>
+            <div class="timeline-content">
+              <strong>午前: /building</strong>
+              <p>TDD サイクルで機能を実装</p>
+            </div>
+          </div>
+          <div class="timeline-item fragment">
+            <div class="timeline-icon">&#x1F50D;</div>
+            <div class="timeline-content">
+              <strong>午後: /full-review</strong>
+              <p>自動監査ループで品質を収束</p>
+            </div>
+          </div>
+          <div class="timeline-item fragment">
+            <div class="timeline-icon">&#x1F4E6;</div>
+            <div class="timeline-content">
+              <strong>夕方: /ship &rarr; /full-save</strong>
+              <p>コミット &rarr; 状態永続化</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 3: Morning - Session Restore -->
+      <section>
+        <h2>朝 &mdash; セッション復帰</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/full-load</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p><strong>Phase</strong>: BUILDING<br><strong>次のステップ</strong>: 認証API のテスト追加<br><strong>未解決の問題</strong>: なし<br><br>前回の状態を復元しました。すぐに作業を再開できます。</p>
+        </div>
+        <div class="emphasis-box fragment">
+          <p>数日ぶりでも、SESSION_STATE.md からコンテキストが完全復元</p>
+        </div>
+      </section>
+
+      <!-- Slide 4: SESSION_STATE.md -->
+      <section>
+        <h2>SESSION_STATE.md の中身</h2>
+        <div class="code-snippet">
+          <code># SESSION_STATE
+Phase: BUILDING
+
+## 完了タスク
+- ユーザー認証API 基本実装
+
+## 次のステップ
+1. パスワードリセットのテスト追加
+2. リフレッシュトークン実装
+
+## 未解決の問題
+- なし</code>
+        </div>
+        <div class="emphasis-box fragment">
+          <p>AI が読めるフォーマットで、作業状態を構造的に記録</p>
+        </div>
+      </section>
+
+      <!-- Slide 5: TDD Cycle -->
+      <section>
+        <h2>午前 &mdash; TDD サイクル</h2>
+        <pre class="mermaid">
+graph LR
+  R["Red<br>テストを書く<br>（失敗する）"] --> G["Green<br>最小限の実装<br>（テストが通る）"]
+  G --> RF["Refactor<br>品質改善<br>+ 仕様同期"]
+  RF --> R
+  style R fill:#ce9178,stroke:#fff,color:#000
+  style G fill:#4ec9b0,stroke:#fff,color:#000
+  style RF fill:#569cd6,stroke:#fff,color:#000
+        </pre>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>1サイクル完了。パスワードリセットのテスト5件追加、実装完了。仕様書との整合性確認済みです。</p>
+        </div>
+        <div class="emphasis-box fragment">
+          <p style="font-size: 0.8em;">TDD サイクルは <strong>AI が自律的に回す</strong>。人間は完了報告を受け取るだけ</p>
+        </div>
+      </section>
+
+      <!-- Slide 5.5: quick-save / quick-load -->
+      <section>
+        <h2>昼休み &mdash; quick-save / quick-load</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>昼休憩に入る。/quick-save</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>SESSION_STATE.md を更新しました（コンテキスト消費: 3-4%）。</p>
+        </div>
+        <p class="small-text fragment" style="margin-top: 0.8em;">〜 昼休み / 別の作業 / セッション切れ 〜</p>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>/quick-load</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p><strong>Phase</strong>: BUILDING | <strong>次</strong>: リフレッシュトークン実装 | <strong>未解決</strong>: なし</p>
+        </div>
+        <div class="emphasis-box fragment">
+          <p style="font-size: 0.8em;">短い中断には <strong>/quick-save &amp; /quick-load</strong>。軽量で即座に復帰できる</p>
+        </div>
+      </section>
+
+      <!-- Slide 6: Permission Levels -->
+      <section>
+        <h2>権限等級 &mdash; 判断の自動化</h2>
+        <div class="scenario-card pg fragment">
+          <div class="scenario-label">PG級: 自動修正、報告なし</div>
+          <p>AI が import を整理 &rarr; 自動修正、報告なし</p>
+          <p style="color: #999;">「人間が関与する必要のない修正」</p>
+        </div>
+        <div class="scenario-card se fragment">
+          <div class="scenario-label">SE級: 修正後に報告</div>
+          <p>AI がエラーハンドリングを改善 &rarr; 修正後に報告</p>
+          <p style="color: #999;">「技術的判断はあるが、仕様には影響しない」</p>
+        </div>
+        <div class="scenario-card pm fragment">
+          <div class="scenario-label">PM級: ユーザーに承認を求める</div>
+          <p>API のレスポンス形式を変更したい &rarr; ユーザーに承認を求める</p>
+          <p style="color: #999;">「仕様に影響する変更は、人間が決める」</p>
+        </div>
+      </section>
+
+      <!-- Slide 7: /full-review -->
+      <section>
+        <h2>午後 &mdash; /full-review</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/full-review src/auth/</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>Phase 0: ループ初期化... Phase 1: 並列監査開始...</p>
+        </div>
+        <div class="loop-iter fragment">
+          <span style="color: var(--accent-warning);">iter 1</span>: 5件発見 &rarr; 5件修正 &rarr; 再スキャン<br>
+          <span style="color: var(--accent-secondary);">iter 2</span>: 1件発見 &rarr; 1件修正 &rarr; 再スキャン<br>
+          <span style="color: var(--accent-primary);">iter 3</span>: 0件発見 &rarr; &#x2705; Green State
+        </div>
+        <div class="emphasis-box fragment">
+          <p>人間は他の作業をしていてOK。AI が自動で収束させる</p>
+        </div>
+      </section>
+
+      <!-- Slide 8: Green State -->
+      <section>
+        <h2>Green State 5条件</h2>
+        <ul class="checklist">
+          <li>G1: テスト全パス</li>
+          <li>G2: lint エラーゼロ</li>
+          <li>G3: 対応可能 Issue ゼロ</li>
+          <li>G4: 仕様差分ゼロ</li>
+          <li>G5: セキュリティチェック通過</li>
+        </ul>
+        <div class="emphasis-box warning-box fragment">
+          <p><strong>重要</strong>: Issue を修正した後ではなく、スキャンで 0件 が Green State</p>
+        </div>
+      </section>
+
+      <!-- Slide 9: Context Management -->
+      <section>
+        <h2>コンテキスト管理</h2>
+        <div class="emphasis-box warning-box">
+          <p><strong>問題</strong>: 長時間作業するとコンテキストウィンドウが逼迫する</p>
+        </div>
+        <div style="margin-top: 0.6rem;">
+          <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
+            <p><strong>1.</strong> StatusLine でコンテキスト残量を常時監視</p>
+          </div>
+          <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
+            <p><strong>2.</strong> 残量 25% 以下で AI が自動的に /quick-save を推奨</p>
+          </div>
+          <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
+            <p><strong>3.</strong> /quick-save &rarr; SESSION_STATE.md に軽量保存（3-4% 消費）</p>
+          </div>
+          <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
+            <p><strong>4.</strong> 新しいセッションで /quick-load &rarr; 即座に復帰</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 10: /ship -->
+      <section>
+        <h2>夕方 &mdash; /ship でコミット</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/ship</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>コミット計画を提示します:</p>
+        </div>
+        <div class="code-snippet fragment">
+          <code>[1] feat: パスワードリセット機能
+    - src/auth/reset.py
+    - tests/test_reset.py
+
+[2] docs: API仕様書更新
+    - docs/specs/auth-design.md</code>
+        </div>
+        <div class="chat-bubble user fragment">
+          <span class="chat-label">You</span>
+          <p>承認</p>
+        </div>
+        <div class="emphasis-box fragment">
+          <p>論理グループごとに分類。人間はレビューして承認するだけ</p>
+        </div>
+      </section>
+
+      <!-- Slide 11: /full-save -->
+      <section>
+        <h2>夕方 &mdash; /full-save</h2>
+        <div class="chat-bubble user">
+          <span class="chat-label">You</span>
+          <p>/full-save</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>SESSION_STATE.md 更新 &rarr; git commit &rarr; git push &rarr; 日次振り返り完了</p>
+        </div>
+        <div class="emphasis-box fragment">
+          <p>一日の終わりに、全ての状態を永続化。明日の自分（または別のAI）が引き継げる</p>
+        </div>
+      </section>
+
+      <!-- Slide 12: Immune System (Hooks) -->
+      <section>
+        <h2>免疫システム（hooks）</h2>
+        <pre class="mermaid">
+graph LR
+  A["PreToolUse<br>権限チェック"] --> B["ツール実行"]
+  B --> C["PostToolUse<br>パターン記録"]
+  C --> D["Stop hook<br>ループ制御"]
+  style A fill:#ce9178,stroke:#fff,color:#000
+  style B fill:#569cd6,stroke:#fff,color:#000
+  style C fill:#4ec9b0,stroke:#fff,color:#000
+  style D fill:#569cd6,stroke:#fff,color:#000
+        </pre>
+        <p class="small-text" style="margin-top: 0.5rem;">バックグラウンドで常に動く免疫システムが、プロジェクトを守る</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem; font-size: 0.68em;">
+          <div class="card" style="border-color: var(--accent-warning); padding: 0.5rem;">
+            <h3 style="font-size: 0.85em;">PreToolUse</h3>
+            <p>危険な操作をブロック<br>（仕様書の無断変更等）</p>
+          </div>
+          <div class="card" style="border-color: var(--phase-building); padding: 0.5rem;">
+            <h3 style="font-size: 0.85em;">PostToolUse</h3>
+            <p>TDD パターンを自動記録</p>
+          </div>
+          <div class="card" style="border-color: var(--accent-secondary); padding: 0.5rem;">
+            <h3 style="font-size: 0.85em;">Stop hook</h3>
+            <p>/full-review の<br>自動収束を制御</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 13: Summary -->
+      <section>
+        <h2>一日のまとめ</h2>
+        <table class="comparison-table">
+          <tr>
+            <th></th>
+            <th style="color: #999;">素の AI</th>
+            <th style="color: var(--accent-primary);">LAM</th>
+          </tr>
+          <tr>
+            <td>復帰</td>
+            <td>毎回ゼロから説明</td>
+            <td>/full-load で即復帰</td>
+          </tr>
+          <tr>
+            <td>中断</td>
+            <td>コンテキスト消失</td>
+            <td>/quick-save &amp; /quick-load で即復帰</td>
+          </tr>
+          <tr>
+            <td>品質</td>
+            <td>人間がチェック</td>
+            <td>Green State で自動判定</td>
+          </tr>
+          <tr>
+            <td>コミット</td>
+            <td>メッセージを考える</td>
+            <td>/ship で自動分類</td>
+          </tr>
+          <tr>
+            <td>保存</td>
+            <td>切れたら全ロスト</td>
+            <td>/full-save で永続化</td>
+          </tr>
+        </table>
+        <div class="emphasis-box fragment">
+          <p>人間は創造的な意思決定に集中。定型作業は AI に任せる</p>
+        </div>
+      </section>
+
+      <!-- Slide 14: Release -->
+      <section>
+        <h2>リリース</h2>
+        <div class="emphasis-box">
+          <p style="font-size: 0.8em;">LAM テンプレートには汎用的な <code>/release</code> スキルが含まれている。<br>CHANGELOG 更新 &rarr; git tag &rarr; GitHub Release を自動化する。</p>
+        </div>
+        <div class="chat-bubble ai fragment">
+          <span class="chat-label">Living Architect</span>
+          <p>リリースフローはプロジェクトごとに異なります。CI/CD パイプライン、デプロイ先、承認フロー等に合わせて <strong>自社用の release スキルを作成</strong>してください。</p>
+        </div>
+        <div class="emphasis-box fragment" style="border-left-color: var(--accent-secondary);">
+          <p style="font-size: 0.8em;">スキルは <code>.claude/skills/</code> に追加するだけ。LAM が自動的に認識する</p>
+        </div>
+      </section>
+
+      <!-- Slide 15: Next -->
+      <section>
+        <h2>次へ</h2>
+        <ul>
+          <li><a href="story-evolution.html">Story: フレームワークが育つ</a> &mdash; LAM 自体の進化の物語</li>
+          <li><a href="architecture.html">アーキテクチャ深堀り</a> &mdash; 技術的な詳細</li>
+        </ul>
+        <p style="margin-top: 2em;">
+          <a href="index.html" style="font-size: 0.9em;">目次に戻る</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.textContent = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>

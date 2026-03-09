@@ -44,6 +44,14 @@
       text-align: center;
     }
 
+    .version {
+      font-size: 0.85rem;
+      color: var(--accent-primary);
+      opacity: 0.7;
+      margin-bottom: 0.3rem;
+      text-align: center;
+    }
+
     .subtitle {
       font-size: 1.1rem;
       color: var(--accent-secondary);
@@ -54,16 +62,16 @@
 
     .card-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
-      max-width: 1100px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
       width: 100%;
     }
 
     .card {
       background: var(--code-background);
       border-radius: 12px;
-      padding: 2rem;
+      padding: 1.8rem;
       border: 2px solid transparent;
       transition: border-color 0.3s, transform 0.2s;
       text-decoration: none;
@@ -77,37 +85,38 @@
     }
 
     .card h2 {
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       color: var(--text-heading);
       margin-bottom: 0.5rem;
     }
 
     .card .badge {
       display: inline-block;
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       padding: 0.2em 0.6em;
       border-radius: 4px;
       font-weight: 600;
-      margin-bottom: 1rem;
+      margin-bottom: 0.8rem;
+      letter-spacing: 0.05em;
     }
 
-    .badge-concept {
+    .badge-intro {
       background: var(--accent-primary);
       color: #000;
     }
 
-    .badge-usecase {
+    .badge-story {
       background: var(--accent-secondary);
       color: #fff;
     }
 
-    .badge-lifecycle {
+    .badge-arch {
       background: var(--accent-warning);
       color: #000;
     }
 
     .card p {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       line-height: 1.6;
       margin-bottom: 0.8rem;
     }
@@ -115,6 +124,22 @@
     .card .meta {
       font-size: 0.75rem;
       color: #999;
+    }
+
+    .card .recommended {
+      font-size: 0.7rem;
+      color: var(--accent-primary);
+      font-weight: 600;
+    }
+
+    .section-label {
+      grid-column: 1 / -1;
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding-top: 1rem;
+      border-top: 1px solid #333;
     }
 
     footer {
@@ -136,29 +161,54 @@
 </head>
 <body>
   <h1>The Living Architect Model</h1>
-  <p class="subtitle">AI is not just a tool. It's a partner.</p>
+  <p class="version">v4.0.0</p>
+  <p class="subtitle">AI is not just a tool. It's the Architect of your project.</p>
 
   <div class="card-grid">
-    <a href="concept-en.html" class="card">
-      <span class="badge badge-concept">CONCEPT</span>
-      <h2>Concept</h2>
-      <p>A visual introduction to LAM's philosophy, core principles, phase control, and the 3 Agents Model. Start here if you're new.</p>
-      <span class="meta">25 slides</span>
+
+    <!-- Introduction -->
+    <a href="intro-en.html" class="card">
+      <span class="badge badge-intro">START HERE</span>
+      <h2>Introduction</h2>
+      <p>What is LAM and why do you need it? A concise overview of Before / After, core principles, and Quick Start.</p>
+      <span class="recommended">Start here if you're new</span>
+      <br><span class="meta">8 slides</span>
     </a>
 
-    <a href="usecase-en.html" class="card">
-      <span class="badge badge-usecase">USE CASE</span>
-      <h2>Use Case</h2>
-      <p>Experience the PLANNING → BUILDING → AUDITING workflow through the scenario of adding user authentication.</p>
-      <span class="meta">18 slides</span>
+    <!-- Stories -->
+    <p class="section-label">Experience through Stories</p>
+
+    <a href="story-newproject-en.html" class="card">
+      <span class="badge badge-story">STORY</span>
+      <h2>Introducing to a New Project</h2>
+      <p>From template to product. Experience the full flow: idea pitch, brainstorming, specs, design, TDD, and audit.</p>
+      <span class="meta">20 slides</span>
     </a>
 
-    <a href="lifecycle-en.html" class="card">
-      <span class="badge badge-lifecycle">LIFECYCLE</span>
-      <h2>Lifecycle</h2>
-      <p>See how CLAUDE.md, rules, skills, and docs/internal evolve across multiple development cycles. Experience the true value of "Living".</p>
+    <a href="story-daily-en.html" class="card">
+      <span class="badge badge-story">STORY</span>
+      <h2>Daily Life with LAM</h2>
+      <p>From morning /full-load to evening /full-save. Explore the daily routine of TDD, quick-save/load, auto-audit, and releases.</p>
       <span class="meta">16 slides</span>
     </a>
+
+    <a href="story-evolution-en.html" class="card">
+      <span class="badge badge-story">STORY</span>
+      <h2>The Framework Evolves</h2>
+      <p>Auto-learning through TDD introspection pipeline, rule lifecycle management. Experience the true value of "Living."</p>
+      <span class="meta">12 slides</span>
+    </a>
+
+    <!-- Deep Dive -->
+    <p class="section-label">Deep Dive</p>
+
+    <a href="architecture-en.html" class="card">
+      <span class="badge badge-arch">DEEP DIVE</span>
+      <h2>Architecture</h2>
+      <p>Immune system (hooks), Hierarchy of Truth, permission levels, Green State 5 conditions, thinking skills. A detailed look at the internals.</p>
+      <span class="meta">16 slides</span>
+    </a>
+
   </div>
 
   <p style="margin-top: 1.5rem; text-align: center; font-size: 0.85rem;">

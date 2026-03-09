@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LAM - Introduction</title>
+
+  <!-- reveal.js 5.2.1 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/theme/black.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/monokai.css">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --accent-primary: #4ec9b0;
+      --accent-secondary: #569cd6;
+      --accent-warning: #ce9178;
+      --code-background: #2d2d2d;
+      --phase-planning: #569cd6;
+      --phase-building: #4ec9b0;
+      --phase-auditing: #ce9178;
+    }
+
+    .reveal {
+      font-family: 'Inter', sans-serif;
+      font-size: 28px;
+    }
+
+    .reveal .slides section {
+      word-break: auto-phrase;
+    }
+
+    .reveal h1 {
+      font-size: 1.8em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 0.5em;
+    }
+
+    .reveal h2 {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 0.6em;
+    }
+
+    .reveal h3 {
+      font-size: 1.0em;
+      font-weight: 600;
+      color: var(--accent-secondary);
+    }
+
+    .reveal code,
+    .reveal pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8em;
+    }
+
+    .reveal pre {
+      background: var(--code-background);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .reveal a {
+      color: var(--accent-secondary);
+    }
+
+    .reveal a:hover {
+      color: var(--accent-primary);
+    }
+
+    /* Bento Grid */
+    .bento-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.8rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      padding: 0.8rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      text-align: left;
+      border: 2px solid transparent;
+      transition: border-color 0.3s;
+    }
+
+    .card:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .card h3 {
+      margin-top: 0;
+      margin-bottom: 0.3rem;
+      font-size: 0.95em;
+    }
+
+    .card p {
+      font-size: 0.75em;
+      line-height: 1.4;
+      margin: 0.3rem 0;
+    }
+
+    .card ul {
+      font-size: 0.7em;
+      margin: 0;
+      padding-left: 1rem;
+    }
+
+    /* Phase badges */
+    .phase-badge {
+      display: inline-block;
+      padding: 0.3em 0.8em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+      margin: 0.3em;
+    }
+
+    .phase-planning {
+      background: var(--phase-planning);
+      color: #fff;
+    }
+
+    .phase-building {
+      background: var(--phase-building);
+      color: #000;
+    }
+
+    .phase-auditing {
+      background: var(--phase-auditing);
+      color: #000;
+    }
+
+    /* List styling */
+    .reveal ul {
+      list-style-type: none;
+    }
+
+    .reveal ul li::before {
+      content: "\25B8 ";
+      color: var(--accent-primary);
+      font-weight: bold;
+      margin-right: 0.5em;
+    }
+
+    .reveal ol {
+      list-style-position: inside;
+    }
+
+    /* Emphasis boxes */
+    .emphasis-box {
+      background: var(--code-background);
+      border-left: 4px solid var(--accent-primary);
+      padding: 0.6rem 1rem;
+      margin: 0.6rem 0;
+      border-radius: 4px;
+    }
+
+    .emphasis-box p {
+      margin: 0;
+    }
+
+    .warning-box {
+      border-left-color: var(--accent-warning);
+    }
+
+    /* Catchphrase */
+    .catchphrase {
+      font-size: 1.0em;
+      color: var(--accent-secondary);
+      font-style: italic;
+      margin-top: 1em;
+    }
+
+    /* Mermaid diagram styling */
+    .reveal .mermaid {
+      background: transparent;
+    }
+
+    /* Small text */
+    .small-text {
+      font-size: 0.7em;
+      color: #999;
+    }
+
+    /* Back link */
+    .back-link {
+      position: fixed;
+      top: 1rem;
+      left: 1.5rem;
+      z-index: 100;
+      font-size: 0.85em;
+    }
+
+    /* Before/After comparison grid */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      margin-top: 1.5rem;
+      font-size: 0.75em;
+    }
+
+    .compare-grid .col-header {
+      padding: 0.6em 1em;
+      font-weight: 700;
+      border-bottom: 2px solid;
+    }
+
+    .compare-grid .col-header.before {
+      background: rgba(206, 145, 120, 0.15);
+      border-bottom-color: var(--accent-warning);
+      color: var(--accent-warning);
+    }
+
+    .compare-grid .col-header.after {
+      background: rgba(78, 201, 176, 0.15);
+      border-bottom-color: var(--accent-primary);
+      color: var(--accent-primary);
+    }
+
+    .compare-grid .cell {
+      padding: 0.5em 1em;
+      border-bottom: 1px solid #333;
+    }
+
+    .compare-grid .cell.before {
+      background: rgba(206, 145, 120, 0.05);
+    }
+
+    .compare-grid .cell.after {
+      background: rgba(78, 201, 176, 0.05);
+    }
+
+    /* Quick start steps */
+    .quick-steps {
+      text-align: left;
+      margin: 1.5rem auto;
+      max-width: 700px;
+    }
+
+    .quick-steps .step {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.2rem;
+    }
+
+    .quick-steps .step-number {
+      flex-shrink: 0;
+      width: 2em;
+      height: 2em;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      color: #000;
+      font-weight: 700;
+      font-size: 1.0em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 1em;
+    }
+
+    .quick-steps .step-text {
+      font-size: 0.9em;
+    }
+
+    .quick-steps .step-text code {
+      background: var(--code-background);
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.95em;
+    }
+
+    /* Next links grid */
+    .next-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+
+    .next-grid a {
+      display: block;
+      padding: 1rem;
+      background: var(--code-background);
+      border-radius: 8px;
+      border: 1px solid #444;
+      text-decoration: none;
+      transition: border-color 0.3s;
+    }
+
+    .next-grid a:hover {
+      border-color: var(--accent-primary);
+    }
+
+    .next-grid a .link-title {
+      font-weight: 600;
+      color: var(--accent-secondary);
+      font-size: 0.95em;
+    }
+
+    .next-grid a .link-desc {
+      font-size: 0.7em;
+      color: #999;
+      margin-top: 0.3em;
+    }
+  </style>
+</head>
+<body>
+  <a href="index-en.html" class="back-link">&larr; Top</a>
+
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Slide 1: Title -->
+      <section>
+        <h1>The Living Architect Model</h1>
+        <p class="catchphrase">AI is not just a tool. It's the Architect of your project</p>
+        <p class="small-text">v4.0.0</p>
+      </section>
+
+      <!-- Slide 2: Problem Statement -->
+      <section>
+        <h2>Common AI Development Pain Points</h2>
+        <ul>
+          <li class="fragment">"It starts coding without checking the specs"</li>
+          <li class="fragment">"Documentation and implementation keep drifting apart"</li>
+          <li class="fragment">"Quality standards are vague -- unclear when something is truly done"</li>
+          <li class="fragment">"Context is lost every time a session ends"</li>
+        </ul>
+      </section>
+
+      <!-- Slide 3: LAM Identity -->
+      <section>
+        <h2>LAM Identity</h2>
+        <div class="emphasis-box">
+          <p><strong>Living Architect</strong><br>
+          Maintains the integrity of the entire project</p>
+        </div>
+        <div class="emphasis-box warning-box">
+          <p><strong>Gatekeeper</strong><br>
+          Never allows implementation without specs or tests</p>
+        </div>
+        <div class="emphasis-box fragment" style="border-left-color: var(--accent-secondary);">
+          <p>The primary responsibility is not writing code, but<br><strong>safeguarding the health of the project</strong></p>
+        </div>
+      </section>
+
+      <!-- Slide 4: Before / After -->
+      <section>
+        <h2>Before / After</h2>
+        <div class="compare-grid">
+          <div class="col-header before">Before (Vanilla AI)</div>
+          <div class="col-header after">After (LAM)</div>
+          <div class="cell before">Instruction &rarr; Immediate coding</div>
+          <div class="cell after">/planning &rarr; Design &rarr; Approval &rarr; /building</div>
+          <div class="cell before">Tests added as an afterthought</div>
+          <div class="cell after">Strict TDD cycle</div>
+          <div class="cell before">Documentation left to rot</div>
+          <div class="cell after">Spec sync (implementation and docs are inseparable)</div>
+          <div class="cell before">Quality depends on human diligence</div>
+          <div class="cell after">Automated Green State with 5 conditions</div>
+          <div class="cell before">Context lost between sessions</div>
+          <div class="cell after">Persisted via /quick-save, /full-save</div>
+        </div>
+      </section>
+
+      <!-- Slide 5: Three Phases -->
+      <section>
+        <h2>Three Phases</h2>
+        <pre class="mermaid">
+graph LR
+  A["PLANNING<br/>Design & Task Decomposition"] -->|Approval Gate| B["BUILDING<br/>TDD Implementation"]
+  B -->|Approval Gate| C["AUDITING<br/>Review & Audit"]
+  style A fill:#569cd6,stroke:#fff,color:#000
+  style B fill:#4ec9b0,stroke:#fff,color:#000
+  style C fill:#ce9178,stroke:#fff,color:#000
+        </pre>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; font-size: 0.75em;">
+          <div class="fragment">
+            <span class="phase-badge phase-planning">PLANNING</span>
+            <p style="margin-top: 0.5em; color: var(--accent-primary);">Allowed: Design document output</p>
+            <p style="color: var(--accent-warning);">Prohibited: Code generation</p>
+          </div>
+          <div class="fragment">
+            <span class="phase-badge phase-building">BUILDING</span>
+            <p style="margin-top: 0.5em; color: var(--accent-primary);">Required: Spec review, strict TDD</p>
+            <p style="color: var(--accent-warning);">Prohibited: Implementation without specs</p>
+          </div>
+          <div class="fragment">
+            <span class="phase-badge phase-auditing">AUDITING</span>
+            <p style="margin-top: 0.5em; color: var(--accent-primary);">Allowed: PG/SE-level fixes</p>
+            <p style="color: var(--accent-warning);">Prohibited: Direct PM-level changes (specs/architecture)</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 6: Core Principles -->
+      <section>
+        <h2>Core Principles</h2>
+        <div class="bento-grid">
+          <div class="card fragment" style="border-color: var(--accent-primary);">
+            <h3>Active Retrieval</h3>
+            <p>Always verify by reading files. Never assume you "remember" correctly.</p>
+          </div>
+          <div class="card fragment" style="border-color: var(--accent-secondary);">
+            <h3>Zero-Regression</h3>
+            <p>Simulate impact before making changes. Verify ripple effects to the most distant modules.</p>
+          </div>
+          <div class="card fragment" style="border-color: var(--phase-building);">
+            <h3>Living Documentation</h3>
+            <p>Implementation and documentation are an inseparable unit. Code-only changes are not allowed.</p>
+          </div>
+          <div class="card fragment" style="border-color: var(--accent-warning);">
+            <h3>Hierarchy of Truth</h3>
+            <p>User Intent &gt; Architecture &gt; Specs &gt; Code. When in doubt, follow this order.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 7: Quick Start -->
+      <section>
+        <h2>Quick Start</h2>
+        <div class="quick-steps">
+          <div class="step fragment">
+            <div class="step-number">1</div>
+            <div class="step-text"><code>Use this template</code> on GitHub or <code>git clone</code></div>
+          </div>
+          <div class="step fragment">
+            <div class="step-number">2</div>
+            <div class="step-text">Use <code>/planning</code> to discuss and generate requirements</div>
+          </div>
+          <div class="step fragment">
+            <div class="step-number">3</div>
+            <div class="step-text">Adapt CLAUDE.md / .claude/ / docs/internal/ to your project</div>
+          </div>
+          <div class="step fragment">
+            <div class="step-number">4</div>
+            <div class="step-text">Generate design / ADR / tasks &rarr; <code>/building</code> for TDD implementation</div>
+          </div>
+          <div class="step fragment">
+            <div class="step-number">5</div>
+            <div class="step-text"><code>/full-review</code> for automated audit &rarr; Achieve Green State</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Slide 8: Next -->
+      <section>
+        <h2>Experience Through Stories</h2>
+        <div class="next-grid">
+          <a href="story-newproject-en.html">
+            <div class="link-title">New Project</div>
+            <div class="link-desc">A story of adopting LAM from scratch and developing the first feature</div>
+          </a>
+          <a href="story-daily-en.html">
+            <div class="link-title">Daily Development</div>
+            <div class="link-desc">Session management, phase switching, and everyday development workflow</div>
+          </a>
+          <a href="story-evolution-en.html">
+            <div class="link-title">Framework Evolution</div>
+            <div class="link-desc">How LAM itself grows and evolves through the development cycle</div>
+          </a>
+          <a href="architecture-en.html">
+            <div class="link-title">Architecture Deep Dive</div>
+            <div class="link-desc">Internal structure, permission model, and the Green State mechanism</div>
+          </a>
+        </div>
+        <p style="margin-top: 1.5em;">
+          <a href="index-en.html" style="font-size: 0.9em;">Back to Table of Contents</a>
+        </p>
+      </section>
+
+    </div>
+  </div>
+
+  <!-- reveal.js Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/markdown/markdown.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.2.1/plugin/highlight/highlight.js"></script>
+
+  <!-- Initialize reveal.js -->
+  <script>
+    Reveal.initialize({
+      hash: true,
+      progress: true,
+      slideNumber: 'c/t',
+      transition: 'fade',
+      keyboard: true,
+      overview: true,
+      help: true,
+      pdfSeparateFragments: false,
+      plugins: [RevealMarkdown, RevealHighlight]
+    });
+  </script>
+
+  <!-- Mermaid (ESM) - lazy render for reveal.js compatibility -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#4ec9b0',
+        primaryTextColor: '#fff',
+        primaryBorderColor: '#4ec9b0',
+        lineColor: '#569cd6',
+        secondaryColor: '#2d2d2d',
+        tertiaryColor: '#1e1e1e',
+        fontFamily: 'Inter, sans-serif'
+      }
+    });
+
+    document.querySelectorAll('.mermaid').forEach(el => {
+      el.setAttribute('data-mermaid-src', el.innerHTML.trim().replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&'));
+    });
+
+    async function renderMermaid(slide) {
+      const els = slide.querySelectorAll('.mermaid');
+      const toRender = [];
+      for (const el of els) {
+        const svg = el.querySelector('svg');
+        if (!svg || svg.getBoundingClientRect().width < 50) {
+          const src = el.getAttribute('data-mermaid-src');
+          if (src) {
+            el.textContent = src;
+            el.removeAttribute('data-processed');
+            toRender.push(el);
+          }
+        }
+      }
+      if (toRender.length > 0) {
+        await mermaid.run({ nodes: toRender });
+      }
+    }
+
+    if (Reveal.isReady()) {
+      renderMermaid(Reveal.getCurrentSlide());
+    } else {
+      Reveal.on('ready', () => renderMermaid(Reveal.getCurrentSlide()));
+    }
+    Reveal.on('slidechanged', e => renderMermaid(e.currentSlide));
+  </script>
+</body>
+</html>
