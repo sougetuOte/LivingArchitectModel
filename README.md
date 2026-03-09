@@ -6,6 +6,14 @@
 
 これらの定義ファイルをプロジェクトルートに配置することで、標準的なコーディングアシスタントを、プロジェクトの整合性と健全性を守る「能動的な守護者」へと変貌させることができます。
 
+## 初めての方へ
+
+| ステップ | リソース | 所要時間 |
+|---------|---------|---------|
+| 1. 概念を理解する | [スライド](docs/slides/index.html) | 5分 |
+| 2. 環境を構築する | [クイックスタート](QUICKSTART.md) | 10分 |
+| 3. 日常の使い方を知る | [チートシート](CHEATSHEET.md) | 参照用 |
+
 ## コアコンセプト
 
 - **Active Retrieval (能動的検索)**: AI は受動的な記憶に頼るのではなく、能動的にコンテキストを検索・ロードしなければならない。
@@ -49,10 +57,6 @@
 | `agents/` | 専門サブエージェント（要件分析、設計、TDD等） |
 | `skills/` | スキル（タスクオーケストレーション、テンプレート出力） |
 
-## はじめに
-
-LAM の概念を素早く理解するには、[概念説明スライド](docs/slides/index.html)をご覧ください。
-
 ## 使い方
 
 ### Option A: テンプレートとして使用 (推奨)
@@ -63,12 +67,36 @@ GitHub 上でリポジトリページ上部の **"Use this template"** ボタン
 - [テンプレートからリポジトリを作成する - GitHub Docs (日本語)](https://docs.github.com/ja/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
 - [Creating a repository from a template - GitHub Docs (English)](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
 
-### Option B: 手動インストール
+### Option B: git clone
 
-1. `CLAUDE.md` をプロジェクトルートにコピーする。
-2. `docs/internal/` ディレクトリをプロジェクトの `docs/` フォルダにコピーする。
-3. `.claude/` ディレクトリをプロジェクトルートにコピーする。
-4. AI アシスタントに指示する: _"CLAUDE.md を読み込み、Living Architect として初期化してください。"_
+```bash
+git clone https://github.com/sougetuOte/LivingArchitectModel.git my-project
+cd my-project
+rm -rf .git && git init
+```
+
+LAM は `.claude/`、`docs/internal/`、`CLAUDE.md` が連携して動作するため、一式をそのまま使うことを推奨します。
+
+### Option C: 既存プロジェクトへの導入
+
+既に開発が進んでいるプロジェクトに LAM を導入する場合:
+
+1. プロジェクト内に作業用ディレクトリを作り、LAM リポジトリの ZIP をそこに展開する
+
+```bash
+mkdir _lam_source
+cd _lam_source
+# ZIP をダウンロードして展開
+```
+
+2. Claude Code を起動し、以下のように指示する:
+
+```
+_lam_source/ にある Living Architect Model をこのプロジェクトに適用してください。
+必要なファイルの配置と、プロジェクト構成への適応をお願いします。
+```
+
+AI がプロジェクトの既存構造を分析し、LAM の設定をプロジェクトに合わせて提案・調整してくれます。
 
 ## フェーズコマンド
 
@@ -86,6 +114,10 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 ```
 
 各サブフェーズ完了時にユーザー承認が必要。未承認のまま次に進むことは禁止。
+
+## コマンドを覚える必要はありません
+
+以下にコマンドやエージェントの一覧が続きますが、暗記する必要はありません。AI に「今の状況で使えるコマンドは？」と聞けば、適切なものを提案してくれます。まずは `/planning` から始めてみてください。
 
 ## サブエージェント
 

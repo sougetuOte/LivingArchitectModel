@@ -2,7 +2,7 @@
 
 ## はじめに（初めて使う方へ）
 
-> まず [概念説明スライド](docs/slides/index.html) で LAM の全体像を掴むことをお勧めします。
+> まず [概念説明スライド](docs/slides/index.html) で LAM の全体像を掴み、[クイックスタートガイド](QUICKSTART.md) で環境構築を行うことをお勧めします。
 
 1. Claude Code CLI を起動する
 2. プロジェクトルートで Claude が `CLAUDE.md` を読み込む

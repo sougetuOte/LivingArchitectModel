@@ -6,6 +6,14 @@ This repository defines the **"Living Architect Model"**, a protocol set designe
 
 By placing these definition files in your project root, you transform a standard coding assistant into a proactive guardian of project consistency and health.
 
+## Getting Started
+
+| Step | Resource | Time |
+|------|----------|------|
+| 1. Understand concepts | [Slides](docs/slides/index-en.html) | 5 min |
+| 2. Set up your project | [Quick Start](QUICKSTART_en.md) | 10 min |
+| 3. Daily reference | [Cheatsheet](CHEATSHEET_en.md) | Reference |
+
 ## Core Concepts
 
 - **Active Retrieval**: The AI must actively search and load context, rather than relying on passive memory.
@@ -23,8 +31,8 @@ By placing these definition files in your project root, you transform a standard
 
 | File | Description |
 |------|-------------|
-| `CLAUDE.md` | The Constitution. Defines the AI's identity, core principles, and authority |
-| `CHEATSHEET.md` | Quick reference. Commands and agents list |
+| `CLAUDE.md` / `CLAUDE_en.md` | The Constitution. Defines the AI's identity, core principles, and authority |
+| `CHEATSHEET.md` / `CHEATSHEET_en.md` | Quick reference. Commands and agents list |
 
 ### Operational Protocols (`docs/internal/`)
 
@@ -49,10 +57,6 @@ By placing these definition files in your project root, you transform a standard
 | `agents/` | Specialized subagents (requirements, design, TDD, etc.) |
 | `skills/` | Skills (task orchestration, template outputs) |
 
-## Getting Started
-
-To quickly understand LAM concepts, see the [Concept Overview Slides](docs/slides/index.html).
-
 ## How to Use
 
 ### Option A: Use as a Template (Recommended)
@@ -63,12 +67,36 @@ On GitHub, click the **"Use this template"** button at the top of this repositor
 - [Creating a repository from a template - GitHub Docs (English)](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
 - [テンプレートからリポジトリを作成する - GitHub Docs (日本語)](https://docs.github.com/ja/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template)
 
-### Option B: Manual Installation
+### Option B: git clone
 
-1. Copy `CLAUDE.md` to your project root.
-2. Copy the `docs/internal/` directory to your project's `docs/` folder.
-3. Copy the `.claude/` directory to your project root.
-4. Instruct your AI assistant: _"Read CLAUDE.md and initialize yourself as the Living Architect."_
+```bash
+git clone https://github.com/sougetuOte/LivingArchitectModel.git my-project
+cd my-project
+rm -rf .git && git init
+```
+
+LAM components (`.claude/`, `docs/internal/`, `CLAUDE.md`) work together as a system. We recommend using the full set rather than copying individual files.
+
+### Option C: Adopt into an Existing Project
+
+To introduce LAM into a project already in development:
+
+1. Create a working directory inside your project and extract the LAM ZIP there
+
+```bash
+mkdir _lam_source
+cd _lam_source
+# Download and extract the ZIP here
+```
+
+2. Launch Claude Code and instruct it:
+
+```
+Apply the Living Architect Model from _lam_source/ to this project.
+Place the necessary files and adapt them to this project's structure.
+```
+
+The AI will analyze your existing project structure and propose adjustments to integrate LAM.
 
 ## Phase Commands
 
@@ -86,6 +114,10 @@ requirements → [approval] → design → [approval] → tasks → [approval] �
 ```
 
 User approval is required at the completion of each sub-phase. Proceeding without approval is prohibited.
+
+## You Don't Need to Memorize Commands
+
+The tables below list all available commands and agents, but you don't need to memorize them. Just ask the AI: "What commands should I use here?" and it will suggest the right ones. Start with `/planning` and go from there.
 
 ## Subagents
 
