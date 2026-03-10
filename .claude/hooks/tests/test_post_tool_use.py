@@ -2,11 +2,10 @@
 test_post_tool_use.py - post-tool-use.py の TDD テスト
 
 W3-T1: Red フェーズ（テストファースト）
-対応仕様: docs/specs/hooks-python-migration/design.md Section 3.3
+対応仕様: docs/specs/hooks-python-migration/design.md H2（post-tool-use）
 """
+import json
 from pathlib import Path
-
-import pytest
 
 # テスト対象フックのパス
 HOOK_PATH = Path(__file__).resolve().parent.parent / "post-tool-use.py"
@@ -116,11 +115,8 @@ class TestTDDPatternDetection:
         assert result.returncode == 0
 
         tdd_log = project_root / ".claude" / "tdd-patterns.log"
-        # ログファイルが存在しないか、存在してもこのコマンドの記録がない
-        if tdd_log.exists():
-            content = tdd_log.read_text(encoding="utf-8")
-            # ls コマンドに関する記録がないことを確認
-            assert "ls" not in content
+        # 非テストコマンドでは tdd-patterns.log が作成されない
+        assert not tdd_log.exists(), "非テストコマンドで tdd-patterns.log が作成されてはいけない"
 
 
 class TestDocSyncFlag:
@@ -186,8 +182,6 @@ class TestLoopLog:
 
     def test_loop_state_tool_events(self, hook_runner, project_root):
         """lam-loop-state.json 存在時 → tool_events に追記"""
-        import json
-
         # lam-loop-state.json を事前に作成
         loop_state_path = project_root / ".claude" / "lam-loop-state.json"
         initial_state = {"iteration": 1, "tool_events": []}
@@ -221,8 +215,6 @@ class TestAtomicWriteSafety:
 
     def test_atomic_write_safety(self, hook_runner, project_root):
         """lam-loop-state.json への追記がアトミックに行われる"""
-        import json
-
         # lam-loop-state.json を事前に作成
         loop_state_path = project_root / ".claude" / "lam-loop-state.json"
         initial_state = {"iteration": 1, "tool_events": []}

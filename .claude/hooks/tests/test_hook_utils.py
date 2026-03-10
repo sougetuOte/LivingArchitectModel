@@ -8,8 +8,9 @@ import io
 import json
 import os
 import sys
-import tempfile
 from pathlib import Path
+
+import pytest
 
 # import パス解決: _hook_utils.py は tests/ の一つ上のディレクトリに存在する
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -19,17 +20,13 @@ import _hook_utils
 
 class TestGetProjectRoot:
     def test_get_project_root_default(self):
-        """__file__ ベースの PROJECT_ROOT 取得"""
-        # LAM_PROJECT_ROOT が設定されていない状態でテスト
+        """__file__ ベースの PROJECT_ROOT 取得（環境非依存）"""
         env_backup = os.environ.pop("LAM_PROJECT_ROOT", None)
         try:
             root = _hook_utils.get_project_root()
             assert isinstance(root, Path)
-            # _hook_utils.py は .claude/hooks/ にあり、../../ が PROJECT_ROOT
-            # つまり LivingArchitectModel ディレクトリになる
+            # __file__ から3階層上のディレクトリが返る
             assert root.is_dir()
-            # CLAUDE.md が存在することで LivingArchitectModel であることを確認
-            assert (root / "CLAUDE.md").exists()
         finally:
             if env_backup is not None:
                 os.environ["LAM_PROJECT_ROOT"] = env_backup
@@ -206,24 +203,18 @@ class TestLogEntry:
 class TestSafeExit:
     def test_safe_exit_code_0(self):
         """exit code 0 で SystemExit が発生する"""
-        try:
+        with pytest.raises(SystemExit) as exc_info:
             _hook_utils.safe_exit(0)
-            assert False, "SystemExit should have been raised"
-        except SystemExit as e:
-            assert e.code == 0
+        assert exc_info.value.code == 0
 
     def test_safe_exit_code_1(self):
         """exit code 1 で SystemExit が発生する"""
-        try:
+        with pytest.raises(SystemExit) as exc_info:
             _hook_utils.safe_exit(1)
-            assert False, "SystemExit should have been raised"
-        except SystemExit as e:
-            assert e.code == 1
+        assert exc_info.value.code == 1
 
     def test_safe_exit_default(self):
         """デフォルト引数は 0"""
-        try:
+        with pytest.raises(SystemExit) as exc_info:
             _hook_utils.safe_exit()
-            assert False, "SystemExit should have been raised"
-        except SystemExit as e:
-            assert e.code == 0
+        assert exc_info.value.code == 0

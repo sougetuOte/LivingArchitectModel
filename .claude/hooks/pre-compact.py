@@ -3,18 +3,21 @@
 pre-compact.py - PreCompact hook: コンテキスト圧縮前の状態保存
 
 bash 版 pre-compact.sh のパリティ実装。
-設計書 Section 3.5 準拠。
+設計書 H4（pre-compact）準拠。
 
 NOTE: PreCompact は公式ドキュメント未掲載だが動作確認済み（2026-03時点）
 エラーが発生しても exit 0 を返し、圧縮をブロックしない。
 """
+from __future__ import annotations
 import datetime
 import pathlib
 import shutil
 import sys
 
-sys.path.insert(0, str(pathlib.Path(__file__).parent))
-from _hook_utils import get_project_root, safe_exit
+_HOOKS_DIR = str(pathlib.Path(__file__).resolve().parent)
+if _HOOKS_DIR not in sys.path:
+    sys.path.insert(0, _HOOKS_DIR)
+from _hook_utils import get_project_root, safe_exit  # noqa: E402
 
 
 def now_iso8601() -> str:
@@ -44,9 +47,9 @@ def update_session_state(session_state: pathlib.Path, timestamp: str) -> None:
         updated_lines = []
         in_section = False
         for line in lines:
-            if line.rstrip("\n") == section_header:
+            if line.rstrip() == section_header:
                 in_section = True
-            elif line.startswith("## ") and line.rstrip("\n") != section_header:
+            elif line.startswith("## ") and line.strip() != section_header:
                 in_section = False
             if in_section and line.startswith("- 時刻: "):
                 updated_lines.append(f"- 時刻: {timestamp}\n")

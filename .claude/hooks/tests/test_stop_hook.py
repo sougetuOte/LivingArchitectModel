@@ -2,13 +2,11 @@
 test_stop_hook.py - lam-stop-hook.py の TDD テスト
 
 W4-T1: Red フェーズ（テストファースト）
-対応仕様: docs/specs/hooks-python-migration/design.md Section 3.4
+対応仕様: docs/specs/hooks-python-migration/design.md H3（lam-stop-hook）
 """
+import datetime
 import json
-import time
 from pathlib import Path
-
-import pytest
 
 # テスト対象フックのパス
 HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
@@ -75,13 +73,13 @@ class TestStopHook:
             f"再帰防止時は stdout が空であるべき。got: {result.stdout!r}"
         )
 
-    def test_test_fail_blocks(self, hook_runner, project_root, tmp_path):
-        """テスト失敗時は block JSON を出力して継続指示を出す"""
+    def test_makefile_test_fail_blocks(self, hook_runner, project_root):
+        """Makefile フォールバック: make test 失敗時は block JSON を出力して継続指示"""
         # アクティブな状態ファイルを作成（まだ上限に達していない）
         state = {**DEFAULT_STATE, "iteration": 0, "max_iterations": 5}
         _write_state(project_root, state)
 
-        # テストが失敗する Makefile を project_root に配置
+        # Makefile の test ターゲットが失敗するよう設定（フォールバック検出テスト）
         makefile = project_root / "Makefile"
         makefile.write_text("test:\n\texit 1\n", encoding="utf-8")
 
@@ -108,7 +106,7 @@ class TestStopHook:
         _write_state(project_root, DEFAULT_STATE)
 
         # 直近のタイムスタンプで pre-compact-fired フラグを作成
-        now_ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        now_ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         pre_compact_flag = project_root / ".claude" / "pre-compact-fired"
         pre_compact_flag.write_text(now_ts, encoding="utf-8")
 

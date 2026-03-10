@@ -8,7 +8,6 @@ import json
 import os
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -69,17 +68,3 @@ def hook_runner(project_root):
     return run_hook
 
 
-@pytest.fixture
-def cleanup_files(project_root):
-    """テスト後のファイルクリーンアップを行う fixture。
-
-    テスト内で作成したファイルの追跡・削除に使用する。
-    yield で提供されるリストにパスを追加すると、
-    テスト終了時に自動的に削除される。
-    """
-    files_to_cleanup = []
-    yield files_to_cleanup
-    for file_path in files_to_cleanup:
-        path = Path(file_path)
-        if path.exists():
-            path.unlink()

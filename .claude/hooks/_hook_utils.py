@@ -17,7 +17,6 @@ import subprocess
 import sys
 import tempfile
 import time
-from typing import List, Tuple
 
 
 def get_project_root() -> pathlib.Path:
@@ -68,7 +67,7 @@ def get_tool_input(data: dict, key: str) -> str:
     return tool_input.get(key, "")
 
 
-def get_tool_response(data: dict, key: str, default):
+def get_tool_response(data: dict, key: str, default: object):
     """
     data["tool_response"][key] を返す。
     tool_response またはキーが存在しない場合は default を返す。
@@ -125,7 +124,8 @@ def atomic_write_json(path: pathlib.Path, data: dict):
     # exponential backoff: 最大3回リトライ (100ms / 200ms / 400ms)
     retry_delays = [0.1, 0.2, 0.4]
     max_attempts = len(retry_delays) + 1
-    last_error: Exception = RuntimeError("atomic_write_json: unexpected error")
+    # 全リトライ失敗時のフォールバック（通常到達しない）
+    last_error: Exception | None = None
 
     for attempt in range(max_attempts):
         fd, tmp_path = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
@@ -149,10 +149,10 @@ def atomic_write_json(path: pathlib.Path, data: dict):
                 pass
             raise
 
-    raise last_error
+    raise last_error if last_error else RuntimeError("atomic_write_json: all retries exhausted")
 
 
-def run_command(args: List[str], cwd: str, timeout: int) -> Tuple[int, str, str]:
+def run_command(args: list[str], cwd: str, timeout: int) -> tuple[int, str, str]:
     """
     subprocess.run のラッパー。
 

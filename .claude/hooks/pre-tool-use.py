@@ -9,9 +9,10 @@ PG/SE/PM の等級を判定する。
 判定結果:
   PG級 → exit 0（許可）
   SE級 → exit 0 + ログ記録
-  PM級 → stdout に hookSpecificOutput JSON を出力して exit 0
+  PM級 → stdout に hookSpecificOutput JSON（permissionDecision: "ask"）を出力して exit 0
+        Claude Code のネイティブ許可ダイアログでユーザーに判断を委ねる
 
-対応仕様: docs/specs/hooks-python-migration/design.md Section 3.2
+対応仕様: docs/specs/hooks-python-migration/design.md H1（pre-tool-use）
 """
 from __future__ import annotations
 
@@ -25,7 +26,7 @@ _HOOKS_DIR = Path(__file__).resolve().parent
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
-from _hook_utils import (
+from _hook_utils import (  # noqa: E402
     get_project_root,
     get_tool_input,
     get_tool_name,
@@ -133,7 +134,7 @@ def main() -> None:
     # ツール名を取得（取得失敗時は SE 扱いで終了）
     tool_name = get_tool_name(data)
     if not tool_name:
-        log_entry(log_file, "SE", "unknown", 'tool_name extraction failed')
+        log_entry(log_file, "SE", "unknown", "tool_name extraction failed")
         sys.exit(0)
 
     # 1. 読み取り専用ツールは常に PG 許可
@@ -159,13 +160,13 @@ def main() -> None:
 
     # 応答
     if level == "PM":
-        deny_output = {
+        ask_output = {
             "hookSpecificOutput": {
-                "permissionDecision": "deny",
+                "permissionDecision": "ask",
                 "permissionDecisionReason": f"PM級変更です。承認してください: {target}",
             }
         }
-        print(json.dumps(deny_output, ensure_ascii=False))
+        print(json.dumps(ask_output, ensure_ascii=False))
 
     sys.exit(0)
 
