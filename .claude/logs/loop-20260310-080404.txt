@@ -1,0 +1,11 @@
+=== Loop Log ===
+timestamp: 2026-03-10T08:04:04Z
+command: full-review
+target: .claude/ docs/internal/
+iterations: 1
+max_iterations: 5
+started_at: 2026-03-10T00:00:00Z
+result: GREEN_STATE
+
+--- Iteration Log ---
+iter 0: found=34 fixed=34 pg=10 se=21 pm=3 tests=49

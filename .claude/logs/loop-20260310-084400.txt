@@ -1,0 +1,13 @@
+=== Loop Log ===
+timestamp: 2026-03-10T08:44:00Z
+command: full-review
+target: .claude/ docs/internal/
+iterations: 3
+max_iterations: 5
+started_at: 2026-03-10T00:00:00Z
+result: CONVERGED
+
+--- Iteration Log ---
+iter 1: found=34 fixed=34 pg=10 se=21 pm=3 tests=49
+iter 2: found=15 fixed=15 pg=2 se=10 pm=3 tests=49
+iter 3: found=11 fixed=8 pg=4 se=4 pm=3 tests=49
