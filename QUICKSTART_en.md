@@ -103,7 +103,36 @@ A: Start with the defaults. Customize gradually as your project develops its own
 
 ### Q: Is Python required?
 
-A: Only if you use StatusLine (context remaining display). It is not required.
+A: **Yes, it is required.** Hook scripts and StatusLine use Python 3.8+.
+
+#### Setup (if you don't have Python yet)
+
+**Recommended: uv (fastest, modern)**
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # Linux/macOS
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+
+uv venv .venv
+source .venv/bin/activate   # Linux/macOS
+.venv\Scripts\activate      # Windows
+
+uv pip install -r requirements-dev.txt  # Only if running tests
+```
+
+**Fallback: venv (no additional install needed)**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Linux/macOS
+.venv\Scripts\activate      # Windows
+
+pip install -r requirements-dev.txt     # Only if running tests
+```
+
+> If you already use pyenv, conda, etc., those work too.
+> Any Python 3.8+ will work.
+> On Windows, if `python3` is not available, use `py` or `python` instead.
 
 ### Q: What if my session disconnects?
 

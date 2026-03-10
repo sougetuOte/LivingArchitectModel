@@ -177,10 +177,8 @@ The tables below list all available commands and agents, but you don't need to m
 | Requirement | Purpose | Required |
 |-------------|---------|----------|
 | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI assistant runtime | Required |
-| Python 3.x | StatusLine (context usage display) | Optional |
+| Python 3.8+ | Required for hooks and StatusLine | Required |
 | Git | Version control | Required |
-
-> Python is only needed if you use the StatusLine feature.
 
 ## License
 
