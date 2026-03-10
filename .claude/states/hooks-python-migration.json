@@ -1,0 +1,45 @@
+{
+  "feature": "hooks-python-migration",
+  "description": "フックスクリプトの bash → Python 一本化（クロスプラットフォーム対応）",
+  "phase": "BUILDING",
+  "status": {
+    "requirements": "approved",
+    "design": "approved",
+    "tasks": "approved"
+  },
+  "approvals": {
+    "requirements": "2026-03-10T00:00:00Z",
+    "design": "2026-03-10T00:00:00Z",
+    "tasks": "2026-03-10T00:00:00Z"
+  },
+  "current_task": null,
+  "completed_tasks": [
+    "W1-T1", "W1-T2a", "W1-T2", "W1-T3", "W1-T4", "W1-T5",
+    "W2-T1", "W2-T2", "W2-T3", "W2-T4", "W2-T5", "W2-T6", "W2-T7",
+    "W3-T1", "W3-T2", "W3-T3", "W3-T4", "W3-T5",
+    "W4-T1", "W4-T2", "W4-T3", "W4-T4", "W4-T5", "W4-T6",
+    "W5-T1", "W5-T2", "W5-T3", "W5-T4", "W5-T5", "W5-T6", "W5-T7", "W5-T8"
+  ],
+  "wave_1": { "status": "COMPLETED", "tests": { "hook_utils": 25 } },
+  "wave_2": { "status": "COMPLETED", "tests": { "pre_tool_use": 8 }, "performance": { "median_ms": 80, "nfr1_limit_ms": 500 } },
+  "wave_3": { "status": "COMPLETED", "tests": { "post_tool_use": 10 } },
+  "wave_4": { "status": "COMPLETED", "tests": { "stop_hook": 6, "loop_integration": 7 } },
+  "wave_5": {
+    "status": "COMPLETED",
+    "tests": { "total": 56, "all_pass": true },
+    "sh_deleted": true,
+    "notes": [
+      "bash .sh フック4本削除完了",
+      "bash .sh テスト5本は PR マージ後に削除可",
+      "chmod +x は settings.json deny のため手動対応が必要（方式Aでは不要）"
+    ]
+  },
+  "parity": {
+    "exit_code": "match",
+    "output_format": "match",
+    "timestamp_format": "ISO 8601 match",
+    "performance": "80ms (NFR-1: 500ms limit)"
+  },
+  "createdAt": "2026-03-10T00:00:00Z",
+  "completedAt": "2026-03-10"
+}

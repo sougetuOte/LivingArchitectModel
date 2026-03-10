@@ -177,10 +177,8 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | 要件 | 用途 | 必須/任意 |
 |------|------|----------|
 | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI アシスタント実行環境 | 必須 |
-| Python 3.x | StatusLine（コンテキスト残量表示） | 任意 |
+| Python 3.8+ | フック・StatusLine に必要 | 必須 |
 | Git | バージョン管理 | 必須 |
-
-> StatusLine を使用しない場合、Python は不要です。
 
 ## ライセンス
 

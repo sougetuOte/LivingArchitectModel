@@ -153,6 +153,8 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `/ship` | 論理グループ分けコミット（棚卸し -> 分類 -> コミット） |
 | `/full-review <対象>` | 並列監査 + 全修正 + 検証（一気通貫） |
 | `/release <version>` | リリース（CHANGELOG -> commit -> push -> tag） |
+| `/wave-plan [N]` | Wave 計画策定（タスク選定・依存関係・リスク評価） |
+| `/retro [wave\|phase]` | 構造化振り返り（KPT + 定量分析 + アクション抽出） |
 
 ## 補助コマンド
 

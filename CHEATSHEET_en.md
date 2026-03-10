@@ -154,6 +154,8 @@ Displays remaining context at the bottom of the screen (requires Python 3.x):
 | `/ship` | Logical group commits (inventory -> classify -> commit) |
 | `/full-review <target>` | Parallel audit + full fixes + verification (end-to-end) |
 | `/release <version>` | Release (CHANGELOG -> commit -> push -> tag) |
+| `/wave-plan [N]` | Wave planning (task selection, dependencies, risk assessment) |
+| `/retro [wave\|phase]` | Structured retrospective (KPT + quantitative analysis + actions) |
 
 ## Utility Commands
 

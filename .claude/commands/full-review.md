@@ -64,7 +64,7 @@ EOF
 
 Phase 0 完了後、Phase 1 に進む。
 
-**自動ループの仕組み**: Phase 4 の検証で Green State 未達の場合、Claude の応答が終了すると Stop hook (`lam-stop-hook.sh`) が発火し、状態ファイルを確認して自動的に Phase 1 に戻る。ユーザーの操作は不要。
+**自動ループの仕組み**: Phase 4 の検証で Green State 未達の場合、Claude の応答が終了すると Stop hook (`lam-stop-hook.py`) が発火し、状態ファイルを確認して自動的に Phase 1 に戻る。ユーザーの操作は不要。
 
 ## Phase 0.5: context7 MCP 検出
 

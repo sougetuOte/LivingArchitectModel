@@ -101,9 +101,38 @@ A: Step 3 で AI に適応を任せるのが最も簡単。手動で変えるな
 
 A: 最初はそのまま使うことを推奨。プロジェクト固有の方法論が確立してきたら、徐々にカスタマイズ。
 
-### Q: Python は必要？
+### Q: Python は必須？
 
-A: StatusLine（コンテキスト残量表示）を使う場合のみ。必須ではない。
+A: **必須です。** フックスクリプトと StatusLine が Python 3.8+ を使用します。
+
+#### セットアップ（まだ Python がない場合）
+
+**推奨: uv（最速・モダン）**
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh   # Linux/macOS
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
+
+uv venv .venv
+source .venv/bin/activate   # Linux/macOS
+.venv\Scripts\activate      # Windows
+
+uv pip install -r requirements-dev.txt  # テストを実行する場合のみ
+```
+
+**フォールバック: venv（追加インストール不要）**
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate   # Linux/macOS
+.venv\Scripts\activate      # Windows
+
+pip install -r requirements-dev.txt     # テストを実行する場合のみ
+```
+
+> pyenv, conda 等を既に使っている場合はそちらでも OK です。
+> Python 3.8 以上であれば動作します。
+> Windows で `python3` コマンドが存在しない場合は `py` または `python` を使用してください。
 
 ### Q: セッションが切れたら？
 

@@ -32,7 +32,7 @@
 v4.0.0 以降、コマンド安全基準は以下の二層で管理される:
 
 - **Layer 1（ネイティブ権限）**: `.claude/settings.json` の `permissions`（allow/ask/deny）で粗粒度の境界を設定
-- **Layer 2（PreToolUse hook）**: `.claude/hooks/pre-tool-use.sh` でファイルパスベースの動的判定（PG/SE/PM 分類）
+- **Layer 2（PreToolUse hook）**: `.claude/hooks/pre-tool-use.py` でファイルパスベースの動的判定（PG/SE/PM 分類）
 
 本ファイルの Allow/Deny List は Layer 0（憲法的プロンプティング）として引き続き有効。
 Layer 1 の `permissions.allow` に PG級コマンド（`ruff format`, `eslint --fix` 等）が追加されている。
