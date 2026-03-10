@@ -1,0 +1,260 @@
+"""
+test_loop_integration.py - ループ統合テスト
+
+W4-T2: H4/H1/H2/H3 をまたぐループ統合テスト。
+bash 版 test-loop-integration.sh の 5 シナリオ (S-1〜S-5) を pytest で再現。
+
+対応仕様: docs/specs/hooks-python-migration/design.md Section 4 (S-1〜S-5)
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+# テスト対象フックのパス
+STOP_HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
+
+# 状態ファイルのデフォルト構造
+DEFAULT_STATE = {
+    "active": True,
+    "iteration": 0,
+    "max_iterations": 5,
+    "command": "full-review",
+    "target": "src/",
+    "started_at": "2026-03-10T00:00:00Z",
+    "log": [],
+}
+
+DEFAULT_INPUT = {
+    "session_id": "test-integration",
+    "transcript_path": "/tmp/t",
+    "permission_mode": "default",
+    "hook_event_name": "Stop",
+    "stop_hook_active": False,
+    "last_assistant_message": "done",
+}
+
+
+def _write_state(project_root: Path, state: dict) -> Path:
+    """lam-loop-state.json を書き込む。"""
+    state_file = project_root / ".claude" / "lam-loop-state.json"
+    state_file.write_text(json.dumps(state), encoding="utf-8")
+    return state_file
+
+
+def _read_state(project_root: Path) -> dict | None:
+    """lam-loop-state.json を読み込む。存在しなければ None。"""
+    state_file = project_root / ".claude" / "lam-loop-state.json"
+    if not state_file.exists():
+        return None
+    return json.loads(state_file.read_text(encoding="utf-8"))
+
+
+def _make_input(project_root: Path, message: str = "done", **overrides) -> dict:
+    """テスト用 stdin JSON を生成する。cwd は project_root に設定。"""
+    data = {
+        **DEFAULT_INPUT,
+        "cwd": str(project_root),
+        "last_assistant_message": message,
+    }
+    data.update(overrides)
+    return data
+
+
+def _create_makefile(project_root: Path, test_exit: int = 0, lint_exit: int = 0) -> None:
+    """Makefile を project_root に作成する。"""
+    lines = [f"test:\n\t@exit {test_exit}\n"]
+    if lint_exit is not None:
+        lines.append(f"lint:\n\t@exit {lint_exit}\n")
+    (project_root / "Makefile").write_text("".join(lines), encoding="utf-8")
+
+
+class TestNormalConvergence:
+    """S-1: 正常収束シミュレーション
+    PG級のみ → Green State 達成 → 自動停止"""
+
+    def test_green_state_stops_loop(self, hook_runner, project_root):
+        """S-1-1: テスト・lint 成功環境 → Green State → ループ停止"""
+        state = {
+            **DEFAULT_STATE,
+            "iteration": 1,
+            "log": [
+                {"iteration": 0, "issues_found": 2, "issues_fixed": 2, "pg": 2, "se": 0, "pm": 0},
+            ],
+        }
+        _write_state(project_root, state)
+        _create_makefile(project_root, test_exit=0, lint_exit=0)
+
+        input_data = _make_input(project_root, "Green State 達成。全修正完了。")
+        result = hook_runner(STOP_HOOK_PATH, input_data)
+
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", (
+            f"Green State 達成時は stdout が空であるべき。got: {result.stdout!r}"
+        )
+        # 状態ファイルが削除されていること
+        state_file = project_root / ".claude" / "lam-loop-state.json"
+        assert not state_file.exists(), "Green State 達成時は状態ファイルが削除されるべき"
+
+
+class TestPMEscalation:
+    """S-2: PM級エスカレーション シミュレーション"""
+
+    def test_test_failure_blocks(self, hook_runner, project_root):
+        """S-2-1: テスト失敗 → block で継続（PM級検出は Claude の責務）"""
+        state = {
+            **DEFAULT_STATE,
+            "iteration": 1,
+            "log": [
+                {"iteration": 0, "issues_found": 5, "issues_fixed": 3, "pg": 2, "se": 1, "pm": 2},
+            ],
+        }
+        _write_state(project_root, state)
+        _create_makefile(project_root, test_exit=1)
+
+        input_data = _make_input(
+            project_root,
+            "PM級の問題が2件検出されました。ループを停止してエスカレーションします。",
+        )
+        result = hook_runner(STOP_HOOK_PATH, input_data)
+
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, f"テスト失敗時は block JSON が出力されるべき。got: {stdout!r}"
+        data = json.loads(stdout)
+        assert data.get("decision") == "block"
+
+    def test_active_false_stops(self, hook_runner, project_root):
+        """S-2-2: active=false → ループ無効で停止"""
+        state = {**DEFAULT_STATE, "active": False, "iteration": 1}
+        _write_state(project_root, state)
+
+        result = hook_runner(STOP_HOOK_PATH, _make_input(project_root))
+
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", (
+            f"active=false 時は stdout が空であるべき。got: {result.stdout!r}"
+        )
+
+
+class TestMaxIterationsLifecycle:
+    """S-3: 上限到達ライフサイクル"""
+
+    def test_below_max_continues(self, hook_runner, project_root):
+        """S-3-1: iteration=4, max_iterations=5 → まだ継続可能"""
+        state = {
+            **DEFAULT_STATE,
+            "iteration": 4,
+            "max_iterations": 5,
+            "log": [
+                {"iteration": 0, "issues_found": 10, "issues_fixed": 8, "pg": 5, "se": 3, "pm": 0},
+                {"iteration": 1, "issues_found": 5, "issues_fixed": 4, "pg": 3, "se": 1, "pm": 0},
+                {"iteration": 2, "issues_found": 3, "issues_fixed": 2, "pg": 1, "se": 1, "pm": 0},
+                {"iteration": 3, "issues_found": 2, "issues_fixed": 1, "pg": 1, "se": 0, "pm": 0},
+            ],
+        }
+        _write_state(project_root, state)
+        _create_makefile(project_root, test_exit=1)
+
+        input_data = _make_input(project_root, "Green State 未達。残 Issue: 1件")
+        result = hook_runner(STOP_HOOK_PATH, input_data)
+
+        assert result.returncode == 0
+        data = json.loads(result.stdout.strip())
+        assert data.get("decision") == "block", "上限未到達時は block で継続"
+
+    def test_at_max_stops(self, hook_runner, project_root):
+        """S-3-2: iteration=5 == max_iterations=5 → 強制停止"""
+        state = {
+            **DEFAULT_STATE,
+            "iteration": 5,
+            "max_iterations": 5,
+            "log": [
+                {"iteration": 0, "issues_found": 10, "issues_fixed": 8, "pg": 5, "se": 3, "pm": 0},
+                {"iteration": 1, "issues_found": 5, "issues_fixed": 4, "pg": 3, "se": 1, "pm": 0},
+                {"iteration": 2, "issues_found": 3, "issues_fixed": 2, "pg": 1, "se": 1, "pm": 0},
+                {"iteration": 3, "issues_found": 2, "issues_fixed": 1, "pg": 1, "se": 0, "pm": 0},
+                {"iteration": 4, "issues_found": 1, "issues_fixed": 0, "pg": 0, "se": 1, "pm": 0},
+            ],
+        }
+        state_file = _write_state(project_root, state)
+
+        input_data = _make_input(project_root, "Green State 未達。残 Issue: 1件")
+        result = hook_runner(STOP_HOOK_PATH, input_data)
+
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", (
+            f"上限到達時は stdout が空であるべき。got: {result.stdout!r}"
+        )
+        assert not state_file.exists(), "上限到達時は状態ファイルが削除されるべき"
+
+
+class TestContextExhaustion:
+    """S-4: コンテキスト枯渇 → ループ停止"""
+
+    def test_precompact_recent_stops(self, hook_runner, project_root):
+        """S-4-1: PreCompact フラグが直近 → ループ停止"""
+        import datetime
+
+        state = {**DEFAULT_STATE, "iteration": 2}
+        state_file = _write_state(project_root, state)
+
+        # 直近のタイムスタンプで pre-compact-fired フラグを作成
+        now_ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        pre_compact_flag = project_root / ".claude" / "pre-compact-fired"
+        pre_compact_flag.write_text(now_ts, encoding="utf-8")
+
+        result = hook_runner(STOP_HOOK_PATH, _make_input(project_root))
+
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", (
+            f"PreCompact 発火直後は stdout が空であるべき。got: {result.stdout!r}"
+        )
+        assert not state_file.exists(), "PreCompact 発火時は状態ファイルが削除されるべき"
+
+
+class TestFullLifecycle:
+    """S-5: ループライフサイクル全体（初期化→複数サイクル→収束）"""
+
+    def test_init_fail_then_converge(self, hook_runner, project_root):
+        """S-5-1: Phase 0 初期化 → サイクル1(失敗) → サイクル2(成功) の流れ"""
+        import datetime
+
+        # Phase 0: 初期化（状態ファイル生成）
+        now_ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        state = {
+            **DEFAULT_STATE,
+            "started_at": now_ts,
+        }
+        state_file = _write_state(project_root, state)
+        assert state_file.exists(), "Phase 0: 状態ファイルが生成されるべき"
+
+        # サイクル1: テスト失敗 → block で継続
+        _create_makefile(project_root, test_exit=1)
+        input_data = _make_input(project_root, "Green State 未達。残 Issue: 3件")
+        result = hook_runner(STOP_HOOK_PATH, input_data)
+
+        assert result.returncode == 0
+        data = json.loads(result.stdout.strip())
+        assert data.get("decision") == "block", "サイクル1: テスト失敗時は block で継続"
+        assert state_file.exists(), "サイクル1: 状態ファイルが残っているべき"
+
+        # iteration がインクリメントされたか確認
+        updated_state = _read_state(project_root)
+        assert updated_state is not None
+        assert updated_state["iteration"] == 1, (
+            f"サイクル1 後に iteration が 1 であるべき。got: {updated_state['iteration']}"
+        )
+
+        # サイクル2: テスト成功環境に切り替え → Green State → 停止
+        _create_makefile(project_root, test_exit=0, lint_exit=0)
+        input_data = _make_input(project_root, "Green State 達成。全修正完了。")
+        result = hook_runner(STOP_HOOK_PATH, input_data)
+
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", (
+            f"サイクル2: Green State 達成時は stdout が空であるべき。got: {result.stdout!r}"
+        )
+        assert not state_file.exists(), "サイクル2: 状態ファイルが削除されるべき（ループ終了）"
