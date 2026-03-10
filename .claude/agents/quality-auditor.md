@@ -156,17 +156,17 @@ Wave やタスクを跨いで構築されたコンポーネント間の「接続
 ### スキーマ整合性（状態ファイルの書き手と読み手の一致）
 | 状態ファイル | 書き手 | 読み手 | フィールド一致 | 備考 |
 |-------------|--------|--------|:------------:|------|
-| lam-loop-state.json | full-review Phase 0 | lam-stop-hook.sh | ✓/✗ | |
-| lam-loop-state.json | lam-stop-hook.sh | post-tool-use.sh | ✓/✗ | |
-| doc-sync-flag | post-tool-use.sh | /ship Phase 2 | ✓/✗ | |
-| tdd-patterns.log | post-tool-use.sh | (Wave 4) | ✓/✗ | |
+| lam-loop-state.json | full-review Phase 0 | lam-stop-hook.py | ✓/✗ | |
+| lam-loop-state.json | lam-stop-hook.py | post-tool-use.py | ✓/✗ | |
+| doc-sync-flag | post-tool-use.py | /ship Phase 2 | ✓/✗ | |
+| tdd-patterns.log | post-tool-use.py | (Wave 4) | ✓/✗ | |
 
 ### 参照整合性（ファイル・エージェント参照の実在確認）
 | 参照元 | 参照先 | 存在 | 備考 |
 |--------|--------|:----:|------|
 | full-review.md | code-reviewer agent | ✓/✗ | |
 | full-review.md | quality-auditor agent | ✓/✗ | |
-| full-review.md | lam-stop-hook.sh | ✓/✗ | |
+| full-review.md | lam-stop-hook.py | ✓/✗ | |
 | lam-orchestrate SKILL.md | lam-loop-state.json スキーマ | ✓/✗ | |
 
 ### データフロー整合性（hook チェーンの断絶チェック）
@@ -180,17 +180,17 @@ Wave やタスクを跨いで構築されたコンポーネント間の「接続
 ### 設定整合性（settings.json と実ファイルの一致）
 | settings.json 定義 | 実スクリプト | パス一致 | イベント名一致 | 備考 |
 |-------------------|------------|:-------:|:------------:|------|
-| hooks.PreToolUse | pre-tool-use.sh | ✓/✗ | ✓/✗ | |
-| hooks.PostToolUse | post-tool-use.sh | ✓/✗ | ✓/✗ | |
-| hooks.Stop | lam-stop-hook.sh | ✓/✗ | ✓/✗ | |
+| hooks.PreToolUse | pre-tool-use.py | ✓/✗ | ✓/✗ | |
+| hooks.PostToolUse | post-tool-use.py | ✓/✗ | ✓/✗ | |
+| hooks.Stop | lam-stop-hook.py | ✓/✗ | ✓/✗ | |
 
 ### ドキュメント間整合性（同一概念の記述一致）
 | 概念 | 記述箇所1 | 記述箇所2 | 一致 | 備考 |
 |------|----------|----------|:----:|------|
 | lam-loop-state スキーマ | full-review.md | lam-orchestrate SKILL.md | ✓/✗ | |
 | PG/SE/PM 分類基準 | permission-levels.md | code-reviewer.md | ✓/✗ | |
-| Green State 条件 | full-review.md Phase 4 | lam-stop-hook.sh | ✓/✗ | |
-| エスカレーション条件 | lam-stop-hook.sh | lam-orchestrate SKILL.md | ✓/✗ | |
+| Green State 条件 | full-review.md Phase 4 | lam-stop-hook.py | ✓/✗ | |
+| エスカレーション条件 | lam-stop-hook.py | lam-orchestrate SKILL.md | ✓/✗ | |
 ```
 
 不一致を発見した場合、以下の形式で報告する:
@@ -199,7 +199,7 @@ Wave やタスクを跨いで構築されたコンポーネント間の「接続
 
 | # | 種別 | ファイルA | ファイルB | 説明 | PG/SE/PM |
 |---|------|----------|----------|------|---------|
-| S-1 | スキーマ不一致 | full-review.md | lam-stop-hook.sh | log エントリにフィールド差異 | SE |
+| S-1 | スキーマ不一致 | full-review.md | lam-stop-hook.py | log エントリにフィールド差異 | SE |
 | S-2 | 参照切れ | full-review.md:L68 | - | 存在しないエージェント参照 | SE |
 ```
 

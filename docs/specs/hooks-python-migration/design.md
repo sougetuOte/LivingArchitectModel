@@ -74,7 +74,7 @@ _hook_utils.py
 
 ```
 入力: stdin JSON { tool_name, tool_input }
-出力: exit 0（PG/SE 許可）or stdout JSON + exit 0（PM deny）
+出力: exit 0（PG/SE 許可）or stdout JSON + exit 0（PM ask — 承認ダイアログ表示）
 
 フロー:
 1. read_stdin_json()
@@ -84,7 +84,7 @@ _hook_utils.py
 5. パスパターンマッチ → PG/SE/PM 判定
 6. AUDITING フェーズの PG 級コマンド特別処理
 7. ログ記録（トランケート 100 文字）
-8. PM → deny JSON 出力、それ以外 → exit 0
+8. PM → ask JSON 出力（承認ダイアログ）、それ以外 → exit 0
 ```
 
 bash 版との差分: jq/grep+sed フォールバック分岐が不要。`re` モジュールでパターンマッチ。
@@ -180,8 +180,8 @@ def run_hook(hook_path, input_json, env=None):
 |------------|--------------|------|
 | test-pre-tool-use.sh TC-1 | - | shellcheck（Python 不要、削除） |
 | TC-2 | test_read_tool_pg_allow | Read → PG 許可 |
-| TC-3 | test_edit_specs_pm_deny | Edit docs/specs/ → PM deny |
-| TC-4 | test_edit_rules_auto_generated_pm_deny | Edit rules/auto-generated/ → PM deny |
+| TC-3 | test_edit_specs_pm_ask | Edit docs/specs/ → PM ask |
+| TC-4 | test_edit_rules_auto_generated_pm_ask | Edit rules/auto-generated/ → PM ask |
 | TC-5 | test_absolute_path_normalization | 絶対パス正規化 |
 | TC-6 | test_edit_src_se_allow | Edit src/ → SE 許可 |
 | TC-7 | test_log_truncation | ログトランケート |
@@ -202,7 +202,7 @@ def run_hook(hook_path, input_json, env=None):
 | TC-2 | test_no_state_file_stops | 状態ファイルなし → 停止 |
 | TC-3 | test_max_iterations_stops | 上限到達 → 停止 |
 | TC-4 | test_recursion_guard | 再帰防止 |
-| TC-5 | test_test_fail_blocks | テスト失敗 → block |
+| TC-5 | test_makefile_test_fail_blocks | テスト失敗 → block |
 | TC-6 | test_precompact_stops | PreCompact → 停止 |
 | TC-7 | test_state_schema_valid | スキーマ正当性 |
 | test-loop-integration.sh S-1 | test_normal_convergence | 正常収束 |
