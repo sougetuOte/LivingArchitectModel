@@ -1,7 +1,7 @@
 # ADR-0002: Stop hook 実装方式（Ralph Wiggum vs 独自実装）
 
 **日付**: 2026-03-08
-**ステータス**: Proposed
+**ステータス**: Accepted
 **関連要件**: P2-FR-1, P5-FR-1〜5, DP-6
 
 ---
@@ -36,7 +36,7 @@ Ralph Wiggum プラグインをそのまま利用するか、独自の Stop hook
 
 ### 実装方針
 
-- スクリプト: `.claude/hooks/lam-stop-hook.sh`
+- スクリプト: `.claude/hooks/lam-stop-hook.py`
 - 状態ファイル: `.claude/lam-loop-state.json`（ループ起動時に生成、完了時に削除）
 - 判定ロジック:
   1. 状態ファイルの存在確認（なければ `exit 0` で通過）

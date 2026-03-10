@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.1.0] - 2026-03-10
+
+### Added
+
+- **Feature**: hooks Python 移行 — bash 4本を Python に完全置換
+  - `pre-tool-use.py` / `post-tool-use.py` / `lam-stop-hook.py` / `pre-compact.py`
+  - 共通ユーティリティ `_hook_utils.py`（JSON パース、パス判定、権限等級分類）
+  - 統合テスト `test_loop_integration.py`（7件）+ ユニットテスト（49件）
+- **Skill**: `/retro`（振り返り）、`/wave-plan`（Wave 計画）新設
+- **Enhancement**: `/ship`、`/project-status` 強化
+
+### Changed
+
+- **Enhancement**: hooks 基盤を bash → Python に移行（テスタビリティ・保守性向上）
+- **Docs**: QUICKSTART / README に Python 3.8+ 必須を反映
+- **Docs**: 仕様書同期（`.sh` → `.py`、`deny` → `ask`、H 番号体系、スキーマ更新）
+- **Docs**: CHEATSHEET の Python バージョン表記を 3.x → 3.8+ に統一
+- **Docs**: スライド（intro / intro-en）Quick Start に Python 3.8+ 必須を追記
+- **Docs**: ADR-0002 ステータスを Accepted に更新、スクリプト参照を `.py` に修正
+
+### Removed
+
+- **Breaking**: 旧 bash hooks 4本（`pre-tool-use.sh` 等）+ bash テスト 5本を削除
+
 ## [v4.0.1] - 2026-03-09
 
 ### Fixed

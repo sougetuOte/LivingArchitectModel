@@ -108,7 +108,7 @@ requirements -> [Approval] -> design -> [Approval] -> tasks -> [Approval] -> BUI
 - **Returning after days away**: `/full-load` (detailed state review)
 
 ### StatusLine
-Displays remaining context at the bottom of the screen (requires Python 3.x):
+Displays remaining context at the bottom of the screen (requires Python 3.8+):
 ```
 [Opus 4.6] ▓▓▓░░░░░░░ 70% $1.23
 ```
