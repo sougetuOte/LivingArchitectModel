@@ -4,7 +4,6 @@
       "Bash(ls *)",
       "Bash(cat *)",
       "Bash(grep *)",
-      "Bash(find *)",
       "Bash(pwd)",
       "Bash(du *)",
       "Bash(file *)",
@@ -36,9 +35,14 @@
       "Bash(shutdown *)",
       "Bash(apt *)",
       "Bash(yum *)",
-      "Bash(brew *)"
+      "Bash(brew *)",
+      "Bash(find * -delete *)",
+      "Bash(find * -exec rm *)",
+      "Bash(find * -exec chmod *)",
+      "Bash(find * -exec chown *)"
     ],
     "ask": [
+      "Bash(find *)",
       "Bash(git push *)",
       "Bash(git pull *)",
       "Bash(git fetch *)",
