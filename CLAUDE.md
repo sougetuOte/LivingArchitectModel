@@ -72,9 +72,10 @@ Claude Code の auto memory（`~/.claude/projects/<project>/memory/MEMORY.md`）
 
 ### Subagent Persistent Memory
 
-カスタム Subagent（`.claude/agents/`）は `memory: project` により
-プロジェクト固有の知見をセッション跨ぎで自動蓄積する。
-保存先: `.claude/agent-memory/<agent-name>/`
+カスタム Subagent（`.claude/agents/`）はレビュー時に学んだプロジェクト固有の知見を
+`.claude/agent-memory/<agent-name>/` に蓄積できる。
+CLAUDE.md の指示に従いサブエージェントが自発的に書き込む仕組みであり、
+Claude Code の公式フロントマター機能ではない。
 
 ### Knowledge Layer
 

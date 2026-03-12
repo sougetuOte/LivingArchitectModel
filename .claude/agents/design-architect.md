@@ -8,7 +8,6 @@ description: |
 # permission-level: SE
 tools: Read, Glob, Grep, Write, Edit, WebSearch
 model: sonnet
-memory: project
 ---
 
 # Design Architect サブエージェント
