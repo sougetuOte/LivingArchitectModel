@@ -18,6 +18,14 @@ import sys
 import tempfile
 import time
 
+# exponential backoff: 最大3回リトライ (100ms / 200ms / 400ms)
+_ATOMIC_WRITE_RETRY_DELAYS: tuple[float, ...] = (0.1, 0.2, 0.4)
+
+
+def now_utc_iso8601() -> str:
+    """UTC の ISO 8601 タイムスタンプ文字列を返す。"""
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 def get_project_root() -> pathlib.Path:
     """
@@ -91,8 +99,9 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
         relative = p.relative_to(project_root)
         return str(relative)
     except ValueError:
-        # project_root の外のパスの場合はそのまま返す
-        return file_path
+        # project_root の外のパスは out-of-root マーカー付きで返す
+        # pre-tool-use.py のパターンマッチで PM級として捕捉される
+        return f"__out_of_root__/{file_path}"
 
 
 def log_entry(log_file: pathlib.Path, level: str, source: str, message: str):
@@ -121,9 +130,7 @@ def atomic_write_json(path: pathlib.Path, data: dict):
     path.parent.mkdir(parents=True, exist_ok=True)
     json_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
 
-    # exponential backoff: 最大3回リトライ (100ms / 200ms / 400ms)
-    retry_delays = [0.1, 0.2, 0.4]
-    max_attempts = len(retry_delays) + 1
+    max_attempts = len(_ATOMIC_WRITE_RETRY_DELAYS) + 1
     # 全リトライ失敗時のフォールバック（通常到達しない）
     last_error: Exception | None = None
 
@@ -140,8 +147,8 @@ def atomic_write_json(path: pathlib.Path, data: dict):
                 os.unlink(tmp_path)
             except OSError:
                 pass
-            if attempt < len(retry_delays):
-                time.sleep(retry_delays[attempt])
+            if attempt < len(_ATOMIC_WRITE_RETRY_DELAYS):
+                time.sleep(_ATOMIC_WRITE_RETRY_DELAYS[attempt])
         except Exception:
             try:
                 os.unlink(tmp_path)

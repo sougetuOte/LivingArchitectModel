@@ -58,9 +58,12 @@ _SECRET_PATTERN = re.compile(
     re.IGNORECASE,
 )
 _SAFE_PATTERN = re.compile(
-    r"(test|spec|mock|example|placeholder|xxx|changeme)",
+    r"(\btest\b|\bspec\b|\bmock\b|\bexample\b|\bplaceholder\b|\bxxx\b|\bchangeme\b)",
     re.IGNORECASE,
 )
+
+# シークレットスキャン時に除外するディレクトリ
+_SCAN_EXCLUDE_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", ".pytest_cache"})
 
 
 def _get_log_file(project_root: Path) -> Path:
@@ -88,12 +91,22 @@ def _block(log_file: Path, reason: str) -> None:
 
 
 def _loop_result_label(state: dict) -> str:
-    """ループ終了時の result ラベルを返す。"""
+    """ループ終了時の convergence_reason ラベルを返す。
+
+    loop-log-schema.md Section 4.1 の enum 値に準拠:
+    green_state / max_iterations / escalation / context_exhaustion / user_abort
+    """
     log_entries = state.get("log")
     if not log_entries:
-        return "GREEN_STATE"
+        return "green_state"
     last_found = log_entries[-1].get("issues_found", 0)
-    return "GREEN_STATE" if last_found == 0 else "CONVERGED"
+    if last_found == 0:
+        return "green_state"
+    iteration = state.get("iteration", 0)
+    max_iter = state.get("max_iterations", 5)
+    if iteration >= max_iter:
+        return "max_iterations"
+    return "green_state"
 
 
 def _save_loop_log(project_root: Path, state: dict, log_file: Path) -> None:
@@ -105,14 +118,13 @@ def _save_loop_log(project_root: Path, state: dict, log_file: Path) -> None:
         now = now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
         loop_log_file = logs_dir / f"loop-{now_dt.strftime('%Y%m%d-%H%M%S')}.txt"
         lines = [
-            "=== Loop Log ===",
-            f"timestamp: {now}",
-            f"command: {state.get('command', '')}",
-            f"target: {state.get('target', '')}",
-            f"iterations: {state.get('iteration', 0)}",
-            f"max_iterations: {state.get('max_iterations', 5)}",
-            f"started_at: {state.get('started_at', '')}",
-            f"result: {_loop_result_label(state)}",
+            "=== LAM Loop Log ===",
+            f"Command: {state.get('command', '')}",
+            f"Target: {state.get('target', '')}",
+            f"Started: {state.get('started_at', '')}",
+            f"Completed: {now}",
+            f"Total Iterations: {state.get('iteration', 0)}",
+            f"Convergence: {_loop_result_label(state)}",
             "",
             "--- Iteration Log ---",
         ]
@@ -348,29 +360,32 @@ def _run_security(check_dir: Path, log_file: Path) -> int:
         elif "timed out" in stderr:
             _log(log_file, "WARN", f"G5: {tool_name} timeout (60s)")
 
-    # シークレットスキャン（src/ ディレクトリが存在する場合）
-    src_dir = check_dir / "src"
-    if src_dir.is_dir():
-        secret_count = 0
-        for src_file in src_dir.rglob("*"):
-            if not src_file.is_file():
+    # シークレットスキャン（check_dir 全体を再帰走査）
+    secret_count = 0
+    for scan_file in check_dir.rglob("*"):
+        if not scan_file.is_file():
+            continue
+        # 除外ディレクトリ内のファイルをスキップ
+        if any(part in _SCAN_EXCLUDE_DIRS for part in scan_file.parts):
+            continue
+        try:
+            if scan_file.stat().st_size > 1_000_000:
                 continue
-            # 1MB超のファイルはバイナリ等の可能性が高いためスキップ
-            try:
-                if src_file.stat().st_size > 1_000_000:
-                    continue
-            except OSError:
-                continue
-            try:
-                content = src_file.read_text(encoding="utf-8", errors="replace")
-                for line in content.splitlines():
-                    if _SECRET_PATTERN.search(line) and not _SAFE_PATTERN.search(line):
-                        secret_count += 1
-            except Exception:
-                pass
-        if secret_count > 0:
-            _log(log_file, "WARN", f"G5: potential secret leak detected in src/ ({secret_count} matches)")
-            sec_fail = True
+        except OSError:
+            continue
+        # テキストファイルのみ対象（拡張子で判定）
+        if scan_file.suffix not in {".py", ".js", ".ts", ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".sh", ".md", ".txt", ".env"}:
+            continue
+        try:
+            content = scan_file.read_text(encoding="utf-8", errors="replace")
+            for line in content.splitlines():
+                if _SECRET_PATTERN.search(line) and not _SAFE_PATTERN.search(line):
+                    secret_count += 1
+        except Exception as e:
+            _log(log_file, "WARN", f"G5: failed to read {scan_file}: {e}")
+    if secret_count > 0:
+        _log(log_file, "WARN", f"G5: potential secret leak detected ({secret_count} matches)")
+        sec_fail = True
 
     if sec_fail:
         _log(log_file, "INFO", "G5: security checks FAILED")
@@ -390,14 +405,12 @@ def _check_issue_recurrence(state: dict) -> bool:
         return False
     last = log[-1]
     prev = log[-2]
-    if (
+    return (
         last.get("issues_found", 0) > 0
         and last.get("issues_fixed", 0) == 0
         and prev.get("issues_found", 0) > 0
         and prev.get("issues_fixed", 0) == 0
-    ):
-        return True
-    return False
+    )
 
 
 def main() -> None:
@@ -428,6 +441,10 @@ def main() -> None:
 
     if not state.get("active"):
         _stop(log_file, "active=false → loop disabled, normal stop")
+
+    # PM級承認待ち: ユーザーの判断を待つため停止許可
+    if state.get("pm_pending"):
+        _stop(log_file, "pm_pending=true → waiting for human decision")
 
     iteration = int(state.get("iteration", 0))
     max_iterations = int(state.get("max_iterations", 5))

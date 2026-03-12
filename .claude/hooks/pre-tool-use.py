@@ -48,6 +48,7 @@ _AUDITING_PG_COMMANDS = (
 
 # パス判定パターン（PM 級）
 _PM_PATTERNS = [
+    (re.compile(r"^__out_of_root__/"), "out-of-root path"),
     (re.compile(r"^docs/specs/.*\.md$"), "specs/ path"),
     (re.compile(r"^docs/adr/.*\.md$"), "adr/ path"),
     (re.compile(r"^\.claude/rules/.*\.md$"), "rules/ path"),
@@ -151,9 +152,9 @@ def main() -> None:
         tool_name, file_path, command, project_root, phase_file
     )
 
-    # ログ用のターゲット文字列（100 文字にトランケート）
+    # ログ用のターゲット文字列（100 文字にトランケート、タブ/改行をエスケープ）
     raw_target = file_path or command or "-"
-    target = raw_target[:100]
+    target = raw_target[:100].replace("\t", " ").replace("\n", " ")
 
     # ログ記録（TSV 形式: timestamp\tlevel\ttool_name\ttarget\t"reason"）
     log_entry(log_file, level, tool_name, f"{target}\t\"{reason}\"")

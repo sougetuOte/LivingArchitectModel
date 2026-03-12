@@ -9,7 +9,6 @@ NOTE: PreCompact は公式ドキュメント未掲載だが動作確認済み（
 エラーが発生しても exit 0 を返し、圧縮をブロックしない。
 """
 from __future__ import annotations
-import datetime
 import pathlib
 import shutil
 import sys
@@ -17,12 +16,7 @@ import sys
 _HOOKS_DIR = str(pathlib.Path(__file__).resolve().parent)
 if _HOOKS_DIR not in sys.path:
     sys.path.insert(0, _HOOKS_DIR)
-from _hook_utils import get_project_root, safe_exit  # noqa: E402
-
-
-def now_iso8601() -> str:
-    """UTC タイムスタンプを ISO 8601 形式で返す。"""
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+from _hook_utils import get_project_root, now_utc_iso8601, safe_exit  # noqa: E402
 
 
 def write_pre_compact_flag(project_root: pathlib.Path, timestamp: str) -> None:
@@ -84,7 +78,7 @@ def backup_loop_state(project_root: pathlib.Path) -> None:
 def main() -> None:
     try:
         project_root = get_project_root()
-        timestamp = now_iso8601()
+        timestamp = now_utc_iso8601()
 
         # 1. PreCompact 発火フラグを記録
         write_pre_compact_flag(project_root, timestamp)
