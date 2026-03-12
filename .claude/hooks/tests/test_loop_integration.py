@@ -8,6 +8,7 @@ bash 版 test-loop-integration.sh の 5 シナリオ (S-1〜S-5) を pytest で�
 """
 from __future__ import annotations
 
+import datetime
 import json
 from pathlib import Path
 
@@ -196,7 +197,6 @@ class TestContextExhaustion:
 
     def test_precompact_recent_stops(self, hook_runner, project_root):
         """S-4-1: PreCompact フラグが直近 → ループ停止"""
-        import datetime
 
         state = {**DEFAULT_STATE, "iteration": 2}
         state_file = _write_state(project_root, state)
@@ -220,7 +220,6 @@ class TestFullLifecycle:
 
     def test_init_fail_then_converge(self, hook_runner, project_root):
         """S-5-1: Phase 0 初期化 → サイクル1(失敗) → サイクル2(成功) の流れ"""
-        import datetime
 
         # Phase 0: 初期化（状態ファイル生成）
         now_ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

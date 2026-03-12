@@ -127,6 +127,15 @@ class TestNormalizePath:
         # relative_to により "." になる
         assert result in (".", "")
 
+    def test_normalize_path_out_of_root(self, tmp_path):
+        """project_root 外の絶対パスは __out_of_root__ プレフィックス付きで返す"""
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        external_path = "/etc/passwd"
+        result = _hook_utils.normalize_path(external_path, project_root)
+        assert result.startswith("__out_of_root__/")
+        assert "/etc/passwd" in result
+
 
 class TestAtomicWriteJson:
     def test_atomic_write_json(self, tmp_path):
