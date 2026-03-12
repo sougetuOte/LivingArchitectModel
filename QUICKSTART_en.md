@@ -79,7 +79,9 @@ Requirements are complete. Please review all LAM files and adapt the necessary p
 | `.claude/hooks/` | Immune system |
 | `.claude/commands/` | Phase controls and workflows |
 | `.claude/agents/`, `skills/` | Specialized subagents and skills |
+| `.claude/agent-memory/` | Subagent cross-session learning records |
 | `docs/internal/` | Development process SSOT |
+| `docs/memos/knowledge/` | Project knowledge accumulation (via `/retro`) |
 | `CHEATSHEET.md` | Command reference (generic) |
 
 > When in doubt, check the [slides](docs/slides/index-en.html) for an overview of the project structure.

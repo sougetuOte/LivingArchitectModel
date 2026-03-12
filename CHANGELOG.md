@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Feature**: Knowledge Layer — `/retro` Step 4 に「知見の蓄積」「エージェント調整」カテゴリを追加
+- **Feature**: Subagent Persistent Memory — 6エージェントに `memory: project` を追加（code-reviewer, tdd-developer, quality-auditor, doc-writer, design-architect, requirement-analyst）
+- **Feature**: `docs/memos/knowledge/` 新設 — プロジェクト固有のコンテキスト知識の構造化蓄積先
+- **Docs**: `/full-review` に Scalable Review（モジュール分割レビュー）の将来拡張ノートを追記
+
+### Changed
+
+- **Docs**: CLAUDE.md の MEMORY.md Policy を Memory Policy に改訂（Auto Memory / Subagent Memory / Knowledge Layer の3層構造に対応）
+
 ## [v4.1.0] - 2026-03-10
 
 ### Added

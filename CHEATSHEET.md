@@ -117,16 +117,18 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 
 ## サブエージェント
 
-| エージェント | 呼び出し例 | フェーズ |
-|-------------|-----------|---------|
-| `requirement-analyst` | 「要件を整理して」 | PLANNING |
-| `design-architect` | 「APIを設計して」 | PLANNING |
-| `task-decomposer` | 「タスクを分割して」 | PLANNING |
-| `tdd-developer` | 「TASK-001を実装して」 | BUILDING |
-| `quality-auditor` | 「src/を監査して」 | AUDITING |
-| `doc-writer` | 「ドキュメントを更新して」「仕様を策定して」 | ALL |
-| `test-runner` | 「テストを実行して」 | BUILDING |
-| `code-reviewer` | 「コードレビューして」 | AUDITING |
+| エージェント | 呼び出し例 | フェーズ | Memory |
+|-------------|-----------|---------|:------:|
+| `requirement-analyst` | 「要件を整理して」 | PLANNING | project |
+| `design-architect` | 「APIを設計して」 | PLANNING | project |
+| `task-decomposer` | 「タスクを分割して」 | PLANNING | - |
+| `tdd-developer` | 「TASK-001を実装して」 | BUILDING | project |
+| `quality-auditor` | 「src/を監査して」 | AUDITING | project |
+| `doc-writer` | 「ドキュメントを更新して」「仕様を策定して」 | ALL | project |
+| `test-runner` | 「テストを実行して」 | BUILDING | - |
+| `code-reviewer` | 「コードレビューして」 | AUDITING | project |
+
+Memory 列: `project` = `.claude/agent-memory/<name>/` にセッション跨ぎで知見を自動蓄積。
 
 ## スキル
 
@@ -145,6 +147,8 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `.claude/current-phase.md` | 現在のフェーズ |
 | `.claude/states/<feature>.json` | 機能ごとの進捗・承認状態 |
 | `SESSION_STATE.md` | セッション間の引き継ぎ（自動生成） |
+| `docs/memos/knowledge/` | プロジェクト知見の構造化蓄積（/retro 経由） |
+| `.claude/agent-memory/` | Subagent の自動学習記録 |
 
 ## ワークフローコマンド
 
