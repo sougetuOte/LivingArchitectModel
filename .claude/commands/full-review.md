@@ -252,3 +252,32 @@ Green State: 達成（Before=0 確認済み）
 Phase 5 完了時:
 1. `.claude/lam-loop-state.json` を削除（ループ終了）
 2. ループログを `.claude/logs/` に保存
+
+---
+
+## 将来拡張: Scalable Review（モジュール分割レビュー）
+
+大規模プロジェクト（数万行超）では、コンテキストウィンドウの制約により品質が低下する可能性がある。
+その場合、以下のアプローチでモジュール単位の分割レビューを検討する。
+
+```
+/planning でレビュー計画書を作成
+├── グループA: src/auth/       （認証モジュール）
+├── グループB: src/api/        （APIエンドポイント）
+├── グループC: src/models/     （データモデル）
+└── グループD: src/utils/      （ユーティリティ）
+
+→ 各グループを /full-review → 進捗記録 → 次のグループへ
+→ 全グループ完了後に横断的な統合レビュー
+```
+
+### 検討事項
+
+- **のりしろ**: モジュール間にまたがる問題は最終統合レビューで横断チェック
+- **`/batch` スキル**: Claude Code ビルトインの `/batch` がworktree分離並列実行をサポートしており、参考になる
+- **lam-orchestrate 連携**: lam-orchestrate の Wave 分割で小規模な分割レビューは現時点でも可能
+
+### 参照
+
+- 構想メモ: `docs/memos/2026-03-10-scalable-review-and-eval-ideas.md`
+- 計画メモ: `docs/memos/2026-03-12-knowledge-layer-and-platform-alignment.md`
