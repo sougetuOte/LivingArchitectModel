@@ -69,6 +69,8 @@ SESSION_STATE.md と git log から対象範囲を特定:
 |:---------|:-------|:------|
 | [ルール追加/修正] | `.claude/rules/xxx.md` | 高/中/低 |
 | [コマンド改善] | `.claude/commands/xxx.md` | 高/中/低 |
+| [エージェント調整] | `.claude/agents/xxx.md` | 高/中/低 |
+| [知見の蓄積] | `docs/memos/knowledge/xxx.md` | 高/中/低 |
 | [ドキュメント更新] | `docs/xxx` | 高/中/低 |
 ```
 

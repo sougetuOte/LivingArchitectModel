@@ -8,6 +8,7 @@ description: |
 # permission-level: SE
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
+memory: project
 ---
 
 # TDD Developer サブエージェント

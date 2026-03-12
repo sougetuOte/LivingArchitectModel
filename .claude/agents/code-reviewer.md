@@ -7,6 +7,7 @@ description: >
 # permission-level: SE
 model: sonnet
 tools: Read, Grep, Glob, Bash
+memory: project
 ---
 
 # Code Reviewer サブエージェント
