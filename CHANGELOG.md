@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.3.0] - 2026-03-12
+
+### 概要
+
+full-review ループの PM 級制御フロー（pm_pending）を導入し、
+セキュリティ強化（normalize_path、シークレットスキャン範囲拡大）を実施。
+memory: project フロントマターを公式外フィールドとして全エージェントから削除。
+
+### Added
+
+- **Feature**: `pm_pending` フラグによる PM 級ループ制御
+  - PM 級 Issue 検出時にループを一時停止し、ユーザーの条件付き承認を待つ
+  - Stop hook が `pm_pending=true` を検出すると block せず停止を許可
+  - full-review.md / lam-orchestrate SKILL.md にフロー・スキーマを追記
+- **Security**: `normalize_path` に `__out_of_root__` ガード追加
+  - project_root 外パスを PM 級として捕捉（Write 操作の権限ゲート強化）
+- **Security**: シークレットスキャン範囲を `src/` → `check_dir` 全体に拡大
+  - 除外ディレクトリ対応（.git, node_modules, __pycache__ 等）
+  - `_SAFE_PATTERN` を単語境界 `\b` に変更（偽陽性抑制）
+- **Test**: pm_pending / fullscan_pending / out-of-root 等 8テスト追加（計 64 テスト）
+- **Docs**: ADR-0004 — Bash(cat/grep *) 無制限許可の意図的設計判断を記録
+- **Docs**: full-review 監査レポートの永続化（iter1/iter2）
+- **Security**: `07_SECURITY_AND_AUTOMATION.md` Allow List に pip-audit/npm audit/safety check 追加
+
+### Changed
+
+- **Breaking**: 全6エージェントから `memory: project` フロントマターを削除
+  - 公式 Claude Code フロントマターではないことを確認
+  - CLAUDE.md の記述を「自発的書き込み方式」に修正
+  - `.claude/agent-memory/` の仕組み自体は維持（CLAUDE.md 指示で動作）
+- **Refactor**: `now_utc_iso8601()` を `_hook_utils.py` に集約、各 hook のラッパー関数を削除
+- **Refactor**: ループログ出力を `loop-log-schema.md` MVP フォーマットに準拠
+- **Fix**: `tool_events` に 500 件上限追加（状態ファイル肥大化防止）
+- **Fix**: `pre-tool-use.py` TSV ログのタブ/改行エスケープ
+- **Docs**: `feat-v4.0.0-immune-system.md` — max_iterations 3→5 変更注記、TDD パターン記録先統一
+- **Docs**: `lam-orchestrate-design.md` — quality-auditor 追加、memory コメント更新
+
 ## [v4.2.0] - 2026-03-12
 
 ### 概要

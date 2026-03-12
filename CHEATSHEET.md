@@ -122,13 +122,13 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `requirement-analyst` | 「要件を整理して」 | PLANNING | project |
 | `design-architect` | 「APIを設計して」 | PLANNING | project |
 | `task-decomposer` | 「タスクを分割して」 | PLANNING | - |
-| `tdd-developer` | 「TASK-001を実装して」 | BUILDING | project |
-| `quality-auditor` | 「src/を監査して」 | AUDITING | project |
-| `doc-writer` | 「ドキュメントを更新して」「仕様を策定して」 | ALL | project |
+| `tdd-developer` | 「TASK-001を実装して」 | BUILDING | - |
+| `quality-auditor` | 「src/を監査して」 | AUDITING | - |
+| `doc-writer` | 「ドキュメントを更新して」「仕様を策定して」 | ALL | - |
 | `test-runner` | 「テストを実行して」 | BUILDING | - |
-| `code-reviewer` | 「コードレビューして」 | AUDITING | project |
+| `code-reviewer` | 「コードレビューして」 | AUDITING | auto |
 
-Memory 列: `project` = `.claude/agent-memory/<name>/` にセッション跨ぎで知見を自動蓄積。
+Memory 列: `auto` = `.claude/agent-memory/<name>/` に知見を自発的に蓄積（CLAUDE.md 指示による）。
 
 ## スキル
 
