@@ -78,8 +78,8 @@ Claude Code の auto memory（`~/.claude/projects/<project>/memory/MEMORY.md`）
 
 ### Knowledge Layer
 
-`/retro` Step 4 で人間が意図的に整理した知見は `docs/memos/knowledge/` に蓄積する。
-詳細は `docs/memos/knowledge/README.md` を参照。
+`/retro` Step 4 で人間が意図的に整理した知見は `docs/artifacts/knowledge/` に蓄積する。
+詳細は `docs/artifacts/knowledge/README.md` を参照。
 
 ## Initial Instruction
 
