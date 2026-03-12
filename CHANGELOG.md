@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.3.1] - 2026-03-12
+
+### 概要
+
+`find` コマンドの deny バイパス脆弱性を修正するセキュリティパッチ。
+
+### Fixed
+
+- **Security**: `Bash(find *)` が allow リストにあり、`find -delete` / `find -exec rm` 等で
+  deny ルールをバイパスできる脆弱性を修正
+  - allow から `Bash(find *)` を削除
+  - deny に `find * -delete *`, `find * -exec rm *`, `find * -exec chmod *`, `find * -exec chown *` を追加
+  - ask に `Bash(find *)` を追加（通常の find は確認付きで実行可能）
+
 ## [v4.3.0] - 2026-03-12
 
 ### 概要
