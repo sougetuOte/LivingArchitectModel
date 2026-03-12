@@ -18,6 +18,7 @@
 | **File System (Read)** | `ls`, `cat`, `grep`, `find`, `pwd`, `du`, `file`              | ファイル内容の読み取り、検索。     |
 | **Git (Read)**         | `git status`, `git log`, `git diff`, `git show`, `git branch` | リポジトリ状態の確認。             |
 | **Testing (Local)**    | `pytest`, `npm test`, `go test`                               | **ローカルでの**テスト実行。       |
+| **Security Audit**     | `pip-audit`, `npm audit`, `safety check`                      | 依存パッケージの脆弱性チェック（Read-Only）。 |
 | **Package Info**       | `npm list`, `pip list`, `gem list`                            | インストール済みパッケージの確認。 |
 | **Process Info**       | `ps`, `top` (batch mode)                                      | プロセス状態の確認。               |
 
