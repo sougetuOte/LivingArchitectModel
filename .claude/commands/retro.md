@@ -70,7 +70,7 @@ SESSION_STATE.md と git log から対象範囲を特定:
 | [ルール追加/修正] | `.claude/rules/xxx.md` | 高/中/低 |
 | [コマンド改善] | `.claude/commands/xxx.md` | 高/中/低 |
 | [エージェント調整] | `.claude/agents/xxx.md` | 高/中/低 |
-| [知見の蓄積] | `docs/memos/knowledge/xxx.md` | 高/中/低 |
+| [知見の蓄積] | `docs/artifacts/knowledge/xxx.md` | 高/中/低 |
 | [ドキュメント更新] | `docs/xxx` | 高/中/低 |
 ```
 
@@ -78,7 +78,7 @@ SESSION_STATE.md と git log から対象範囲を特定:
 
 振り返り結果を以下に記録:
 
-- **出力先**: `docs/memos/retro-wave-{N}.md` または `docs/memos/retro-phase-{N}.md`
+- **出力先**: `docs/artifacts/retro-wave-{N}.md` または `docs/artifacts/retro-phase-{N}.md`
 - 高優先度のアクションはユーザー承認後に即時反映
 
 ### Step 6: 完了報告
@@ -87,7 +87,7 @@ SESSION_STATE.md と git log から対象範囲を特定:
 --- Retro 完了 ---
 Keep: X件 / Problem: X件 / Try: X件
 アクション: X件（即時反映: X件、次Wave: X件）
-記録: docs/memos/retro-wave-{N}.md
+記録: docs/artifacts/retro-wave-{N}.md
 ```
 
 ## Phase 振り返り（`/retro phase`）の追加ステップ
@@ -102,7 +102,7 @@ Phase 全体の場合、Step 2-3 に加えて以下を実施:
 
 ### 出力
 
-- `docs/memos/retro-phase-{N}.md`
+- `docs/artifacts/retro-phase-{N}.md`
 - 次 Phase の PLANNING 開始時に参照すべき教訓リスト
 
 ## 注意事項

@@ -25,7 +25,7 @@
 - **Role**: **"The Brain" (脳)**
 - **Capability**: ベクトルデータベース (Qdrant) を用いた長期記憶、Git 履歴の文脈理解、プロジェクト固有の知識の永続化。
 - **Integration Rule**:
-  - **Context Compression の代替**: Heimdall が有効な場合、手動での `docs/memos/` への書き出し（圧縮）は必須ではなくなる。代わりに「Heimdall に記憶させる」アクションを意識する。
+  - **Context Compression の代替**: Heimdall が有効な場合、手動での `docs/artifacts/` への書き出し（圧縮）は必須ではなくなる。代わりに「Heimdall に記憶させる」アクションを意識する。
   - **Knowledge Retrieval**: 過去の意思決定や、類似の実装パターンを探す際は、Heimdall の検索機能を使用する。
 
 

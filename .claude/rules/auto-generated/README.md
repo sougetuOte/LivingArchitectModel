@@ -34,5 +34,5 @@
 ## 参照
 
 - 設計書: Section 8 (Wave 4: TDD 内省)
-- パターン記録先: `docs/memos/tdd-patterns/`
+- パターン記録先: `docs/artifacts/tdd-patterns/`
 - パターンログ: `.claude/tdd-patterns.log`

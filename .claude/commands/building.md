@@ -75,7 +75,7 @@ PLANNING 承認状態:
 
 ### Step 5: Commit & Review
 - ユーザーに報告
-- 必要に応じて `docs/memos/walkthrough-<feature>.md` に検証結果をまとめる
+- 必要に応じて `docs/artifacts/walkthrough-<feature>.md` に検証結果をまとめる
 
 ## TDD 内省パイプライン（v4.0.0 Wave 4 実装済み）
 
@@ -96,7 +96,7 @@ BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパ
 
 - [ ] 全テストがパス
 - [ ] 仕様書とコードが同期している
-- [ ] `docs/memos/walkthrough-<feature>.md` で検証完了（任意）
+- [ ] `docs/artifacts/walkthrough-<feature>.md` で検証完了（任意）
 - [ ] 状態ファイルの `current_task` を null に、`completed_tasks` にタスクIDを追加
 
 ## 確認メッセージ

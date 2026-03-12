@@ -34,7 +34,7 @@ Phase 0: Grounding → Level 1: AoT → Level 2: Debate → Level 3: Reflection 
 | Level 2 | 影響レイヤー 3+ or 選択肢 3+ |
 | Level 3 | 不可逆な決定 or 複数ドメインに跨る高リスク判断 |
 
-3. アンカーファイルを作成する（命名: `docs/memos/YYYY-MM-DD-uthink-{用途}.md`）
+3. アンカーファイルを作成する（命名: `docs/artifacts/YYYY-MM-DD-uthink-{用途}.md`）
    - 同名ファイルが存在する場合は `-v2`, `-v3` を付与する
    - アンカーの詳細フォーマットは [references/anchor-format.md](references/anchor-format.md) を参照
 
@@ -77,7 +77,7 @@ Level 2 完了後、アンカー全体を再検証する:
 
 | ルール | 内容 |
 |:---|:---|
-| 保存先 | `docs/memos/` |
+| 保存先 | `docs/artifacts/` |
 | 書き込み権限 | Mediator のみ（Single-Writer） |
 | 読み取り権限 | 全 Agent・サブエージェント（Multi-Reader） |
 | 削除 | ユーザーのみ可能。スキルによる自動削除は禁止 |

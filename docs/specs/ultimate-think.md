@@ -92,7 +92,7 @@ flowchart TD
 - **優先度**: Must
 - **受け入れ条件**:
   - [ ] 問題が Atom テーブル + 依存関係 DAG に分解される
-  - [ ] アンカーファイルが `docs/memos/` に作成される（FR-005 準拠）
+  - [ ] アンカーファイルが `docs/artifacts/` に作成される（FR-005 準拠）
   - [ ] 各 Atom が個別に処理され、Synthesis でまとめられる
 
 ---
@@ -118,7 +118,7 @@ flowchart TD
 ---
 
 ### FR-005: アンカーファイル管理
-- **説明**: 思考プロセスの中間成果物をアンカーファイルとして `docs/memos/` に保存する。Blackboard Architecture に基づき、Single-Writer/Multi-Reader のアクセス制御を適用する。
+- **説明**: 思考プロセスの中間成果物をアンカーファイルとして `docs/artifacts/` に保存する。Blackboard Architecture に基づき、Single-Writer/Multi-Reader のアクセス制御を適用する。
 - **優先度**: Must
 - **受け入れ条件**:
   - [ ] アンカーファイルが命名規則に従い作成される
@@ -128,7 +128,7 @@ flowchart TD
 
 #### アンカーファイルフォーマット
 
-**保存先**: `docs/memos/`
+**保存先**: `docs/artifacts/`
 **命名規則**: `YYYY-MM-DD-uthink-{用途}.md`
 **例**: `2026-02-19-uthink-api-design.md`
 **重複時**: 同名ファイルが存在する場合は `v2`, `v3` のナンバリングを付与（例: `2026-02-19-uthink-api-design-v2.md`）
@@ -292,7 +292,7 @@ flowchart TD
         P0c -->|No| P0e[複雑度判定<br/>自動レベル選択]
     end
 
-    P0 --> Anchor[アンカーファイル作成<br/>docs/memos/日付-uthink-用途.md]
+    P0 --> Anchor[アンカーファイル作成<br/>docs/artifacts/日付-uthink-用途.md]
 
     Anchor --> L1
 
@@ -412,7 +412,7 @@ ultimate-think Skill（.claude/skills/ultimate-think/SKILL.md）
 ## 6. 制約事項
 
 - `docs/internal/06_DECISION_MAKING.md` が AoT + Three Agents の SSOT であり、スキルはそのラッパーに徹する
-- アンカーファイルは `docs/memos/` に保存する（他ディレクトリへの保存は禁止）
+- アンカーファイルは `docs/artifacts/` に保存する（他ディレクトリへの保存は禁止）
 - Level 4（Deterministic Verification）は本仕様のスコープ外（将来拡張）
 - サブエージェントからのサブエージェント起動は不可（Claude Code の制約）
 - Reflection Loop の MAX_ITERATIONS は 2 回固定（引数による変更不可）
@@ -427,7 +427,7 @@ ultimate-think Skill（.claude/skills/ultimate-think/SKILL.md）
 | `docs/internal/06_DECISION_MAKING.md` | SSOT | AoT + Three Agents のルール定義 |
 | WebSearch ツール | ツール | Phase 0 の事実接地に使用 |
 | Read / Write ツール | ツール | アンカーファイルの読み書き |
-| `docs/memos/` ディレクトリ | ファイルシステム | アンカーファイルの保存先 |
+| `docs/artifacts/` ディレクトリ | ファイルシステム | アンカーファイルの保存先 |
 | Claude Code Skills API | プラットフォーム | スキルの実行基盤 |
 
 ---
@@ -449,7 +449,7 @@ ultimate-think Skill（.claude/skills/ultimate-think/SKILL.md）
 
 ### 8.3 アンカーファイル
 
-- [ ] 命名規則に従ったファイルが `docs/memos/` に作成される
+- [ ] 命名規則に従ったファイルが `docs/artifacts/` に作成される
 - [ ] Mediator のみが書き込みを行っている（Single-Writer）
 - [ ] Affirmative / Critical は読み取りのみ（Multi-Reader）
 - [ ] ユーザーが途中でアンカーの内容を確認できる

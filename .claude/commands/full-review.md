@@ -127,14 +127,14 @@ full-review 開始時に context7 MCP の利用可否を確認する。
 2. 重複 Issue を排除
 3. 重要度分類: Critical / Warning / Info
 4. **各 Issue を PG/SE/PM に分類**（権限等級に基づく）
-5. **統合レポートを `docs/memos/audit-reports/` に永続化**（ファイル名: `YYYY-MM-DD-iterN.md`）
+5. **統合レポートを `docs/artifacts/audit-reports/` に永続化**（ファイル名: `YYYY-MM-DD-iterN.md`）
 6. 統合レポートをユーザーに提示し、修正方針の承認を得る
 
 **レポート永続化**: 監査レポートはコンテキスト内だけでなく、必ずファイルに書き出す。セッション断絶時にも Issue が追跡可能であること。
 
 ```
 === 監査統合レポート（イテレーション N） ===
-保存先: docs/memos/audit-reports/YYYY-MM-DD-iterN.md
+保存先: docs/artifacts/audit-reports/YYYY-MM-DD-iterN.md
 Critical: X件 / Warning: X件 / Info: X件
 PG: X件（自動修正可） / SE: X件（修正後報告） / PM: X件（承認必要）
 

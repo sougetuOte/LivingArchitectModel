@@ -34,7 +34,7 @@
 ### A. User Inputs & Intermediate Artifacts (ユーザー入力と中間成果物)
 
 - **Raw Ideas**: ユーザーからの未加工のアイデアやチャットログは `docs/memos/YYYY-MM-DD_topic.md` に保存する。
-- **Intermediate Reports**: lam-orchestrate の Wave 間で受け渡す調査結果等の中間成果物は `docs/memos/YYYY-MM-DD_intermediate_[topic].md` に保存する（Coordinator のコンテキスト圧迫を防ぐため）。
+- **Intermediate Reports**: lam-orchestrate の Wave 間で受け渡す調査結果等の中間成果物は `docs/artifacts/YYYY-MM-DD_intermediate_[topic].md` に保存する（Coordinator のコンテキスト圧迫を防ぐため）。
 - **Reference Materials**: 参考資料（画像、PDF）は `docs/memos/assets/` に配置する。
 
 ### B. Specifications (仕様書)
