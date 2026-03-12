@@ -4,17 +4,51 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.2.0] - 2026-03-12
+
+### 概要
+
+LAM の知識管理を3層構造に再編し、コマンド/スキルの出力先を `docs/artifacts/` に分離した。
+`docs/memos/` は個人用の gitignore 領域として明確に位置づけ、プロジェクト資産との混在を解消。
+
 ### Added
 
-- **Feature**: Knowledge Layer — `/retro` Step 4 に「知見の蓄積」「エージェント調整」カテゴリを追加
-- **Feature**: Subagent Persistent Memory — 6エージェントに `memory: project` を追加（code-reviewer, tdd-developer, quality-auditor, doc-writer, design-architect, requirement-analyst）
-- **Feature**: `docs/artifacts/knowledge/` 新設 — プロジェクト固有のコンテキスト知識の構造化蓄積先
-- **Docs**: `/full-review` に Scalable Review（モジュール分割レビュー）の将来拡張ノートを追記
+- **Feature**: 3層メモリアーキテクチャの導入
+  - **Knowledge Layer** (`docs/artifacts/knowledge/`): `/retro` Step 4 で人間が意図的に整理した知見・教訓を蓄積。patterns.md / pitfalls.md / conventions.md のテンプレートを同梱
+  - **Subagent Persistent Memory** (`.claude/agent-memory/`): 6エージェントに `memory: project` を追加。セッションを跨いでプロジェクト固有のパターンや慣例を自動学習する
+    - 対象: code-reviewer, tdd-developer, quality-auditor, doc-writer, design-architect, requirement-analyst
+    - 除外: test-runner, task-decomposer（単純タスク実行のため学習不要）
+  - **Auto Memory** (`MEMORY.md`): 既存の Claude Code auto memory はビルドコマンド・デバッグ知見等の作業効率学習に限定使用と明文化
+- **Feature**: `/retro` Step 4 に「エージェント調整」「知見の蓄積」アクションカテゴリを追加
+- **Feature**: `docs/artifacts/` ディレクトリ新設 — コマンド/スキルが生成する構造化成果物の保存先
+- **Docs**: `/full-review` に Scalable Review（モジュール分割レビュー）の将来拡張セクションを追記
 
 ### Changed
 
-- **Docs**: CLAUDE.md の MEMORY.md Policy を Memory Policy に改訂（Auto Memory / Subagent Memory / Knowledge Layer の3層構造に対応）
-- **Refactor**: コマンド/スキル出力先を `docs/memos/` → `docs/artifacts/` に分離（memos は個人用 gitignore 領域として死守）
+- **Breaking**: コマンド/スキル出力先を `docs/memos/` → `docs/artifacts/` に移行
+  - 影響範囲: `/full-review`, `/auditing`, `/building`, `/retro`, `/pattern-review`, `/ultimate-think`, trust-model, phase-rules, core-identity 等 18箇所
+  - `docs/memos/` は個人メモ・参考資料専用の gitignore 領域として維持
+  - 既存の `docs/memos/` 内ファイルの自動移行は行わない（手動で `docs/artifacts/` にコピーが必要）
+- **Docs**: CLAUDE.md の MEMORY.md Policy を Memory Policy に改訂（3層メモリアーキテクチャに対応）
+- **Docs**: CHEATSHEET — Subagent 表に Memory 列（project/-）追加、状態管理に `docs/artifacts/knowledge/` と `.claude/agent-memory/` を追記
+- **Docs**: QUICKSTART 日英 — 「そのままでよいファイル」に `.claude/agent-memory/` と `docs/artifacts/knowledge/` を追加
+- **Docs**: スライド — バージョン表記を v4.2.0 に更新（index/intro 日英4ファイル）、architecture 日英のファイル構成マップに `agent-memory/` と `artifacts/knowledge/` を追加
+
+### Migration Guide
+
+v4.1.0 からの移行手順:
+
+1. `docs/memos/` 内のコマンド出力物（audit-reports/, tdd-patterns/, retro-*.md 等）がある場合は `docs/artifacts/` にコピー
+2. `docs/memos/knowledge/` が存在する場合は `docs/artifacts/knowledge/` にコピー
+3. 個人メモ・参考資料は `docs/memos/` にそのまま残してよい（gitignore 対象）
+
+### 3層メモリアーキテクチャ
+
+| 層 | 保存先 | 蓄積者 | タイミング | 内容 |
+|----|--------|--------|-----------|------|
+| Knowledge Layer | `docs/artifacts/knowledge/` | 人間（/retro 経由） | Wave/Phase 完了時 | 意図的に整理された知見・教訓 |
+| Subagent Memory | `.claude/agent-memory/` | Subagent（自動） | タスク実行中 | 実行中に学んだパターン・慣例 |
+| Auto Memory | `MEMORY.md` | Claude 本体（自動） | セッション中 | ビルドコマンド、デバッグ知見等 |
 
 ## [v4.1.0] - 2026-03-10
 
