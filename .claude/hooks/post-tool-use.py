@@ -154,6 +154,7 @@ def _handle_test_result(
 
     if failures > 0:
         # 失敗パターンを記録
+        # 失敗テスト名を最大5件・120文字に切り詰めてログ1行に収める
         summary = ", ".join(failed_names[:5])[:120].replace("\t", " ")
         _append_to_tdd_log(
             tdd_log,
@@ -229,7 +230,7 @@ def _handle_loop_log(
     try:
         loop_json = json.loads(loop_state_path.read_text(encoding="utf-8"))
     except Exception:
-        loop_json = {}
+        return  # read/parse 失敗時はループ状態を破壊しないよう書き込みを行わない
 
     event = {
         "timestamp": timestamp,
@@ -239,7 +240,7 @@ def _handle_loop_log(
         "exit_code": exit_code,
     }
 
-    if "tool_events" in loop_json:
+    if "tool_events" in loop_json and isinstance(loop_json["tool_events"], list):
         loop_json["tool_events"].append(event)
     else:
         loop_json["tool_events"] = [event]
@@ -294,6 +295,8 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
+    except SystemExit:
+        raise
     except Exception:
         # フック障害時にも Claude をブロックしない
         pass

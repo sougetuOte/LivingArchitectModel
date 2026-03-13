@@ -58,7 +58,7 @@ def read_stdin_json() -> dict:
         if not raw.strip():
             return {}
         return json.loads(raw)
-    except Exception:
+    except (json.JSONDecodeError, ValueError, OSError):
         return {}
 
 

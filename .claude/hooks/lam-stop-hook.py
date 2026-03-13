@@ -6,13 +6,13 @@ bash 版 lam-stop-hook.sh の Python 移植版。
 stdin から JSON を受け取り、自律ループを継続すべきか判定する。
 
 判定ロジック:
-  0. 再帰防止チェック（最優先）
-  1. 状態ファイル確認
-  2. 反復上限チェック
-  3. コンテキスト残量チェック（PreCompact 発火検出）
-  4. Green State 判定（テスト + lint）
-  5. エスカレーション条件チェック
-  6. 継続（block）
+  1. 再帰防止チェック（最優先）
+  2. 状態ファイル確認
+  3. 反復上限チェック
+  4. コンテキスト残量チェック（PreCompact 発火検出）
+  5. Green State 判定（テスト + lint + セキュリティ）
+  6. エスカレーション条件チェック
+  7. 継続（block）
 
 出力:
   正常停止時: exit 0（何も出力しない）
@@ -41,11 +41,12 @@ from _hook_utils import (  # noqa: E402
     atomic_write_json,
     get_project_root,
     log_entry,
+    now_utc_iso8601,
     read_stdin_json,
     run_command,
 )
 
-# 結果定数
+# 結果定数（exit code ではなく内部判定用。0 は「未判定」として予約）
 RESULT_PASS = 1
 RESULT_FAIL = 2
 
@@ -53,8 +54,9 @@ RESULT_FAIL = 2
 PRE_COMPACT_THRESHOLD_SECONDS = 600
 
 # シークレットスキャン用の正規表現パターン（モジュールレベルで1回だけコンパイル）
+# グループ2でシークレット値部分をキャプチャし、_SAFE_PATTERN は値部分のみに適用する
 _SECRET_PATTERN = re.compile(
-    r'(password|secret|api_key|apikey|token|private_key)\s*=\s*["\'][^"\']{8,}',
+    r'(password|secret|api_key|apikey|token|private_key)\s*=\s*["\']([^"\']{8,})',
     re.IGNORECASE,
 )
 _SAFE_PATTERN = re.compile(
@@ -95,8 +97,8 @@ def _save_loop_log(project_root: Path, state: dict, log_file: Path, convergence_
     try:
         logs_dir = project_root / ".claude" / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
-        now_dt = datetime.datetime.now(datetime.timezone.utc)
-        now = now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        now = now_utc_iso8601()
+        now_dt = datetime.datetime.fromisoformat(now.replace("Z", "+00:00"))
         loop_log_file = logs_dir / f"loop-{now_dt.strftime('%Y%m%d-%H%M%S')}.txt"
         lines = [
             "=== LAM Loop Log ===",
@@ -136,13 +138,13 @@ def _validate_check_dir(cwd: str, project_root: Path) -> Path:
     if not cwd:
         return project_root
 
-    check_dir = Path(cwd)
+    check_dir = Path(cwd).resolve()
     if not check_dir.is_absolute():
         return project_root
 
-    # PROJECT_ROOT 配下の場合のみ OK
+    # PROJECT_ROOT 配下の場合のみ OK（resolve() で symlink を解決済み）
     try:
-        check_dir.relative_to(project_root)
+        check_dir.relative_to(project_root.resolve())
         return check_dir
     except ValueError:
         return project_root
@@ -370,11 +372,21 @@ def _run_security(check_dir: Path, log_file: Path) -> int:
             continue
         try:
             content = scan_file.read_text(encoding="utf-8", errors="replace")
-            for line in content.splitlines():
-                if _SECRET_PATTERN.search(line) and not _SAFE_PATTERN.search(line):
+            try:
+                rel = scan_file.relative_to(check_dir)
+            except ValueError:
+                rel = scan_file.name
+            for line_no, line in enumerate(content.splitlines(), 1):
+                m = _SECRET_PATTERN.search(line)
+                if m and not _SAFE_PATTERN.search(m.group(2)):
                     secret_count += 1
+                    _log(log_file, "WARN", f"G5: potential secret in {rel}:{line_no} (key={m.group(1)})")
         except Exception as e:
-            _log(log_file, "WARN", f"G5: failed to read {scan_file.name}: {type(e).__name__}")
+            try:
+                rel = scan_file.relative_to(check_dir)
+            except ValueError:
+                rel = scan_file.name
+            _log(log_file, "WARN", f"G5: failed to read {rel}: {type(e).__name__}")
     if secret_count > 0:
         _log(log_file, "WARN", f"G5: potential secret leak detected ({secret_count} matches)")
         sec_fail = True
@@ -416,7 +428,7 @@ def _cleanup_state_file(state_file: Path) -> None:
 def _check_recursion_and_state(
     input_data: dict, state_file: Path, log_file: Path
 ) -> dict:
-    """STEP 0-1: 再帰防止・状態ファイル確認。有効な state dict を返す。
+    """STEP 1-2: 再帰防止・状態ファイル確認。有効な state dict を返す。
 
     停止条件に該当した場合は _stop() で SystemExit を送出する。
     """
@@ -428,7 +440,8 @@ def _check_recursion_and_state(
 
     try:
         state = json.loads(state_file.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as e:
+        _log(log_file, "ERROR", f"state file read/parse error: {type(e).__name__}: {e}")
         _stop(log_file, "failed to read state file → normal stop")
 
     if not state.get("active"):
@@ -443,7 +456,7 @@ def _check_recursion_and_state(
 def _check_max_iterations(
     state: dict, state_file: Path, project_root: Path, log_file: Path
 ) -> tuple[int, int]:
-    """STEP 2: 反復上限チェック。(iteration, max_iterations) を返す。"""
+    """STEP 3: 反復上限チェック。(iteration, max_iterations) を返す。"""
     iteration = int(state.get("iteration", 0))
     max_iterations = int(state.get("max_iterations", 5))
 
@@ -459,7 +472,7 @@ def _check_max_iterations(
 def _check_context_pressure(
     pre_compact_flag: Path, state: dict, state_file: Path, project_root: Path, log_file: Path
 ) -> None:
-    """STEP 3: コンテキスト残量チェック（PreCompact 発火検出）。"""
+    """STEP 4: コンテキスト残量チェック（PreCompact 発火検出）。"""
     if not pre_compact_flag.exists():
         return
 
@@ -487,7 +500,7 @@ def _check_context_pressure(
 def _check_escalation(
     state: dict, test_count: int, state_file: Path, project_root: Path, log_file: Path
 ) -> None:
-    """STEP 5: エスカレーション条件チェック。"""
+    """STEP 6: エスカレーション条件チェック。"""
     log_entries = state.get("log", [])
     prev_test_count = 0
     if log_entries:
@@ -539,7 +552,10 @@ def _evaluate_green_state(
     project_root: Path,
     log_file: Path,
 ) -> tuple[bool, bool, list[str]]:
-    """STEP 5b: Green State 条件の総合判定。
+    """STEP 5: Green State 条件の総合判定。
+
+    Green State のうち G1（テスト）, G2（lint）, G5（セキュリティ）を自動判定する。
+    G3（Issue ゼロ）, G4（仕様差分ゼロ）は /full-review (Claude) 側の責務。
 
     Returns:
         (green_state, fullscan_pending, fail_parts)
@@ -583,10 +599,12 @@ def _continue_loop(
     state_file: Path,
     log_file: Path,
 ) -> None:
-    """STEP 6: 状態更新と継続（block）。"""
+    """STEP 7: 状態更新と継続（block）。"""
     new_iteration = iteration + 1
     state["iteration"] = new_iteration
 
+    # log エントリは /full-review (Phase 2) が各イテレーション開始時に書き込む前提。
+    # log が空の場合は test_count の更新をスキップする（_check_escalation も安全に動作する）。
     log_entries = state.get("log", [])
     if test_count > 0 and log_entries:
         log_entries[-1]["test_count"] = test_count
@@ -614,33 +632,34 @@ def main() -> None:
 
     input_data = read_stdin_json()
 
-    # STEP 0-1: 再帰防止・状態ファイル確認
+    # STEP 1-2: 再帰防止・状態ファイル確認
     state = _check_recursion_and_state(input_data, state_file, log_file)
 
+    # STEP 3: 反復上限チェック
     iteration, max_iterations = _check_max_iterations(state, state_file, project_root, log_file)
     command = state.get("command", "")
     _log(log_file, "INFO", f"loop active: command={command}, iteration={iteration}/{max_iterations}")
 
-    # STEP 3: コンテキスト残量チェック
+    # STEP 4: コンテキスト残量チェック
     _check_context_pressure(pre_compact_flag, state, state_file, project_root, log_file)
 
-    # STEP 4: Green State 判定
+    # STEP 5: Green State 判定（テスト + lint + セキュリティ）
     cwd = input_data.get("cwd", "")
     check_dir = _validate_check_dir(cwd, project_root)
     test_result, test_count = _run_tests(check_dir, log_file)
     lint_result = _run_lint(check_dir, log_file)
     security_result = _run_security(check_dir, log_file)
 
-    # STEP 5: エスカレーション条件チェック
+    # STEP 6: エスカレーション条件チェック
     _check_escalation(state, test_count, state_file, project_root, log_file)
 
-    # STEP 5b: Green State 総合判定
+    # STEP 5 (cont.): Green State 総合判定
     green_state, fullscan_pending, fail_parts = _evaluate_green_state(
         state, test_result, lint_result, security_result,
         state_file, project_root, log_file,
     )
 
-    # STEP 6: 継続（block）
+    # STEP 7: 継続（block）
     _continue_loop(
         state, iteration, test_count,
         green_state, fullscan_pending, fail_parts,
