@@ -124,10 +124,10 @@ class TestPreToolUse:
         last_line = lines[-1]
         fields = last_line.split("\t")
         # target フィールドは 4番目（0-indexed: 3）
-        if len(fields) >= 4:
-            target = fields[3]
-            # trunc 後は 100 文字以内
-            assert len(target) <= 100, f"target が 100 文字を超えている: {len(target)}"
+        assert len(fields) >= 4, f"ログフィールドが4つ以上あるべき。got: {len(fields)} fields"
+        target = fields[3]
+        # trunc 後は 100 文字以内
+        assert len(target) <= 100, f"target が 100 文字を超えている: {len(target)}"
 
     def test_glob_tool_pg_allow(self, hook_runner):
         """Glob ツールは PG 級として許可される（exit 0、stdout 空）"""

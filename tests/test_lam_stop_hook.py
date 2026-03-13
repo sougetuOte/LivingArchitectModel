@@ -37,9 +37,8 @@ def _run_hook(monkeypatch: pytest.MonkeyPatch, stdin_data: dict, capsys) -> tupl
     if "lam_stop_hook" in sys.modules:
         del sys.modules["lam_stop_hook"]
 
-    # hooks ディレクトリを sys.path に追加
-    if str(_HOOKS_DIR) not in sys.path:
-        sys.path.insert(0, str(_HOOKS_DIR))
+    # hooks ディレクトリを sys.path に追加（monkeypatch で自動復元）
+    monkeypatch.syspath_prepend(str(_HOOKS_DIR))
 
     # ハイフン入りファイル名なので importlib を使用
     import importlib.util

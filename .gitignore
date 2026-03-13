@@ -37,6 +37,7 @@ data/
 SESSION_STATE.md
 docs/daily/
 .claude/settings.local.json
+# リリース手順はローカル固有（GitHub Token 等の環境差異を含みうるため）
 .claude/commands/release.md
 
 # LAM runtime state files

@@ -99,12 +99,12 @@ class TestTDDPatternDetection:
         content = tdd_log.read_text(encoding="utf-8")
         assert "PASS" in content, "失敗→成功パターンが PASS として記録されるべき"
 
-        # 通知A: systemMessage が出力される
+        # 通知A: systemMessage が出力される（仕様必須）
         stdout = result.stdout.strip()
-        if stdout:
-            data = json.loads(stdout)
-            assert "systemMessage" in data
-            assert "/retro" in data["systemMessage"]
+        assert stdout, "FAIL→PASS 遷移時は systemMessage が出力されるべき"
+        data = json.loads(stdout)
+        assert "systemMessage" in data
+        assert "/retro" in data["systemMessage"]
 
     def test_no_junit_xml_warns(self, hook_runner, project_root):
         """JUnit XML なし → WARN ログのみ、tdd-patterns.log には FAIL/PASS 記録なし"""
@@ -118,9 +118,9 @@ class TestTDDPatternDetection:
 
         tdd_log = project_root / ".claude" / "tdd-patterns.log"
         # FAIL/PASS は記録されない（WARN のみ別ログに出る）
+        assert not tdd_log.exists() or "FAIL" not in tdd_log.read_text(encoding="utf-8")
         if tdd_log.exists():
             content = tdd_log.read_text(encoding="utf-8")
-            assert "FAIL" not in content
             assert "PASS" not in content
 
     def test_npm_test_fail_recorded(self, hook_runner, project_root):
@@ -140,6 +140,24 @@ class TestTDDPatternDetection:
         content = tdd_log.read_text(encoding="utf-8")
         assert "FAIL" in content
         assert "npm test" in content
+
+    def test_go_test_fail_recorded(self, hook_runner, project_root):
+        """go test 失敗 + JUnit XML → FAIL 記録"""
+        _write_junit_xml(project_root, tests=8, failures=2,
+                         failed_names=["TestAdd", "TestSub"])
+        input_json = {
+            "tool_name": "Bash",
+            "tool_input": {"command": "go test ./..."},
+            "tool_response": {"stdout": "FAIL", "stderr": ""},
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+
+        tdd_log = project_root / ".claude" / "tdd-patterns.log"
+        assert tdd_log.exists()
+        content = tdd_log.read_text(encoding="utf-8")
+        assert "FAIL" in content
+        assert "go test" in content
 
     def test_non_test_command_no_record(self, hook_runner, project_root):
         """テスト以外のコマンド（ls）→ 記録なし"""
@@ -167,9 +185,7 @@ class TestTDDPatternDetection:
         assert result.stdout.strip() == "", "前回失敗なしでは systemMessage 不要"
 
         tdd_log = project_root / ".claude" / "tdd-patterns.log"
-        if tdd_log.exists():
-            content = tdd_log.read_text(encoding="utf-8")
-            assert "PASS" not in content
+        assert not tdd_log.exists(), "前回失敗なしでの成功時は tdd-patterns.log が作成されてはいけない"
 
 
 class TestDocSyncFlag:
@@ -224,9 +240,7 @@ class TestDocSyncFlag:
         assert result.returncode == 0
 
         doc_sync_flag = project_root / ".claude" / "doc-sync-flag"
-        if doc_sync_flag.exists():
-            content = doc_sync_flag.read_text(encoding="utf-8")
-            assert "docs/readme.md" not in content
+        assert not doc_sync_flag.exists() or "docs/readme.md" not in doc_sync_flag.read_text(encoding="utf-8")
 
 
 class TestLoopLog:

@@ -28,7 +28,6 @@ DEFAULT_STATE = {
 
 DEFAULT_INPUT = {
     "session_id": "test-integration",
-    "transcript_path": "/tmp/t",
     "permission_mode": "default",
     "hook_event_name": "Stop",
     "stop_hook_active": False,
@@ -57,10 +56,11 @@ def _read_state(project_root: Path) -> dict | None:
 
 
 def _make_input(project_root: Path, message: str = "done", **overrides) -> dict:
-    """テスト用 stdin JSON を生成する。cwd は project_root に設定。"""
+    """テスト用 stdin JSON を生成する。cwd と transcript_path は project_root に設定。"""
     data = {
         **DEFAULT_INPUT,
         "cwd": str(project_root),
+        "transcript_path": str(project_root / "transcript"),
         "last_assistant_message": message,
     }
     data.update(overrides)
@@ -166,7 +166,9 @@ class TestMaxIterationsLifecycle:
         result = hook_runner(STOP_HOOK_PATH, input_data)
 
         assert result.returncode == 0
-        data = json.loads(result.stdout.strip())
+        stdout = result.stdout.strip()
+        assert stdout, "上限未到達時は block JSON が出力されるべき"
+        data = json.loads(stdout)
         assert data.get("decision") == "block", "上限未到達時は block で継続"
 
     def test_at_max_stops(self, hook_runner, project_root):

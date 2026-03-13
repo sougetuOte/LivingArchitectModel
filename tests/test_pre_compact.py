@@ -18,10 +18,9 @@ _HOOKS_DIR = Path(__file__).resolve().parent.parent / ".claude" / "hooks"
 
 
 @pytest.fixture()
-def pre_compact():
+def pre_compact(monkeypatch: pytest.MonkeyPatch):
     """pre-compact.py モジュールをインポートして返す。"""
-    if str(_HOOKS_DIR) not in sys.path:
-        sys.path.insert(0, str(_HOOKS_DIR))
+    monkeypatch.syspath_prepend(str(_HOOKS_DIR))
 
     mod_name = "pre_compact"
     if mod_name in sys.modules:

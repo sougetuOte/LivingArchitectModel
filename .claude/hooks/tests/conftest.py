@@ -4,10 +4,13 @@ conftest.py - pytest 共通 fixtures
 W2-T1: conftest.py（共通 pytest fixtures）
 対応仕様: design.md Section 4
 """
+from __future__ import annotations
+
 import json
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -19,9 +22,12 @@ _ENV_ALLOWLIST = (
     "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
 )
 
+# hooks ディレクトリのパス
+_HOOKS_DIR = Path(__file__).resolve().parent.parent
 
-@pytest.fixture
-def project_root(tmp_path):
+
+@pytest.fixture()
+def project_root(tmp_path: Path) -> Path:
     """テスト用の仮プロジェクトルートを作成する。
 
     .claude/logs/ ディレクトリと .claude/ ディレクトリを作成し、
@@ -35,8 +41,29 @@ def project_root(tmp_path):
     return tmp_path
 
 
-@pytest.fixture
-def hook_runner(project_root):
+@pytest.fixture(autouse=True)
+def _set_project_root(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """LAM_PROJECT_ROOT を自動設定する。"""
+    monkeypatch.setenv("LAM_PROJECT_ROOT", str(project_root))
+
+
+@pytest.fixture()
+def hooks_on_syspath(monkeypatch: pytest.MonkeyPatch) -> Path:
+    """hooks ディレクトリを sys.path に追加し、テスト後に自動復元する。"""
+    monkeypatch.syspath_prepend(str(_HOOKS_DIR))
+    return _HOOKS_DIR
+
+
+@pytest.fixture()
+def hook_utils(hooks_on_syspath: Path):
+    """_hook_utils モジュールを import して返す。sys.path は自動復元される。"""
+    import _hook_utils
+
+    return _hook_utils
+
+
+@pytest.fixture()
+def hook_runner(project_root: Path):
     """フックを subprocess で実行するヘルパー関数を返す fixture。
 
     返す run_hook() 関数の仕様:
@@ -47,7 +74,11 @@ def hook_runner(project_root):
     - LAM_PROJECT_ROOT を tmp_path に設定（実プロジェクト汚染防止）
     """
 
-    def run_hook(hook_path, input_json=None, env=None):
+    def run_hook(
+        hook_path: Path | str,
+        input_json: dict | None = None,
+        env: dict[str, str] | None = None,
+    ) -> subprocess.CompletedProcess[str]:
         """フックスクリプトを subprocess で実行する。
 
         Args:
@@ -74,5 +105,3 @@ def hook_runner(project_root):
         )
 
     return run_hook
-
-

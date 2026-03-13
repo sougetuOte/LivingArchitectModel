@@ -1,2 +1,3 @@
+# [project] セクションなし: テスト専用設定。pip-audit スキップ対象（.claude/hooks/lam-stop-hook.py 参照）
 [tool.pytest.ini_options]
 addopts = "--junitxml=.claude/test-results.xml"
