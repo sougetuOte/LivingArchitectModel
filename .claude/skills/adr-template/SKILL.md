@@ -20,7 +20,7 @@ version: 1.0.0
 
 - `docs/adr/` への新規ファイル作成
 - アーキテクチャ決定、技術選定の記録を求められた
-- `/adr-create` コマンドの実行時
+- ADR の作成を求められた時
 
 ## ファイル命名規則
 
@@ -217,7 +217,7 @@ Proposed → Accepted → [Deprecated | Superseded]
 /ship Phase 2 (Doc Sync チェック)
   → PM級の変更を検出
   → 「ADR を起票しますか？」とユーザーに提案
-  → 承認 → /adr-create を呼び出し、変更内容をコンテキストとして渡す
+  → 承認 → ADR テンプレートを適用し、変更内容をコンテキストとして渡す
   → スキップ → ADR 起票なしで /ship を続行
 ```
 
@@ -227,5 +227,4 @@ Proposed → Accepted → [Deprecated | Superseded]
 
 - `docs/internal/06_DECISION_MAKING.md`
 - `.claude/rules/permission-levels.md`（PG/SE/PM 分類基準）
-- `/adr-create` コマンド
 - `/ship` コマンド (Phase 2: Doc Sync チェック)

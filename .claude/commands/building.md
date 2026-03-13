@@ -21,16 +21,24 @@ description: "BUILDINGフェーズを開始 - TDD実装サイクル"
    - `docs/internal/03_QUALITY_STANDARDS.md` を確認
    - 関連する `docs/specs/` の仕様書を読み込む
 
-4. **状態ファイルを更新**
+4. **影響分析（Pre-Flight）**
+   - 変更対象ファイル/モジュールの依存関係を調査
+   - 直接影響（import/require 元）と間接影響を特定
+   - 公開 API/IF の変更有無を確認
+   - 影響を受けるテストケースを特定
+   - 変更を PG/SE/PM に分類し、PM級があれば承認を求める
+   - 権限等級の詳細: `.claude/rules/permission-levels.md`
+
+5. **状態ファイルを更新**
    - `phase` を `BUILDING` に更新
    - `current_task` を実装対象タスクIDに更新
 
-5. **BUILDINGルールを適用**
+6. **BUILDINGルールを適用**
    - **TDDサイクル厳守**: Red → Green → Refactor
    - 仕様書とコードの同期は絶対
    - 1サイクル完了ごとにユーザーに報告
 
-6. **作業の進め方**
+7. **作業の進め方**
    - TDD実装には `tdd-developer` サブエージェントを推奨
    - 実装前に必ず `docs/specs/` の対応仕様を確認
    - コード変更時は対応ドキュメントも同時更新（Atomic Commit）
@@ -115,6 +123,7 @@ PLANNING 承認状態:
 - TDDサイクル: Red → Green → Refactor
 - ドキュメント同期: 必須
 - 報告: 1サイクルごと
+- 影響分析: 実装前に必須
 
 読み込み済み:
 - 02_DEVELOPMENT_FLOW.md (Phase 2)
