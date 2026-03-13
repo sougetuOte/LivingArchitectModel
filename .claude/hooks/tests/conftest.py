@@ -11,6 +11,14 @@ import sys
 
 import pytest
 
+# テスト実行に必要な最小限の環境変数のみ引き継ぐ
+_ENV_ALLOWLIST = (
+    "PATH", "HOME", "LANG", "LC_ALL", "TERM",
+    "TMPDIR", "TEMP", "TMP",
+    "VIRTUAL_ENV", "CONDA_PREFIX",
+    "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
+)
+
 
 @pytest.fixture
 def project_root(tmp_path):
@@ -51,13 +59,6 @@ def hook_runner(project_root):
             subprocess.CompletedProcess: stdout, stderr, returncode を含む
         """
         stdin_input = json.dumps(input_json) if input_json is not None else ""
-        # allowlist: テスト実行に必要な最小限の環境変数のみ引き継ぐ
-        _ENV_ALLOWLIST = (
-            "PATH", "HOME", "LANG", "LC_ALL", "TERM",
-            "TMPDIR", "TEMP", "TMP",
-            "VIRTUAL_ENV", "CONDA_PREFIX",
-            "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
-        )
         merged_env = {
             k: v for k, v in os.environ.items() if k in _ENV_ALLOWLIST
         }

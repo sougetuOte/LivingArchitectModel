@@ -37,7 +37,10 @@ def get_project_root() -> pathlib.Path:
     """
     env_root = os.environ.get("LAM_PROJECT_ROOT")
     if env_root:
-        return pathlib.Path(env_root)
+        resolved = pathlib.Path(env_root).resolve()
+        if resolved.is_dir():
+            return resolved
+        # テスト用変数が不正なパスの場合はフォールバック
     # __file__ は .claude/hooks/_hook_utils.py
     # parent   -> .claude/hooks/
     # parent.parent -> .claude/
@@ -111,9 +114,7 @@ def log_entry(log_file: pathlib.Path, level: str, source: str, message: str):
     形式: timestamp\tlevel\tsource\tmessage
     タイムスタンプは UTC ISO 8601 形式。
     """
-    timestamp = datetime.datetime.now(datetime.timezone.utc).strftime(
-        "%Y-%m-%dT%H:%M:%SZ"
-    )
+    timestamp = now_utc_iso8601()
     log_file.parent.mkdir(parents=True, exist_ok=True)
     with open(log_file, "a", encoding="utf-8", newline="\n") as f:
         f.write(f"{timestamp}\t{level}\t{source}\t{message}\n")

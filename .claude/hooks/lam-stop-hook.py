@@ -90,26 +90,7 @@ def _block(log_file: Path, reason: str) -> None:
     sys.exit(0)
 
 
-def _loop_result_label(state: dict) -> str:
-    """ループ終了時の convergence_reason ラベルを返す。
-
-    loop-log-schema.md Section 4.1 の enum 値に準拠:
-    green_state / max_iterations / escalation / context_exhaustion / user_abort
-    """
-    log_entries = state.get("log")
-    if not log_entries:
-        return "green_state"
-    last_found = log_entries[-1].get("issues_found", 0)
-    if last_found == 0:
-        return "green_state"
-    iteration = state.get("iteration", 0)
-    max_iter = state.get("max_iterations", 5)
-    if iteration >= max_iter:
-        return "max_iterations"
-    return "green_state"
-
-
-def _save_loop_log(project_root: Path, state: dict, log_file: Path) -> None:
+def _save_loop_log(project_root: Path, state: dict, log_file: Path, convergence_reason: str = "green_state") -> None:
     """ループ終了ログを .claude/logs/ に保存する。"""
     try:
         logs_dir = project_root / ".claude" / "logs"
@@ -124,7 +105,7 @@ def _save_loop_log(project_root: Path, state: dict, log_file: Path) -> None:
             f"Started: {state.get('started_at', '')}",
             f"Completed: {now}",
             f"Total Iterations: {state.get('iteration', 0)}",
-            f"Convergence: {_loop_result_label(state)}",
+            f"Convergence: {convergence_reason}",
             "",
             "--- Iteration Log ---",
         ]
@@ -263,7 +244,18 @@ def _detect_security_tools(check_dir: Path) -> list[tuple[str, list[str]]]:
             tools.append(("npm-audit", ["npm", "audit", "--audit-level=critical"]))
 
     # npm と pip-audit は排他ではなく両方検出する（モノレポ対応）
-    if (check_dir / "pyproject.toml").exists() or (check_dir / "requirements.txt").exists():
+    # pyproject.toml に [project] セクションがある場合、または requirements.txt がある場合のみ実行
+    # （pytest 設定のみの pyproject.toml でグローバル環境を監査する偽陽性を防止）
+    has_python_deps = (check_dir / "requirements.txt").exists()
+    if not has_python_deps:
+        pyproject = check_dir / "pyproject.toml"
+        if pyproject.exists():
+            try:
+                content = pyproject.read_text(encoding="utf-8", errors="replace")
+                has_python_deps = "[project]" in content or "[tool.poetry" in content
+            except Exception:
+                pass
+    if has_python_deps:
         if shutil.which("pip-audit"):
             tools.append(("pip-audit", ["pip-audit", "--desc"]))
         elif shutil.which("safety"):
@@ -351,15 +343,22 @@ def _run_security(check_dir: Path, log_file: Path) -> int:
             _log(log_file, "INFO", f"G5: {tool_name} found issues")
             sec_fail = True
         elif "timed out" in stderr:
-            _log(log_file, "WARN", f"G5: {tool_name} timeout (60s)")
+            _log(log_file, "WARN", f"G5: {tool_name} timeout (60s) → treating as FAIL")
+            sec_fail = True
 
     # シークレットスキャン（check_dir 全体を再帰走査）
     secret_count = 0
     for scan_file in check_dir.rglob("*"):
+        if scan_file.is_symlink():
+            continue
         if not scan_file.is_file():
             continue
         # 除外ディレクトリ内のファイルをスキップ
-        if any(part in _SCAN_EXCLUDE_DIRS for part in scan_file.parts):
+        try:
+            rel_parts = scan_file.relative_to(check_dir).parts
+        except ValueError:
+            continue
+        if any(part in _SCAN_EXCLUDE_DIRS for part in rel_parts):
             continue
         try:
             if scan_file.stat().st_size > 1_000_000:
@@ -450,7 +449,7 @@ def _check_max_iterations(
 
     if iteration >= max_iterations:
         _log(log_file, "WARN", f"max_iterations reached ({iteration}/{max_iterations}) → stop loop")
-        _save_loop_log(project_root, state, log_file)
+        _save_loop_log(project_root, state, log_file, "max_iterations")
         _cleanup_state_file(state_file)
         _stop(log_file, "max_iterations reached → stopped")
 
@@ -458,7 +457,7 @@ def _check_max_iterations(
 
 
 def _check_context_pressure(
-    pre_compact_flag: Path, state_file: Path, log_file: Path
+    pre_compact_flag: Path, state: dict, state_file: Path, project_root: Path, log_file: Path
 ) -> None:
     """STEP 3: コンテキスト残量チェック（PreCompact 発火検出）。"""
     if not pre_compact_flag.exists():
@@ -470,6 +469,7 @@ def _check_context_pressure(
         now_dt = datetime.datetime.now(datetime.timezone.utc)
         elapsed = (now_dt - flag_dt).total_seconds()
         if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
+            _save_loop_log(project_root, state, log_file, "context_exhaustion")
             _cleanup_state_file(state_file)
             _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago → context pressure, stop loop")
     except Exception:
@@ -477,6 +477,7 @@ def _check_context_pressure(
             flag_mtime = os.path.getmtime(str(pre_compact_flag))
             elapsed = time.time() - flag_mtime
             if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
+                _save_loop_log(project_root, state, log_file, "context_exhaustion")
                 _cleanup_state_file(state_file)
                 _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop")
         except Exception:
@@ -484,7 +485,7 @@ def _check_context_pressure(
 
 
 def _check_escalation(
-    state: dict, test_count: int, state_file: Path, log_file: Path
+    state: dict, test_count: int, state_file: Path, project_root: Path, log_file: Path
 ) -> None:
     """STEP 5: エスカレーション条件チェック。"""
     log_entries = state.get("log", [])
@@ -494,12 +495,39 @@ def _check_escalation(
 
     if prev_test_count > 0 and test_count > 0 and test_count < prev_test_count:
         _log(log_file, "WARN", f"ESC: test count decreased ({prev_test_count} → {test_count}) → escalate to human")
+        _save_loop_log(project_root, state, log_file, "escalation")
         _cleanup_state_file(state_file)
         _stop(log_file, f"ESC: test count decreased ({prev_test_count} → {test_count}) → escalate to human")
 
     if _check_issue_recurrence(state):
+        _save_loop_log(project_root, state, log_file, "escalation")
         _cleanup_state_file(state_file)
         _stop(log_file, "ESC: same issues recurring (no fix for 2 cycles) → escalate to human")
+
+
+def _check_unanalyzed_tdd_patterns(project_root: Path, log_file: Path) -> None:
+    """通知B: tdd-patterns.log の未分析パターンをチェックしてログに記録する。"""
+    tdd_log = project_root / ".claude" / "tdd-patterns.log"
+    if not tdd_log.exists():
+        return
+    try:
+        lines = tdd_log.read_text(encoding="utf-8").splitlines()
+        # ANALYZED マーカー以降の FAIL→PASS 遷移を数える
+        last_analyzed_idx = -1
+        for i, line in enumerate(lines):
+            if "\tANALYZED\t" in line:
+                last_analyzed_idx = i
+        unanalyzed = [
+            line for line in lines[last_analyzed_idx + 1:]
+            if "\tPASS\t" in line
+        ]
+        if unanalyzed:
+            _log(
+                log_file, "INFO",
+                f"TDD patterns: {len(unanalyzed)}件の未分析 FAIL→PASS パターンあり。/retro を推奨。",
+            )
+    except Exception:
+        pass
 
 
 def _evaluate_green_state(
@@ -537,6 +565,7 @@ def _evaluate_green_state(
                 pass
         else:
             _log(log_file, "INFO", "Green State achieved → stop loop (normal convergence)")
+            _check_unanalyzed_tdd_patterns(project_root, log_file)
             _save_loop_log(project_root, state, log_file)
             _cleanup_state_file(state_file)
             _stop(log_file, "Green State achieved → loop converged")
@@ -593,7 +622,7 @@ def main() -> None:
     _log(log_file, "INFO", f"loop active: command={command}, iteration={iteration}/{max_iterations}")
 
     # STEP 3: コンテキスト残量チェック
-    _check_context_pressure(pre_compact_flag, state_file, log_file)
+    _check_context_pressure(pre_compact_flag, state, state_file, project_root, log_file)
 
     # STEP 4: Green State 判定
     cwd = input_data.get("cwd", "")
@@ -603,7 +632,7 @@ def main() -> None:
     security_result = _run_security(check_dir, log_file)
 
     # STEP 5: エスカレーション条件チェック
-    _check_escalation(state, test_count, state_file, log_file)
+    _check_escalation(state, test_count, state_file, project_root, log_file)
 
     # STEP 5b: Green State 総合判定
     green_state, fullscan_pending, fail_parts = _evaluate_green_state(
