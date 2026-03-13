@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.4.0] - 2026-03-13
+
+### 概要
+
+TDD 内省パイプライン v2 設計、hooks の堅牢性強化（pip-audit 誤検出修正、symlink 対応、
+convergence_reason 導入）、およびプロジェクト全体の包括的整合性監査を実施。
+
+### Added
+
+- **Feature**: TDD 内省パイプライン v2 — JUnit XML ベースのテスト結果追跡
+  - PostToolUse hook が `.claude/test-results.xml` を読み取り FAIL→PASS 遷移を記録
+  - パターン記録: `.claude/tdd-patterns.log`（自動、PG級）
+  - 閾値 2回以上でルール候補を `/retro` 実行時に提案
+  - 信頼度モデル: `.claude/rules/auto-generated/trust-model.md`
+- **Rule**: `upstream-first.md` — プラットフォーム機能の実装前に公式ドキュメント確認を必須化
+- **Rule**: `test-result-output.md` — テスト結果の JUnit XML 出力を必須化
+- **Docs**: 監査レポート永続化（`docs/artifacts/audit-reports/`）
+
+### Changed
+
+- **Refactor**: lam-stop-hook 大幅改善
+  - `_loop_result_label()` 廃止 → `convergence_reason` を直接渡すチェーンに変更
+  - pip-audit 誤検出修正（`[project]` セクションのない pyproject.toml でスキップ）
+  - シークレットスキャンで symlink をスキップ（Linux/macOS 対応）
+  - セキュリティツール timeout を FAIL 扱いに変更
+- **Refactor**: _hook_utils — LAM_PROJECT_ROOT の resolve() + is_dir() 検証追加
+- **Refactor**: post-tool-use — log_entry をモジュールレベル import に修正、go test 正規表現修正
+- **Security**: `mv` コマンドを承認必須(ask) → 実行禁止(deny) に格上げ
+- **Docs**: 仕様書全面整合性更新
+  - v4.0.0-immune-system-requirements: 閾値 3回→2回（全箇所）
+  - ui-lam-slides: 現行実装に合わせて全面改訂（Draft→Approved）
+  - hooks-python-migration/design: Wave 5 完了マーク
+  - loop-log-schema: convergence_reason enum 追加
+- **Docs**: ルート文書・スライド整合性更新
+  - CHEATSHEET(日英): Rules一覧に upstream-first, test-result-output 追加
+  - CHEATSHEET(日英): Memory列 project→- に修正（v4.3.0 反映）
+  - README(日英): /wave-plan, /retro コマンド追加
+  - slides: docs/internal/ ファイル名誤記修正、/full-save→/ship、閾値25%→20%
+- **Docs**: full-review コマンドの jq 依存を Python ワンライナーに置換
+
+### Removed
+
+- **Cleanup**: 廃止コマンド・スキル削除（ultimate-think, daily, focus 等）
+
 ## [v4.3.1] - 2026-03-12
 
 ### 概要
