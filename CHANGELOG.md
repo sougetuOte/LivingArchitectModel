@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.4.1] - 2026-03-13
+
+### 概要
+
+hooks 品質改善（full-review 8イテレーション監査）、テスト品質強化、
+リリースオペレーション文書の汎用化。
+
+### Changed
+
+- **Refactor**: lam-stop-hook 品質改善
+  - シークレットスキャンで file:line を WARN ログに記録
+  - 状態ファイル読取エラー時のログ出力追加
+  - `now_utc_iso8601()` に統一（インラインの datetime 生成を排除）
+  - STEP 番号を 1-7 に統一（モジュール/関数 docstring/main コメント全箇所）
+  - Green State G1/G2/G5 スコープを docstring に明記
+- **Refactor**: post-tool-use — `_handle_loop_log` JSON パース失敗時の早期 return
+  （空 dict で上書きしてループ状態を破壊するバグを修正）
+- **Refactor**: _hook_utils — 例外キャッチを `Exception` → 具体的型に限定
+- **Docs**: 04_RELEASE_OPS.md 汎用化（P1/P2/P3 優先度体系導入）
+- **Docs**: design.md lam-stop-hook 行数実績更新（約670行）
+- **Docs**: スライドのバージョン表記を v4.4.1 に更新
+
+### Added
+
+- **Test**: go test 失敗記録テスト追加（`test_go_test_fail_recorded`）
+- **Test**: ループ統合テスト改善（stdout 空チェック追加、field count 検証強化）
+- **Docs**: retro-v4.4.0.md, retro-v4.4.1.md（振り返り記録）
+- **Docs**: 監査レポート v4.4.1 iter1-4
+
 ## [v4.4.0] - 2026-03-13
 
 ### 概要
