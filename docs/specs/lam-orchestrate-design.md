@@ -5,7 +5,7 @@
 **改訂日**: 2026-02-15
 **ステータス**: Active (Operational Feedback Applied)
 **前バージョン**: 2.0.0 (Active)
-**参照 Claude Code バージョン**: 2.1.42
+**参照 Claude Code バージョン**: 2.1.42（作成時）→ 現在は v1.0.30+（2026-03 時点）
 **関連文書**: `_reference/2026-01-29.md`
 
 > **改訂履歴**:
@@ -180,8 +180,8 @@ stateDiagram-v2
 └── skills/
     └── lam-orchestrate/
         ├── SKILL.md           # メイン指示（必須）
-        └── examples/
-            └── execution-plan-sample.md  # 出力例
+        └── references/
+            └── anchor-format.md  # アンカーファイルフォーマット
 ```
 
 > **Note**: Claude Code 2.x 以降、Skills は `SKILL.md` をエントリポイントとするディレクトリ構造。

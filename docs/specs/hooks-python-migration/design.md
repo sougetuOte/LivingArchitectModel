@@ -231,7 +231,7 @@ Wave 3 実装時に実機検証し、必要に応じて `PostToolUseFailure` に
 | **Wave 2** | H1 (pre-tool-use) + T1 テスト + settings.json 切替(H1) + **起動時間計測** | 中規模（163行）。最頻フック。切替後に実動作確認。NFR-1 実測 |
 | **Wave 3** | H2 (post-tool-use) + T2 テスト + settings.json 切替(H2) | 中規模（161行）。切替後に実動作確認 |
 | **Wave 4** | H3 (lam-stop-hook) + T3,T5 テスト + settings.json 切替(H3) | 最大（690行）。切替後に実動作確認 |
-| **Wave 5** | .sh 全削除 + requirements-dev.txt + README/QUICKSTART 更新 + 全フック統合テスト | クリーンアップ + ドキュメント整備 |
+| **Wave 5** ✅ | .sh 全削除 + requirements-dev.txt + README/QUICKSTART 更新 + 全フック統合テスト | クリーンアップ + ドキュメント整備（完了済み） |
 
 ### Wave ごとの完了条件
 

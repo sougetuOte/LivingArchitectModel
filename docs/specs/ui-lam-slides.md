@@ -3,9 +3,9 @@
 ## メタ情報
 | 項目 | 内容 |
 |------|------|
-| ステータス | Draft |
+| ステータス | Approved |
 | 作成日 | 2026-02-15 |
-| 更新日 | 2026-02-15 |
+| 更新日 | 2026-03-13 |
 | 関連ADR | なし |
 
 ## 1. 概要
@@ -25,6 +25,8 @@ So that docs/internal/ を全部読まなくても基本的な使い方がわか
 - LAM の哲学・コアコンセプト
 - 3フェーズフローと承認ゲートの可視化
 - 3 Agents Model の概念説明
+- 免疫システム（hooks）とアーキテクチャの詳解
+- ユースケースシナリオ（日常開発、進化の物語、新規プロジェクト）
 - クイックスタート手順（骨格のみ）
 - CHEATSHEET / README へのリンク誘導
 
@@ -39,52 +41,52 @@ So that docs/internal/ を全部読まなくても基本的な使い方がわか
 - **説明**: npm install やビルドステップなしで、ブラウザでローカルファイルとして開ける
 - **優先度**: Must
 - **受け入れ条件**:
-  - [ ] `file://` プロトコルでスライドが表示される
-  - [ ] CDN からの外部リソース読み込みのみ（ローカル依存なし）
+  - [x] `file://` プロトコルでスライドが表示される
+  - [x] CDN からの外部リソース読み込みのみ（ローカル依存なし）
 
-### FR-002: スライドコンテンツ（概念レイヤー）
-- **説明**: LAM の概念を15-25枚のスライドで伝える
+### FR-002: スライドコンテンツ（6スライドデッキ構成）
+- **説明**: LAM の概念を複数のテーマ別スライドデッキで伝える
 - **優先度**: Must
 - **受け入れ条件**:
-  - [ ] 以下のセクション構成を含む:
+  - [x] 以下のスライドデッキ構成を含む:
 
-| セクション | 枚数目安 | 内容 |
-|-----------|---------|------|
-| タイトル | 1 | プロジェクト名、キャッチフレーズ |
-| 課題提起 | 2-3 | AI開発の現状課題（なぜLAMが必要か） |
-| コアコンセプト | 3-4 | Active Retrieval, Gatekeeper, Zero-Regression, Living Documentation |
-| フェーズ制御 | 3-4 | PLANNING → BUILDING → AUDITING + 承認ゲート |
-| 3 Agents Model | 2-3 | Affirmative / Critical / Mediator + AoT |
-| クイックスタート | 2-3 | 最初にやること3ステップ + CHEATSHEET へのリンク |
-| まとめ | 1 | 次のアクション |
+| デッキ | ファイル | 枚数 | 内容 |
+|--------|---------|------|------|
+| 目次ハブ | `index.html` | 1ページ | 全デッキへのナビゲーション |
+| イントロダクション | `intro.html` | 8 | LAM の概要、Before/After、3フェーズ、始め方 |
+| 新規プロジェクト | `story-newproject.html` | 20 | PLANNING→BUILDING→AUDITING の実践シナリオ |
+| 日常開発 | `story-daily.html` | 16 | セッション復帰〜リリースの1日フロー |
+| 進化の物語 | `story-evolution.html` | 12 | v1→v4 の進化、免疫システム、TDD内省 |
+| アーキテクチャ | `architecture.html` | 15 | hooks、権限等級、Green State、lam-orchestrate |
 
 ### FR-003: Mermaid 図表示
 - **説明**: フェーズフローや構造図を Mermaid で表示
-- **優先度**: Should
+- **優先度**: Must
 - **受け入れ条件**:
-  - [ ] Mermaid CDN を使用してフロー図が描画される
-  - [ ] ダークテーマに合わせた配色
+  - [x] Mermaid CDN を使用してフロー図が描画される
+  - [x] ダークテーマに合わせた配色
+  - [x] reveal.js `slidechanged` イベントによる遅延レンダリング
 
 ### FR-004: ナビゲーション
 - **説明**: ユーザーが自分のペースで閲覧できるナビゲーション
-- **優先度**: Should
+- **優先度**: Must
 - **受け入れ条件**:
-  - [ ] 目次スライドからセクションジャンプ可能
-  - [ ] プログレスバー表示（スライド番号 c/t）
-  - [ ] キーボード操作（矢印キー）
+  - [x] 目次ハブ（index.html）から各デッキへジャンプ可能
+  - [x] 各デッキから目次への戻りリンク
+  - [x] プログレスバー表示（スライド番号 c/t）
+  - [x] キーボード操作（矢印キー）
 
 ### FR-005: PDF エクスポート
 - **説明**: 印刷・PDF 保存が可能
-- **優先度**: Could
-- **受け入れ条件**:
-  - [ ] `?print-pdf` パラメータで印刷用レイアウト切替
+- **優先度**: Won't（`file://` プロトコルでは `?print-pdf` が安定動作しないため見送り）
 
 ### FR-006: 日本語・英語対応
-- **説明**: 日英両方のスライドを提供（将来対応可）
-- **優先度**: Could
+- **説明**: 全スライドデッキに日英両バージョンを提供
+- **優先度**: Must
 - **受け入れ条件**:
-  - [ ] 初版は日本語のみ
-  - [ ] 英語版追加時の構成が明確（別ファイル or 切替機能）
+  - [x] 各デッキにハイフン区切りの英語版を提供（例: `intro-en.html`）
+  - [x] 日英切替リンクを各デッキに配置
+  - [x] 目次ハブ（`index.html` / `index-en.html`）も日英対応
 
 ## 3. 非機能要求
 
@@ -99,7 +101,7 @@ So that docs/internal/ を全部読まなくても基本的な使い方がわか
 
 ### NFR-003: メンテナンス性
 - スライド内容は概念レベルに限定（具体的なコマンド名は CHEATSHEET にリンク）
-- HTML ファイル内に Markdown で記述（reveal.js Markdown プラグイン）
+- HTML ファイル内に直接記述（reveal.js の `data-markdown` は `file://` で動作しないため）
 - 変更頻度の目安: LAM のコア概念が変わったときのみ
 
 ## 4. 技術仕様
@@ -108,7 +110,6 @@ So that docs/internal/ を全部読まなくても基本的な使い方がわか
 | ライブラリ | バージョン | CDN URL | 用途 |
 |-----------|----------|---------|------|
 | reveal.js | 5.2.1 | `cdn.jsdelivr.net/npm/reveal.js@5.2.1` | スライドエンジン |
-| reveal.js Markdown Plugin | 同梱 | 同上 `/plugin/markdown/markdown.js` | Markdown 記述 |
 | reveal.js Highlight Plugin | 同梱 | 同上 `/plugin/highlight/highlight.js` | コードハイライト |
 | Mermaid | 10.x | `cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs` | 図表描画 |
 | Google Fonts | - | `fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap` | Web フォント |
@@ -116,12 +117,21 @@ So that docs/internal/ を全部読まなくても基本的な使い方がわか
 ### 4.2 ファイル構成
 ```
 docs/slides/
-├── index.html          # 目次ハブページ
-├── concept.html        # コンセプト説明スライド（21枚）
-├── usecase.html        # ユースケースシナリオスライド（18枚）
-├── (concept_en.html)   # 英語版コンセプト（将来）
-└── (usecase_en.html)   # 英語版ユースケース（将来）
+├── index.html              # 目次ハブページ（日本語）
+├── index-en.html           # 目次ハブページ（英語）
+├── intro.html              # イントロダクション（日本語）
+├── intro-en.html           # イントロダクション（英語）
+├── story-newproject.html   # 新規プロジェクト（日本語）
+├── story-newproject-en.html # 新規プロジェクト（英語）
+├── story-daily.html        # 日常開発（日本語）
+├── story-daily-en.html     # 日常開発（英語）
+├── story-evolution.html    # 進化の物語（日本語）
+├── story-evolution-en.html # 進化の物語（英語）
+├── architecture.html       # アーキテクチャ（日本語）
+└── architecture-en.html    # アーキテクチャ（英語）
 ```
+
+**命名規則**: 英語版はハイフン区切り `-en` サフィックス（例: `intro-en.html`）
 
 ### 4.3 reveal.js 設定
 ```javascript
@@ -133,15 +143,23 @@ Reveal.initialize({
   keyboard: true,
   overview: true,
   help: true,
-  pdfSeparateFragments: false,
-  plugins: [RevealMarkdown, RevealHighlight]
+  plugins: [RevealHighlight]
+});
+```
+
+### 4.4 Mermaid 統合
+```javascript
+// 遅延レンダリング: slidechanged イベントで現在スライドの Mermaid を描画
+Reveal.on('slidechanged', event => {
+  const mermaidElements = event.currentSlide.querySelectorAll('.mermaid:not([data-processed])');
+  // ... レンダリング処理
 });
 ```
 
 ## 5. UI デザイン仕様
 
 ### 5.1 テーマ・配色
-- **ベーステーマ**: reveal.js `black`（ダークテーマ）
+- **ベーステーマ**: カスタムダークテーマ（reveal.js `black` ベース）
 - **カスタム CSS 変数**:
 
 ```css
@@ -171,10 +189,10 @@ Reveal.initialize({
 - **3 Agents**: Bento Grid（3カラム カード）
 - **フロー図**: Mermaid LR/TD + fragment アニメーション
 - **階層構造**: ツリー表記
+- **シナリオカード**: 権限等級別にカラーコード化
 
 ### 5.4 アニメーション
 - `fragment` による段階表示（控えめに使用）
-- `data-auto-animate` によるフェードトランジション
 - 過度なアニメーションは禁止（認知負荷増大のため）
 
 ## 6. リンク戦略
@@ -184,13 +202,16 @@ Reveal.initialize({
 - `README.md`: プロジェクト全体像（GitHub URL）
 - `docs/internal/`: SSOT ドキュメント（GitHub URL）
 
-### 6.2 スライドへのリンク元（コミット時に更新）
+### 6.2 スライドへのリンク元
 | ファイル | 追加場所 | 内容 |
 |---------|---------|------|
 | `README.md` | 「使い方」セクションの前 | 「概念を理解するにはスライドを参照」 |
 | `README_en.md` | 同上（英語） | 同上 |
-| `CHEATSHEET.md` | 「はじめに」セクション冒頭 | 「まずスライドで概要を掴む」 |
 | `CLAUDE.md` | References セクション | AI が初回ユーザーに案内できるように |
+
+### 6.3 スライド間のナビゲーション
+- 各デッキから `index.html`（または `index-en.html`）への戻りリンク
+- 日英版間の言語切替リンク
 
 ## 7. 制約事項
 - npm / Node.js への依存禁止
@@ -202,16 +223,21 @@ Reveal.initialize({
 - CDN リソースが読み込める（オンライン時）
 - 矢印キーでスライドが遷移する
 - Mermaid 図が正常描画される
-- `?print-pdf` で印刷レイアウトが適用される
-- 各セクションリンクが正しく遷移する
+- 各デッキ間のリンクが正しく遷移する
+- 日英切替リンクが正しく機能する
 - スマートフォン表示で最低限閲覧可能
 
-## 9. 決定済み事項（旧・未決定事項）
-- [x] 英語版の提供タイミング → **日本語版完成後すぐに着手**（別ファイル `index_en.html`）
-- [x] TOC-Progress プラグインの採否 → **不採用**（GPL-3.0 ライセンス汚染リスク、CDN 提供なし。reveal.js 標準の `progress` + `slideNumber` + 目次スライドで代替）
+## 9. 決定済み事項
+- [x] 英語版の提供タイミング → **日本語版と同時提供**（別ファイル `*-en.html`）
+- [x] TOC-Progress プラグインの採否 → **不採用**（GPL-3.0 ライセンス汚染リスク、CDN 提供なし）
 - [x] Google Fonts → **採用（CDN）**。Inter + JetBrains Mono を Google Fonts CDN で読み込む
+- [x] ファイル命名規則 → **ハイフン区切り**（`intro-en.html`）
+- [x] PDF エクスポート → **見送り**（`file://` プロトコルでの `?print-pdf` 非安定）
+- [x] Markdown プラグイン → **不使用**（`file://` プロトコルで動作しないため HTML 直接記述）
+- [x] スライドデッキ構成 → **テーマ別分割**（6デッキ: 目次 + intro + 3ストーリー + architecture）
 
 ## 10. 変更履歴
 | 日付 | 変更者 | 内容 |
 |------|--------|------|
-| 2026-02-15 | LAM Coordinator | 初版作成 |
+| 2026-02-15 | LAM Coordinator | 初版作成（Draft） |
+| 2026-03-13 | full-review | 現行実装に合わせて全面改訂（Approved） |

@@ -8,6 +8,10 @@
 - 設計書: Section 4.2 (ループログスキーマ)
 - KPI定義書: `docs/specs/evaluation-kpi.md`
 
+> **スキーマの正規参照**: `lam-loop-state.json`（実行時状態）のスキーマは本文書 Section 2 が SSOT である。
+> `.claude/hooks/lam-stop-hook.py` および `.claude/hooks/post-tool-use.py` が実装上の参照先。
+> 歴史的文書（`v4.0.0-immune-system-design.md` 等）に記載のスキーマは設計時点のものであり、本文書が優先する。
+
 ---
 
 ## 1. 概要

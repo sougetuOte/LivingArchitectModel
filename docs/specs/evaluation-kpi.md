@@ -23,11 +23,11 @@
 
 | # | KPI | 定義 | 測定方法 | データソース | 集計単位 |
 |---|-----|------|---------|-------------|---------|
-| K1 | タスク完了率 | 自動ループで収束したタスク数 / 全タスク数 | ループログの `convergence_reason` が `green_state` であるログ数を集計 | `.claude/logs/loop-*.json` | 週次 |
-| K2 | 平均ループイテレーション数 | ループ完了までの平均サイクル数 | ループログの `total_iterations` の平均値 | `.claude/logs/loop-*.json` | 週次 |
+| K1 | タスク完了率 | 自動ループで収束したタスク数 / 全タスク数 | ループログの `convergence_reason` が `green_state` であるログ数を集計 | `.claude/logs/loop-*.txt` | 週次 |
+| K2 | 平均ループイテレーション数 | ループ完了までの平均サイクル数 | ループログの `total_iterations` の平均値 | `.claude/logs/loop-*.txt` | 週次 |
 | K3 | フック介入率 | フックが block/ask した回数 / 全ツール呼び出し回数 | permission.log の block/ask エントリ数 / 全エントリ数 | `.claude/logs/permission.log` | 週次 |
-| K4 | コンテキスト枯渇率 | 20%以下で停止したセッション数 / 全セッション数 | ループログの `convergence_reason` が `context_exhaustion` であるログ数 | `.claude/logs/loop-*.json` | 月次 |
-| K5 | 同一Issue再発率 | 2サイクル連続で同一Issue検出数 / 全Issue数 | ループログの iterations 配列内で同一 issue が連続出現する回数 | `.claude/logs/loop-*.json` | 月次 |
+| K4 | コンテキスト枯渇率 | 20%以下で停止したセッション数 / 全セッション数 | ループログの `convergence_reason` が `context_exhaustion` であるログ数 | `.claude/logs/loop-*.txt` | 月次 |
+| K5 | 同一Issue再発率 | 2サイクル連続で同一Issue検出数 / 全Issue数 | ループログの iterations 配列内で同一 issue が連続出現する回数 | `.claude/logs/loop-*.txt` | 月次 |
 
 ### 2.1 KPI 詳細定義
 
@@ -93,7 +93,7 @@
 
 | ソース | 形式 | 生成タイミング | Wave |
 |--------|------|---------------|------|
-| `.claude/logs/loop-*.json` | JSON | `/full-review` ループ完了時 | Wave 2 |
+| `.claude/logs/loop-*.txt` | テキスト（MVP）/ JSON（完全実装） | `/full-review` ループ完了時 | Wave 2 |
 | `.claude/logs/permission.log` | テキスト（MVP）/ JSON（完全実装） | PreToolUse hook 判定時 | Wave 1 |
 | `.claude/tdd-patterns.log` | テキスト | PostToolUse hook 検出時 | Wave 2 |
 | `SESSION_STATE.md` | Markdown | `/quick-save` 実行時 | 既存 |
@@ -102,7 +102,7 @@
 
 `/quick-save` の Daily 記録ステップで以下を集計:
 
-1. `.claude/logs/loop-*.json` を走査し、K1〜K5 を計算
+1. `.claude/logs/loop-*.txt` を走査し、K1〜K5 を計算
 2. `.claude/logs/permission.log` を走査し、K3 の内訳（PG/SE/PM 別）を集計
 3. 結果をデイリーアップデートのテンプレートに出力
 
