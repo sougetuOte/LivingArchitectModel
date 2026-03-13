@@ -1,10 +1,11 @@
 # アンカーファイル テンプレート
 
+lam-orchestrate の構造化思考で使用するアンカーファイルの形式。
 アンカーファイル作成時は以下の構造に従う。
 レベルに応じて不要なセクションは省略する。
 
 ```markdown
-# ultimate-think Anchor: {用途}
+# Structured Thinking Anchor: {用途}
 
 **議題**: {元の議題}
 **レベル**: {1/2/3}
