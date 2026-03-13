@@ -4,7 +4,7 @@
 
 | カテゴリ | コマンド |
 |---------|---------|
-| ファイル読取 | `ls`, `cat`, `grep`, `find`, `pwd`, `du`, `file` |
+| ファイル読取 | `ls`, `cat`, `grep`, `pwd`, `du`, `file` |
 | Git 読取 | `git status`, `git log`, `git diff`, `git show`, `git branch` |
 | テスト | `pytest`, `npm test`, `go test` |
 | パッケージ情報 | `npm list`, `pip list` |
@@ -25,6 +25,7 @@
 上記に含まれないコマンドは **高リスク扱い**（承認必須）。
 
 > Layer 1（`settings.json`）では、上記コマンドの多くが `deny` または `ask` に分類されている。
+> `find` は v4.3.1 で `ask` に移動（`-delete`, `-exec rm` 等の破壊的パターンは `deny`）。
 「止めて」「ストップ」等の指示で直ちに停止。
 
 ## v4.0.0: ネイティブ権限モデルへの移行

@@ -16,13 +16,19 @@
 │   ├── adr/                # アーキテクチャ決定記録 (Why)
 │   ├── tasks/              # タスク管理 (Kanban/List)
 │   ├── internal/           # プロジェクト運用ルール (本フォルダ)
+│   ├── artifacts/          # 中間成果物・監査レポート・知見
+│   │   ├── knowledge/      # /retro Step4 で整理した知見
+│   │   └── audit-reports/  # 監査レポート
+│   ├── daily/              # デイリーレポート
+│   ├── slides/             # 概念説明スライド
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
 ├── .claude/                # Claude Code用設定・コマンド・状態管理
-│   ├── commands/           # ワークフローコマンド（/ship, /building 等）
+│   ├── commands/           # ワークフローコマンド（/ship, /full-review, /wave-plan 等）
 │   ├── rules/              # ガードレール（自動ロード）
 │   ├── hooks/              # PreToolUse/PostToolUse/Stop/PreCompact hooks
 │   ├── skills/             # スキル定義（テンプレート、思考フレームワーク等）
 │   ├── agents/             # カスタムサブエージェント定義
+│   ├── agent-memory/       # サブエージェントの永続メモリ
 │   ├── states/             # フェーズ承認ゲート状態（*.json）
 │   ├── logs/               # 権限ログ、ループログ等
 │   └── settings.json       # 権限・hooks 設定
@@ -35,6 +41,9 @@
 
 - **Raw Ideas**: ユーザーからの未加工のアイデアやチャットログは `docs/memos/YYYY-MM-DD_topic.md` に保存する。
 - **Intermediate Reports**: lam-orchestrate の Wave 間で受け渡す調査結果等の中間成果物は `docs/artifacts/YYYY-MM-DD_intermediate_[topic].md` に保存する（Coordinator のコンテキスト圧迫を防ぐため）。
+- **Knowledge**: `/retro` Step 4 で整理した知見は `docs/artifacts/knowledge/` に蓄積する。
+- **Audit Reports**: `/full-review` の監査レポートは `docs/artifacts/audit-reports/` に保存する。
+- **TDD Patterns**: テスト失敗/成功パターンの詳細記録は `docs/artifacts/tdd-patterns/` に保存する。
 - **Reference Materials**: 参考資料（画像、PDF）は `docs/memos/assets/` に配置する。
 
 ### B. Specifications (仕様書)
@@ -47,9 +56,14 @@
 - **Naming**: `docs/adr/NNNN-kebab-case-title.md`（NNNN: 4桁連番、0001から）
 - **Immutable**: 一度確定した ADR は原則変更せず、変更が必要な場合は新しい ADR を作成して "Supersedes" と明記する。
 
-### D. State Management (状態管理)
+### D. Subagent Persistent Memory
 
-- **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/quick-save` で記録、`/full-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
+- **Path**: `.claude/agent-memory/<agent-name>/`
+- **用途**: サブエージェントがレビュー時に学んだプロジェクト固有知見を蓄積する領域。CLAUDE.md の指示に従いサブエージェントが自発的に書き込む。
+
+### E. State Management (状態管理)
+
+- **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/quick-save` で記録、`/quick-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
 - **.claude/states/*.json**: フェーズごとの承認ゲート管理、タスク進捗の永続的な状態記録。機能開発の進行管理に使用。
 - **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。`/planning`, `/building`, `/auditing` コマンドで更新される。
 

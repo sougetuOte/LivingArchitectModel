@@ -51,7 +51,7 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 テスト失敗→成功のサイクルを PostToolUse hook が自動記録する。蓄積されたパターンが閾値（3回）に到達すると、ルール候補が自動生成される。
 
 - パターン記録: `.claude/tdd-patterns.log`（自動、PG級）
-- パターン詳細: `docs/artifacts/tdd-patterns/`
+- パターン詳細: `docs/memos/tdd-patterns/`
 - ルール候補: `.claude/rules/auto-generated/draft-*.md`（PM級で起票・承認）
 - 審査コマンド: `/pattern-review`
 

@@ -228,15 +228,15 @@ Green State: test=PASS, lint=PASS
 ### 5.2 ライフサイクル
 
 - **生成**: `/full-review` ループ完了時に Stop hook が状態ファイルの内容を元に生成
-- **参照**: `/daily` の KPI 集計で走査
+- **参照**: `/quick-save` の KPI 集計で走査
 - **保持期間**: 無期限（git で追跡）
 - **集計**: `evaluation-kpi.md` Section 5.2 の手順に従う
 
-### 5.3 `/full-save` との連携
+### 5.3 `/quick-save` との連携
 
-`/full-save` 実行時:
-1. `.claude/logs/` 配下の未コミットのループログを git commit に含める
-2. ループログは「ドキュメント更新」グループとして他のドキュメント変更と一緒にコミット
+`/quick-save` 実行時:
+1. `.claude/logs/` 配下の未コミットのループログを記録に含める
+2. git commit は `/ship` で行う
 
 ---
 

@@ -96,11 +96,11 @@
 | `.claude/logs/loop-*.json` | JSON | `/full-review` ループ完了時 | Wave 2 |
 | `.claude/logs/permission.log` | テキスト（MVP）/ JSON（完全実装） | PreToolUse hook 判定時 | Wave 1 |
 | `.claude/tdd-patterns.log` | テキスト | PostToolUse hook 検出時 | Wave 2 |
-| `SESSION_STATE.md` | Markdown | `/quick-save`, `/full-save` 実行時 | 既存 |
+| `SESSION_STATE.md` | Markdown | `/quick-save` 実行時 | 既存 |
 
 ### 5.2 集計方法
 
-`/daily` コマンドで以下を集計:
+`/quick-save` の Daily 記録ステップで以下を集計:
 
 1. `.claude/logs/loop-*.json` を走査し、K1〜K5 を計算
 2. `.claude/logs/permission.log` を走査し、K3 の内訳（PG/SE/PM 別）を集計
@@ -115,7 +115,7 @@
 
 ---
 
-## 6. `/daily` KPI 集計セクション
+## 6. `/quick-save` KPI 集計セクション
 
 ### 6.1 出力テンプレート
 
