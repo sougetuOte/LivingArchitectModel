@@ -388,7 +388,7 @@ graph LR
   C --> D{Pattern accumulation}
   D -->|1st time| E[Record]
   D -->|2nd time| F[Caution]
-  D -->|3rd time| G[Candidate generated]
+  D -->|2nd time| G[Candidate generated]
   style A fill:#ce9178,stroke:#fff,color:#000
   style B fill:#569cd6,stroke:#fff,color:#fff
   style C fill:#2d2d2d,stroke:#569cd6,color:#fff
@@ -397,7 +397,7 @@ graph LR
   style F fill:#ce9178,stroke:#fff,color:#000
   style G fill:#4ec9b0,stroke:#fff,color:#000
         </pre>
-        <p style="font-size: 0.85em; margin-top: 0.5rem;">When the same failure pattern repeats <strong>3 times</strong>, a rule candidate is automatically generated</p>
+        <p style="font-size: 0.85em; margin-top: 0.5rem;">When the same failure pattern repeats <strong>2 times</strong>, a rule candidate is proposed during <code>/retro</code></p>
       </section>
 
       <!-- Slide 5: Pattern Recording Example -->
@@ -405,7 +405,7 @@ graph LR
         <h2>Pattern Recording Example</h2>
         <div class="code-snippet">
           <span style="color: var(--accent-secondary);">Pattern:</span> Import statement ordering<br>
-          <span style="color: var(--accent-secondary);">Occurrences:</span> 3<br>
+          <span style="color: var(--accent-secondary);">Occurrences:</span> 2<br>
           <span style="color: var(--accent-secondary);">Files:</span> src/auth/router.py, src/users/models.py, src/orders/service.py<br>
           <span style="color: var(--accent-secondary);">Failure:</span> Test failed due to isort rule violation
         </div>
@@ -425,7 +425,7 @@ graph LR
         <div class="chat-bubble ai fragment">
           <span class="chat-label">Living Architect</span>
           <p style="font-size: 0.72em;"><strong>draft-001:</strong> Import statement ordering rule<br>
-          Occurrences: 3 / Target: src/**/*.py<br>
+          Occurrences: 2 / Target: src/**/*.py<br>
           Recommendation: "Add isort configuration to pyproject.toml and auto-format with pre-commit"</p>
         </div>
         <div class="chat-bubble user fragment">
@@ -459,7 +459,7 @@ graph LR
         <h2>Rule Lifecycle Management</h2>
         <ul style="margin-top: 1rem;">
           <li>Each rule records a <code>last_matched</code> date</li>
-          <li>Rules unused for 90+ days are flagged in <code>/daily</code></li>
+          <li>Rules unused for 90+ days are flagged during <code>/quick-save</code> Daily record</li>
           <li>Deletion is PM Level (human approval required)</li>
         </ul>
         <div class="emphasis-box fragment" style="margin-top: 1rem;">
@@ -488,14 +488,14 @@ graph LR
         <h2>docs/internal/ &mdash; Structured Knowledge</h2>
         <div class="dir-tree">
           docs/internal/<br>
-          &nbsp;&nbsp;&boxvr;&nbsp; 00_ARCHITECTURE_OVERVIEW.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 00_PROJECT_STRUCTURE.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 01_REQUIREMENT_MANAGEMENT.md<br>
-          &nbsp;&nbsp;&boxvr;&nbsp; 02_PHASE_CONTROL.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 02_DEVELOPMENT_FLOW.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 03_QUALITY_STANDARDS.md<br>
-          &nbsp;&nbsp;&boxvr;&nbsp; 04_CONTEXT_MANAGEMENT.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 04_RELEASE_OPS.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 05_MCP_INTEGRATION.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 06_DECISION_MAKING.md<br>
-          &nbsp;&nbsp;&boxur;&nbsp; 07_CONTINUOUS_IMPROVEMENT.md
+          &nbsp;&nbsp;&boxur;&nbsp; 07_SECURITY_AND_AUTOMATION.md
         </div>
         <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
           <p style="font-size: 0.85em;">This is the project's <strong>methodology SSOT</strong>. It structurally defines the know-how and procedures for "how to develop"</p>

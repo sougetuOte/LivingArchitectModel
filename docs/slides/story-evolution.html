@@ -388,7 +388,7 @@ graph LR
   C --> D{パターン蓄積}
   D -->|1回目| E[記録]
   D -->|2回目| F[注意]
-  D -->|3回目| G[候補生成]
+  D -->|2回目| G[候補生成]
   style A fill:#ce9178,stroke:#fff,color:#000
   style B fill:#569cd6,stroke:#fff,color:#fff
   style C fill:#2d2d2d,stroke:#569cd6,color:#fff
@@ -397,7 +397,7 @@ graph LR
   style F fill:#ce9178,stroke:#fff,color:#000
   style G fill:#4ec9b0,stroke:#fff,color:#000
         </pre>
-        <p style="font-size: 0.85em; margin-top: 0.5rem;">同じ失敗パターンが <strong>3回</strong> 繰り返されると、自動的にルール候補が生成される</p>
+        <p style="font-size: 0.85em; margin-top: 0.5rem;">同じ失敗パターンが <strong>2回</strong> 繰り返されると、<code>/retro</code> 実行時にルール候補が提案される</p>
       </section>
 
       <!-- Slide 5: パターン記録の例 -->
@@ -405,7 +405,7 @@ graph LR
         <h2>パターン記録の例</h2>
         <div class="code-snippet">
           <span style="color: var(--accent-secondary);">パターン:</span> import 文の順序<br>
-          <span style="color: var(--accent-secondary);">観測回数:</span> 3<br>
+          <span style="color: var(--accent-secondary);">観測回数:</span> 2<br>
           <span style="color: var(--accent-secondary);">ファイル:</span> src/auth/router.py, src/users/models.py, src/orders/service.py<br>
           <span style="color: var(--accent-secondary);">失敗内容:</span> isort のルール違反でテスト失敗
         </div>
@@ -425,7 +425,7 @@ graph LR
         <div class="chat-bubble ai fragment">
           <span class="chat-label">Living Architect</span>
           <p style="font-size: 0.72em;"><strong>draft-001:</strong> import 文の順序ルール<br>
-          観測回数: 3回 / 対象: src/**/*.py<br>
+          観測回数: 2回 / 対象: src/**/*.py<br>
           推奨: 「isort の設定を pyproject.toml に追加し、pre-commit で自動整形」</p>
         </div>
         <div class="chat-bubble user fragment">
@@ -459,7 +459,7 @@ graph LR
         <h2>ルール寿命管理</h2>
         <ul style="margin-top: 1rem;">
           <li>各ルールに <code>last_matched</code> 日付を記録</li>
-          <li>90日以上未使用のルールを <code>/daily</code> で棚卸し通知</li>
+          <li>90日以上未使用のルールを <code>/quick-save</code> の Daily 記録で棚卸し通知</li>
           <li>削除は PM級（人間承認必須）</li>
         </ul>
         <div class="emphasis-box fragment" style="margin-top: 1rem;">
@@ -488,14 +488,14 @@ graph LR
         <h2>docs/internal/ &mdash; 知識の構造化</h2>
         <div class="dir-tree">
           docs/internal/<br>
-          &nbsp;&nbsp;&boxvr;&nbsp; 00_ARCHITECTURE_OVERVIEW.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 00_PROJECT_STRUCTURE.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 01_REQUIREMENT_MANAGEMENT.md<br>
-          &nbsp;&nbsp;&boxvr;&nbsp; 02_PHASE_CONTROL.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 02_DEVELOPMENT_FLOW.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 03_QUALITY_STANDARDS.md<br>
-          &nbsp;&nbsp;&boxvr;&nbsp; 04_CONTEXT_MANAGEMENT.md<br>
+          &nbsp;&nbsp;&boxvr;&nbsp; 04_RELEASE_OPS.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 05_MCP_INTEGRATION.md<br>
           &nbsp;&nbsp;&boxvr;&nbsp; 06_DECISION_MAKING.md<br>
-          &nbsp;&nbsp;&boxur;&nbsp; 07_CONTINUOUS_IMPROVEMENT.md
+          &nbsp;&nbsp;&boxur;&nbsp; 07_SECURITY_AND_AUTOMATION.md
         </div>
         <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
           <p style="font-size: 0.85em;">これはプロジェクトの<strong>方法論 SSOT</strong>。「どうやって開発するか」のノウハウと手順を構造化して定義する</p>

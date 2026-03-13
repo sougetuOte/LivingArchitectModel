@@ -454,7 +454,7 @@
           <div class="timeline-item fragment">
             <div class="timeline-icon">&#x1F305;</div>
             <div class="timeline-content">
-              <strong>Morning: /full-load</strong>
+              <strong>Morning: /quick-load</strong>
               <p>Session Restore &mdash; fully restore the previous state</p>
             </div>
           </div>
@@ -475,7 +475,7 @@
           <div class="timeline-item fragment">
             <div class="timeline-icon">&#x1F4E6;</div>
             <div class="timeline-content">
-              <strong>Evening: /ship &rarr; /full-save</strong>
+              <strong>Evening: /ship &rarr; /quick-save</strong>
               <p>Commit &rarr; persist state</p>
             </div>
           </div>
@@ -487,7 +487,7 @@
         <h2>Morning &mdash; Session Restore</h2>
         <div class="chat-bubble user">
           <span class="chat-label">You</span>
-          <p>/full-load</p>
+          <p>/quick-load</p>
         </div>
         <div class="chat-bubble ai fragment">
           <span class="chat-label">Living Architect</span>
@@ -633,7 +633,7 @@ graph LR
             <p><strong>1.</strong> Monitor context remaining via StatusLine at all times</p>
           </div>
           <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
-            <p><strong>2.</strong> AI automatically recommends /quick-save when below 25%</p>
+            <p><strong>2.</strong> AI automatically recommends /quick-save when below 20%</p>
           </div>
           <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
             <p><strong>3.</strong> /quick-save &rarr; lightweight save to SESSION_STATE.md (3-4% cost)</p>
@@ -672,19 +672,19 @@ graph LR
         </div>
       </section>
 
-      <!-- Slide 11: /full-save -->
+      <!-- Slide 11: /quick-save -->
       <section>
-        <h2>Evening &mdash; /full-save</h2>
+        <h2>Evening &mdash; /quick-save</h2>
         <div class="chat-bubble user">
           <span class="chat-label">You</span>
-          <p>/full-save</p>
+          <p>/quick-save</p>
         </div>
         <div class="chat-bubble ai fragment">
           <span class="chat-label">Living Architect</span>
-          <p>SESSION_STATE.md updated &rarr; git commit &rarr; git push &rarr; daily retrospective complete</p>
+          <p>SESSION_STATE.md updated. You can resume with /quick-load next time.</p>
         </div>
         <div class="emphasis-box fragment">
-          <p>At the end of the day, all state is persisted. Tomorrow's you (or another AI) can pick up right where you left off</p>
+          <p>Save state at end of day. Run /ship first if you need to commit</p>
         </div>
       </section>
 
@@ -730,7 +730,7 @@ graph LR
           <tr>
             <td>Resume</td>
             <td>Explain from scratch every time</td>
-            <td>Instant resume with /full-load</td>
+            <td>Instant resume with /quick-load</td>
           </tr>
           <tr>
             <td>Interruption</td>
@@ -750,7 +750,7 @@ graph LR
           <tr>
             <td>Save</td>
             <td>All lost on disconnect</td>
-            <td>Persisted with /full-save</td>
+            <td>Persisted with /quick-save</td>
           </tr>
         </table>
         <div class="emphasis-box fragment">

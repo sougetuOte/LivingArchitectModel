@@ -572,38 +572,10 @@ graph LR
         </pre>
       </section>
 
-      <!-- Slide 12: ultimate-think -->
-      <section>
-        <h2>/ultimate-think</h2>
-        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">A multi-layered thinking skill integrating AoT + 3 Agents + Reflection</p>
-        <pre class="mermaid">
-graph TD
-  Q["Complex question"] --> AoT["AoT Decomposition"]
-  AoT --> A1["Atom 1"]
-  AoT --> A2["Atom 2"]
-  A1 --> TA["3 Agents Debate"]
-  A2 --> TA2["3 Agents Debate"]
-  TA --> R["Reflection"]
-  TA2 --> R
-  R --> S["Integrated Conclusion"]
-  style Q fill:#569cd6,stroke:#fff,color:#000
-  style AoT fill:#569cd6,stroke:#fff,color:#000
-  style A1 fill:#4ec9b0,stroke:#fff,color:#000
-  style A2 fill:#4ec9b0,stroke:#fff,color:#000
-  style TA fill:#ce9178,stroke:#fff,color:#000
-  style TA2 fill:#ce9178,stroke:#fff,color:#000
-  style R fill:#569cd6,stroke:#fff,color:#000
-  style S fill:#4ec9b0,stroke:#fff,color:#000
-        </pre>
-        <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;"><strong>Suppresses hallucination</strong> in design decisions and risk assessments. Available in all phases</p>
-        </div>
-      </section>
-
-      <!-- Slide 13: lam-orchestrate -->
+      <!-- Slide 12: lam-orchestrate (merged from ultimate-think) -->
       <section>
         <h2>/lam-orchestrate</h2>
-        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">Decomposes tasks and executes them in parallel using appropriate subagents</p>
+        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">Task decomposition, parallel execution + structured thinking (AoT + 3 Agents)</p>
         <pre class="mermaid">
 graph TD
   T["Large task"] --> D["Task decomposition"]
@@ -621,11 +593,11 @@ graph TD
   style M fill:#ce9178,stroke:#fff,color:#000
         </pre>
         <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;"><strong>Automatic decomposition and parallel execution</strong> of work spanning multiple files/modules</p>
+          <p style="font-size: 0.8em;"><strong>Automatic decomposition and parallel execution</strong> of work spanning multiple files/modules. Uses AoT + 3 Agents to <strong>suppress hallucination</strong> in design decisions</p>
         </div>
       </section>
 
-      <!-- Slide 14: Save / Load Mechanism -->
+      <!-- Slide 13: Save / Load Mechanism -->
       <section>
         <h2>Save / Load Mechanism</h2>
         <table style="margin-top: 0.8rem;">
@@ -635,16 +607,15 @@ graph TD
           <tbody>
             <tr><td><code>/quick-save</code></td><td>SESSION_STATE.md only</td><td>Lightweight (3-4%)</td></tr>
             <tr><td><code>/quick-load</code></td><td>Load SESSION_STATE.md</td><td>Daily resume</td></tr>
-            <tr><td><code>/full-save</code></td><td>STATE + commit + push + daily</td><td>End of day</td></tr>
-            <tr><td><code>/full-load</code></td><td>Detailed check + recovery report</td><td>Return after days off</td></tr>
+            <tr><td><code>/ship</code></td><td>Logical group commits</td><td>When commits are needed</td></tr>
           </tbody>
         </table>
         <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
-          <p style="font-size: 0.85em;">Use <code>/quick-save</code> when context remaining is below 25%</p>
+          <p style="font-size: 0.85em;">Use <code>/quick-save</code> when context remaining is below 20%</p>
         </div>
       </section>
 
-      <!-- Slide 15: File Structure Map -->
+      <!-- Slide 14: File Structure Map -->
       <section>
         <h2>File Structure Map</h2>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
@@ -670,7 +641,7 @@ graph TD
         </div>
       </section>
 
-      <!-- Slide 16: Summary -->
+      <!-- Slide 15: Summary -->
       <section>
         <h2>Summary</h2>
         <div class="emphasis-box" style="margin-top: 1rem;">

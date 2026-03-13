@@ -35,7 +35,7 @@ Priority order when making decisions:
 |------|---------|------------|-------------------|
 | `/planning` | Design and task decomposition | Code generation prohibited | Opus / Sonnet |
 | `/building` | TDD implementation | Spec verification required | Sonnet |
-| `/auditing` | Review and audit | Direct fixes prohibited (findings only) | Opus |
+| `/auditing` | Review and audit | PG/SE fixes allowed, PM findings only | Opus |
 
 See `.claude/rules/phase-rules.md` for details.
 

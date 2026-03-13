@@ -454,7 +454,7 @@
           <div class="timeline-item fragment">
             <div class="timeline-icon">&#x1F305;</div>
             <div class="timeline-content">
-              <strong>朝: /full-load</strong>
+              <strong>朝: /quick-load</strong>
               <p>セッション復帰 &mdash; 前回の状態を完全復元</p>
             </div>
           </div>
@@ -475,7 +475,7 @@
           <div class="timeline-item fragment">
             <div class="timeline-icon">&#x1F4E6;</div>
             <div class="timeline-content">
-              <strong>夕方: /ship &rarr; /full-save</strong>
+              <strong>夕方: /ship &rarr; /quick-save</strong>
               <p>コミット &rarr; 状態永続化</p>
             </div>
           </div>
@@ -487,7 +487,7 @@
         <h2>朝 &mdash; セッション復帰</h2>
         <div class="chat-bubble user">
           <span class="chat-label">You</span>
-          <p>/full-load</p>
+          <p>/quick-load</p>
         </div>
         <div class="chat-bubble ai fragment">
           <span class="chat-label">Living Architect</span>
@@ -633,7 +633,7 @@ graph LR
             <p><strong>1.</strong> StatusLine でコンテキスト残量を常時監視</p>
           </div>
           <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
-            <p><strong>2.</strong> 残量 25% 以下で AI が自動的に /quick-save を推奨</p>
+            <p><strong>2.</strong> 残量 20% 以下で AI が自動的に /quick-save を推奨</p>
           </div>
           <div class="scenario-card pg fragment" style="border-left-color: var(--accent-primary);">
             <p><strong>3.</strong> /quick-save &rarr; SESSION_STATE.md に軽量保存（3-4% 消費）</p>
@@ -672,19 +672,19 @@ graph LR
         </div>
       </section>
 
-      <!-- Slide 11: /full-save -->
+      <!-- Slide 11: /quick-save -->
       <section>
-        <h2>夕方 &mdash; /full-save</h2>
+        <h2>夕方 &mdash; /quick-save</h2>
         <div class="chat-bubble user">
           <span class="chat-label">You</span>
-          <p>/full-save</p>
+          <p>/quick-save</p>
         </div>
         <div class="chat-bubble ai fragment">
           <span class="chat-label">Living Architect</span>
-          <p>SESSION_STATE.md 更新 &rarr; git commit &rarr; git push &rarr; 日次振り返り完了</p>
+          <p>SESSION_STATE.md を更新しました。次回 /quick-load で復帰できます。</p>
         </div>
         <div class="emphasis-box fragment">
-          <p>一日の終わりに、全ての状態を永続化。明日の自分（または別のAI）が引き継げる</p>
+          <p>一日の終わりに状態を保存。コミットが必要なら /ship を先に実行</p>
         </div>
       </section>
 
@@ -730,7 +730,7 @@ graph LR
           <tr>
             <td>復帰</td>
             <td>毎回ゼロから説明</td>
-            <td>/full-load で即復帰</td>
+            <td>/quick-load で即復帰</td>
           </tr>
           <tr>
             <td>中断</td>
@@ -750,7 +750,7 @@ graph LR
           <tr>
             <td>保存</td>
             <td>切れたら全ロスト</td>
-            <td>/full-save で永続化</td>
+            <td>/quick-save で状態保存</td>
           </tr>
         </table>
         <div class="emphasis-box fragment">

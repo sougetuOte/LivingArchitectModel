@@ -572,38 +572,10 @@ graph LR
         </pre>
       </section>
 
-      <!-- Slide 12: ultimate-think -->
-      <section>
-        <h2>/ultimate-think</h2>
-        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">AoT + 3 Agents + Reflection を統合した多層思考スキル</p>
-        <pre class="mermaid">
-graph TD
-  Q["複雑な問い"] --> AoT["AoT 分解"]
-  AoT --> A1["Atom 1"]
-  AoT --> A2["Atom 2"]
-  A1 --> TA["3 Agents Debate"]
-  A2 --> TA2["3 Agents Debate"]
-  TA --> R["Reflection"]
-  TA2 --> R
-  R --> S["統合結論"]
-  style Q fill:#569cd6,stroke:#fff,color:#000
-  style AoT fill:#569cd6,stroke:#fff,color:#000
-  style A1 fill:#4ec9b0,stroke:#fff,color:#000
-  style A2 fill:#4ec9b0,stroke:#fff,color:#000
-  style TA fill:#ce9178,stroke:#fff,color:#000
-  style TA2 fill:#ce9178,stroke:#fff,color:#000
-  style R fill:#569cd6,stroke:#fff,color:#000
-  style S fill:#4ec9b0,stroke:#fff,color:#000
-        </pre>
-        <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;">設計判断やリスク評価で<strong>ハルシネーションを抑制</strong>する。全フェーズで使用可能</p>
-        </div>
-      </section>
-
-      <!-- Slide 13: lam-orchestrate -->
+      <!-- Slide 12: lam-orchestrate（旧 ultimate-think を統合） -->
       <section>
         <h2>/lam-orchestrate</h2>
-        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">タスクを分解し、適切なサブエージェントで並列実行する</p>
+        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">タスク分解・並列実行 + 構造化思考（AoT + 3 Agents）を統合</p>
         <pre class="mermaid">
 graph TD
   T["大きなタスク"] --> D["タスク分解"]
@@ -621,11 +593,11 @@ graph TD
   style M fill:#ce9178,stroke:#fff,color:#000
         </pre>
         <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;">複数ファイル/モジュールにまたがる作業を<strong>自動分解・並列実行</strong></p>
+          <p style="font-size: 0.8em;">複数ファイル/モジュールにまたがる作業を<strong>自動分解・並列実行</strong>。設計判断では AoT + 3 Agents で<strong>ハルシネーションを抑制</strong></p>
         </div>
       </section>
 
-      <!-- Slide 14: セーブ/ロード機構 -->
+      <!-- Slide 13: セーブ/ロード機構 -->
       <section>
         <h2>セーブ / ロード機構</h2>
         <table style="margin-top: 0.8rem;">
@@ -635,16 +607,15 @@ graph TD
           <tbody>
             <tr><td><code>/quick-save</code></td><td>SESSION_STATE.md のみ</td><td>軽量（3-4%）</td></tr>
             <tr><td><code>/quick-load</code></td><td>SESSION_STATE.md 読込</td><td>日常の再開</td></tr>
-            <tr><td><code>/full-save</code></td><td>STATE + commit + push + daily</td><td>一日の終わり</td></tr>
-            <tr><td><code>/full-load</code></td><td>詳細確認 + 復帰報告</td><td>数日ぶりの復帰</td></tr>
+            <tr><td><code>/ship</code></td><td>論理グループ分けコミット</td><td>コミットが必要な時</td></tr>
           </tbody>
         </table>
         <div class="emphasis-box fragment" style="margin-top: 0.8rem;">
-          <p style="font-size: 0.85em;">残量 25% 以下では <code>/quick-save</code> を使うこと</p>
+          <p style="font-size: 0.85em;">残量 20% 以下では <code>/quick-save</code> を使うこと</p>
         </div>
       </section>
 
-      <!-- Slide 13: ファイル構成マップ -->
+      <!-- Slide 14: ファイル構成マップ -->
       <section>
         <h2>ファイル構成マップ</h2>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.5rem;">
@@ -670,7 +641,7 @@ graph TD
         </div>
       </section>
 
-      <!-- Slide 14: まとめ -->
+      <!-- Slide 15: まとめ -->
       <section>
         <h2>まとめ</h2>
         <div class="emphasis-box" style="margin-top: 1rem;">

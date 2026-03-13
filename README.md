@@ -151,6 +151,8 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `/ship` | 論理グループ分けコミット（棚卸し -> 分類 -> コミット） |
 | `/full-review <対象>` | 並列監査 + 全修正 + 検証（一気通貫） |
 | `/release <version>` | リリース（CHANGELOG -> commit -> push -> tag） |
+| `/wave-plan [N]` | Wave 計画（次 Wave のタスク選定と実行順序を策定） |
+| `/retro [wave\|phase]` | 振り返り（Wave/Phase 完了時の学習サイクル） |
 
 ## 補助コマンド
 

@@ -25,7 +25,7 @@ Typical flow:
 ├── skills/                # Orchestration and template output
 ├── states/                # Per-feature progress state
 ├── hooks/                 # PreToolUse / PostToolUse / Stop / PreCompact
-├── logs/                  # permission.log, loop-*.json (generated at runtime)
+├── logs/                  # permission.log, loop-*.txt (generated at runtime)
 └── current-phase.md       # Current phase
 
 CLAUDE.md                  # Constitution (core principles only)
@@ -44,6 +44,8 @@ docs/adr/                  # Architecture Decision Records
 | `security-commands.md` | Command safety standards (Allow/Deny List) |
 | `decision-making.md` | Decision-making protocol |
 | `permission-levels.md` | Permission level classification (PG/SE/PM) **New in v4.0.0** |
+| `upstream-first.md` | Upstream First principle (verify platform docs before implementation) |
+| `test-result-output.md` | Test result file output rule (JUnit XML) |
 
 ## Permission Levels (PG/SE/PM) **New in v4.0.0**
 
@@ -116,8 +118,8 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 
 | Agent | Usage example | Phase | Memory |
 |-------|---------------|-------|:------:|
-| `requirement-analyst` | "Organize the requirements" | PLANNING | project |
-| `design-architect` | "Design the API" | PLANNING | project |
+| `requirement-analyst` | "Organize the requirements" | PLANNING | - |
+| `design-architect` | "Design the API" | PLANNING | - |
 | `task-decomposer` | "Break down the tasks" | PLANNING | - |
 | `tdd-developer` | "Implement TASK-001" | BUILDING | - |
 | `quality-auditor` | "Audit src/" | AUDITING | - |
@@ -174,6 +176,7 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 | `docs/internal/05_MCP_INTEGRATION.md` | MCP integration and MEMORY.md usage policy |
 | `docs/internal/06_DECISION_MAKING.md` | Decision-making (3 Agents + AoT) |
 | `docs/internal/07_SECURITY_AND_AUTOMATION.md` | Command safety standards (Allow/Deny List) |
+| `docs/internal/99_reference_generic.md` | Generic reference template |
 
 ## AoT (Atom of Thought) Quick Guide
 
