@@ -85,10 +85,10 @@ PLANNING 承認状態:
 - ユーザーに報告
 - 必要に応じて `docs/artifacts/walkthrough-<feature>.md` に検証結果をまとめる
 
-## TDD 内省パイプライン（v4.0.0 Wave 4 実装済み）
+## TDD 内省パイプライン v2
 
 BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパターンは PostToolUse hook によって `.claude/tdd-patterns.log` に自動記録される。
-閾値（3回）に達したパターンは `/pattern-review` コマンドで審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
+閾値（2回）に達したパターンは `/pattern-review` コマンドで審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
 詳細: `.claude/rules/auto-generated/trust-model.md`
 
 ## 禁止事項

@@ -39,6 +39,25 @@ SESSION_STATE.md と git log から対象範囲を特定:
 | 対応不可 Issue | N件 |
 | 仕様書更新数 | N |
 
+### Step 2.5: TDD パターン分析
+
+`.claude/tdd-patterns.log` が存在する場合、以下を実施:
+
+1. ログを読み込み、FAIL→PASS 遷移ペアを抽出
+2. 同一テスト名・同一ファイルの繰り返し失敗を集計
+3. 頻出パターン（2回以上）があれば:
+   - パターンの要約を提示
+   - ルール候補（`.claude/rules/auto-generated/draft-NNN.md`）を提案
+   - ユーザーが承認/却下を判断（PM級）
+4. 分析完了後、`tdd-patterns.log` に `ANALYZED` マーカーを追記:
+   ```
+   {timestamp}\tANALYZED\tretro\t"analyzed N patterns"
+   ```
+
+ログが存在しない場合はこのステップをスキップする。
+
+対応仕様: `docs/specs/tdd-introspection-v2.md` Section 6
+
 ### Step 3: 定性分析（KPT）
 
 以下の3カテゴリで振り返る:

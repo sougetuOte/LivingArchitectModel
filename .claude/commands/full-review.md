@@ -117,7 +117,7 @@ full-review 開始時に context7 MCP の利用可否を確認する。
 
 各エージェントは独立した監査レポートを生成する。
 
-**イテレーション2回目以降の差分チェック**: 2回目以降のサイクルでは、前サイクルで修正されたファイルのみを対象にする（差分チェック）。これにより不要な再監査を避け、収束を早める。
+**イテレーション2回目以降もゼロベース全ファイル監査**: 2回目以降のサイクルでも、対象の全ファイルをゼロベースで監査する。前回の指摘事項の修正確認に偏ってはならない。理由: (1) 修正の副作用で新たな不整合が生じうる、(2) 他のエラーが消えたことで初めて浮かび上がるエラーがある、(3) 前回と同じ検証ポイントだけを見ると視野が狭まる。監査エージェントには「前回の指摘を確認せよ」ではなく「全ファイルを読み、全観点で監査せよ」と指示すること。
 
 **仕様ドリフトチェック（quality-auditor）**: quality-auditor は `docs/specs/` と対象コードの整合性を検証する。仕様に記述されているが実装されていない機能、または実装されているが仕様に記述されていない機能を「仕様ドリフト」として報告する。
 
@@ -187,12 +187,12 @@ PM級の Issue が存在する場合、PG/SE級を先に修正した後、以下
 
 ```bash
 # PM級 Issue 発見時に実行
-TMP_FILE=$(mktemp) && jq '.pm_pending = true' .claude/lam-loop-state.json > "${TMP_FILE}" && mv "${TMP_FILE}" .claude/lam-loop-state.json
+python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['pm_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 ```bash
 # PM級修正完了後に実行
-TMP_FILE=$(mktemp) && jq '.pm_pending = false' .claude/lam-loop-state.json > "${TMP_FILE}" && mv "${TMP_FILE}" .claude/lam-loop-state.json
+python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['pm_pending']=False;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 共通ポリシー:
@@ -242,19 +242,19 @@ iter 3: 発見  0件 →             → ✅ Green State 達成
 ツールが未インストールの場合は PASS（スキップ）扱いとし、ログに記録する。
 プロジェクトに Anthropic 公式 `security-guidance` plugin がインストールされている場合は、そちらの検出結果も考慮する。
 
-### 差分チェックとフルスキャン
+### 監査範囲と検証範囲
 
-| サイクル | チェック範囲 | 目的 |
-|---------|------------|------|
-| 毎サイクル | **変更ファイルのみ**（Phase 3 で修正したファイル） | 修正による新規問題の検出、収束の加速 |
-| 最終サイクル（Green State 達成後） | **対象全体のフルスキャン** | 修正の副作用が他のファイルに波及していないことを最終確認 |
+| フェーズ | 範囲 | 目的 |
+|---------|------|------|
+| Phase 1（監査） | **毎回、対象全体をゼロベース** | 修正の副作用、他エラーに隠れていた問題を発見 |
+| Phase 4（テスト・lint） | 変更ファイル中心（最終サイクルで全体） | テスト実行コストの最適化 |
 
 **フルスキャンの発動手順**: 差分チェックで Green State を達成したら、`/full-review`（または lam-orchestrate）が状態ファイルに `fullscan_pending: true` をセットする:
 
 ```bash
 # Phase 4 で差分チェック Green State 達成時に実行
-# jq で fullscan_pending フラグをセット
-TMP_FILE=$(mktemp) && jq '.fullscan_pending = true' .claude/lam-loop-state.json > "${TMP_FILE}" && mv "${TMP_FILE}" .claude/lam-loop-state.json
+# fullscan_pending フラグをセット
+python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 Stop hook がこのフラグを検出すると、もう1サイクル（フルスキャン）を実行する。フルスキャンでも Green State なら本当の停止となる。

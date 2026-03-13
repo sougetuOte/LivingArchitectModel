@@ -32,7 +32,7 @@
 
 1.  **Rollback**: 直ちに直前の安定バージョンへ切り戻す。原因究明はその後に行う。
 2.  **Announcement**: ユーザーへ障害発生と状況を通知する。
-3.  **Post-Mortem**: 事後分析を行い、再発防止策を `docs/adr/` に記録する。
+3.  **Post-Mortem**: 事後分析を行い、`docs/artifacts/` に記録する。アーキテクチャ判断が伴う場合は `docs/adr/` にも ADR を起票する。
 
 ## 4. Versioning Strategy (バージョニング)
 

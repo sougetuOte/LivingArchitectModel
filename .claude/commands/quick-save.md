@@ -35,7 +35,7 @@ git commit は行わない（コミットは `/ship` を使用）。
 
 ## 2. ループログ保存
 
-`.claude/logs/loop.log` が存在する場合、未コミットのループログを記録に含める。
+`.claude/logs/loop-*.txt` が存在する場合、未コミットのループログを記録に含める。
 詳細: `docs/specs/loop-log-schema.md`
 
 ## 3. Daily 記録
@@ -57,7 +57,7 @@ git commit は行わない（コミットは `/ship` を使用）。
 詳細定義: `docs/specs/evaluation-kpi.md`
 
 集計手順:
-1. `.claude/logs/loop.log` を走査し、K1〜K5 を計算
+1. `.claude/logs/loop-*.txt` を走査し、K1〜K5 を計算
 2. `.claude/logs/permission.log` を走査し、等級分布（PG/SE/PM）を集計
 3. テンプレートは `docs/specs/evaluation-kpi.md` Section 6 を参照
 

@@ -18,9 +18,10 @@
 │   ├── internal/           # プロジェクト運用ルール (本フォルダ)
 │   ├── artifacts/          # 中間成果物・監査レポート・知見
 │   │   ├── knowledge/      # /retro Step4 で整理した知見
-│   │   └── audit-reports/  # 監査レポート
-│   ├── daily/              # デイリーレポート
+│   │   ├── audit-reports/  # 監査レポート
+│   │   └── tdd-patterns/   # TDD パターン詳細記録（v2 のログは .claude/tdd-patterns.log）
 │   ├── slides/             # 概念説明スライド
+│   ├── daily/              # /quick-save Daily 記録
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
 ├── .claude/                # Claude Code用設定・コマンド・状態管理
 │   ├── commands/           # ワークフローコマンド（/ship, /full-review, /wave-plan 等）
@@ -69,23 +70,26 @@
 
 ## 3. SSOT 3層アーキテクチャ
 
+> **用語注意**: 本セクションの「情報層」は SSOT の情報階層を指す。
+> `07_SECURITY_AND_AUTOMATION.md` Section 5 の「Permission Layer 0/1/2」（権限制御の多層モデル）とは別の概念である。
+
 ```
-Layer 1: docs/internal/ — プロセス SSOT（What & Why）
+情報層 1: docs/internal/ — プロセス SSOT（What & Why）
   |
   v 参照・実装
-Layer 2: .claude/rules/    — ガードレール（自動ロード）
-         .claude/commands/ — ワークフロー（手動実行）
-         .claude/hooks/    — 自動化 hooks（PreToolUse/PostToolUse/Stop/PreCompact）
-         .claude/agents/   — エージェント定義
-         .claude/skills/   — スキル定義
+情報層 2: .claude/rules/    — ガードレール（自動ロード）
+          .claude/commands/ — ワークフロー（手動実行）
+          .claude/hooks/    — 自動化 hooks（PreToolUse/PostToolUse/Stop/PreCompact）
+          .claude/agents/   — エージェント定義
+          .claude/skills/   — スキル定義
   |
   v 要約
-Layer 3: CHEATSHEET.md — クイックリファレンス
+情報層 3: CHEATSHEET.md — クイックリファレンス
 ```
 
-- Layer 1 が最高権限。Layer 2 は Layer 1 の「実装」
-- Layer 2 に新機能を追加したら、Layer 1 への反映を確認する
-- Layer 3 は Layer 1-2 の要約であり、独自情報を持たない
+- 情報層 1 が最高権限。情報層 2 は情報層 1 の「実装」
+- 情報層 2 に新機能を追加したら、情報層 1 への反映を確認する
+- 情報層 3 は情報層 1-2 の要約であり、独自情報を持たない
 
 ## 4. File Naming Conventions (命名規則)
 
