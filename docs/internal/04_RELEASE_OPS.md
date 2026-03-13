@@ -9,15 +9,16 @@
 
 - [ ] **All Tests Green**: 全ての自動テストが通過している。
 - [ ] **No Critical Bugs**: 優先度 High 以上の既知のバグが存在しない。
-- [ ] **Performance Check**: 応答速度やリソース消費が許容範囲内である。
+- [ ] **Quality Gate Passed**: プロジェクトが定めるリリース品質基準を満たしている（例: 監査 Green、パフォーマンス基準、セキュリティスキャン等。基準はプロジェクトごとに定義）。
 - [ ] **Documentation Updated**: 変更内容が `CHANGELOG.md` およびユーザーマニュアルに反映されている。
+- [ ] **Retrospective Done**: `/retro` による振り返りが実施済みである。
 
 ## 2. Release Flow (リリースフロー)
 
-1.  **Staging Verification**: ステージング環境での動作確認。
-2.  **Backup**: DB および重要データのバックアップ取得。
-3.  **Deploy**: 本番環境への適用（Blue/Green または Canary 推奨）。
-4.  **Smoke Test**: 主要機能が動作することの簡易確認。
+1.  **Verification**: リリース対象の動作確認。プロジェクトの性質に応じた検証を実施する（例: テストスイート実行、手動確認、ステージング環境検証等）。
+2.  **Backup**: 必要に応じ、リリース前の状態を保全する（例: git tag、データバックアップ等）。
+3.  **Release**: リリースの実施。プロジェクトの配布形態に応じた手順に従う（例: パッケージ公開、デプロイ、タグ作成等）。
+4.  **Post-Release Check**: リリース後の簡易確認。
 
 ## 3. Emergency Protocols (緊急対応プロトコル)
 
@@ -39,4 +40,4 @@
 - **Semantic Versioning (SemVer)** に従う。
   - `MAJOR`: 破壊的変更
   - `MINOR`: 後方互換性のある機能追加
-  - `PATCH`: 後方互換性のあるバグ修正
+  - `PATCH`: 後方互換性のあるバグ修正、ドキュメント修正、内部改善
