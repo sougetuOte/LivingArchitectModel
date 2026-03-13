@@ -97,7 +97,7 @@ SESSION_STATE.md と git log から対象範囲を特定:
 
 振り返り結果を以下に記録:
 
-- **出力先**: `docs/artifacts/retro-wave-{N}.md` または `docs/artifacts/retro-phase-{N}.md`
+- **出力先**: `docs/artifacts/retro-wave-{N}.md`、`docs/artifacts/retro-phase-{N}.md`、またはリリース単位の場合 `docs/artifacts/retro-<version>.md`
 - 高優先度のアクションはユーザー承認後に即時反映
 
 ### Step 6: 完了報告
@@ -106,7 +106,7 @@ SESSION_STATE.md と git log から対象範囲を特定:
 --- Retro 完了 ---
 Keep: X件 / Problem: X件 / Try: X件
 アクション: X件（即時反映: X件、次Wave: X件）
-記録: docs/artifacts/retro-wave-{N}.md
+記録: docs/artifacts/retro-wave-{N}.md / retro-phase-{N}.md / retro-<version>.md
 ```
 
 ## Phase 振り返り（`/retro phase`）の追加ステップ
