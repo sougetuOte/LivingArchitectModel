@@ -138,7 +138,7 @@ pip install -r requirements-dev.txt     # Only if running tests
 
 ### Q: What if my session disconnects?
 
-A: Use `/quick-load` for instant recovery. After a multi-day break, use `/full-load`.
+A: Use `/quick-load` for instant recovery.
 
 ### Q: Is there a fixed format for specs?
 

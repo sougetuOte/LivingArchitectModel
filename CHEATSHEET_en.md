@@ -95,17 +95,13 @@ requirements -> [Approval] -> design -> [Approval] -> tasks -> [Approval] -> BUI
 
 | Command | Purpose | Context consumption |
 |---------|---------|---------------------|
-| `/quick-save` | Lightweight save (SESSION_STATE.md only) | 3-4% |
-| `/quick-load` | Lightweight load (SESSION_STATE.md only) | ~1% |
-| `/full-save` | Full save (commit + push + daily) | ~10% |
-| `/full-load` | Full load (state check + detailed report) | 2-3% |
+| `/quick-save` | Save (SESSION_STATE.md + loop log + Daily) | 3-5% |
+| `/quick-load` | Load (SESSION_STATE.md + related doc identification) | 1-2% |
 
 ### When to use save/load
-
-- **Regular save**: `/quick-save` (safe even below 25% remaining)
-- **End of day**: `/full-save` (when context budget allows)
-- **Resuming work**: `/quick-load` (daily continuation)
-- **Returning after days away**: `/full-load` (detailed state review)
+- **Save**: `/quick-save` (SESSION_STATE.md + Daily. No git operations)
+- **Load**: `/quick-load` (SESSION_STATE.md + related doc identification)
+- **Commit**: `/ship` (when git commit is needed)
 
 ### StatusLine
 Displays remaining context at the bottom of the screen (requires Python 3.8+):
@@ -118,26 +114,26 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 
 ## Subagents
 
-| Agent | Usage example | Phase |
-|-------|---------------|-------|
-| `requirement-analyst` | "Organize the requirements" | PLANNING |
-| `design-architect` | "Design the API" | PLANNING |
-| `task-decomposer` | "Break down the tasks" | PLANNING |
-| `tdd-developer` | "Implement TASK-001" | BUILDING |
-| `quality-auditor` | "Audit src/" | AUDITING |
-| `doc-writer` | "Update the docs" / "Draft the spec" | ALL |
-| `test-runner` | "Run the tests" | BUILDING |
-| `code-reviewer` | "Review the code" | AUDITING |
+| Agent | Usage example | Phase | Memory |
+|-------|---------------|-------|:------:|
+| `requirement-analyst` | "Organize the requirements" | PLANNING | project |
+| `design-architect` | "Design the API" | PLANNING | project |
+| `task-decomposer` | "Break down the tasks" | PLANNING | - |
+| `tdd-developer` | "Implement TASK-001" | BUILDING | - |
+| `quality-auditor` | "Audit src/" | AUDITING | - |
+| `doc-writer` | "Update the docs" / "Draft the spec" | ALL | - |
+| `test-runner` | "Run the tests" | BUILDING | - |
+| `code-reviewer` | "Review the code" | AUDITING | auto |
 
 ## Skills
 
 | Skill | Purpose | Usage example |
 |-------|---------|---------------|
-| `lam-orchestrate` | Auto-coordinate task breakdown and parallel execution | "Run with lam-orchestrate" |
-| `ultimate-think` | Integrated thinking: AoT + Three Agents + Reflection | `/ultimate-think <topic>` |
+| `lam-orchestrate` | Task breakdown, parallel execution + structured thinking (AoT + Three Agents) | "Run with lam-orchestrate" |
 | `skill-creator` | Skill creation guide | "I want to create a new skill" |
-| `adr-template` | ADR creation template | Auto-applied when running `/adr-create` |
+| `adr-template` | ADR creation template | Auto-applied during ADR creation |
 | `spec-template` | Spec creation template | Auto-applied during spec creation |
+| `ui-design-guide` | UI/UX design checklist | Auto-applied during UI spec creation |
 
 ## State Management
 
@@ -146,6 +142,8 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 | `.claude/current-phase.md` | Current phase |
 | `.claude/states/<feature>.json` | Per-feature progress and approval state |
 | `SESSION_STATE.md` | Cross-session handoff (auto-generated) |
+| `docs/artifacts/knowledge/` | Structured project knowledge (via `/retro`) |
+| `.claude/agent-memory/` | Subagent auto-learning records |
 
 ## Workflow Commands
 
@@ -161,11 +159,8 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 
 | Command | Purpose |
 |---------|---------|
-| `/focus` | Focus on the current task |
-| `/daily` | Daily retrospective (includes KPI aggregation) |
-| `/adr-create` | ADR creation assistant |
-| `/security-review` | Security review |
-| `/impact-analysis` | Change impact analysis (includes PG/SE/PM classification) |
+| `/pattern-review` | TDD pattern review |
+| `/project-status` | Project status display |
 
 ## Reference Documents (SSOT)
 
@@ -215,7 +210,7 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 
 **Starting the next session?**
 -> `/quick-load` to resume from last session (daily use)
--> `/full-load` for detailed state review (returning after days away)
+-> `/quick-load` for session recovery
 
 **Where are the specs?**
 -> `docs/specs/`

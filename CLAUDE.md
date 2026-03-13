@@ -55,12 +55,9 @@
 auto-compact の発動を待たないこと。これは保険であり、基本はユーザーが StatusLine を監視する。
 
 ### セーブ/ロードの使い分け
-- `/quick-save`: SESSION_STATE.md のみ記録（軽量、3-4%消費）。普段使い
-- `/quick-load`: SESSION_STATE.md のみ読込（日常の再開）
-- `/full-save`: SESSION_STATE.md + git commit + push + daily（一日の終わり）
-- `/full-load`: 詳細な状態確認 + 復帰報告（数日ぶりの復帰）
-- 残量 25% 以下では `/quick-save` を使うこと
-- `/full-save` は残量に余裕があるときのみ
+- `/quick-save`: SESSION_STATE.md + ループログ + Daily 記録（git操作なし）
+- `/quick-load`: SESSION_STATE.md 読込 + 関連ドキュメント特定 + 復帰サマリー
+- git commit が必要なら `/ship` を使用
 
 ## Memory Policy
 

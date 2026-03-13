@@ -54,18 +54,28 @@ When you judge that context remaining has **fallen below 20%**, suggest to the u
 Do not wait for auto-compact to trigger. This is a safety net; the user is primarily responsible for monitoring the StatusLine.
 
 ### Save/Load Usage
+- `/quick-save`: SESSION_STATE.md + loop log + Daily record (no git operations)
+- `/quick-load`: Read SESSION_STATE.md + identify related docs + resumption summary
+- Use `/ship` for git commits
 
-- `/quick-save`: Records SESSION_STATE.md only (lightweight, consumes 3-4%). For everyday use
-- `/quick-load`: Reads SESSION_STATE.md only (for daily resumption)
-- `/full-save`: SESSION_STATE.md + git commit + push + daily (end of day)
-- `/full-load`: Detailed state verification + resumption report (returning after several days)
-- Use `/quick-save` when remaining context is at or below 25%
-- Use `/full-save` only when context budget is ample
+## Memory Policy
 
-## MEMORY.md Policy
+### Auto Memory (MEMORY.md)
 
-Claude Code's auto memory feature (`MEMORY.md`) must not be used to record project-specific information.
-It may only be used for accumulating subagent role know-how. See `docs/internal/05_MCP_INTEGRATION.md` Section 6 for details.
+Claude Code's auto memory (`~/.claude/projects/<project>/memory/MEMORY.md`) is used for
+**work efficiency learnings** such as build commands, debugging insights, and workflow habits.
+Do not use it for project specifications or architecture decisions (those belong in `docs/`).
+
+### Subagent Persistent Memory
+
+Custom subagents (`.claude/agents/`) can accumulate project-specific insights in
+`.claude/agent-memory/<agent-name>/`. Subagents write to these files autonomously
+following CLAUDE.md instructions (not an official Claude Code frontmatter feature).
+
+### Knowledge Layer
+
+Knowledge intentionally curated by humans via `/retro` Step 4 is stored in `docs/artifacts/knowledge/`.
+See `docs/artifacts/knowledge/README.md` for details.
 
 ## Initial Instruction
 

@@ -138,7 +138,7 @@ pip install -r requirements-dev.txt     # テストを実行する場合のみ
 
 ### Q: セッションが切れたら？
 
-A: `/quick-load` で即座に復帰。数日ぶりなら `/full-load`。
+A: `/quick-load` で即座に復帰。
 
 ### Q: 仕様書のフォーマットは決まっている？
 

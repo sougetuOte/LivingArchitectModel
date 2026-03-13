@@ -109,7 +109,7 @@ If no existing requirements exist, just start using LAM as-is. You can adapt aft
 |---------|---------|------------|
 | `/planning` | Requirements, design, task decomposition | Code generation |
 | `/building` | TDD implementation | Implementation without specs |
-| `/auditing` | Review, audit, refactoring | Direct fixes |
+| `/auditing` | Review, audit, refactoring | PM-level fixes prohibited (PG/SE allowed) |
 | `/project-status` | Display progress status | - |
 
 ### Approval Gates
@@ -141,10 +141,8 @@ The tables below list all available commands and agents, but you don't need to m
 
 | Command | Purpose |
 |---------|---------|
-| `/quick-save` | Lightweight save (SESSION_STATE.md only) |
-| `/quick-load` | Lightweight load (daily resume) |
-| `/full-save` | Full save (commit + push + daily) |
-| `/full-load` | Full load (resuming after days away) |
+| `/quick-save` | Save (SESSION_STATE.md + loop log + Daily) |
+| `/quick-load` | Load (SESSION_STATE.md + related doc identification) |
 
 ## Workflow Commands
 
@@ -158,11 +156,8 @@ The tables below list all available commands and agents, but you don't need to m
 
 | Command | Purpose |
 |---------|---------|
-| `/focus` | Focus on current task |
-| `/daily` | Daily retrospective |
-| `/adr-create` | Create Architecture Decision Record |
-| `/security-review` | Security review |
-| `/impact-analysis` | Impact analysis |
+| `/pattern-review` | TDD pattern review |
+| `/project-status` | Project status display |
 
 ## Recommended Models
 
