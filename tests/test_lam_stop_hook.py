@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import io
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -19,21 +18,8 @@ import pytest
 _HOOKS_DIR = Path(__file__).resolve().parent.parent / ".claude" / "hooks"
 
 
-@pytest.fixture()
-def project_root(tmp_path: Path) -> Path:
-    """一時ディレクトリをプロジェクトルートとして設定する。"""
-    claude_dir = tmp_path / ".claude"
-    claude_dir.mkdir()
-    (claude_dir / "logs").mkdir()
-    return tmp_path
-
-
-@pytest.fixture(autouse=True)
-def _set_project_root(project_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("LAM_PROJECT_ROOT", str(project_root))
-
-
 def _write_state(project_root: Path, state: dict) -> Path:
+    """lam-loop-state.json を書き込む。"""
     state_file = project_root / ".claude" / "lam-loop-state.json"
     state_file.write_text(json.dumps(state), encoding="utf-8")
     return state_file
@@ -61,6 +47,8 @@ def _run_hook(monkeypatch: pytest.MonkeyPatch, stdin_data: dict, capsys) -> tupl
     spec = importlib.util.spec_from_file_location(
         "lam_stop_hook", _HOOKS_DIR / "lam-stop-hook.py"
     )
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load spec from {_HOOKS_DIR / 'lam-stop-hook.py'}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules["lam_stop_hook"] = mod
 

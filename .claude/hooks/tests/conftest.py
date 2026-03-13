@@ -51,11 +51,18 @@ def hook_runner(project_root):
             subprocess.CompletedProcess: stdout, stderr, returncode を含む
         """
         stdin_input = json.dumps(input_json) if input_json is not None else ""
+        # allowlist: テスト実行に必要な最小限の環境変数のみ引き継ぐ
+        _ENV_ALLOWLIST = (
+            "PATH", "HOME", "LANG", "LC_ALL", "TERM",
+            "TMPDIR", "TEMP", "TMP",
+            "VIRTUAL_ENV", "CONDA_PREFIX",
+            "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
+        )
         merged_env = {
-            **os.environ,
-            "LAM_PROJECT_ROOT": str(project_root),
-            **(env or {}),
+            k: v for k, v in os.environ.items() if k in _ENV_ALLOWLIST
         }
+        merged_env["LAM_PROJECT_ROOT"] = str(project_root)
+        merged_env.update(env or {})
         return subprocess.run(
             [sys.executable, str(hook_path)],
             input=stdin_input,

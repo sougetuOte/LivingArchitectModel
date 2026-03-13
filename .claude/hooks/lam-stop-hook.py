@@ -150,8 +150,7 @@ def _validate_check_dir(cwd: str, project_root: Path) -> Path:
 
     W-7: パストラバーサル防止。
     - PROJECT_ROOT 配下: OK
-    - 実在する絶対パス: OK
-    - 存在しない or 相対パス: PROJECT_ROOT にフォールバック
+    - それ以外: PROJECT_ROOT にフォールバック
     """
     if not cwd:
         return project_root
@@ -160,18 +159,12 @@ def _validate_check_dir(cwd: str, project_root: Path) -> Path:
     if not check_dir.is_absolute():
         return project_root
 
-    # PROJECT_ROOT 配下の場合は OK
+    # PROJECT_ROOT 配下の場合のみ OK
     try:
         check_dir.relative_to(project_root)
         return check_dir
     except ValueError:
-        pass
-
-    # 実在する絶対パスは OK
-    if check_dir.is_dir():
-        return check_dir
-
-    return project_root
+        return project_root
 
 
 # ================================================================
@@ -243,8 +236,8 @@ def _detect_lint_tool(check_dir: Path) -> tuple[str, list[str]] | tuple[None, No
         except Exception:
             pass
 
-    # .eslintrc* ファイルが存在するか
-    eslint_files = list(check_dir.glob(".eslintrc*"))
+    # .eslintrc* または eslint.config.* ファイルが存在するか（legacy + flat config 対応）
+    eslint_files = list(check_dir.glob(".eslintrc*")) + list(check_dir.glob("eslint.config.*"))
     if eslint_files:
         return ("eslint", ["npx", "eslint", "."])
 
@@ -307,7 +300,7 @@ def _run_tests(check_dir: Path, log_file: Path) -> tuple[int, int]:
             if m:
                 test_count = int(m.group(1))
         elif framework == "go":
-            test_count = stdout.count("\nok ")
+            test_count = len(re.findall(r"^ok\t", stdout, re.MULTILINE))
         # make: テスト数抽出はスキップ
         return (RESULT_PASS, test_count)
 
@@ -374,7 +367,7 @@ def _run_security(check_dir: Path, log_file: Path) -> int:
         except OSError:
             continue
         # テキストファイルのみ対象（拡張子で判定）
-        if scan_file.suffix not in {".py", ".js", ".ts", ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".sh", ".md", ".txt", ".env"}:
+        if scan_file.suffix not in {".py", ".js", ".ts", ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".sh", ".env"}:
             continue
         try:
             content = scan_file.read_text(encoding="utf-8", errors="replace")
@@ -382,7 +375,7 @@ def _run_security(check_dir: Path, log_file: Path) -> int:
                 if _SECRET_PATTERN.search(line) and not _SAFE_PATTERN.search(line):
                     secret_count += 1
         except Exception as e:
-            _log(log_file, "WARN", f"G5: failed to read {scan_file}: {e}")
+            _log(log_file, "WARN", f"G5: failed to read {scan_file.name}: {type(e).__name__}")
     if secret_count > 0:
         _log(log_file, "WARN", f"G5: potential secret leak detected ({secret_count} matches)")
         sec_fail = True
@@ -413,24 +406,24 @@ def _check_issue_recurrence(state: dict) -> bool:
     )
 
 
-def main() -> None:
-    project_root = get_project_root()
-    state_file = project_root / ".claude" / "lam-loop-state.json"
-    pre_compact_flag = project_root / ".claude" / "pre-compact-fired"
-    log_file = _get_log_file(project_root)
+def _cleanup_state_file(state_file: Path) -> None:
+    """状態ファイルを安全に削除する。"""
+    try:
+        state_file.unlink()
+    except Exception:
+        pass
 
-    # stdin から JSON を読み取る
-    input_data = read_stdin_json()
 
-    # ================================================================
-    # STEP 0: 再帰防止チェック（最優先）(AC-2.8c)
-    # ================================================================
+def _check_recursion_and_state(
+    input_data: dict, state_file: Path, log_file: Path
+) -> dict:
+    """STEP 0-1: 再帰防止・状態ファイル確認。有効な state dict を返す。
+
+    停止条件に該当した場合は _stop() で SystemExit を送出する。
+    """
     if input_data.get("stop_hook_active") is True:
         _stop(log_file, "stop_hook_active=true → recursion guard exit")
 
-    # ================================================================
-    # STEP 1: 状態ファイル確認 (AC-2.5)
-    # ================================================================
     if not state_file.exists():
         _stop(log_file, "no state file → normal stop")
 
@@ -442,98 +435,87 @@ def main() -> None:
     if not state.get("active"):
         _stop(log_file, "active=false → loop disabled, normal stop")
 
-    # PM級承認待ち: ユーザーの判断を待つため停止許可
     if state.get("pm_pending"):
         _stop(log_file, "pm_pending=true → waiting for human decision")
 
+    return state
+
+
+def _check_max_iterations(
+    state: dict, state_file: Path, project_root: Path, log_file: Path
+) -> tuple[int, int]:
+    """STEP 2: 反復上限チェック。(iteration, max_iterations) を返す。"""
     iteration = int(state.get("iteration", 0))
     max_iterations = int(state.get("max_iterations", 5))
-    command = state.get("command", "")
 
-    _log(log_file, "INFO", f"loop active: command={command}, iteration={iteration}/{max_iterations}")
-
-    # ================================================================
-    # STEP 2: 反復上限チェック (AC-2.6)
-    # ================================================================
     if iteration >= max_iterations:
         _log(log_file, "WARN", f"max_iterations reached ({iteration}/{max_iterations}) → stop loop")
         _save_loop_log(project_root, state, log_file)
-        try:
-            state_file.unlink()
-        except Exception:
-            pass
+        _cleanup_state_file(state_file)
         _stop(log_file, "max_iterations reached → stopped")
 
-    # ================================================================
-    # STEP 3: コンテキスト残量チェック (AC-2.7, AC-2.11a)
-    # ================================================================
-    if pre_compact_flag.exists():
+    return iteration, max_iterations
+
+
+def _check_context_pressure(
+    pre_compact_flag: Path, state_file: Path, log_file: Path
+) -> None:
+    """STEP 3: コンテキスト残量チェック（PreCompact 発火検出）。"""
+    if not pre_compact_flag.exists():
+        return
+
+    try:
+        flag_content = pre_compact_flag.read_text(encoding="utf-8").strip()
+        flag_dt = datetime.datetime.fromisoformat(flag_content.replace("Z", "+00:00"))
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        elapsed = (now_dt - flag_dt).total_seconds()
+        if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
+            _cleanup_state_file(state_file)
+            _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago → context pressure, stop loop")
+    except Exception:
         try:
-            flag_content = pre_compact_flag.read_text(encoding="utf-8").strip()
-            # タイムスタンプをパースしてエポック秒に変換
-            flag_dt = datetime.datetime.fromisoformat(flag_content.replace("Z", "+00:00"))
-            now_dt = datetime.datetime.now(datetime.timezone.utc)
-            elapsed = (now_dt - flag_dt).total_seconds()
+            flag_mtime = os.path.getmtime(str(pre_compact_flag))
+            elapsed = time.time() - flag_mtime
             if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
-                try:
-                    state_file.unlink()
-                except Exception:
-                    pass
-                _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago → context pressure, stop loop")
+                _cleanup_state_file(state_file)
+                _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop")
         except Exception:
-            # ファイルの mtime をフォールバックとして使用
-            try:
-                flag_mtime = os.path.getmtime(str(pre_compact_flag))
-                elapsed = time.time() - flag_mtime
-                if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
-                    try:
-                        state_file.unlink()
-                    except Exception:
-                        pass
-                    _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop")
-            except Exception:
-                pass
+            pass
 
-    # ================================================================
-    # STEP 4: Green State 判定 (AC-2.8, AC-2.8a, AC-2.8b)
-    # ================================================================
-    cwd = input_data.get("cwd", "")
-    check_dir = _validate_check_dir(cwd, project_root)
 
-    test_result, test_count = _run_tests(check_dir, log_file)
-    lint_result = _run_lint(check_dir, log_file)
-    security_result = _run_security(check_dir, log_file)
-
-    # ================================================================
-    # STEP 5: エスカレーション条件チェック (AC-2.9)
-    # ================================================================
-
-    # テスト数減少チェック
+def _check_escalation(
+    state: dict, test_count: int, state_file: Path, log_file: Path
+) -> None:
+    """STEP 5: エスカレーション条件チェック。"""
     log_entries = state.get("log", [])
     prev_test_count = 0
     if log_entries:
         prev_test_count = int(log_entries[-1].get("test_count", 0))
 
-    # test_count=0 はフレームワーク未検出等でカウント不明の場合。誤検知を避けるためスキップ
     if prev_test_count > 0 and test_count > 0 and test_count < prev_test_count:
         _log(log_file, "WARN", f"ESC: test count decreased ({prev_test_count} → {test_count}) → escalate to human")
-        try:
-            state_file.unlink()
-        except Exception:
-            pass
+        _cleanup_state_file(state_file)
         _stop(log_file, f"ESC: test count decreased ({prev_test_count} → {test_count}) → escalate to human")
 
-    # 同一 Issue 再発チェック
     if _check_issue_recurrence(state):
-        try:
-            state_file.unlink()
-        except Exception:
-            pass
+        _cleanup_state_file(state_file)
         _stop(log_file, "ESC: same issues recurring (no fix for 2 cycles) → escalate to human")
 
-    # ================================================================
-    # STEP 5b: Green State 条件の総合判定
-    # ================================================================
+
+def _evaluate_green_state(
+    state: dict,
+    test_result: int,
+    lint_result: int,
+    security_result: int,
+    state_file: Path,
+    project_root: Path,
+    log_file: Path,
+) -> tuple[bool, bool, list[str]]:
+    """STEP 5b: Green State 条件の総合判定。
+
+    Returns:
+        (green_state, fullscan_pending, fail_parts)
+    """
     fail_parts = []
     if test_result == RESULT_FAIL:
         fail_parts.append("テスト失敗")
@@ -553,23 +535,30 @@ def main() -> None:
                 atomic_write_json(state_file, state)
             except Exception:
                 pass
-            # fullscan のため継続（fall through to block）
         else:
             _log(log_file, "INFO", "Green State achieved → stop loop (normal convergence)")
             _save_loop_log(project_root, state, log_file)
-            try:
-                state_file.unlink()
-            except Exception:
-                pass
+            _cleanup_state_file(state_file)
             _stop(log_file, "Green State achieved → loop converged")
 
-    # ================================================================
-    # STEP 6: 継続（block）(AC-2.10)
-    # ================================================================
+    return green_state, fullscan_pending, fail_parts
+
+
+def _continue_loop(
+    state: dict,
+    iteration: int,
+    test_count: int,
+    green_state: bool,
+    fullscan_pending: bool,
+    fail_parts: list[str],
+    state_file: Path,
+    log_file: Path,
+) -> None:
+    """STEP 6: 状態更新と継続（block）。"""
     new_iteration = iteration + 1
     state["iteration"] = new_iteration
-    # テスト数を log エントリに記録。log_entries[-1] は前サイクルの最終エントリ。
-    # test_count=0 はフレームワーク未検出等でカウント不明のため記録しない。
+
+    log_entries = state.get("log", [])
     if test_count > 0 and log_entries:
         log_entries[-1]["test_count"] = test_count
     try:
@@ -586,6 +575,48 @@ def main() -> None:
         reason = f"Green State 未達。サイクル {new_iteration} を開始。残Issue: {remaining_msg}"
 
     _block(log_file, reason)
+
+
+def main() -> None:
+    project_root = get_project_root()
+    state_file = project_root / ".claude" / "lam-loop-state.json"
+    pre_compact_flag = project_root / ".claude" / "pre-compact-fired"
+    log_file = _get_log_file(project_root)
+
+    input_data = read_stdin_json()
+
+    # STEP 0-1: 再帰防止・状態ファイル確認
+    state = _check_recursion_and_state(input_data, state_file, log_file)
+
+    iteration, max_iterations = _check_max_iterations(state, state_file, project_root, log_file)
+    command = state.get("command", "")
+    _log(log_file, "INFO", f"loop active: command={command}, iteration={iteration}/{max_iterations}")
+
+    # STEP 3: コンテキスト残量チェック
+    _check_context_pressure(pre_compact_flag, state_file, log_file)
+
+    # STEP 4: Green State 判定
+    cwd = input_data.get("cwd", "")
+    check_dir = _validate_check_dir(cwd, project_root)
+    test_result, test_count = _run_tests(check_dir, log_file)
+    lint_result = _run_lint(check_dir, log_file)
+    security_result = _run_security(check_dir, log_file)
+
+    # STEP 5: エスカレーション条件チェック
+    _check_escalation(state, test_count, state_file, log_file)
+
+    # STEP 5b: Green State 総合判定
+    green_state, fullscan_pending, fail_parts = _evaluate_green_state(
+        state, test_result, lint_result, security_result,
+        state_file, project_root, log_file,
+    )
+
+    # STEP 6: 継続（block）
+    _continue_loop(
+        state, iteration, test_count,
+        green_state, fullscan_pending, fail_parts,
+        state_file, log_file,
+    )
 
 
 if __name__ == "__main__":

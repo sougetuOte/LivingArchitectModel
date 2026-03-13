@@ -12,8 +12,6 @@ import datetime
 import json
 from pathlib import Path
 
-import pytest
-
 # テスト対象フックのパス
 STOP_HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 
@@ -39,7 +37,12 @@ DEFAULT_INPUT = {
 
 
 def _write_state(project_root: Path, state: dict) -> Path:
-    """lam-loop-state.json を書き込む。"""
+    """lam-loop-state.json を書き込む。
+
+    NOTE: tests/conftest.py の write_state() と同等だが、
+    このファイルは .claude/hooks/tests/ に配置されており tests/ とは
+    別の conftest スコープのため、ローカルに保持している。
+    """
     state_file = project_root / ".claude" / "lam-loop-state.json"
     state_file.write_text(json.dumps(state), encoding="utf-8")
     return state_file
