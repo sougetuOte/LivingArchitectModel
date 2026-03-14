@@ -35,16 +35,7 @@ DEFAULT_INPUT = {
 }
 
 
-def _write_state(project_root: Path, state: dict) -> Path:
-    """lam-loop-state.json を書き込む。
-
-    NOTE: tests/conftest.py の write_state() と同等だが、
-    このファイルは .claude/hooks/tests/ に配置されており tests/ とは
-    別の conftest スコープのため、ローカルに保持している。
-    """
-    state_file = project_root / ".claude" / "lam-loop-state.json"
-    state_file.write_text(json.dumps(state), encoding="utf-8")
-    return state_file
+from conftest import write_state as _write_state
 
 
 def _read_state(project_root: Path) -> dict | None:
@@ -104,8 +95,8 @@ class TestNormalConvergence:
         assert data["decision"] == "block"
 
 
-class TestPMEscalation:
-    """S-2: PM級エスカレーション シミュレーション"""
+class TestLoopStateVariations:
+    """S-2: ループ状態バリエーション（block / active=false）"""
 
     def test_test_failure_blocks(self, hook_runner, project_root):
         """S-2-1: テスト失敗 → block で継続（PM級検出は Claude の責務）"""

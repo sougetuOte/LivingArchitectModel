@@ -134,9 +134,9 @@ EOF
 Phase 1 完了後、Phase 1.5 に進む。
 
 **ループ制御の仕組み**: ループは Claude（本スキル）が Phase 5 完了後に自分で Phase 2 に戻ることで実現する。
-Stop hook はあくまで安全ネットであり、ループの主制御には使わない。
-`stop_hook_active=true` の再帰防止により Stop hook は 1 回しか block できないため、
-複数サイクルのループ制御は Claude 側で行う必要がある。
+Stop hook はアクティブなループが存在する限り block するが、あくまで安全ネットであり、ループの主制御には使わない。
+`stop_hook_active=true` の再帰防止により Stop hook 自身が再帰的に呼ばれることはない。
+Green State 判定、イテレーション管理、状態ファイル削除は全て Claude 側の責務。
 
 ## Phase 1.5: context7 MCP 検出
 
@@ -254,7 +254,7 @@ PM級の Issue が存在する場合、PG/SE級を先に修正した後、以下
 5. ユーザーが条件付き承認・修正指示・却下などを返答
 6. 指示に従い PM級を修正
 7. `pm_pending: false` を状態ファイルにセット + 応答終了
-8. Stop hook が通常通り block → 次のサイクル（差分監査）へ
+8. Claude が応答を再開し、Phase 2 に戻って再監査
 
 ```bash
 # PM級 Issue 発見時に実行
@@ -373,7 +373,7 @@ Green State: 達成（Before=0 確認済み）
 - [I-3] <理由> → 追跡先: docs/tasks/xxx.md
 ```
 
-Phase 5 完了時:
+Green State 確定後（Claude が実行）:
 1. `.claude/lam-loop-state.json` を削除（ループ終了）
 2. ループログを `.claude/logs/` に保存
 

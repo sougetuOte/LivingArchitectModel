@@ -24,11 +24,7 @@ DEFAULT_STATE = {
 }
 
 
-def _write_state(project_root: Path, state: dict) -> Path:
-    """lam-loop-state.json を書き込む。"""
-    state_file = project_root / ".claude" / "lam-loop-state.json"
-    state_file.write_text(json.dumps(state), encoding="utf-8")
-    return state_file
+from conftest import write_state as _write_state
 
 
 class TestStopHook:
@@ -74,17 +70,11 @@ class TestStopHook:
             f"再帰防止時は stdout が空であるべき。got: {result.stdout!r}"
         )
 
-    def test_makefile_test_fail_blocks(self, hook_runner, project_root):
-        """Makefile フォールバック: make test 失敗時は block JSON を出力して継続指示"""
-        # アクティブな状態ファイルを作成（まだ上限に達していない）
+    def test_active_loop_blocks_regardless_of_env(self, hook_runner, project_root):
+        """アクティブなループ中は環境（Makefile 等）に関わらず block を返す。"""
         state = {**DEFAULT_STATE, "iteration": 0, "max_iterations": 5}
         _write_state(project_root, state)
 
-        # Makefile の test ターゲットが失敗するよう設定（フォールバック検出テスト）
-        makefile = project_root / "Makefile"
-        makefile.write_text("test:\n\texit 1\n", encoding="utf-8")
-
-        # cwd に project_root を渡す（テストフレームワーク検出のため）
         result = hook_runner(
             HOOK_PATH,
             {"session_id": "test-session", "cwd": str(project_root)},
@@ -92,14 +82,10 @@ class TestStopHook:
 
         assert result.returncode == 0
         stdout = result.stdout.strip()
-        assert stdout, (
-            f"テスト失敗時は block JSON が出力されるべき。got: {stdout!r}"
-        )
+        assert stdout, "安全ネットとして block JSON が出力されるべき"
         data = json.loads(stdout)
-        assert data.get("decision") == "block", (
-            f"decision が 'block' であるべき。got: {data}"
-        )
-        assert "reason" in data, "reason フィールドが含まれるべき"
+        assert data.get("decision") == "block"
+        assert "ループ継続中" in data.get("reason", "")
 
     def test_precompact_stops(self, hook_runner, project_root):
         """PreCompact 発火フラグが直近 10 分以内に存在する場合、停止許可する"""
@@ -165,15 +151,15 @@ class TestSecretPattern:
     G5 シークレットスキャナーの誤検出を防止する。
     """
 
-    # lam-stop-hook.py と同じパターンを使用
-    _SECRET_PATTERN = re.compile(
-        r'(password|secret|api_key|apikey|token|private_key)\s*[=:]\s*["\']([^"\']{8,})',
-        re.IGNORECASE,
-    )
-    _SAFE_PATTERN = re.compile(
-        r"(\btest\b|\bspec\b|\bmock\b|\bexample\b|\bplaceholder\b|\bxxx\b|\bchangeme\b)",
-        re.IGNORECASE,
-    )
+    @classmethod
+    def setup_class(cls) -> None:
+        """lam-stop-hook.py からパターンをロード（DRY 原則）。"""
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("lam_stop_hook", HOOK_PATH)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        cls._SECRET_PATTERN = mod._SECRET_PATTERN
+        cls._SAFE_PATTERN = mod._SAFE_PATTERN
 
     def test_equals_format_detected(self):
         """従来の等号形式 password="value" が検出される"""
