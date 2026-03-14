@@ -81,16 +81,10 @@ def _get_node_name(node: tree_sitter.Node) -> str:
 
 
 def _get_signature(source_bytes: bytes, node: tree_sitter.Node) -> str:
-    """関数/クラスノードからシグネチャ行を抽出する。"""
-    if node.type == "function_definition":
-        # "def name(args) -> ret:" まで
+    """関数/クラスノードからシグネチャ行（先頭行 + "..."）を抽出する。"""
+    if node.type in ("function_definition", "class_definition"):
         text = _extract_node_text(source_bytes, node)
-        first_line = text.split("\n")[0]
-        return first_line + " ..."
-    elif node.type == "class_definition":
-        text = _extract_node_text(source_bytes, node)
-        first_line = text.split("\n")[0]
-        return first_line + " ..."
+        return text.split("\n")[0] + " ..."
     return ""
 
 
@@ -226,13 +220,16 @@ def chunk_file(
                     )
                 )
             else:
+                # クラス定義行をメソッドの overlap_header に含める
+                class_def_line = _extract_node_text(source_bytes, node).split("\n")[0]
+                class_header = header + class_def_line + "\n"
                 for child in node.children:
                     if child.type == "block":
                         for block_child in child.children:
                             if block_child.type == "function_definition":
                                 chunk = _make_chunk(
                                     source_bytes, block_child, file_path, "L1",
-                                    root, header, max_overlap_tokens,
+                                    root, class_header, max_overlap_tokens,
                                 )
                                 if chunk.token_count > chunk_size_tokens:
                                     logger.warning(

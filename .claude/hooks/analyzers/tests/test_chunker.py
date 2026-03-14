@@ -5,9 +5,8 @@
 """
 from __future__ import annotations
 
+import dataclasses
 import textwrap
-
-import pytest
 
 from analyzers.chunker import (
     Chunk,
@@ -100,8 +99,6 @@ class TestChunkDataclass:
 
     def test_chunk_serialization(self) -> None:
         """Chunk が dataclasses.asdict でシリアライズ可能。"""
-        import dataclasses
-
         chunk = Chunk(
             file_path="f.py",
             start_line=1,

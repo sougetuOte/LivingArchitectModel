@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import importlib.util
 import inspect
+import logging
 import shutil
-import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -145,10 +147,9 @@ class AnalyzerRegistry:
         try:
             spec.loader.exec_module(module)
         except Exception as e:
-            print(
-                f"Warning: Failed to load analyzer {module_path}:"
-                f" {type(e).__name__}: {e}",
-                file=sys.stderr,
+            logger.warning(
+                "Failed to load analyzer %s: %s: %s",
+                module_path, type(e).__name__, e,
             )
             return
 

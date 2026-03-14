@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import ast
 import json
+import logging
 import subprocess
-import sys
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
+
+logger = logging.getLogger(__name__)
 
 _SEVERITY_MAP = {
     "HIGH": "critical",
@@ -55,7 +57,7 @@ class PythonAnalyzer(LanguageAnalyzer):
             raw_issues = json.loads(result.stdout)
         except json.JSONDecodeError:
             if result.stderr:
-                print(result.stderr, file=sys.stderr)
+                logger.warning("Tool stderr: %s", result.stderr)
             return []
 
         issues: list[Issue] = []
@@ -72,7 +74,7 @@ class PythonAnalyzer(LanguageAnalyzer):
             # ruff は severity 情報を出力しないため一律 "warning"
             issues.append(Issue(
                 file=file_rel,
-                line=item["location"]["row"],
+                line=item.get("location", {}).get("row", 0),
                 severity="warning",
                 category="lint",
                 tool="ruff",
@@ -95,7 +97,7 @@ class PythonAnalyzer(LanguageAnalyzer):
             data = json.loads(result.stdout)
         except json.JSONDecodeError:
             if result.stderr:
-                print(result.stderr, file=sys.stderr)
+                logger.warning("Tool stderr: %s", result.stderr)
             return []
 
         issues: list[Issue] = []
@@ -111,12 +113,12 @@ class PythonAnalyzer(LanguageAnalyzer):
 
             issues.append(Issue(
                 file=file_rel,
-                line=item["line_number"],
+                line=item.get("line_number", 0),
                 severity=severity,
                 category="security",
                 tool="bandit",
-                message=item["issue_text"],
-                rule_id=item["test_id"],
+                message=item.get("issue_text", ""),
+                rule_id=item.get("test_id", ""),
                 suggestion="",
             ))
 
