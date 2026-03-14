@@ -4,7 +4,7 @@ test_loop_integration.py - ループ統合テスト
 W4-T2: H4/H1/H2/H3 をまたぐループ統合テスト。
 bash 版 test-loop-integration.sh の 5 シナリオ (S-1〜S-5) を pytest で再現。
 
-対応仕様: docs/specs/hooks-python-migration/design.md Section 4 (S-1〜S-5)
+対応仕様: docs/design/hooks-python-migration-design.md Section 4 (S-1〜S-5)
 """
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 test_stop_hook.py - lam-stop-hook.py の TDD テスト
 
 W4-T1: Red フェーズ（テストファースト）
-対応仕様: docs/specs/hooks-python-migration/design.md H3（lam-stop-hook）
+対応仕様: docs/design/hooks-python-migration-design.md H3（lam-stop-hook）
 """
 import datetime
 import json

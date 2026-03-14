@@ -3,7 +3,7 @@
 **バージョン**: 1.0
 **作成日**: 2026-03-13
 **ステータス**: approved
-**前提**: v4.0.0 免疫系アーキテクチャ（`v4.0.0-immune-system-design.md`）
+**前提**: v4.0.0 免疫系アーキテクチャ（`docs/design/v4.0.0-immune-system-design.md`）
 
 ---
 

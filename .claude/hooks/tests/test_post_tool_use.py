@@ -2,7 +2,7 @@
 test_post_tool_use.py - post-tool-use.py の TDD テスト
 
 対応仕様:
-  - docs/specs/hooks-python-migration/design.md H2（post-tool-use）
+  - docs/design/hooks-python-migration-design.md H2（post-tool-use）
   - docs/specs/tdd-introspection-v2.md Section 4（JUnit XML 方式）
 """
 import json

@@ -12,7 +12,7 @@ PG/SE/PM の等級を判定する。
   PM級 → stdout に hookSpecificOutput JSON（permissionDecision: "ask"）を出力して exit 0
         Claude Code のネイティブ許可ダイアログでユーザーに判断を委ねる
 
-対応仕様: docs/specs/hooks-python-migration/design.md H1（pre-tool-use）
+対応仕様: docs/design/hooks-python-migration-design.md H1（pre-tool-use）
 """
 from __future__ import annotations
 

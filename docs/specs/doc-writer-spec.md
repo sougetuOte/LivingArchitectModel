@@ -3,7 +3,7 @@
 **バージョン**: 1.0
 **作成日**: 2026-03-08
 **対応タスク**: T3-3 (Wave 3: ドキュメント自動追従)
-**対応設計書**: v4.0.0-immune-system-design.md Section 7
+**対応設計書**: docs/design/v4.0.0-immune-system-design.md Section 7
 
 ---
 

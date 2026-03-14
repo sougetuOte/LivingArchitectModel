@@ -2,7 +2,7 @@
 test_pre_tool_use.py - pre-tool-use.py の TDD テスト
 
 W2-T2: Red フェーズ（テストファースト）
-対応仕様: docs/specs/hooks-python-migration/design.md H1（pre-tool-use）
+対応仕様: docs/design/hooks-python-migration-design.md H1（pre-tool-use）
 """
 import json
 from pathlib import Path
