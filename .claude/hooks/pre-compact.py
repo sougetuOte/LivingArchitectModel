@@ -13,9 +13,9 @@ import pathlib
 import shutil
 import sys
 
-_HOOKS_DIR = str(pathlib.Path(__file__).resolve().parent)
-if _HOOKS_DIR not in sys.path:
-    sys.path.insert(0, _HOOKS_DIR)
+_HOOKS_DIR = pathlib.Path(__file__).resolve().parent
+if str(_HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(_HOOKS_DIR))
 from _hook_utils import get_project_root, now_utc_iso8601, safe_exit  # noqa: E402
 
 

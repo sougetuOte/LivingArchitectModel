@@ -51,7 +51,7 @@ _MAX_TOOL_EVENTS = 500
 
 # テストコマンドの正規表現パターン（bash 版パリティ）
 _TEST_CMD_PATTERN = re.compile(
-    r"(^|[\s])(pytest|npm[\s]+test|go[\s]+test)(?:[\s]|$)"
+    r"(^|[\s])(pytest|npm[\s]+test|go[\s]+test|make[\s]+test)(?:[\s]|$)"
 )
 
 
@@ -66,6 +66,8 @@ def _get_test_cmd_label(command: str) -> str:
         return "npm test"
     if "go test" in command:
         return "go test"
+    if "make test" in command:
+        return "make test"
     return "pytest"
 
 
@@ -119,8 +121,13 @@ def _handle_test_result(
     last_result_file: Path,
     log_file: Path,
     timestamp: str,
+    is_failure_event: bool = False,
 ) -> str | None:
     """テストコマンドの結果を処理し、TDD パターンを記録する。
+
+    Args:
+        is_failure_event: PostToolUseFailure イベント時は True。
+            古い XML による誤判定を防ぐため、XML 読取をスキップし直接 FAIL 記録する。
 
     Returns:
         systemMessage 文字列（FAIL→PASS 遷移時）。通知不要なら None。
@@ -129,6 +136,17 @@ def _handle_test_result(
         return None
 
     test_cmd = _get_test_cmd_label(command)
+    last_result_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # PostToolUseFailure: ツール実行自体が失敗（非ゼロ exit）→ 直接 FAIL 記録
+    # XML は前回実行の古い結果が残っている可能性があるため読み取らない
+    if is_failure_event:
+        _append_to_tdd_log(
+            tdd_log,
+            f'{timestamp}\tFAIL\t{test_cmd}\ttests=? failures=?\t"PostToolUseFailure event"',
+        )
+        last_result_file.write_text(f"fail {test_cmd}\n", encoding="utf-8")
+        return None
 
     # JUnit XML 結果ファイルを読み取る
     result = _parse_junit_xml(test_results_xml)
@@ -149,8 +167,6 @@ def _handle_test_result(
             prev_result = last_result_file.read_text(encoding="utf-8").splitlines()[0]
         except Exception:
             pass
-
-    last_result_file.parent.mkdir(parents=True, exist_ok=True)
 
     if failures > 0:
         # 失敗パターンを記録
@@ -271,20 +287,24 @@ def main() -> None:
     tool_name = get_tool_name(data)
     command = get_tool_input(data, "command")
     file_path = get_tool_input(data, "file_path")
+    hook_event_name = data.get("hook_event_name", "")
 
     timestamp = now_utc_iso8601()
 
     # 1. TDD パターン検出（JUnit XML 方式）
     system_message = None
     if tool_name == "Bash":
+        is_failure = hook_event_name == "PostToolUseFailure"
         system_message = _handle_test_result(
-            command, tdd_log, test_results_xml, last_result_file, log_file, timestamp
+            command, tdd_log, test_results_xml, last_result_file, log_file, timestamp,
+            is_failure_event=is_failure,
         )
 
     # 2. doc-sync-flag の設定
     _handle_doc_sync_flag(tool_name, file_path, project_root, doc_sync_flag)
 
     # 3. ループログ記録
+    # exit_code は空文字: PostToolUse/PostToolUseFailure の入力データに exit code が含まれないため
     _handle_loop_log(tool_name, command, file_path, "", loop_state_path, timestamp)
 
     # 4. 通知A: FAIL→PASS 遷移時に systemMessage を出力

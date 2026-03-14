@@ -56,9 +56,10 @@ PRE_COMPACT_THRESHOLD_SECONDS = 600
 # シークレットスキャン用の正規表現パターン（モジュールレベルで1回だけコンパイル）
 # グループ2でシークレット値部分をキャプチャし、_SAFE_PATTERN は値部分のみに適用する
 _SECRET_PATTERN = re.compile(
-    r'(password|secret|api_key|apikey|token|private_key)\s*=\s*["\']([^"\']{8,})',
+    r'(password|secret|api_key|apikey|token|private_key)\s*[=:]\s*["\']([^"\']{8,})',
     re.IGNORECASE,
 )
+# _SECRET_PATTERN のグループ2（値部分）に適用し、テスト用ダミー値を除外する
 _SAFE_PATTERN = re.compile(
     r"(\btest\b|\bspec\b|\bmock\b|\bexample\b|\bplaceholder\b|\bxxx\b|\bchangeme\b)",
     re.IGNORECASE,
@@ -66,6 +67,12 @@ _SAFE_PATTERN = re.compile(
 
 # シークレットスキャン時に除外するディレクトリ
 _SCAN_EXCLUDE_DIRS = frozenset({".git", "node_modules", "__pycache__", ".venv", ".pytest_cache"})
+
+# シークレットスキャン対象の拡張子
+_SCAN_TARGET_EXTENSIONS = frozenset({
+    ".py", ".js", ".ts", ".json", ".yaml", ".yml",
+    ".toml", ".cfg", ".ini", ".sh", ".env", ".md", ".txt",
+})
 
 
 def _get_log_file(project_root: Path) -> Path:
@@ -92,10 +99,15 @@ def _block(log_file: Path, reason: str) -> None:
     sys.exit(0)
 
 
-def _save_loop_log(project_root: Path, state: dict, log_file: Path, convergence_reason: str = "green_state") -> None:
+def _save_loop_log(
+    project_root: Path,
+    state: dict,
+    log_file: Path,
+    convergence_reason: str = "green_state",
+) -> None:
     """ループ終了ログを .claude/logs/ に保存する。"""
     try:
-        logs_dir = project_root / ".claude" / "logs"
+        logs_dir = log_file.parent
         logs_dir.mkdir(parents=True, exist_ok=True)
         now = now_utc_iso8601()
         now_dt = datetime.datetime.fromisoformat(now.replace("Z", "+00:00"))
@@ -368,7 +380,7 @@ def _run_security(check_dir: Path, log_file: Path) -> int:
         except OSError:
             continue
         # テキストファイルのみ対象（拡張子で判定）
-        if scan_file.suffix not in {".py", ".js", ".ts", ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".sh", ".env"}:
+        if scan_file.suffix not in _SCAN_TARGET_EXTENSIONS:
             continue
         try:
             content = scan_file.read_text(encoding="utf-8", errors="replace")

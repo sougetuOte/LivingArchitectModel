@@ -39,11 +39,31 @@ from _hook_utils import (  # noqa: E402
 _READ_ONLY_TOOLS = frozenset({"Read", "Glob", "Grep", "WebSearch", "WebFetch"})
 
 # AUDITING フェーズの PG 許可コマンドのプレフィックス
+# 注: settings.json の allow リストにも同コマンドが登録されている。
+# Claude Code は allow マッチ時に hook をスキップする場合があるため、
+# このブラックリストチェックは「二重防御」として機能する。
+# allow 側の粗いワイルドカード（例: "Bash(ruff check --fix *)"）を
+# hook 側で精密にフィルタする設計。実害が確認された場合は
+# allow からの削除を検討し、hook に一元化すること。
 _AUDITING_PG_COMMANDS = (
     "npx prettier",
     "npx eslint --fix",
     "ruff check --fix",
     "ruff format",
+)
+
+# PG コマンドで禁止する引数（悪意ある設定ファイル読み込み等を防止）
+_PG_BLACKLISTED_ARGS = (
+    "--config",
+    "--settings",
+    "--ruleset",
+    "--rule-dir",
+    "--rulesdir",
+    "--plugin",
+    "--resolve-plugins-relative-to",
+    "--stdin-filename",
+    "--ignore-path",
+    "--ext",
 )
 
 # パス判定パターン（PM 級）
@@ -97,6 +117,13 @@ def _determine_level_and_reason(
         if current_phase == "AUDITING":
             for pg_prefix in _AUDITING_PG_COMMANDS:
                 if command == pg_prefix or command.startswith(pg_prefix + " "):
+                    # ブラックリスト引数チェック（単語境界で照合し誤マッチを防止）
+                    args_part = command[len(pg_prefix):]
+                    if any(
+                        re.search(r'(?:^|\s)' + re.escape(bl) + r'(?:\s|=|$)', args_part, re.IGNORECASE)
+                        for bl in _PG_BLACKLISTED_ARGS
+                    ):
+                        return "PM", "PG command with blacklisted arg"
                     return "PG", "AUDITING phase PG allow"
 
         return "SE", "command (default SE)"
