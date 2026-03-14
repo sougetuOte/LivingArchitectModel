@@ -76,6 +76,24 @@ class LanguageAnalyzer(ABC):
     def run_type_check(self, target: Path) -> list[Issue]:
         """型チェック（オプション）。"""
         return []
+
+    def required_tools(self) -> list["ToolRequirement"]:
+        """この Analyzer が必要とする外部ツールのリスト（オプション）。
+        サブクラスでオーバーライドし、ToolRequirement を返す。
+        デフォルトは空リスト（外部ツール不要）。"""
+        return []
+```
+
+`required_tools()` は `run_type_check()` と同様のオプショナルメソッド。
+`AnalyzerRegistry.verify_tools()` が各 Analyzer の `required_tools()` を収集し、
+`shutil.which()` で存在確認を行う（Section 2.4 step 4）。
+
+```python
+@dataclass
+class ToolRequirement:
+    """外部ツールの要件。command はコマンド名、install_hint はインストール手順。"""
+    command: str
+    install_hint: str
 ```
 
 ### 2.1b AnalyzerRegistry（言語自動検出 + プラグイン管理）
