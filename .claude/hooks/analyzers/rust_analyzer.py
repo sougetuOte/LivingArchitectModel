@@ -8,10 +8,13 @@ Task A-4: RustAnalyzer 実装
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
+
+logger = logging.getLogger(__name__)
 
 
 class RustAnalyzer(LanguageAnalyzer):
@@ -117,7 +120,6 @@ class RustAnalyzer(LanguageAnalyzer):
         returncode != 0 は脆弱性あり（正常終了）。stdout をパースする。
         パース失敗時や cargo-audit 未インストール時は空リストを返す。
         """
-        import sys
 
         result = subprocess.run(
             ["cargo", "audit", "--json"],
@@ -129,10 +131,8 @@ class RustAnalyzer(LanguageAnalyzer):
 
         # cargo audit 未インストール時（stderr にエラー、stdout が空）
         if not result.stdout.strip() and result.returncode != 0:
-            print(
-                "Warning: cargo audit not available."
-                " Install with: cargo install cargo-audit",
-                file=sys.stderr,
+            logger.warning(
+                "cargo audit not available. Install with: cargo install cargo-audit"
             )
             return []
 

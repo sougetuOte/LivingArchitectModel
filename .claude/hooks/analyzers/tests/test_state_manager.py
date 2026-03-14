@@ -11,14 +11,20 @@ from pathlib import Path
 import pytest
 
 from analyzers.base import ASTNode, Issue
+from analyzers.chunker import Chunk
 from analyzers.state_manager import (
+    chunk_result_filename,
     compute_file_hash,
     generate_summary,
     get_changed_files,
     load_ast_map,
+    load_chunk_result,
+    load_chunks_index,
     load_file_hashes,
     load_issues,
     save_ast_map,
+    save_chunk_result,
+    save_chunks_index,
     save_file_hashes,
     save_issues,
 )
@@ -336,3 +342,115 @@ def test_save_file_hashes_creates_state_dir_if_missing(tmp_path: Path) -> None:
     save_file_hashes(state_dir, {})
 
     assert state_dir.exists()
+
+
+# ============================================================
+# B-3: チャンク結果の永続化
+# ============================================================
+
+
+def _make_test_chunk(name: str = "foo", level: str = "L1") -> Chunk:
+    return Chunk(
+        file_path="src/main.py",
+        start_line=1,
+        end_line=10,
+        content=f"def {name}(): pass",
+        overlap_header="import os\n",
+        overlap_footer="",
+        token_count=5,
+        level=level,
+        node_name=name,
+    )
+
+
+class TestChunkResultFilename:
+    """chunk_result_filename() のテスト。"""
+
+    def test_basic_format(self) -> None:
+        chunk = _make_test_chunk("foo", "L1")
+        name = chunk_result_filename(chunk)
+        assert name == "src-main-py-L1-foo-1-10.json"
+
+    def test_nested_path(self) -> None:
+        chunk = _make_test_chunk("bar", "L2")
+        chunk.file_path = "src/hooks/analyzers/base.py"
+        chunk.start_line = 42
+        chunk.end_line = 187
+        name = chunk_result_filename(chunk)
+        assert name == "src-hooks-analyzers-base-py-L2-bar-42-187.json"
+
+    def test_l3_uses_node_name(self) -> None:
+        chunk = _make_test_chunk("module", "L3")
+        name = chunk_result_filename(chunk)
+        assert "L3-module" in name
+
+
+class TestSaveLoadChunkResult:
+    """save_chunk_result / load_chunk_result のテスト。"""
+
+    def test_roundtrip(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        chunk = _make_test_chunk()
+        issues = [
+            Issue(file="src/main.py", line=5, severity="warning",
+                  category="lint", tool="ruff", message="msg",
+                  rule_id="E501", suggestion="fix"),
+        ]
+        save_chunk_result(state_dir, chunk, issues)
+        loaded = load_chunk_result(state_dir, chunk)
+        assert len(loaded) == 1
+        assert loaded[0].file == "src/main.py"
+        assert loaded[0].rule_id == "E501"
+
+    def test_load_missing_returns_empty(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        chunk = _make_test_chunk()
+        loaded = load_chunk_result(state_dir, chunk)
+        assert loaded == []
+
+    def test_creates_chunk_results_dir(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        chunk = _make_test_chunk()
+        save_chunk_result(state_dir, chunk, [])
+        assert (state_dir / "chunk-results").is_dir()
+
+    def test_multiple_chunks(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        c1 = _make_test_chunk("alpha", "L1")
+        c2 = _make_test_chunk("beta", "L2")
+        i1 = Issue(file="a.py", line=1, severity="info", category="lint",
+                   tool="ruff", message="m1", rule_id="R1", suggestion="")
+        i2 = Issue(file="b.py", line=2, severity="critical", category="security",
+                   tool="bandit", message="m2", rule_id="B101", suggestion="")
+        save_chunk_result(state_dir, c1, [i1])
+        save_chunk_result(state_dir, c2, [i2])
+        assert load_chunk_result(state_dir, c1)[0].rule_id == "R1"
+        assert load_chunk_result(state_dir, c2)[0].rule_id == "B101"
+
+
+class TestChunksIndex:
+    """save_chunks_index / load_chunks_index のテスト。"""
+
+    def test_roundtrip(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        chunks = [_make_test_chunk("a"), _make_test_chunk("b")]
+        save_chunks_index(state_dir, chunks)
+        loaded = load_chunks_index(state_dir)
+        assert len(loaded) == 2
+        assert loaded[0]["node_name"] == "a"
+        assert loaded[1]["node_name"] == "b"
+
+    def test_load_missing_returns_empty(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        loaded = load_chunks_index(state_dir)
+        assert loaded == []
+
+    def test_preserves_all_fields(self, tmp_path: Path) -> None:
+        state_dir = tmp_path / "review-state"
+        chunk = _make_test_chunk("foo")
+        save_chunks_index(state_dir, [chunk])
+        loaded = load_chunks_index(state_dir)
+        assert loaded[0]["file_path"] == "src/main.py"
+        assert loaded[0]["start_line"] == 1
+        assert loaded[0]["end_line"] == 10
+        assert loaded[0]["level"] == "L1"

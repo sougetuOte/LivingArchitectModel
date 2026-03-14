@@ -52,7 +52,7 @@ def count_lines(
             if not any(part in excludes for part in path.relative_to(project_root).parts):
                 try:
                     total += len(path.read_text(errors="replace").splitlines())
-                except (OSError, UnicodeDecodeError):
+                except OSError:
                     pass
     return total
 
@@ -131,6 +131,9 @@ def run_phase0(
         issues.extend(analyzer.run_security(project_root))
 
     # 結果永続化
+    # NOTE: save_file_hashes() / save_ast_map() は Phase 3 で有効化予定。
+    # 現時点では save_issues() のみ。キャッシュ（FR-5）と横断チェック用
+    # ast-map は Phase 3 タスクで run_phase0() に追加する。
     state_dir = project_root / ".claude" / "review-state"
     save_issues(state_dir, issues)
 

@@ -155,6 +155,74 @@ full-review 開始時に context7 MCP の利用可否を確認する。
 > WebFetch は対話モード（`/planning`, upstream-first）でのみフォールバックとして使用する。
 > 自動フロー内での WebFetch は無応答・無限待機のリスクがあるため使用しない。
 
+## Phase 1.7: AST チャンキング（Scalable Code Review Phase 2）
+
+tree-sitter を用いて対象ファイルを構文的に妥当なチャンクに分割する。
+30K 行以上のプロジェクトで自動有効化される（Phase 0 で行数カウント済み）。
+
+### Step 1: tree-sitter 利用可否チェック
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0, '.claude/hooks')
+from analyzers.chunker import chunk_file, TreeSitterNotAvailable
+try:
+    chunk_file('x = 1', 'test.py')
+    print('tree-sitter: available')
+except TreeSitterNotAvailable:
+    print('tree-sitter: not available')
+"
+```
+
+- **利用可能** → Step 2 へ
+- **利用不可** → 以下の Warning を表示し、Phase 2 は従来のファイル全体レビューにフォールバック
+
+```
+⚠️ tree-sitter が未インストールのため、AST チャンキングをスキップします。
+  大規模プロジェクトではチャンク分割によるレビュー精度向上が期待できます。
+  インストール: pip install tree-sitter tree-sitter-python
+```
+
+### Step 2: 全対象ファイルをチャンク分割
+
+```bash
+python3 -c "
+import sys, json; sys.path.insert(0, '.claude/hooks')
+from analyzers.chunker import chunk_file
+from analyzers.state_manager import save_chunks_index
+from analyzers.config import ReviewConfig
+from pathlib import Path
+
+root = Path('$TARGET').resolve()
+config = ReviewConfig.load(root)
+chunks = []
+for py_file in root.rglob('*.py'):
+    rel = str(py_file.relative_to(root))
+    if any(d in rel.split('/') for d in config.exclude_dirs):
+        continue
+    source = py_file.read_text(encoding='utf-8', errors='ignore')
+    chunks.extend(chunk_file(source, rel, config.chunk_size_tokens, config.overlap_ratio))
+
+save_chunks_index(Path('.claude/review-state'), chunks)
+print(f'Chunks: {len(chunks)}')
+for c in chunks[:5]:
+    print(f'  {c.file_path}:{c.start_line}-{c.end_line} ({c.level}) {c.node_name} [{c.token_count} tokens]')
+if len(chunks) > 5:
+    print(f'  ... and {len(chunks) - 5} more')
+"
+```
+
+チャンク一覧は `.claude/review-state/chunks.json` に永続化される。
+
+### Step 3: Phase 2 への接続
+
+チャンクが存在する場合、Phase 2 ではチャンク単位で Agent を起動する（後述）。
+チャンクが 0 件の場合は従来のファイル全体レビューにフォールバックする。
+
+Phase 1.7 完了後、Phase 2 に進む。
+
+---
+
 ## Phase 2: 並列監査
 
 対象に対して以下のサブエージェントを並列起動:
@@ -187,6 +255,45 @@ full-review 開始時に context7 MCP の利用可否を確認する。
 小規模の場合は `code-reviewer` x1 + `quality-auditor` x1 でもよい（ただしセキュリティ観点は省略しないこと）。
 
 各エージェントは独立した監査レポートを生成する。
+
+### チャンクモード（Phase 1.7 でチャンクが生成された場合）
+
+Phase 1.7 でチャンクが生成されている場合（`.claude/review-state/chunks.json` が存在）、
+従来のファイル全体レビューに代えて、チャンク単位で Agent を起動する。
+
+```bash
+# チャンク一覧を読み込み
+python3 -c "
+import sys, json; sys.path.insert(0, '.claude/hooks')
+from analyzers.state_manager import load_chunks_index
+from analyzers.orchestrator import batch_chunks
+from analyzers.chunker import Chunk
+from pathlib import Path
+
+index = load_chunks_index(Path('.claude/review-state'))
+print(f'Total chunks: {len(index)}')
+# バッチ分割（デフォルト 4 並列）
+# batch_chunks は Chunk オブジェクトを受け取るが、ここでは件数確認のみ
+print(f'Batches: {(len(index) + 3) // 4}')
+"
+```
+
+**バッチ並列実行手順**:
+
+1. `.claude/review-state/chunks.json` からチャンク一覧を読み込む
+2. `batch_chunks(chunks, batch_size=max_parallel_agents)` でバッチ分割
+3. バッチごとに:
+   a. `build_review_prompt(chunk)` で各チャンクのレビュープロンプトを生成
+   b. Agent ツールで `run_in_background=true` で並列起動
+   c. 全 Agent 完了待ち
+   d. 結果を `ReviewResult` に変換し `save_chunk_result()` で永続化
+4. エラー時: 最大 `agent_retry_count` 回リトライ。リトライ後も失敗は Warning 続行
+5. 全バッチ完了後、`collect_results()` で統合
+6. `deduplicate_issues()` で重複排除
+7. `check_naming_consistency()` で命名規則チェック
+
+チャンクモードでも、セキュリティ・仕様ドリフト・構造整合性チェックは通常通り実施する。
+チャンクなし（従来モード）の場合は上記をスキップし、従来通りファイル全体で Agent を起動する。
 
 **イテレーション2回目以降もゼロベース全ファイル監査**: 2回目以降のサイクルでも、対象の全ファイルをゼロベースで監査する。前回の指摘事項の修正確認に偏ってはならない。理由: (1) 修正の副作用で新たな不整合が生じうる、(2) 他のエラーが消えたことで初めて浮かび上がるエラーがある、(3) 前回と同じ検証ポイントだけを見ると視野が狭まる。監査エージェントには「前回の指摘を確認せよ」ではなく「全ファイルを読み、全観点で監査せよ」と指示すること。
 
@@ -381,8 +488,10 @@ Green State 確定後（Claude が実行）:
 
 ## 参照: Scalable Code Review
 
-Phase 0（静的解析パイプライン）は Scalable Code Review Phase 1 として実装済み。
-Phase 2 以降（AST チャンキング、階層的レビュー、依存グラフ駆動）は将来の Phase で実装予定。
+- Phase 0（静的解析パイプライン）: Scalable Code Review Phase 1 として実装済み
+- Phase 1.7（AST チャンキング）: Scalable Code Review Phase 2 として実装済み
+- Phase 2（チャンクモード並列監査）: Scalable Code Review Phase 2 として実装済み
+- Phase 3 以降（階層的レビュー、依存グラフ駆動）は将来の Phase で実装予定
 
 - 要件仕様: `docs/specs/scalable-code-review-spec.md`
 - 設計書: `docs/design/scalable-code-review-design.md`

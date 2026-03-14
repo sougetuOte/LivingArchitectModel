@@ -3,14 +3,20 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import logging
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue
+from analyzers.chunker import Chunk
+
+logger = logging.getLogger(__name__)
 
 _ISSUES_FILE = "static-issues.json"
 _AST_MAP_FILE = "ast-map.json"
 _HASHES_FILE = "file-hashes.json"
 _SUMMARY_FILE = "summary.md"
+_CHUNKS_INDEX_FILE = "chunks.json"
+_CHUNK_RESULTS_DIR = "chunk-results"
 
 
 def save_issues(state_dir: Path, issues: list[Issue]) -> None:
@@ -23,7 +29,11 @@ def load_issues(state_dir: Path) -> list[Issue]:
     path = state_dir / _ISSUES_FILE
     if not path.exists():
         return []
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted issues file: %s", path)
+        return []
     return [Issue(**item) for item in data]
 
 
@@ -50,7 +60,11 @@ def load_ast_map(state_dir: Path) -> dict[str, ASTNode]:
     path = state_dir / _AST_MAP_FILE
     if not path.exists():
         return {}
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted ast map file: %s", path)
+        return {}
     return {key: _dict_to_ast_node(node) for key, node in data.items()}
 
 
@@ -118,7 +132,11 @@ def load_file_hashes(state_dir: Path) -> dict[str, str]:
     path = state_dir / _HASHES_FILE
     if not path.exists():
         return {}
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted hashes file: %s", path)
+        return {}
 
 
 def get_changed_files(state_dir: Path, current_hashes: dict[str, str]) -> list[str]:
@@ -128,3 +146,61 @@ def get_changed_files(state_dir: Path, current_hashes: dict[str, str]) -> list[s
         if previous.get(file_path) != current_hash:
             changed.append(file_path)
     return changed
+
+
+# ============================================================
+# B-3: チャンク結果の永続化
+# ============================================================
+
+
+def chunk_result_filename(chunk: Chunk) -> str:
+    """チャンクの結果ファイル名を生成する。
+
+    設計書 Section 3.7: {path_segments}-{level}-{node_name}-{start}-{end}.json
+    """
+    path_segments = chunk.file_path.replace("/", "-").replace("\\", "-").replace(".", "-")
+    return f"{path_segments}-{chunk.level}-{chunk.node_name}-{chunk.start_line}-{chunk.end_line}.json"
+
+
+def save_chunk_result(state_dir: Path, chunk: Chunk, issues: list[Issue]) -> None:
+    """チャンクごとの Issue リストを個別ファイルで保存する。"""
+    results_dir = state_dir / _CHUNK_RESULTS_DIR
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = chunk_result_filename(chunk)
+    data = [dataclasses.asdict(issue) for issue in issues]
+    (results_dir / filename).write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def load_chunk_result(state_dir: Path, chunk: Chunk) -> list[Issue]:
+    """チャンクの Issue リストを読み込む。"""
+    results_dir = state_dir / _CHUNK_RESULTS_DIR
+    filename = chunk_result_filename(chunk)
+    path = results_dir / filename
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted chunk result file: %s", path)
+        return []
+    return [Issue(**item) for item in data]
+
+
+def save_chunks_index(state_dir: Path, chunks: list[Chunk]) -> None:
+    """チャンク一覧を chunks.json に保存する。"""
+    state_dir.mkdir(parents=True, exist_ok=True)
+    data = [dataclasses.asdict(chunk) for chunk in chunks]
+    (state_dir / _CHUNKS_INDEX_FILE).write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def load_chunks_index(state_dir: Path) -> list[dict]:
+    """チャンク一覧を読み込む。"""
+    path = state_dir / _CHUNKS_INDEX_FILE
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted chunks index file: %s", path)
+        return []
