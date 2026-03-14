@@ -111,12 +111,12 @@ EOF
 | `started_at` | string | ループ開始時刻（ISO 8601） |
 | `log` | array | 各イテレーションの記録（下記参照） |
 
-**追加フィールド**（hook が管理）:
+**追加フィールド**:
 
 | フィールド | 型 | 説明 | 管理者 |
 |-----------|---|------|--------|
-| `fullscan_pending` | boolean | フルスキャン待ちフラグ（Phase 5 でセット、Stop hook で参照） | `/full-review` Phase 5 |
-| `pm_pending` | boolean | PM級承認待ちフラグ（Phase 4 でセット、Stop hook で参照） | `/full-review` Phase 4 |
+| `fullscan_pending` | boolean | フルスキャン待ちフラグ（Phase 5 でセット、Claude が参照） | `/full-review` |
+| `pm_pending` | boolean | PM級承認待ちフラグ（Phase 4 でセット、Claude/Stop hook が参照） | `/full-review` |
 | `tool_events` | array | ツール実行イベントの記録（PostToolUse hook が追記） | PostToolUse hook |
 
 **log エントリ**:
@@ -133,7 +133,10 @@ EOF
 
 Phase 1 完了後、Phase 1.5 に進む。
 
-**自動ループの仕組み**: Phase 5 の検証で Green State 未達の場合、Claude の応答が終了すると Stop hook (`lam-stop-hook.py`) が発火し、状態ファイルを確認して自動的に Phase 2 に戻る。ユーザーの操作は不要。
+**ループ制御の仕組み**: ループは Claude（本スキル）が Phase 5 完了後に自分で Phase 2 に戻ることで実現する。
+Stop hook はあくまで安全ネットであり、ループの主制御には使わない。
+`stop_hook_active=true` の再帰防止により Stop hook は 1 回しか block できないため、
+複数サイクルのループ制御は Claude 側で行う必要がある。
 
 ## Phase 1.5: context7 MCP 検出
 
@@ -317,17 +320,14 @@ iter 3: 発見  0件 →             → ✅ Green State 達成
 | Phase 2（監査） | **毎回、対象全体をゼロベース** | 修正の副作用、他エラーに隠れていた問題を発見 |
 | Phase 5（テスト・lint） | 変更ファイル中心（最終サイクルで全体） | テスト実行コストの最適化 |
 
-**フルスキャンの発動手順**: 差分チェックで Green State を達成したら、`/full-review`（または lam-orchestrate）が状態ファイルに `fullscan_pending: true` をセットする:
+**フルスキャンの発動手順**: 差分チェックで Green State を達成したら、Claude が状態ファイルに `fullscan_pending: true` をセットし、自分で Phase 2 に戻る:
 
 ```bash
-# Phase 4 で差分チェック Green State 達成時に実行
-# fullscan_pending フラグをセット
+# 差分チェック Green State 達成時に実行
 python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
-Stop hook がこのフラグを検出すると、もう1サイクル（フルスキャン）を実行する。フルスキャンでも Green State なら本当の停止となる。
-
-フルスキャンの結果、新たな問題が発見された場合は Green State 未達とし、ループを継続する。
+Claude が `fullscan_pending=true` を確認し、もう1サイクル（フルスキャン）を Phase 2 から実行する。フルスキャンでも Green State なら Phase 6 に進む。
 
 ### 状態ファイル更新
 
@@ -335,10 +335,21 @@ Phase 4 完了時に `.claude/lam-loop-state.json` を更新する:
 - `iteration` をインクリメント
 - `log[]` に当該イテレーションの結果（issues_found, issues_fixed, pg/se/pm 件数）を追記
 
-### ループ継続/停止の判定
+### ループ継続/停止の判定（Claude 側で制御）
+
+**重要**: ループは Claude が自分で制御する。応答を終了せずに Phase 2 に戻ること。
+
+```
+Phase 5 完了
+  ├── Issue 1件以上 → 状態ファイル更新 → **応答を終了せず Phase 2 に戻る**
+  ├── Issue 0件 + fullscan_pending → フルスキャン実行 → Phase 2 に戻る
+  ├── Issue 0件（Green State 達成）→ Phase 6 へ
+  └── max_iterations 到達 → Phase 6 へ（未達で終了）
+```
 
 **Phase 2 で Issue 0件（Before=0）** → Green State 達成 → Phase 6 へ
-**Phase 2 で Issue 1件以上** → Phase 3〜5 を実行 → 「修正完了。再スキャンへ」と応答 → Stop hook が自動的に Phase 2 に戻す
+**Phase 2 で Issue 1件以上** → Phase 3〜5 を実行 → 状態ファイル更新 → Phase 2 に戻る（応答を継続）
+**PM級 Issue あり** → PG/SE 修正後、PM級を提示して応答を終了（ユーザー判断待ち）
 
 ## Phase 6: 完了報告 + ループログ出力
 

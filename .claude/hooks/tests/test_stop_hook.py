@@ -216,39 +216,33 @@ class TestSecretPattern:
         assert m is not None, "等号形式が引き続き検出されるべき"
 
 
-class TestScanExtensions:
-    """シークレットスキャンの対象拡張子テスト（統合テスト）
+class TestSafetyNetBlock:
+    """Stop hook が安全ネットとして block する動作のテスト。
 
-    注: 統合テスト内の秘密値は意図的に _SAFE_PATTERN 非対象値を使用している。
-    これらの値は tmp_path 内のファイルに書き込まれ、フックのスキャン検出を検証する。
-    テストソースファイル自体（test_stop_hook.py）はスキャン対象の check_dir（tmp_path）外に
-    あるため、G5 シークレットスキャナーの誤検出は発生しない。
+    Stop hook はループ制御を行わず、アクティブなループ中に
+    Claude が止まろうとした場合に 1 回 block するだけ。
+    G1-G5 の Green State 判定は Claude 側（/full-review）の責務。
     """
 
-    def test_md_secret_detected_integration(self, hook_runner, project_root):
-        """.md ファイル内のシークレットが検出される"""
+    def test_active_loop_blocks_with_reason(self, hook_runner, project_root):
+        """アクティブなループ中は block を返すこと。"""
         _write_state(project_root, DEFAULT_STATE)
-        readme = project_root / "README.md"
-        readme.write_text('api_key: "sk_live_abcdefghijklmnop1234"\n', encoding="utf-8")
 
         result = hook_runner(HOOK_PATH, {"session_id": "test-session"})
-        assert result.returncode == 0, f"フックが正常終了すべき。stderr: {result.stderr!r}"
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "block JSON が出力されるべき"
+        data = json.loads(stdout)
+        assert data["decision"] == "block"
+        assert "ループ継続中" in data["reason"]
 
-        log_file = project_root / ".claude" / "logs" / "loop.log"
-        assert log_file.exists(), "シークレット検出時は loop.log が生成されるべき"
-        log_content = log_file.read_text(encoding="utf-8")
-        assert "potential secret" in log_content, "README.md 内のシークレットがログに記録されるべき"
-
-    def test_txt_secret_detected_integration(self, hook_runner, project_root):
-        """.txt ファイル内のシークレットが検出される"""
+    def test_active_loop_logs_safety_net(self, hook_runner, project_root):
+        """安全ネット発動がログに記録されること。"""
         _write_state(project_root, DEFAULT_STATE)
-        secret_file = project_root / "config.txt"
-        secret_file.write_text('token = "ghp_abcdefghijklmnop1234567890"\n', encoding="utf-8")
 
-        result = hook_runner(HOOK_PATH, {"session_id": "test-session"})
-        assert result.returncode == 0, f"フックが正常終了すべき。stderr: {result.stderr!r}"
+        hook_runner(HOOK_PATH, {"session_id": "test-session"})
 
         log_file = project_root / ".claude" / "logs" / "loop.log"
-        assert log_file.exists(), "シークレット検出時は loop.log が生成されるべき"
+        assert log_file.exists()
         log_content = log_file.read_text(encoding="utf-8")
-        assert "potential secret" in log_content, "config.txt 内のシークレットがログに記録されるべき"
+        assert "safety net" in log_content

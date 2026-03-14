@@ -655,28 +655,18 @@ def main() -> None:
     # STEP 4: コンテキスト残量チェック
     _check_context_pressure(pre_compact_flag, state, state_file, project_root, log_file)
 
-    # STEP 5: Green State 判定（テスト + lint + セキュリティ）
-    cwd = input_data.get("cwd", "")
-    check_dir = _validate_check_dir(cwd, project_root)
-    test_result, test_count = _run_tests(check_dir, log_file)
-    lint_result = _run_lint(check_dir, log_file)
-    security_result = _run_security(check_dir, log_file)
+    # STEP 5: 安全ネットとして block（1 回のみ）
+    #
+    # ループ制御は /full-review（Claude 側）が行う。
+    # Stop hook は「Claude が途中で止まろうとした場合に 1 回だけ引き戻す」安全ネット。
+    # stop_hook_active=true の再帰防止により、2 回目以降は自動的に停止を許可する。
+    #
+    # 注意: G1-G5 の Green State 判定は Claude 側（/full-review Phase 5）の責務。
+    # Stop hook で重いチェック（pip-audit、シークレットスキャン等）を実行すると、
+    # 対象スコープの不一致や誤検知でループが壊れる原因となる。
 
-    # STEP 6: エスカレーション条件チェック
-    _check_escalation(state, test_count, state_file, project_root, log_file)
-
-    # STEP 5 (cont.): Green State 総合判定
-    green_state, fullscan_pending, fail_parts = _evaluate_green_state(
-        state, test_result, lint_result, security_result,
-        state_file, project_root, log_file,
-    )
-
-    # STEP 7: 継続（block）
-    _continue_loop(
-        state, iteration, test_count,
-        green_state, fullscan_pending, fail_parts,
-        state_file, log_file,
-    )
+    _log(log_file, "INFO", f"safety net: blocking to continue loop (iteration {iteration})")
+    _block(log_file, f"ループ継続中（イテレーション {iteration}）。Phase 2 に戻って再監査してください。")
 
 
 if __name__ == "__main__":

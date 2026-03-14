@@ -76,11 +76,15 @@ def _create_makefile(project_root: Path, test_exit: int = 0, lint_exit: int = 0)
 
 
 class TestNormalConvergence:
-    """S-1: 正常収束シミュレーション
-    PG級のみ → Green State 達成 → 自動停止"""
+    """S-1: 安全ネット動作シミュレーション
 
-    def test_green_state_stops_loop(self, hook_runner, project_root):
-        """S-1-1: テスト・lint 成功環境 → Green State → ループ停止"""
+    Stop hook は Green State 判定を行わず、アクティブなループ中は
+    常に block を返す（安全ネット）。Green State 判定と状態ファイル
+    削除は Claude 側（/full-review）の責務。
+    """
+
+    def test_active_loop_always_blocks(self, hook_runner, project_root):
+        """S-1-1: アクティブなループ中は常に block を返すこと。"""
         state = {
             **DEFAULT_STATE,
             "iteration": 1,
@@ -89,18 +93,15 @@ class TestNormalConvergence:
             ],
         }
         _write_state(project_root, state)
-        _create_makefile(project_root, test_exit=0, lint_exit=0)
 
-        input_data = _make_input(project_root, "Green State 達成。全修正完了。")
+        input_data = _make_input(project_root, "修正完了。再スキャンへ。")
         result = hook_runner(STOP_HOOK_PATH, input_data)
 
         assert result.returncode == 0
-        assert result.stdout.strip() == "", (
-            f"Green State 達成時は stdout が空であるべき。got: {result.stdout!r}"
-        )
-        # 状態ファイルが削除されていること
-        state_file = project_root / ".claude" / "lam-loop-state.json"
-        assert not state_file.exists(), "Green State 達成時は状態ファイルが削除されるべき"
+        stdout = result.stdout.strip()
+        assert stdout, "安全ネットとして block JSON が出力されるべき"
+        data = json.loads(stdout)
+        assert data["decision"] == "block"
 
 
 class TestPMEscalation:
@@ -245,20 +246,21 @@ class TestFullLifecycle:
         assert data.get("decision") == "block", "サイクル1: テスト失敗時は block で継続"
         assert state_file.exists(), "サイクル1: 状態ファイルが残っているべき"
 
-        # iteration がインクリメントされたか確認
+        # 安全ネットでは iteration をインクリメントしない（Claude 側の責務）
         updated_state = _read_state(project_root)
         assert updated_state is not None
-        assert updated_state["iteration"] == 1, (
-            f"サイクル1 後に iteration が 1 であるべき。got: {updated_state['iteration']}"
+        assert updated_state["iteration"] == 0, (
+            "安全ネットは iteration を変更しない"
         )
 
-        # サイクル2: テスト成功環境に切り替え → Green State → 停止
-        _create_makefile(project_root, test_exit=0, lint_exit=0)
-        input_data = _make_input(project_root, "Green State 達成。全修正完了。")
+        # サイクル2: 安全ネットとして再び block（Green State 判定は Claude 側の責務）
+        input_data = _make_input(project_root, "修正完了。再スキャンへ。")
         result = hook_runner(STOP_HOOK_PATH, input_data)
 
         assert result.returncode == 0
-        assert result.stdout.strip() == "", (
-            f"サイクル2: Green State 達成時は stdout が空であるべき。got: {result.stdout!r}"
-        )
-        assert not state_file.exists(), "サイクル2: 状態ファイルが削除されるべき（ループ終了）"
+        stdout = result.stdout.strip()
+        assert stdout, "サイクル2: 安全ネットとして block を返すべき"
+        data2 = json.loads(stdout)
+        assert data2.get("decision") == "block"
+        # 状態ファイルの削除は Claude 側（/full-review Phase 6）の責務
+        assert state_file.exists(), "安全ネットは状態ファイルを削除しない"
