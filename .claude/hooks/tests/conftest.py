@@ -105,3 +105,10 @@ def hook_runner(project_root: Path):
         )
 
     return run_hook
+
+
+def write_state(project_root: Path, state: dict) -> Path:
+    """テスト用の lam-loop-state.json を書き込む共通ヘルパー。"""
+    state_file = project_root / ".claude" / "lam-loop-state.json"
+    state_file.write_text(json.dumps(state), encoding="utf-8")
+    return state_file
