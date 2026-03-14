@@ -165,6 +165,13 @@ Makefile の `test` ターゲット内で上記コマンドを呼び出す。
 {timestamp}\t{PASS|FAIL}\t{framework}\ttests={N} failures={N}\t"{失敗テスト名 要約}"
 ```
 
+PostToolUseFailure イベント（テストコマンドが非ゼロ exit で失敗）の場合、
+JUnit XML は古い結果が残っている可能性があるため読み取らず、直接 FAIL を記録する:
+
+```
+{timestamp}\tFAIL\t{framework}\ttests=? failures=?\t"PostToolUseFailure event"
+```
+
 5. 前回 FAIL → 今回 PASS の場合、systemMessage で通知A を出力
 
 ### 4.2 通知A: FAIL→PASS 遷移時

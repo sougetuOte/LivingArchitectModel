@@ -37,6 +37,8 @@ _hook_utils.py
 │     # 絶対パスを相対パスに正規化
 ├── log_entry(log_file: Path, level: str, source: str, message: str)
 │     # TSV 形式のログ追記
+├── now_utc_iso8601() -> str
+│     # 現在時刻を UTC ISO 8601 形式（%Y-%m-%dT%H:%M:%SZ）で返す
 ├── atomic_write_json(path: Path, data: dict)
 │     # tempfile + os.replace によるアトミック書き込み
 │     # tempfile の dir= に対象ファイルと同ディレクトリを指定（クロスデバイス回避）
@@ -154,10 +156,15 @@ def hook_runner(project_root):
 
 ### テスト実行方式
 
-フックは **subprocess として実行** してテストする（bash 版と同じ「ブラックボックステスト」方式）。
+2つの方式を併用する。テスト対象の性質に応じて使い分ける。
+
+#### 1. subprocess 方式（ブラックボックステスト）
+
+フックのエントリポイント（`main()`）を **subprocess として実行** してテストする。
 理由: 実際の Claude Code 環境と同じ実行パスを通るため、パリティ検証として最も信頼性が高い。
 
 ```python
+# conftest.py の hook_runner fixture が提供
 def run_hook(hook_path, input_json, env=None):
     result = subprocess.run(
         [sys.executable, str(hook_path)],  # python3 ハードコード回避
@@ -167,6 +174,30 @@ def run_hook(hook_path, input_json, env=None):
     )
     return result
 ```
+
+用途: フック全体の統合テスト、stdin/stdout/exit code の検証。
+
+#### 2. importlib 方式（ホワイトボックステスト）
+
+内部モジュール（`_hook_utils` 等）を **直接 import** してテストする。
+
+```python
+# conftest.py の hooks_on_syspath / hook_utils fixture が提供
+@pytest.fixture()
+def hook_utils(hooks_on_syspath):
+    import _hook_utils
+    return _hook_utils
+```
+
+用途: ユーティリティ関数の単体テスト、エッジケースの網羅的検証。
+subprocess のオーバーヘッドなく高速に実行できる。
+
+#### 使い分け基準
+
+| 方式 | 対象 | 例 |
+|------|------|-----|
+| subprocess | フック全体の振る舞い | stdin→stdout 変換、exit code |
+| importlib | 内部関数の単体テスト | パス正規化、JSON パース、ログ出力 |
 
 ### テストケース対応表
 
@@ -199,11 +230,11 @@ def run_hook(hook_path, input_json, env=None):
 | TC-5 | test_makefile_test_fail_blocks | テスト失敗 → block |
 | TC-6 | test_precompact_stops | PreCompact → 停止 |
 | TC-7 | test_state_schema_valid | スキーマ正当性 |
-| test-loop-integration.sh S-1 | test_normal_convergence | 正常収束 |
-| S-2 | test_pm_escalation | PM 級エスカレーション |
-| S-3 | test_max_iterations_lifecycle | 上限到達ライフサイクル |
-| S-4 | test_context_exhaustion | コンテキスト枯渇 |
-| S-5 | test_full_lifecycle | ライフサイクル全体 |
+| test-loop-integration.sh S-1 | test_green_state_stops_loop | 正常収束（Green State → 停止） |
+| S-2 | test_test_failure_blocks, test_active_false_stops | PM 級エスカレーション |
+| S-3 | test_below_max_continues, test_at_max_stops | 上限到達ライフサイクル |
+| S-4 | test_precompact_recent_stops | コンテキスト枯渇（PreCompact） |
+| S-5 | test_init_fail_then_converge | ライフサイクル全体 |
 
 削除対象: shellcheck テスト（TC-1）、jq フォールバックテスト（T7）。これらは bash 固有のため。
 
@@ -212,8 +243,17 @@ def run_hook(hook_path, input_json, env=None):
 ### PostToolUseFailure イベントへの対応
 
 公式仕様では `PostToolUse`（成功後）と `PostToolUseFailure`（失敗後）が別イベント。
-既存 bash 版の動作（pytest 失敗が PostToolUse / PostToolUseFailure のどちらで発火するか）を
-Wave 3 実装時に実機検証し、必要に応じて `PostToolUseFailure` にも同一フックを settings.json に登録する。
+
+**実機検証結果（2026-03-14）:**
+
+- Bash ツールで exit code 0 の場合: `PostToolUse` が発火する
+- Bash ツールで exit code != 0 の場合: `PostToolUseFailure` が発火する（`PostToolUse` は発火しない）
+
+検証方法: 意図的に失敗するテストを実行し、`last-test-result` ファイルの更新有無で発火を判定。
+成功テストでは更新されたが、失敗テストでは更新されなかったことから上記の結論を得た。
+
+**対応:** `settings.json` に `PostToolUseFailure` イベントを追加し、`Bash` ツールに対して
+`post-tool-use.py` を登録した。これにより、テスト失敗時も TDD パターン記録（FAIL 記録）が動作する。
 
 ## 5. 移行順序
 
@@ -326,6 +366,7 @@ Wave 5: .sh 削除のみ
 ```json
 "PreToolUse": [{ "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use.py" }] }],
 "PostToolUse": [{ "matcher": "Edit|Write|Bash", "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py" }] }],
+"PostToolUseFailure": [{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py" }] }],
 "Stop": [{ "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lam-stop-hook.py" }] }],
 "PreCompact": [{ "hooks": [{ "type": "command", "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.py" }] }]
 ```
@@ -335,6 +376,7 @@ Wave 5: .sh 削除のみ
 ```json
 "PreToolUse": [{ "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use.py" }] }],
 "PostToolUse": [{ "matcher": "Edit|Write|Bash", "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py" }] }],
+"PostToolUseFailure": [{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py" }] }],
 "Stop": [{ "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lam-stop-hook.py" }] }],
 "PreCompact": [{ "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.py" }] }]
 ```
