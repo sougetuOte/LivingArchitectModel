@@ -28,6 +28,8 @@ class PythonAnalyzer(LanguageAnalyzer):
     AST 解析に Python 標準 ast モジュールを使用する。
     """
 
+    language_name = "python"
+
     def detect(self, project_root: Path) -> bool:
         """pyproject.toml または *.py ファイルが存在すれば True を返す。"""
         if (project_root / "pyproject.toml").exists():
@@ -67,6 +69,7 @@ class PythonAnalyzer(LanguageAnalyzer):
             fix = item.get("fix")
             suggestion = "Auto-fixable" if fix is not None else ""
 
+            # ruff は severity 情報を出力しないため一律 "warning"
             issues.append(Issue(
                 file=file_rel,
                 line=item["location"]["row"],

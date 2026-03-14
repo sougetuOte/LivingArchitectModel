@@ -8,13 +8,11 @@ TDD Red フェーズ: 実装前に全テストを定義する。
 from __future__ import annotations
 
 import json
-import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-from analyzers.base import ASTNode, Issue, ToolRequirement
+from analyzers.base import ToolRequirement
 from analyzers.python_analyzer import PythonAnalyzer
 
 
@@ -187,8 +185,8 @@ class TestRunLint:
         assert "json" in cmd
         assert str(tmp_path) in cmd
 
-    def test_returns_empty_on_nonzero_returncode(self, tmp_path: Path) -> None:
-        """ruff が非ゼロ終了コードを返しても空リストを返す（JSON 解析失敗時）。"""
+    def test_returns_empty_on_invalid_json_output(self, tmp_path: Path) -> None:
+        """ruff の出力が不正な JSON の場合は空リストを返す。"""
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = self._make_mock_result("not json", returncode=1)
             issues = PythonAnalyzer().run_lint(tmp_path)

@@ -9,7 +9,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from analyzers.base import ASTNode, Issue, ToolRequirement
 from analyzers.javascript_analyzer import JavaScriptAnalyzer
@@ -546,10 +545,7 @@ class TestRunSecurity:
             analyzer = JavaScriptAnalyzer()
             analyzer.run_security(tmp_path)
 
-        call_kwargs = mock_run.call_args
-        assert call_kwargs.kwargs.get("cwd") == tmp_path or (
-            len(call_kwargs.args) == 0 or call_kwargs.kwargs.get("cwd") == tmp_path
-        )
+        assert mock_run.call_args.kwargs.get("cwd") == tmp_path
 
     def test_all_issues_are_issue_instances(self, tmp_path: Path) -> None:
         """返り値の全要素が Issue のインスタンスであること。"""

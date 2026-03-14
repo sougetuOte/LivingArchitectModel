@@ -9,7 +9,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from analyzers.base import ASTNode, Issue, ToolRequirement
 from analyzers.rust_analyzer import RustAnalyzer
@@ -643,34 +642,21 @@ class TestParseAst:
 class TestRequiredTools:
     """required_tools() のテスト。"""
 
-    def test_required_tools_returns_two_requirements(self) -> None:
-        """2つの ToolRequirement を返すこと。"""
-        tools = RustAnalyzer().required_tools()
-        assert len(tools) == 2
+    def test_required_tools_returns_cargo_only(self) -> None:
+        """cargo のみ返すこと。
 
-    def test_required_tools_contains_cargo(self) -> None:
-        """cargo の ToolRequirement が含まれること。"""
+        cargo-audit は cargo のサブコマンドであり shutil.which では
+        検出できないため、required_tools には含めない。
+        cargo audit のインストール確認は run_security() 内で行う。
+        """
         tools = RustAnalyzer().required_tools()
-        commands = [t.command for t in tools]
-        assert "cargo" in commands
-
-    def test_required_tools_contains_cargo_audit(self) -> None:
-        """cargo-audit の ToolRequirement が含まれること。"""
-        tools = RustAnalyzer().required_tools()
-        commands = [t.command for t in tools]
-        assert "cargo-audit" in commands
+        assert len(tools) == 1
+        assert tools[0].command == "cargo"
 
     def test_required_tools_cargo_install_hint(self) -> None:
         """cargo の install_hint に rustup.rs が含まれること。"""
         tools = RustAnalyzer().required_tools()
-        cargo_tool = next(t for t in tools if t.command == "cargo")
-        assert "rustup.rs" in cargo_tool.install_hint
-
-    def test_required_tools_cargo_audit_install_hint(self) -> None:
-        """cargo-audit の install_hint に cargo install が含まれること。"""
-        tools = RustAnalyzer().required_tools()
-        audit_tool = next(t for t in tools if t.command == "cargo-audit")
-        assert "cargo install" in audit_tool.install_hint
+        assert "rustup.rs" in tools[0].install_hint
 
     def test_required_tools_returns_tool_requirement_instances(self) -> None:
         """各要素が ToolRequirement のインスタンスであること。"""

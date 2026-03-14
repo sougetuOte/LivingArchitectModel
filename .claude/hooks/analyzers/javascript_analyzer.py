@@ -36,7 +36,11 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
     - run_lint: npx eslint --format json
     - run_security: npm audit --json
     - parse_ast: Phase 1 は簡易実装（kind="module" のルートノードのみ）
+
+    language_name は "javascript" だが、TypeScript も包含する。
     """
+
+    language_name = "javascript"
 
     def detect(self, project_root: Path) -> bool:
         """package.json が存在する場合 True を返す。"""
@@ -99,12 +103,13 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
         stdout に JSON が出力される。パースを試みて失敗した場合のみ空リストを返す。
         target ディレクトリ（package.json の場所）で実行する。
         """
+        cwd = target if target.is_dir() else target.parent
         result = subprocess.run(
             ["npm", "audit", "--json"],
             capture_output=True,
             text=True,
             check=False,
-            cwd=target,
+            cwd=cwd,
         )
 
         try:

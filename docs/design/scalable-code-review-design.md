@@ -57,6 +57,9 @@ class LanguageAnalyzer(ABC):
     """言語固有の静的解析プラグインの基底クラス。
     ユーザーが新言語を追加する際はこのクラスを継承する。"""
 
+    language_name: str = ""  # サブクラスで必ず設定（例: "python", "rust"）
+    # exclude_languages フィルタで使用。未設定だとフィルタが機能しない。
+
     @abstractmethod
     def detect(self, project_root: Path) -> bool:
         """プロジェクトがこの言語を使用しているか検出する。"""
@@ -109,19 +112,20 @@ class AnalyzerRegistry:
     """
 
     def __init__(self):
-        self._analyzers: list[type[LanguageAnalyzer]] = []
+        self._analyzer_classes: list[type[LanguageAnalyzer]] = []
 
     def register(self, analyzer_cls: type[LanguageAnalyzer]) -> None:
-        """Analyzer クラスを登録する。"""
-        self._analyzers.append(analyzer_cls)
+        """Analyzer クラスを登録する（重複チェック付き）。"""
+        self._analyzer_classes.append(analyzer_cls)
 
     def detect_languages(self, project_root: Path) -> list[LanguageAnalyzer]:
         """プロジェクトで使用されている言語を検出し、
         対応する Analyzer のインスタンスリストを返す。"""
-        return [cls() for cls in self._analyzers if cls().detect(project_root)]
+        return [cls() for cls in self._analyzer_classes if cls().detect(project_root)]
 
     def run_all(self, project_root: Path, target: Path) -> list[Issue]:
-        """検出された全言語で lint + security を実行し、Issue を統合して返す。"""
+        """検出された全言語で lint + security を逐次実行し、Issue を統合して返す。
+        Phase 2 以降で並列化を検討する。"""
         ...
 ```
 
@@ -231,10 +235,11 @@ class Issue:
 1. プロジェクトルートをスキャンし、使用言語を検出（AnalyzerRegistry.detect_languages()）
 2. .claude/review-config.json の除外設定を適用
 3. 該当する LanguageAnalyzer をインスタンス化
-4. ツールインストール確認: shutil.which() + 初回のみ --version 実行（バージョン互換性チェック）
+4. ツールインストール確認: shutil.which() で存在確認
    → 未インストールならエラー停止し、インストール手順を表示（FR-1）
-5. 各 Analyzer の run_lint() / run_security() を並列実行
-   - 複数言語混在時: 全言語を並列実行し結果を統合
+   → --version によるバージョン互換性チェックは Phase 2 以降で追加
+5. 各 Analyzer の run_lint() / run_security() を逐次実行
+   - Phase 1: 逐次実行。Phase 2 以降で並列化を検討
 6. Issue リストを .claude/review-state/static-issues.json に永続化
 7. AST 構造マップを .claude/review-state/ast-map.json に永続化
 8. サマリーレポートを生成し、LLM レビューの入力として提供
@@ -314,9 +319,9 @@ Lost in the Middle 問題を軽減する。
 | L2 | クラス | クラス内の整合性チェック |
 | L3 | モジュール（ファイル） | ファイル全体の構造チェック |
 
-通常は L2（クラス単位）をベースとし、チャンク上限（デフォルト 4,000 トークン）を
+通常は L2（クラス単位）をベースとし、チャンク上限（デフォルト 3,000 トークン、`review-config.json` で調整可能）を
 超えるクラスは L1（関数/メソッド単位）に自動分割する。
-目標チャンクサイズ: 2,000-4,000 トークン（`review-config.json` の `chunk_size_tokens` で調整可能）。
+目標チャンクサイズ: 2,000-3,000 トークン（`review-config.json` の `chunk_size_tokens` で調整可能、デフォルト 3,000）。
 のりしろサイズ上限: チャンクサイズの 20% 以内（最大 600 トークン、`overlap_ratio` で調整可能）。
 
 ### 3.2 のりしろ設計
