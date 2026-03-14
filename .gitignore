@@ -42,6 +42,7 @@ docs/daily/
 
 # LAM runtime state files
 .claude/lam-loop-state.json
+.claude/review-state/
 .claude/doc-sync-flag
 .claude/pre-compact-fired
 .claude/last-test-result

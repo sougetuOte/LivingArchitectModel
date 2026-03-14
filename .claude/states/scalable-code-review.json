@@ -9,7 +9,7 @@
   },
   "current_wave": 1,
   "current_task": null,
-  "completed_tasks": ["A-1a", "A-1b", "A-2", "A-3", "A-4", "A-5", "A-5b"],
+  "completed_tasks": ["A-1a", "A-1b", "A-2", "A-3", "A-4", "A-5", "A-5b", "A-6"],
   "approvals": {
     "requirements": "2026-03-14",
     "design": "2026-03-14",
