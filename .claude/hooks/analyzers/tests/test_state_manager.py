@@ -1,0 +1,339 @@
+"""state_manager のテスト。
+
+Task A-5: コンパクション対策 — 外部永続化
+対応仕様: scalable-code-review-design.md Section 2.5
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+from pathlib import Path
+
+import pytest
+
+from analyzers.base import ASTNode, Issue
+from analyzers.state_manager import (
+    compute_file_hash,
+    generate_summary,
+    get_changed_files,
+    load_ast_map,
+    load_file_hashes,
+    load_issues,
+    save_ast_map,
+    save_file_hashes,
+    save_issues,
+)
+
+
+# ---------------------------------------------------------------------------
+# fixtures
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def sample_issues() -> list[Issue]:
+    return [
+        Issue(
+            file="src/foo.py",
+            line=10,
+            severity="critical",
+            category="security",
+            tool="bandit",
+            message="SQL injection risk",
+            rule_id="B608",
+            suggestion="Use parameterized queries",
+        ),
+        Issue(
+            file="src/bar.py",
+            line=20,
+            severity="warning",
+            category="lint",
+            tool="ruff",
+            message="Unused import",
+            rule_id="F401",
+            suggestion="Remove unused import",
+        ),
+        Issue(
+            file="src/baz.py",
+            line=5,
+            severity="info",
+            category="lint",
+            tool="ruff",
+            message="Line too long",
+            rule_id="E501",
+            suggestion="Wrap line",
+        ),
+    ]
+
+
+@pytest.fixture()
+def sample_ast_map() -> dict[str, ASTNode]:
+    child = ASTNode(
+        name="helper",
+        kind="method",
+        start_line=5,
+        end_line=10,
+        signature="def helper(self) -> None",
+        children=[],
+        docstring=None,
+    )
+    root = ASTNode(
+        name="MyClass",
+        kind="class",
+        start_line=1,
+        end_line=20,
+        signature="class MyClass:",
+        children=[child],
+        docstring="A sample class.",
+    )
+    return {"src/foo.py": root}
+
+
+# ---------------------------------------------------------------------------
+# Issue の保存・読み込みラウンドトリップ
+# ---------------------------------------------------------------------------
+
+
+def test_save_and_load_issues_roundtrip(tmp_path: Path, sample_issues: list[Issue]) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+
+    save_issues(state_dir, sample_issues)
+
+    assert (state_dir / "static-issues.json").exists()
+
+    loaded = load_issues(state_dir)
+
+    assert loaded == sample_issues
+
+
+def test_load_issues_returns_empty_when_file_missing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+
+    result = load_issues(state_dir)
+
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
+# ASTNode の保存・読み込みラウンドトリップ（ネスト含む）
+# ---------------------------------------------------------------------------
+
+
+def test_save_and_load_ast_map_roundtrip(
+    tmp_path: Path, sample_ast_map: dict[str, ASTNode]
+) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+
+    save_ast_map(state_dir, sample_ast_map)
+
+    assert (state_dir / "ast-map.json").exists()
+
+    loaded = load_ast_map(state_dir)
+
+    assert loaded == sample_ast_map
+
+
+def test_load_ast_map_returns_empty_when_file_missing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+
+    result = load_ast_map(state_dir)
+
+    assert result == {}
+
+
+def test_ast_map_preserves_nested_children(tmp_path: Path) -> None:
+    grandchild = ASTNode(
+        name="inner",
+        kind="function",
+        start_line=3,
+        end_line=5,
+        signature="def inner() -> None",
+        children=[],
+        docstring=None,
+    )
+    child = ASTNode(
+        name="outer",
+        kind="function",
+        start_line=1,
+        end_line=10,
+        signature="def outer() -> None",
+        children=[grandchild],
+        docstring="outer func",
+    )
+    ast_map = {"src/deep.py": child}
+
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    save_ast_map(state_dir, ast_map)
+    loaded = load_ast_map(state_dir)
+
+    assert loaded["src/deep.py"].children[0] == grandchild
+
+
+# ---------------------------------------------------------------------------
+# summary.md フォーマット検証
+# ---------------------------------------------------------------------------
+
+
+def test_generate_summary_format(sample_issues: list[Issue]) -> None:
+    result = generate_summary(sample_issues)
+
+    # Critical が先頭のセクションとして登場する
+    critical_pos = result.index("## Critical Issues")
+    warning_pos = result.index("## Warning Issues")
+    info_pos = result.index("## Info Issues")
+    summary_pos = result.index("## Summary")
+
+    assert critical_pos < warning_pos < info_pos < summary_pos
+
+
+def test_generate_summary_count_line(sample_issues: list[Issue]) -> None:
+    result = generate_summary(sample_issues)
+
+    # Summary セクションにカウントが含まれる
+    assert "Critical: 1" in result
+    assert "Warning: 1" in result
+    assert "Info: 1" in result
+
+
+def test_generate_summary_issue_content(sample_issues: list[Issue]) -> None:
+    result = generate_summary(sample_issues)
+
+    assert "src/foo.py" in result
+    assert "SQL injection risk" in result
+    assert "Unused import" in result
+
+
+def test_generate_summary_empty_issues() -> None:
+    result = generate_summary([])
+
+    assert "# Static Analysis Summary" in result
+    assert "Critical: 0" in result
+    assert "Warning: 0" in result
+    assert "Info: 0" in result
+
+
+# ---------------------------------------------------------------------------
+# ファイルハッシュの計算・保存・読み込み
+# ---------------------------------------------------------------------------
+
+
+def test_compute_file_hash(tmp_path: Path) -> None:
+    target = tmp_path / "sample.py"
+    target.write_text("print('hello')\n")
+
+    result = compute_file_hash(target)
+
+    expected = hashlib.sha256(target.read_bytes()).hexdigest()
+    assert result == expected
+
+
+def test_save_and_load_file_hashes_roundtrip(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    hashes = {"src/foo.py": "abc123", "src/bar.py": "def456"}
+
+    save_file_hashes(state_dir, hashes)
+
+    assert (state_dir / "file-hashes.json").exists()
+
+    loaded = load_file_hashes(state_dir)
+
+    assert loaded == hashes
+
+
+def test_load_file_hashes_returns_empty_when_file_missing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+
+    result = load_file_hashes(state_dir)
+
+    assert result == {}
+
+
+# ---------------------------------------------------------------------------
+# 変更ファイル検出
+# ---------------------------------------------------------------------------
+
+
+def test_get_changed_files_detects_modified(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    old_hashes = {"src/foo.py": "oldhash", "src/bar.py": "samehash"}
+    save_file_hashes(state_dir, old_hashes)
+
+    current_hashes = {"src/foo.py": "newhash", "src/bar.py": "samehash"}
+
+    changed = get_changed_files(state_dir, current_hashes)
+
+    assert "src/foo.py" in changed
+    assert "src/bar.py" not in changed
+
+
+def test_get_changed_files_detects_new_files(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    old_hashes = {"src/foo.py": "hash1"}
+    save_file_hashes(state_dir, old_hashes)
+
+    current_hashes = {"src/foo.py": "hash1", "src/new.py": "hash2"}
+
+    changed = get_changed_files(state_dir, current_hashes)
+
+    assert "src/new.py" in changed
+    assert "src/foo.py" not in changed
+
+
+def test_get_changed_files_no_changes(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    hashes = {"src/foo.py": "hash1", "src/bar.py": "hash2"}
+    save_file_hashes(state_dir, hashes)
+
+    changed = get_changed_files(state_dir, hashes)
+
+    assert changed == []
+
+
+def test_get_changed_files_no_previous_state(tmp_path: Path) -> None:
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+
+    current_hashes = {"src/foo.py": "hash1"}
+
+    changed = get_changed_files(state_dir, current_hashes)
+
+    assert "src/foo.py" in changed
+
+
+# ---------------------------------------------------------------------------
+# state_dir の自動作成
+# ---------------------------------------------------------------------------
+
+
+def test_save_issues_creates_state_dir_if_missing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "nonexistent" / "review-state"
+
+    save_issues(state_dir, [])
+
+    assert state_dir.exists()
+
+
+def test_save_ast_map_creates_state_dir_if_missing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "nonexistent" / "review-state"
+
+    save_ast_map(state_dir, {})
+
+    assert state_dir.exists()
+
+
+def test_save_file_hashes_creates_state_dir_if_missing(tmp_path: Path) -> None:
+    state_dir = tmp_path / "nonexistent" / "review-state"
+
+    save_file_hashes(state_dir, {})
+
+    assert state_dir.exists()
