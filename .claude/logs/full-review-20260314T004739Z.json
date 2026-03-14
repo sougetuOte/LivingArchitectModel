@@ -1,0 +1,46 @@
+{
+  "active": true,
+  "command": "full-review",
+  "target": ".claude/",
+  "iteration": 4,
+  "max_iterations": 5,
+  "started_at": "2026-03-14T01:30:00Z",
+  "log": [
+    {
+      "iteration": 1,
+      "issues_found": 20,
+      "issues_fixed": 17,
+      "pg": 6,
+      "se": 11,
+      "pm": 3,
+      "test_count": 76
+    },
+    {
+      "iteration": 2,
+      "issues_found": 3,
+      "issues_fixed": 3,
+      "pg": 0,
+      "se": 1,
+      "pm": 2,
+      "test_count": 79
+    },
+    {
+      "iteration": 3,
+      "issues_found": 13,
+      "issues_fixed": 11,
+      "pg": 2,
+      "se": 9,
+      "pm": 2,
+      "test_count": 79
+    },
+    {
+      "iteration": 4,
+      "issues_found": 0,
+      "issues_fixed": 0,
+      "pg": 0,
+      "se": 0,
+      "pm": 0,
+      "test_count": 79
+    }
+  ]
+}
