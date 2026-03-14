@@ -242,7 +242,7 @@ class TestToolVerification:
         reg = AnalyzerRegistry()
         reg.register(_ToolRequiringAnalyzer)
         analyzers = reg.detect_languages(project_root)
-        with patch("shutil.which", return_value="/usr/bin/tool"):
+        with patch("analyzers.base.shutil.which", return_value="/usr/bin/tool"):
             reg.verify_tools(analyzers)  # should not raise
 
     def test_missing_tool_raises_error(self, project_root: Path) -> None:
@@ -254,7 +254,7 @@ class TestToolVerification:
         def mock_which(cmd: str) -> str | None:
             return "/usr/bin/ruff" if cmd == "ruff" else None
 
-        with patch("shutil.which", side_effect=mock_which):
+        with patch("analyzers.base.shutil.which", side_effect=mock_which):
             with pytest.raises(ToolNotFoundError) as exc_info:
                 reg.verify_tools(analyzers)
             assert "bandit" in str(exc_info.value)
@@ -265,7 +265,7 @@ class TestToolVerification:
         reg = AnalyzerRegistry()
         reg.register(_ToolRequiringAnalyzer)
         analyzers = reg.detect_languages(project_root)
-        with patch("shutil.which", return_value=None):
+        with patch("analyzers.base.shutil.which", return_value=None):
             with pytest.raises(ToolNotFoundError) as exc_info:
                 reg.verify_tools(analyzers)
             err = exc_info.value
@@ -282,7 +282,7 @@ class TestToolVerification:
         """run_all() はツール検証を先に行うこと。"""
         reg = AnalyzerRegistry()
         reg.register(_ToolRequiringAnalyzer)
-        with patch("shutil.which", return_value=None):
+        with patch("analyzers.base.shutil.which", return_value=None):
             with pytest.raises(ToolNotFoundError):
                 reg.run_all(project_root, project_root)
 

@@ -55,33 +55,53 @@ def load_ast_map(state_dir: Path) -> dict[str, ASTNode]:
 
 
 def generate_summary(issues: list[Issue]) -> str:
+    """NFR-4 準拠の LLM 向けサマリーを生成する。
+
+    配置順: Critical 先頭 → レビュー指示 → 詳細 → カウント末尾
+    Issue 0 件のセクションはスキップする。
+    """
     criticals = [i for i in issues if i.severity == "critical"]
     warnings = [i for i in issues if i.severity == "warning"]
     infos = [i for i in issues if i.severity == "info"]
 
-    def format_issues(issue_list: list[Issue]) -> str:
-        if not issue_list:
-            return ""
+    def _format_issues(issue_list: list[Issue]) -> str:
         lines = []
         for issue in issue_list:
-            lines.append(f"- [{issue.file}:{issue.line}] ({issue.tool}/{issue.rule_id}) {issue.message}")
+            entry = (
+                f"- [{issue.file}:{issue.line}]"
+                f" ({issue.tool}/{issue.rule_id})"
+                f" {issue.message}"
+            )
+            lines.append(entry)
         return "\n".join(lines)
 
-    sections = [
-        "# Static Analysis Summary",
+    sections: list[str] = ["# Static Analysis Summary", ""]
+
+    # NFR-4: Critical を先頭に配置
+    if criticals:
+        sections.extend(["## Critical Issues", _format_issues(criticals), ""])
+
+    # NFR-4: レビュー指示（LLM が参照する観点）
+    sections.extend([
+        "## Review Instructions",
+        "- 静的解析で検出済みの Issue は重複検出不要",
+        "- セキュリティ Issue は優先的に確認すること",
+        "- 全体再レビュー原則（FR-5）: 修正後もゼロベースで再監査",
         "",
-        "## Critical Issues",
-        format_issues(criticals),
-        "",
-        "## Warning Issues",
-        format_issues(warnings),
-        "",
-        "## Info Issues",
-        format_issues(infos),
-        "",
+    ])
+
+    if warnings:
+        sections.extend(["## Warning Issues", _format_issues(warnings), ""])
+    if infos:
+        sections.extend(["## Info Issues", _format_issues(infos), ""])
+
+    # NFR-4: カウントサマリーを末尾に配置
+    sections.extend([
         "## Summary",
-        f"Critical: {len(criticals)} / Warning: {len(warnings)} / Info: {len(infos)}",
-    ]
+        f"Critical: {len(criticals)}"
+        f" / Warning: {len(warnings)}"
+        f" / Info: {len(infos)}",
+    ])
     return "\n".join(sections)
 
 

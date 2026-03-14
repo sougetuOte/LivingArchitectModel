@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import shutil
+import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -55,8 +56,10 @@ class LanguageAnalyzer(ABC):
     """言語固有の静的解析プラグインの基底クラス。
 
     設計書 Section 2.1 に対応。ユーザーが新言語を追加する際は
-    このクラスを継承し、4つの抽象メソッドを実装する。
+    このクラスを継承し、language_name と4つの抽象メソッドを実装する。
     """
+
+    language_name: str = ""  # サブクラスで必ずオーバーライド
 
     @abstractmethod
     def detect(self, project_root: Path) -> bool:
@@ -139,13 +142,25 @@ class AnalyzerRegistry:
         if spec is None or spec.loader is None:
             return
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        try:
+            spec.loader.exec_module(module)
+        except Exception as e:
+            print(
+                f"Warning: Failed to load analyzer {module_path}:"
+                f" {type(e).__name__}: {e}",
+                file=sys.stderr,
+            )
+            return
 
+        # クラス名ベースで重複チェック（動的ロードされたクラスと
+        # register() で登録されたクラスはオブジェクト同一性が異なるため）
+        registered_names = {cls.__name__ for cls in self._analyzer_classes}
         for _name, obj in inspect.getmembers(module, inspect.isclass):
             if (
                 issubclass(obj, LanguageAnalyzer)
                 and obj is not LanguageAnalyzer
                 and not inspect.isabstract(obj)
+                and obj.__name__ not in registered_names
             ):
                 self._analyzer_classes.append(obj)
 

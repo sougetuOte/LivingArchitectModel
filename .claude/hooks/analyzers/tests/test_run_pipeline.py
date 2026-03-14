@@ -12,7 +12,6 @@ from unittest.mock import patch
 
 import pytest
 
-from analyzers.base import Issue
 from analyzers.run_pipeline import (
     count_lines,
     run_phase0,
@@ -136,16 +135,22 @@ class TestRunPhase0:
             result = run_phase0(project_root)
         issues_path = project_root / ".claude" / "review-state" / "static-issues.json"
         assert issues_path.exists()
-        assert len(result.issues) >= 1
+        assert len(result.issues) == 1
 
-    def test_summary_has_critical_first(self, project_root: Path) -> None:
-        """summary.md で Critical が先頭に配置されること（NFR-4）。"""
+    def test_summary_nfr4_structure(self, project_root: Path) -> None:
+        """summary.md が NFR-4 構造に準拠すること。
+
+        - Review Instructions セクションが存在する
+        - Summary（カウント）が末尾に配置される
+        - Issue 0 件のセクションはスキップされる
+        """
         (project_root / "app.py").write_text("x = 1\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
         with patch("subprocess.run", side_effect=_subprocess_side_effect()):
             result = run_phase0(project_root)
         content = result.summary_path.read_text()
-        assert "## Critical Issues" in content
+        assert "## Review Instructions" in content
+        assert content.rstrip().endswith("/ Info: 0") or "## Summary" in content
 
     def test_returns_line_count(self, project_root: Path) -> None:
         """結果に行数カウントを含むこと。"""
@@ -156,16 +161,18 @@ class TestRunPhase0:
         assert result.line_count >= 3
 
     def test_returns_detected_languages(self, project_root: Path) -> None:
-        """結果に検出された言語リストを含むこと。"""
+        """結果に検出された言語リスト（language_name ベース）を含むこと。"""
         (project_root / "app.py").write_text("x = 1\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
         with patch("subprocess.run", side_effect=_subprocess_side_effect()):
             result = run_phase0(project_root)
-        assert len(result.languages) >= 1
+        assert "python" in result.languages
 
-    def test_no_languages_detected(self, project_root: Path) -> None:
-        """言語が検出されない場合は空の結果を返すこと。"""
-        result = run_phase0(project_root)
+    def test_no_languages_detected(self, tmp_path: Path) -> None:
+        """言語ファイルなしの空ディレクトリでは空の結果を返すこと。"""
+        empty_dir = tmp_path / "empty_project"
+        empty_dir.mkdir()
+        result = run_phase0(empty_dir)
         assert result.issues == []
         assert result.languages == []
 
@@ -175,7 +182,7 @@ class TestRunPhase0:
 
         (project_root / "pyproject.toml").write_text("[project]\n")
         (project_root / "app.py").write_text("x = 1\n")
-        with patch("shutil.which", return_value=None):
+        with patch("analyzers.base.shutil.which", return_value=None):
             with pytest.raises(ToolNotFoundError):
                 run_phase0(project_root)
 

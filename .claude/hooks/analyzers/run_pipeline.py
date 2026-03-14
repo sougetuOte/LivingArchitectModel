@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from analyzers.base import AnalyzerRegistry, Issue, LanguageAnalyzer
+from analyzers.base import AnalyzerRegistry, Issue
 from analyzers.config import ReviewConfig
 from analyzers.python_analyzer import PythonAnalyzer
 from analyzers.javascript_analyzer import JavaScriptAnalyzer
@@ -45,7 +45,7 @@ def count_lines(
     exclude_dirs: list[str] | None = None,
 ) -> int:
     """プロジェクトのコード行数をカウントする。"""
-    excludes = set(exclude_dirs) if exclude_dirs else _DEFAULT_EXCLUDE_DIRS
+    excludes = set(exclude_dirs) if exclude_dirs is not None else _DEFAULT_EXCLUDE_DIRS
     total = 0
     for path in project_root.rglob("*"):
         if path.is_file() and path.suffix in _CODE_EXTENSIONS:
@@ -107,12 +107,12 @@ def run_phase0(
 
     analyzers = registry.detect_languages(project_root)
 
-    # 除外言語をフィルタ
+    # 除外言語をフィルタ（language_name プロパティで照合）
     if config.exclude_languages:
+        exclude_set = {lang.lower() for lang in config.exclude_languages}
         analyzers = [
             a for a in analyzers
-            if type(a).__name__.lower().replace("analyzer", "")
-            not in [lang.lower() for lang in config.exclude_languages]
+            if a.language_name.lower() not in exclude_set
         ]
 
     if not analyzers:
@@ -134,14 +134,13 @@ def run_phase0(
     state_dir = project_root / ".claude" / "review-state"
     save_issues(state_dir, issues)
 
-    # summary.md 生成
+    # summary.md 生成（state_dir は save_issues() 内で mkdir 済み）
     summary_content = generate_summary(issues)
     summary_path = state_dir / "summary.md"
-    state_dir.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(summary_content, encoding="utf-8")
 
     # 検出言語名リスト
-    language_names = [type(a).__name__.replace("Analyzer", "") for a in analyzers]
+    language_names = [a.language_name for a in analyzers]
 
     return Phase0Result(
         issues=issues,

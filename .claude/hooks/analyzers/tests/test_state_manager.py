@@ -6,7 +6,6 @@ Task A-5: コンパクション対策 — 外部永続化
 from __future__ import annotations
 
 import hashlib
-import json
 from pathlib import Path
 
 import pytest

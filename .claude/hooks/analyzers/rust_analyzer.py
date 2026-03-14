@@ -21,6 +21,8 @@ class RustAnalyzer(LanguageAnalyzer):
     AST 解析は Phase 1 では簡易実装（kind=module のルートノードのみ）。
     """
 
+    language_name = "rust"
+
     def detect(self, project_root: Path) -> bool:
         """Cargo.toml が存在するとき True を返す。"""
         return (project_root / "Cargo.toml").exists()
@@ -113,8 +115,10 @@ class RustAnalyzer(LanguageAnalyzer):
         """cargo audit --json を実行し Issue リストを返す。
 
         returncode != 0 は脆弱性あり（正常終了）。stdout をパースする。
-        パース失敗時は空リストを返す。
+        パース失敗時や cargo-audit 未インストール時は空リストを返す。
         """
+        import sys
+
         result = subprocess.run(
             ["cargo", "audit", "--json"],
             capture_output=True,
@@ -122,6 +126,15 @@ class RustAnalyzer(LanguageAnalyzer):
             check=False,
             cwd=target,
         )
+
+        # cargo audit 未インストール時（stderr にエラー、stdout が空）
+        if not result.stdout.strip() and result.returncode != 0:
+            print(
+                "Warning: cargo audit not available."
+                " Install with: cargo install cargo-audit",
+                file=sys.stderr,
+            )
+            return []
 
         try:
             data = json.loads(result.stdout)
@@ -194,14 +207,15 @@ class RustAnalyzer(LanguageAnalyzer):
         )
 
     def required_tools(self) -> list[ToolRequirement]:
-        """この Analyzer が必要とする外部ツールのリスト。"""
+        """この Analyzer が必要とする外部ツールのリスト。
+
+        cargo-audit は cargo のサブコマンドであり shutil.which では
+        検出できないため、cargo のみを必須ツールとして検証する。
+        cargo audit のインストール確認は run_security() 内で行う。
+        """
         return [
             ToolRequirement(
                 command="cargo",
                 install_hint="Install Rust: https://rustup.rs/",
-            ),
-            ToolRequirement(
-                command="cargo-audit",
-                install_hint="cargo install cargo-audit",
             ),
         ]
