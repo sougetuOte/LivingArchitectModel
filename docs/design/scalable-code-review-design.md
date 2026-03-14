@@ -311,6 +311,18 @@ Lost in the Middle 問題を軽減する。
 
 ## 3. Plan B: AST チャンキング設計
 
+### 3.0 tree-sitter 導入方針
+
+`chunker.py` 内で `try: import tree_sitter` し、未インストール時は Plan B をスキップして
+Warning を表示する。プロジェクトの pyproject.toml に tree-sitter を必須依存として追加しない。
+FR-2「tree-sitter がインストールできない環境では Plan B をスキップ」、
+NFR-3（外部依存の最小化）との一貫性。ユーザーが必要に応じて pip install する方式。
+
+インストール手順（ユーザー向け）:
+```bash
+pip install tree-sitter tree-sitter-python tree-sitter-javascript tree-sitter-rust
+```
+
 ### 3.1 チャンク単位
 
 | レベル | 単位 | 用途 |
@@ -323,6 +335,10 @@ Lost in the Middle 問題を軽減する。
 超えるクラスは L1（関数/メソッド単位）に自動分割する。
 目標チャンクサイズ: 2,000-3,000 トークン（`review-config.json` の `chunk_size_tokens` で調整可能、デフォルト 3,000）。
 のりしろサイズ上限: チャンクサイズの 20% 以内（最大 600 トークン、`overlap_ratio` で調整可能）。
+
+**トークンカウント方法**: `len(text.split())` でワード数を近似トークン数として使用する。
+外部トークナイザ（tiktoken 等）への依存は NFR-3 により追加しない。
+コードのワード数は LLM トークン数のおおよその近似として十分実用的。
 
 ### 3.2 のりしろ設計
 
@@ -338,30 +354,139 @@ Lost in the Middle 問題を軽減する。
 
 [のりしろ: シグネチャサマリー]
 - 同一ファイル内の他関数/クラスのシグネチャ（本体なし）
-- 直接の呼び出し先のシグネチャ
+- 直接の呼び出し先のシグネチャ（AST の Call ノードから特定、同一パッケージ内に限定）
 ```
+
+**呼び出し先の特定方法**: AST の Call ノード（関数呼び出し）を走査し、
+呼び出し先の関数/メソッド名を抽出する。同一パッケージ（`__init__.py` / `package.json` スコープ）内の
+定義が見つかった場合、そのシグネチャ（引数・戻り値）をのりしろに含める。
+パッケージ外の呼び出し先は import 文から推測可能なため、のりしろには含めない。
 
 ### 3.3 Map-Reduce フロー
 
 ```
-Map（デフォルト並列数: 4、最大: 10、review-config.json で調整可能）:
-  動的ディスパッチ: Agent 完了次第、次のチャンクを投入
-  チャンク1 → Agent1 → Issues1
-  チャンク2 → Agent2 → Issues2
+Map（バッチ並列方式）:
+  チャンクを max_parallel_agents 個ずつのバッチに分割（デフォルト 4、最大 10）
+  バッチ1: チャンク1〜4 → Agent1〜4 を run_in_background で並列起動
+           → 全 Agent 完了待ち
+  バッチ2: チャンク5〜8 → Agent5〜8 を並列起動
+           → 全 Agent 完了待ち
   ...
-  チャンクN → AgentN → IssuesN
 
   エラーハンドリング:
   - Agent タイムアウト/エラー時: 最大 2回リトライ（agent_retry_count で調整）
   - リトライ後も失敗: Warning として報告し続行（未レビューチャンクとして記録）
 
-Reduce（横断チェック）:
+Reduce（横断チェック — 静的解析ベース）:
   Issues1..N → 重複排除
-            → API 呼び出しと定義の一致チェック
-            → 型の整合性チェック
-            → 命名規則の統一性チェック
+            → API 呼び出しと定義の一致チェック（AST の Call ノード vs 関数定義）
+            → 型の整合性チェック（引数の型が定義と一致するか）
+            → 命名規則の統一性チェック（snake_case / camelCase の混在検出）
             → 統合レポート
 ```
+
+**並列制御の設計根拠**: Claude Code の Agent ツールは `run_in_background` で非同期起動し
+完了通知を受ける仕組み。「Agent 完了次第、次を投入」する動的ディスパッチは API 上不可能なため、
+バッチ方式を採用する。バッチサイズ = `max_parallel_agents`。
+
+**Reduce の実装方針**: 横断チェック（API 一致、型整合性、命名統一性）は
+AST 情報と Issue リストを用いた静的解析で実現する。LLM に全チャンクを再度読ませるのではなく、
+`ast-map.json` のシグネチャ情報を機械的に照合する。
+
+**型の整合性チェック方針**:
+- 型ヒントあり: シグネチャの引数型・戻り値型を照合（`def foo(x: int)` に `foo("str")` で Warning）
+- 型ヒントなし: 呼び出し側の引数から型を推論してチェック
+  - リテラル値（`foo(42)` → int、`foo("bar")` → str）は確定
+  - 変数は代入元を AST で遡って推論（1 ホップまで、深い推論はしない）
+  - 推論不可の場合はスキップ（偽陽性を避ける）
+- 動的型付け言語（Python, JS）では Warning 扱い、静的型付け言語（Rust）では Critical 扱い
+
+### 3.4 Chunk データモデル
+
+```python
+@dataclass
+class Chunk:
+    """チャンキングエンジンが生成するレビュー単位。"""
+    file_path: str          # 対象ファイルの相対パス
+    start_line: int         # チャンク本体の開始行
+    end_line: int           # チャンク本体の終了行
+    content: str            # チャンク本体のソースコード
+    overlap_header: str     # のりしろ（ファイルヘッダー: import + 定数）
+    overlap_footer: str     # のりしろ（シグネチャサマリー: 同一ファイル内 + 呼び出し先）
+    token_count: int        # チャンク全体（本体 + のりしろ）の推定トークン数
+    level: str              # "L1" | "L2" | "L3"（チャンク粒度）
+    node_name: str          # 対象のクラス名/関数名（L3 の場合はファイル名）
+```
+
+### 3.5 チャンク分割アルゴリズム
+
+```
+入力: ファイルの ASTNode ツリー（parse_ast() の出力）
+
+1. トップレベルノードを列挙（クラス、関数、モジュールレベルコード）
+2. 各ノードのトークン数を計算（len(content.split())）
+3. 分割判定:
+   - クラス ≤ chunk_size_tokens → L2 チャンク（クラス全体）
+   - クラス > chunk_size_tokens → L1 に分割（メソッド単位）
+   - トップレベル関数 → L1 チャンク（そのまま）
+   - モジュールレベルコード（import 以外）→ まとめて L3 チャンク
+4. 各チャンクにのりしろを付与（Section 3.2）
+5. のりしろ込みで chunk_size_tokens * (1 + overlap_ratio) を超えないよう調整
+6. L1 分割後もなお chunk_size_tokens を超える巨大関数/メソッド:
+   → そのまま 1 チャンクとして処理（構文的妥当性を優先）
+   → Warning ログを出力
+   → 「関数が大きすぎる（N tokens > chunk_size_tokens）」Issue を自動追加
+```
+
+### 3.6 full-review への統合位置
+
+Plan B（AST チャンキング）は新しい Phase として独立させる:
+
+| Phase | 内容 | Plan B 追加分 |
+|-------|------|--------------|
+| Phase 0 | 静的解析 | （変更なし） |
+| Phase 1 | ループ初期化 | （変更なし） |
+| Phase 1.5 | context7 MCP 検出 | （変更なし） |
+| **Phase 1.7** | **AST チャンキング** | **新規: chunker.py でファイルをチャンク分割** |
+| Phase 2 | 並列監査 | チャンクがある場合はチャンク単位で Agent を起動 |
+| Phase 3〜6 | 統合〜完了 | Reduce の横断チェックを Phase 3 に追加 |
+
+Phase 1.7 の動作:
+- tree-sitter がインストール済み: 全対象ファイルをチャンク分割、結果を `review-state/chunks.json` に保存
+- tree-sitter 未インストール: Warning 表示、Phase 2 は従来のファイル全体レビューにフォールバック
+
+Phase 2 でのチャンク受け渡し:
+- Agent にチャンクファイルのパスを渡し、Agent が自分で読み込む
+- Agent プロンプトには「このファイルを読んでレビューせよ」と指示
+- Agent は `overlap_header` + `content` + `overlap_footer` を結合して文脈を理解する
+
+### 3.8 テスト戦略（B-2 Map-Reduce）
+
+モック Agent（LLM 呼び出しなし）でバッチ並列制御ロジックを検証する:
+- 50 モックチャンクを 4 並列（13 バッチ）で処理
+- 各モック Agent は固定の Issue リストを返す
+- バッチ間の順序制御、エラーリトライ、Reduce の重複排除を自動テストで検証
+
+実 LLM テストは LAM 自体に対して手動で実施する（CI には含めない）。
+
+### 3.7 チャンク結果の永続化
+
+チャンクごとの Issue リストを個別ファイルで保存する:
+
+```
+.claude/review-state/chunk-results/
+├── src-hooks-analyzers-base-py-L2-AnalyzerRegistry-42-187.json
+├── src-hooks-analyzers-run_pipeline-py-L1-run_phase0-87-151.json
+└── ...
+```
+
+ファイル名フォーマット: `{path_segments}-{level}-{node_name}-{start}-{end}.json`
+- `path_segments`: ファイルパスの `/` を `-` に置換（検索性確保）
+- `level`: L1/L2/L3
+- `node_name`: クラス名/関数名
+- `start`-`end`: 行番号範囲
+
+これによりファイル名だけで「どのファイルのどの関数/クラスの結果か」が即座に判別できる。
 
 ## 4. Plan C: 階層的レビュー設計
 

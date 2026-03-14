@@ -83,30 +83,66 @@
 
 ## Phase 2: Plan B — AST チャンキング
 
-### Task B-1: チャンキングエンジン実装
-- tree-sitter ベースの AST チャンキング
-- チャンクサイズ制御（デフォルト 3,000 トークン、`chunk_size_tokens` で調整）
-- 4,000 トークン超のクラスを L1（関数/メソッド単位）に自動分割
-- のりしろ付与（import、シグネチャ、20% 以内、`overlap_ratio` で調整）
-- tree-sitter 未インストール時は Plan B をスキップし Warning 表示
-- **成果物**: `.claude/hooks/analyzers/chunker.py`
-- **受け入れ条件**: 各チャンクが構文的に妥当であること、のりしろにより周辺コンテキストが保持されること
+### Task B-1a: Chunk データモデル + トークンカウント
+- `Chunk` dataclass の実装（設計書 Section 3.4）
+  - `file_path`, `start_line`, `end_line`, `content`, `overlap_header`, `overlap_footer`, `token_count`, `level`, `node_name`
+- トークンカウント関数: `count_tokens(text) -> int` = `len(text.split())`
+- **成果物**: `.claude/hooks/analyzers/chunker.py`（データモデル部分）
+- **テスト**: Chunk 生成・シリアライズ、トークンカウントのユニットテスト
+- **受け入れ条件**: Chunk が正しくインスタンス化でき、トークンカウントがワード数と一致すること
 
-### Task B-2: Map-Reduce オーケストレーション
-- 動的ディスパッチ: Agent 完了次第、次のチャンクを投入
-- デフォルト 4 並列（`max_parallel_agents` で調整、最大 10）
-- Agent タイムアウト/エラー時: 最大リトライ（`agent_retry_count` で調整）、失敗なら Warning 続行
-- Reduce: 重複排除 + API 整合性 + 型整合性 + 命名統一性の横断チェック
-- **成果物**: full-review Phase 2 改修
-- **テスト**: モックチャンク生成ヘルパーでオーケストレーションロジックを検証（LLM 呼び出しなし）。実プロジェクトでの手動検証も並行して実施
-- **受け入れ条件**: 50モックチャンクを 4 並列で処理し、全チャンクの結果が統合されること
-- **Phase 完了検証**: 統合テストで自動検証
+### Task B-1b: tree-sitter 統合 + チャンク分割エンジン
+- tree-sitter の try/import（未インストール時は `TreeSitterNotAvailable` 例外 → スキップ）
+- AST からトップレベルノード（クラス、関数）を列挙
+- チャンク分割アルゴリズム（設計書 Section 3.5）:
+  - クラス ≤ chunk_size_tokens → L2 チャンク
+  - クラス > chunk_size_tokens → L1 分割（メソッド単位）
+  - トップレベル関数 → L1 チャンク
+  - L1 でもなお超過する巨大関数 → Warning + 自動 Issue 追加
+- Python 向け実装を先行（tree-sitter-python）。JS/Rust は後続タスクで追加
+- **成果物**: `.claude/hooks/analyzers/chunker.py`（分割ロジック部分）
+- **テスト**: サンプル Python ファイルに対するチャンク分割結果の検証（L1/L2/L3 の判定、巨大関数の Warning）
+- **受け入れ条件**: Python ファイルが正しくチャンク分割され、各チャンクのトークン数が `chunk_size_tokens` 以内であること（巨大関数を除く）
 
-### Task B-3: チャンク結果の永続化
+### Task B-1c: のりしろ付与
+- ファイルヘッダーのりしろ: import 文 + モジュールレベル定数・型定義
+- シグネチャサマリーのりしろ: 同一ファイル内の他関数/クラスのシグネチャ
+- 呼び出し先シグネチャ: AST の Call ノードから同一パッケージ内の定義を特定
+- のりしろ込みで `chunk_size_tokens * (1 + overlap_ratio)` を超えないよう調整
+- **成果物**: `.claude/hooks/analyzers/chunker.py`（のりしろ付与部分）
+- **テスト**: のりしろが正しく付与されること、サイズ制限を超えないこと
+- **受け入れ条件**: 各チャンクに import + シグネチャのりしろが付与され、上限トークン数内であること
+
+### Task B-2a: バッチ並列オーケストレーション
+- チャンクを `max_parallel_agents` 個ずつのバッチに分割
+- バッチ内の Agent を `run_in_background` で並列起動 → 全完了待ち → 次バッチ
+- Agent プロンプト: チャンクファイルのパスを渡し、Agent が自分で読み込む
+- エラーハンドリング: タイムアウト/エラー時に最大 `agent_retry_count` 回リトライ、失敗は Warning 続行
+- **成果物**: `.claude/hooks/analyzers/orchestrator.py` または `full-review.md` Phase 1.7 + Phase 2 改修
+- **テスト**: モック Agent（固定 Issue リストを返す）で 50 チャンク × 4 並列（13 バッチ）を検証
+- **受け入れ条件**: 全バッチが順序通り処理され、全チャンクの結果が収集されること
+
+### Task B-2b: Reduce（横断チェック + 重複排除）
+- 全チャンクの Issue リストを統合
+- 重複排除（同一ファイル・行・ルールの Issue を統合）
+- 横断チェック（静的解析ベース、設計書 Section 3.3）:
+  - API 呼び出しと定義の一致（AST の Call ノード vs 関数定義）
+  - 型の整合性（型ヒントあり: シグネチャ照合、型ヒントなし: リテラル/1ホップ推論）
+  - 命名規則の統一性（snake_case / camelCase 混在検出）
+- **成果物**: `.claude/hooks/analyzers/reducer.py`
+- **テスト**: モック Issue リストに対する重複排除・横断チェックのユニットテスト
+- **受け入れ条件**: 重複が排除され、API 不一致・型不整合が検出されること
+
+### Task B-3: チャンク結果の永続化 + full-review 統合
 - `.claude/review-state/chunk-results/` への結果保存
-- チャンク間の依存関係の記録
-- **成果物**: state_manager.py 拡張
-- **受け入れ条件**: 次回レビュー時にキャッシュが機能すること
+  - ファイル名: `{path_segments}-{level}-{node_name}-{start}-{end}.json`
+- `chunks.json`（チャンク一覧）の保存・読み込み
+- `full-review.md` に Phase 1.7（AST チャンキング）を追加
+- Phase 2 をチャンクモード対応に改修（チャンクあり → チャンク単位 Agent、なし → 従来）
+- **成果物**: `state_manager.py` 拡張 + `full-review.md` 改修
+- **テスト**: チャンク結果の保存・読み込みラウンドトリップ
+- **受け入れ条件**: チャンク結果が永続化され、full-review がチャンクモードで動作すること
+- **Phase 完了検証**: LAM 自体に対して Phase 2 を実行する手動統合テスト
 
 ---
 
@@ -166,9 +202,14 @@ A-1a → A-5
 A-1a → A-5b
 A-5b → A-2, A-3, A-4（config 参照のため）
 A-2, A-3, A-4, A-5, A-5b → A-6
-A-6 → B-1
-B-1 → B-2
-B-2 → B-3
+A-6 → B-1a
+B-1a → B-1b
+B-1b → B-1c
+B-1a → B-2a（Chunk データモデルが必要）
+B-1c → B-2a（のりしろ付きチャンクが必要）
+B-2a → B-2b（全チャンク結果が必要）
+B-1a → B-3（Chunk データモデルが必要）
+B-2b → B-3（Reduce 結果の永続化）
 A-5 → B-3（state_manager.py 拡張のため）
 B-3 → C-1
 C-1 → C-2
