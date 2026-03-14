@@ -339,17 +339,21 @@ Phase 4 完了時に `.claude/lam-loop-state.json` を更新する:
 
 **重要**: ループは Claude が自分で制御する。応答を終了せずに Phase 2 に戻ること。
 
+**絶対ルール: Before=0 を確認するまで終了してはならない。**
+修正後に Issue 0件になっても、それは Green State ではない。
+次のイテレーションで再スキャン（Phase 2）し、**スキャン結果が 0件** であって初めて Green State となる。
+
 ```
-Phase 5 完了
-  ├── Issue 1件以上 → 状態ファイル更新 → **応答を終了せず Phase 2 に戻る**
-  ├── Issue 0件 + fullscan_pending → フルスキャン実行 → Phase 2 に戻る
-  ├── Issue 0件（Green State 達成）→ Phase 6 へ
-  └── max_iterations 到達 → Phase 6 へ（未達で終了）
+Phase 2（再スキャン）
+  ├── Issue 0件（Before=0）→ ✅ Green State 達成 → Phase 6 へ
+  └── Issue 1件以上 → Phase 3〜5（修正）→ Phase 2 に戻る（応答を継続）
+
+例外（応答を終了してよいケース）:
+  ├── max_iterations 到達 → Phase 6 へ（未達で終了）
+  └── PM級 Issue あり → PG/SE 修正後、PM級を提示して応答を終了（ユーザー判断待ち）
 ```
 
-**Phase 2 で Issue 0件（Before=0）** → Green State 達成 → Phase 6 へ
-**Phase 2 で Issue 1件以上** → Phase 3〜5 を実行 → 状態ファイル更新 → Phase 2 に戻る（応答を継続）
-**PM級 Issue あり** → PG/SE 修正後、PM級を提示して応答を終了（ユーザー判断待ち）
+**禁止**: 修正完了をもって Green State と見なすこと。必ず再スキャンで Before=0 を確認すること。
 
 ## Phase 6: 完了報告 + ループログ出力
 
