@@ -6,6 +6,7 @@ W4-T1: Red フェーズ（テストファースト）
 """
 import datetime
 import json
+import re
 from pathlib import Path
 
 # テスト対象フックのパス
@@ -103,7 +104,7 @@ class TestStopHook:
     def test_precompact_stops(self, hook_runner, project_root):
         """PreCompact 発火フラグが直近 10 分以内に存在する場合、停止許可する"""
         # アクティブな状態ファイルを作成
-        _write_state(project_root, DEFAULT_STATE)
+        state_file = _write_state(project_root, DEFAULT_STATE)
 
         # 直近のタイムスタンプで pre-compact-fired フラグを作成
         now_ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -116,6 +117,8 @@ class TestStopHook:
         assert result.stdout.strip() == "", (
             f"PreCompact 発火直後は stdout が空であるべき。got: {result.stdout!r}"
         )
+        # 状態ファイルが削除されていること
+        assert not state_file.exists(), "PreCompact 発火時は状態ファイルが削除されるべき"
 
     def test_state_schema_valid(self, project_root):
         """lam-loop-state.json の必須フィールドが正しく書き込み・読み込みできる"""
@@ -153,3 +156,99 @@ class TestStopHook:
         assert isinstance(loaded["log"], list)
         assert len(loaded["log"]) == 1
         assert loaded["log"][0]["test_count"] == 42
+
+
+class TestSecretPattern:
+    """_SECRET_PATTERN のパターンマッチテスト
+
+    注: テスト値には _SAFE_PATTERN キーワード（test, example 等）を含めて
+    G5 シークレットスキャナーの誤検出を防止する。
+    """
+
+    # lam-stop-hook.py と同じパターンを使用
+    _SECRET_PATTERN = re.compile(
+        r'(password|secret|api_key|apikey|token|private_key)\s*[=:]\s*["\']([^"\']{8,})',
+        re.IGNORECASE,
+    )
+    _SAFE_PATTERN = re.compile(
+        r"(\btest\b|\bspec\b|\bmock\b|\bexample\b|\bplaceholder\b|\bxxx\b|\bchangeme\b)",
+        re.IGNORECASE,
+    )
+
+    def test_equals_format_detected(self):
+        """従来の等号形式 password="value" が検出される"""
+        line = 'password="example_secret_value"'
+        m = self._SECRET_PATTERN.search(line)
+        assert m is not None, "等号形式が検出されるべき"
+        assert m.group(1) == "password"
+
+    def test_colon_format_detected(self):
+        """YAML/JSON コロン形式 password: "value" が検出される"""
+        line = 'password: "example_secret_value"'
+        m = self._SECRET_PATTERN.search(line)
+        assert m is not None, "コロン形式が検出されるべき"
+        assert m.group(1) == "password"
+
+    def test_colon_format_single_quotes(self):
+        """コロン形式のシングルクォート api_key: 'value' が検出される"""
+        line = "api_key: 'test_abcdefghij123456'"
+        m = self._SECRET_PATTERN.search(line)
+        assert m is not None, "コロン＋シングルクォート形式が検出されるべき"
+        assert m.group(1) == "api_key"
+
+    def test_safe_pattern_not_flagged(self):
+        """テスト用の値（test, example 等）は safe として除外される"""
+        line = 'password: "this is a test value"'
+        m = self._SECRET_PATTERN.search(line)
+        assert m is not None
+        assert self._SAFE_PATTERN.search(m.group(2)), "test を含む値は safe であるべき"
+
+    def test_short_values_ignored(self):
+        """8文字未満の値は検出されない"""
+        line = 'password: "short"'
+        m = self._SECRET_PATTERN.search(line)
+        assert m is None, "8文字未満の値は検出されないべき"
+
+    def test_equals_still_works(self):
+        """コロン対応後も等号形式が引き続き動作する"""
+        line = 'secret = "placeholder_value_123"'
+        m = self._SECRET_PATTERN.search(line)
+        assert m is not None, "等号形式が引き続き検出されるべき"
+
+
+class TestScanExtensions:
+    """シークレットスキャンの対象拡張子テスト（統合テスト）
+
+    注: 統合テスト内の秘密値は意図的に _SAFE_PATTERN 非対象値を使用している。
+    これらの値は tmp_path 内のファイルに書き込まれ、フックのスキャン検出を検証する。
+    テストソースファイル自体（test_stop_hook.py）はスキャン対象の check_dir（tmp_path）外に
+    あるため、G5 シークレットスキャナーの誤検出は発生しない。
+    """
+
+    def test_md_secret_detected_integration(self, hook_runner, project_root):
+        """.md ファイル内のシークレットが検出される"""
+        _write_state(project_root, DEFAULT_STATE)
+        readme = project_root / "README.md"
+        readme.write_text('api_key: "sk_live_abcdefghijklmnop1234"\n', encoding="utf-8")
+
+        result = hook_runner(HOOK_PATH, {"session_id": "test-session"})
+        assert result.returncode == 0, f"フックが正常終了すべき。stderr: {result.stderr!r}"
+
+        log_file = project_root / ".claude" / "logs" / "loop.log"
+        assert log_file.exists(), "シークレット検出時は loop.log が生成されるべき"
+        log_content = log_file.read_text(encoding="utf-8")
+        assert "potential secret" in log_content, "README.md 内のシークレットがログに記録されるべき"
+
+    def test_txt_secret_detected_integration(self, hook_runner, project_root):
+        """.txt ファイル内のシークレットが検出される"""
+        _write_state(project_root, DEFAULT_STATE)
+        secret_file = project_root / "config.txt"
+        secret_file.write_text('token = "ghp_abcdefghijklmnop1234567890"\n', encoding="utf-8")
+
+        result = hook_runner(HOOK_PATH, {"session_id": "test-session"})
+        assert result.returncode == 0, f"フックが正常終了すべき。stderr: {result.stderr!r}"
+
+        log_file = project_root / ".claude" / "logs" / "loop.log"
+        assert log_file.exists(), "シークレット検出時は loop.log が生成されるべき"
+        log_content = log_file.read_text(encoding="utf-8")
+        assert "potential secret" in log_content, "config.txt 内のシークレットがログに記録されるべき"

@@ -117,11 +117,8 @@ class TestTDDPatternDetection:
         assert result.returncode == 0
 
         tdd_log = project_root / ".claude" / "tdd-patterns.log"
-        # FAIL/PASS は記録されない（WARN のみ別ログに出る）
-        assert not tdd_log.exists() or "FAIL" not in tdd_log.read_text(encoding="utf-8")
-        if tdd_log.exists():
-            content = tdd_log.read_text(encoding="utf-8")
-            assert "PASS" not in content
+        # JUnit XML なし時は tdd-patterns.log が作成されてはいけない
+        assert not tdd_log.exists(), "JUnit XML なし時は tdd-patterns.log が作成されないべき"
 
     def test_npm_test_fail_recorded(self, hook_runner, project_root):
         """npm test 失敗 + JUnit XML → FAIL 記録"""

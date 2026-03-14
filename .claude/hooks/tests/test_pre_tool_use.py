@@ -7,6 +7,8 @@ W2-T2: Red フェーズ（テストファースト）
 import json
 from pathlib import Path
 
+import pytest
+
 # テスト対象フックのパス
 HOOK_PATH = Path(__file__).resolve().parent.parent / "pre-tool-use.py"
 
@@ -152,3 +154,63 @@ class TestPreToolUse:
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0
         assert result.stdout.strip() == "", f"PG 許可時は stdout が空であるべき。got: {result.stdout!r}"
+
+    @pytest.mark.parametrize("blacklisted_arg", [
+        "--config",
+        "--settings",
+        "--ruleset",
+        "--rule-dir",
+        "--rulesdir",
+        "--plugin",
+        "--resolve-plugins-relative-to",
+        "--stdin-filename",
+        "--ignore-path",
+        "--ext",
+    ])
+    def test_auditing_pg_command_with_blacklisted_arg_pm(self, hook_runner, project_root, blacklisted_arg):
+        """AUDITING フェーズで PG コマンドにブラックリスト引数があると PM に昇格する"""
+        phase_file = project_root / ".claude" / "current-phase.md"
+        phase_file.parent.mkdir(parents=True, exist_ok=True)
+        phase_file.write_text("**AUDITING**\n", encoding="utf-8")
+
+        input_json = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": f"ruff check --fix {blacklisted_arg} /etc/evil.toml src/",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, f"ブラックリスト引数 {blacklisted_arg} 付き PG コマンドは PM ask を返すべき"
+        data = json.loads(stdout)
+        assert data["hookSpecificOutput"]["permissionDecision"] == "ask"
+
+    def test_auditing_pg_command_normal_args_allowed(self, hook_runner, project_root):
+        """AUDITING フェーズで PG コマンドに正常な引数は PG 許可される"""
+        phase_file = project_root / ".claude" / "current-phase.md"
+        phase_file.parent.mkdir(parents=True, exist_ok=True)
+        phase_file.write_text("**AUDITING**\n", encoding="utf-8")
+
+        input_json = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "ruff check --fix src/main.py",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", f"正常引数の PG コマンドは許可されるべき。got: {result.stdout!r}"
+
+    def test_non_auditing_pg_command_se(self, hook_runner, project_root):
+        """非 AUDITING フェーズでは PG コマンドも SE として扱われる"""
+        # フェーズファイルを作成しない（非 AUDITING）
+        input_json = {
+            "tool_name": "Bash",
+            "tool_input": {
+                "command": "ruff check --fix src/main.py",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", f"非 AUDITING では SE 許可されるべき。got: {result.stdout!r}"
