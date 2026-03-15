@@ -23,7 +23,9 @@
       "Bash(npx prettier *)",
       "Bash(npx eslint --fix *)",
       "Bash(ruff check --fix *)",
-      "Bash(ruff format *)"
+      "Bash(ruff format *)",
+      "Bash(python3 -c *)",
+      "Bash(python -c *)"
     ],
     "deny": [
       "Bash(rm *)",

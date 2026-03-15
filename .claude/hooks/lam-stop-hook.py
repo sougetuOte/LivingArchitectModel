@@ -65,8 +65,8 @@ def _get_log_file(project_root: Path) -> Path:
 def _log(log_file: Path, level: str, message: str) -> None:
     try:
         log_entry(log_file, level, "stop-hook", message)
-    except Exception:
-        pass
+    except Exception as e:
+        sys.stderr.write(f"stop-hook log error: {e}\n")
 
 
 def _stop(log_file: Path, message: str) -> None:

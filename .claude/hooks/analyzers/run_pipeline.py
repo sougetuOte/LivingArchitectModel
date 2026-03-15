@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from analyzers.base import AnalyzerRegistry, Issue
+from analyzers.base import AnalyzerRegistry, Issue, LanguageAnalyzer
 from analyzers.config import ReviewConfig
 from analyzers.python_analyzer import PythonAnalyzer
 from analyzers.javascript_analyzer import JavaScriptAnalyzer
@@ -102,30 +102,18 @@ def _build_registry() -> AnalyzerRegistry:
     return registry
 
 
-def run_phase0(
+def _detect_analyzers(
     project_root: Path,
-    config: ReviewConfig | None = None,
-) -> Phase0Result:
-    """Phase 0（静的解析パイプライン）を実行する。
-
-    1. 言語検出
-    2. ツール検証
-    3. lint + security 実行
-    4. 結果を review-state/ に永続化
-    5. summary.md 生成
-    """
-    if config is None:
-        config = ReviewConfig.load(project_root)
-
+    config: ReviewConfig,
+) -> list[LanguageAnalyzer]:
+    """言語検出・除外フィルタ・ツール検証を行い、有効な Analyzer リストを返す。"""
     registry = _build_registry()
-    # 自動探索（カスタム Analyzer がある場合）
     analyzers_dir = project_root / ".claude" / "hooks" / "analyzers"
     if analyzers_dir.is_dir():
         registry.auto_discover(analyzers_dir)
 
     analyzers = registry.detect_languages(project_root)
 
-    # 除外言語をフィルタ（language_name プロパティで照合）
     if config.exclude_languages:
         exclude_set = {lang.lower() for lang in config.exclude_languages}
         analyzers = [
@@ -133,39 +121,50 @@ def run_phase0(
             if a.language_name.lower() not in exclude_set
         ]
 
+    if analyzers:
+        registry.verify_tools(analyzers)
+
+    return analyzers
+
+
+def _persist_results(
+    project_root: Path,
+    issues: list[Issue],
+) -> Path:
+    """Issue リストと summary.md を review-state/ に永続化する。"""
+    state_dir = project_root / ".claude" / "review-state"
+    save_issues(state_dir, issues)
+
+    summary_content = generate_summary(issues)
+    summary_path = state_dir / "summary.md"
+    summary_path.write_text(summary_content, encoding="utf-8")
+    return summary_path
+
+
+def run_phase0(
+    project_root: Path,
+    config: ReviewConfig | None = None,
+) -> Phase0Result:
+    """Phase 0（静的解析パイプライン）を実行する。"""
+    if config is None:
+        config = ReviewConfig.load(project_root)
+
+    analyzers = _detect_analyzers(project_root, config)
     if not analyzers:
         return Phase0Result()
 
-    # ツール検証
-    registry.verify_tools(analyzers)
-
-    # 行数カウント
     line_count = count_lines(project_root, config.exclude_dirs)
 
-    # lint + security 実行
     issues: list[Issue] = []
     for analyzer in analyzers:
         issues.extend(analyzer.run_lint(project_root))
         issues.extend(analyzer.run_security(project_root))
 
-    # 結果永続化
-    # NOTE: save_file_hashes() / save_ast_map() は Phase 3 で有効化予定。
-    # 現時点では save_issues() のみ。キャッシュ（FR-5）と横断チェック用
-    # ast-map は Phase 3 タスクで run_phase0() に追加する。
-    state_dir = project_root / ".claude" / "review-state"
-    save_issues(state_dir, issues)
-
-    # summary.md 生成（state_dir は save_issues() 内で mkdir 済み）
-    summary_content = generate_summary(issues)
-    summary_path = state_dir / "summary.md"
-    summary_path.write_text(summary_content, encoding="utf-8")
-
-    # 検出言語名リスト
-    language_names = [a.language_name for a in analyzers]
+    summary_path = _persist_results(project_root, issues)
 
     return Phase0Result(
         issues=issues,
-        languages=language_names,
+        languages=[a.language_name for a in analyzers],
         line_count=line_count,
         summary_path=summary_path,
     )

@@ -146,7 +146,13 @@ class AnalyzerRegistry:
         module = importlib.util.module_from_spec(spec)
         try:
             spec.loader.exec_module(module)
-        except (ImportError, OSError, SyntaxError, AttributeError, ValueError) as e:
+        except SyntaxError as e:
+            logger.error(
+                "SyntaxError in analyzer %s (likely a code bug): %s",
+                module_path, e,
+            )
+            return
+        except (ImportError, OSError, AttributeError, ValueError) as e:
             logger.warning(
                 "Failed to load analyzer %s: %s: %s",
                 module_path, type(e).__name__, e,
