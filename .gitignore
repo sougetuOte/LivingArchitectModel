@@ -46,7 +46,7 @@ docs/daily/
 .claude/doc-sync-flag
 .claude/pre-compact-fired
 .claude/last-test-result
-.claude/test-results.xml
+**/test-results.xml
 
 # Reference materials
 _reference/
