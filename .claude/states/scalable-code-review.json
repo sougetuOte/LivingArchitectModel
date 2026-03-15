@@ -8,9 +8,9 @@
     "design": "approved",
     "tasks": "approved"
   },
-  "current_wave": 1,
-  "current_task": "C-2a",
-  "completed_tasks": ["A-1a", "A-1b", "A-2", "A-3", "A-4", "A-5", "A-5b", "A-6", "B-1a", "B-1b", "B-2a", "B-2b", "B-3"],
+  "current_wave": 2,
+  "current_task": "C-2b",
+  "completed_tasks": ["A-1a", "A-1b", "A-2", "A-3", "A-4", "A-5", "A-5b", "A-6", "B-1a", "B-1b", "B-2a", "B-2b", "B-3", "C-1a", "C-1b", "C-2a"],
   "approvals": {
     "requirements": "2026-03-14",
     "design": "2026-03-14",
