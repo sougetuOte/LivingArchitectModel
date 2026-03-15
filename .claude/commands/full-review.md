@@ -399,7 +399,7 @@ python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=
 ```
 
 共通ポリシー:
-- **A-1**: 全重篤度（Critical / Warning / Info）に対応する。検出した Issue の defer（先送り）は禁止
+- **A-1**: Critical / Warning に対応する。Info は参考情報であり修正不要（`code-quality-guideline.md` 準拠）。Critical/Warning の defer（先送り）は原則禁止（PM級 Warning のみ理由付き deferred を許可）
 - **A-2**: **スコープ外 Issue の扱い** — 以下の条件を**すべて**満たす場合のみ、当該イテレーションでの修正を免除できる:
   1. 依存先が未実装（別 Phase/Wave のスコープ）等、**技術的に着手不可能**であること
   2. 「コンテキスト不足」「工数が多い」「面倒」は理由にならない。コンテキスト逼迫時は `/quick-save` でセッション分割せよ
