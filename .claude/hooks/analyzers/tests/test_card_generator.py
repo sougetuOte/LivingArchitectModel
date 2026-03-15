@@ -15,23 +15,31 @@ import pytest
 
 from analyzers.base import ASTNode, Issue
 from analyzers.card_generator import (
+    ContractCard,
     FileCard,
     ModuleCard,
     _condense_sccs,
+    analyze_impact,
     build_topo_order,
     check_all_exports,
     check_name_collisions,
     check_unused_reexports,
+    classify_impact_for_cards,
     collect_spec_drift_context,
     detect_circular_dependencies,
     detect_module_naming_violations,
     detect_module_boundaries,
+    format_contract_cards_for_prompt,
     generate_file_cards,
     generate_module_cards,
+    load_contract_card,
     load_file_card,
     load_module_card,
+    merge_contracts,
     merge_responsibilities,
+    parse_contract,
     parse_responsibility,
+    save_contract_card,
     save_file_card,
     save_module_card,
 )
@@ -1201,3 +1209,324 @@ class TestBuildTopoOrder:
         assert len(result["sccs"]) == 2
         order = result["topo_order"]
         assert len(order) >= 3  # SCC1, SCC2, e
+
+
+# ===================================================================
+# D-2: 契約カード生成（FR-7c）
+# ===================================================================
+
+_CONTRACT_AGENT_OUTPUT = """\
+分析結果です。
+
+---CONTRACT-CARD---
+preconditions: [arg is not None, arg is str]
+postconditions: [returns list, result is sorted]
+side_effects: [writes to log]
+invariants: [state unchanged]
+---END-CONTRACT-CARD---
+"""
+
+_CONTRACT_AGENT_OUTPUT_NO_MARKER = """\
+分析結果です。特に制約はありません。
+"""
+
+_CONTRACT_AGENT_OUTPUT_PARTIAL = """\
+---CONTRACT-CARD---
+preconditions: [arg is not None]
+postconditions: [returns list]
+---END-CONTRACT-CARD---
+"""
+
+
+class TestParseContract:
+    """parse_contract() のテスト（D-2: FR-7c）。"""
+
+    def test_parse_contract_normal(self) -> None:
+        """マーカー間のフィールドが正しく抽出されること。"""
+        result = parse_contract(_CONTRACT_AGENT_OUTPUT)
+        assert result["preconditions"] == ["arg is not None", "arg is str"]
+        assert result["postconditions"] == ["returns list", "result is sorted"]
+        assert result["side_effects"] == ["writes to log"]
+        assert result["invariants"] == ["state unchanged"]
+
+    def test_parse_contract_missing_marker(self) -> None:
+        """マーカーがない場合は空辞書を返すこと。"""
+        result = parse_contract(_CONTRACT_AGENT_OUTPUT_NO_MARKER)
+        assert result == {}
+
+    def test_parse_contract_partial_fields(self) -> None:
+        """フィールドが部分的に欠落している場合、存在するフィールドのみ返すこと。"""
+        result = parse_contract(_CONTRACT_AGENT_OUTPUT_PARTIAL)
+        assert "preconditions" in result
+        assert "postconditions" in result
+        assert "side_effects" not in result
+        assert "invariants" not in result
+
+
+class TestMergeContracts:
+    """merge_contracts() のテスト（D-2: FR-7c）。"""
+
+    def test_merge_contracts_aggregates_public_api(self) -> None:
+        """モジュール単位で public_api が集約されること。"""
+        file_cards = {
+            "src/mod/__init__.py": _make_file_card(
+                "src/mod/__init__.py", public_api=["init_func"]
+            ),
+            "src/mod/util.py": _make_file_card(
+                "src/mod/util.py", public_api=["util_func", "HelperClass"]
+            ),
+        }
+        ast_map = {
+            "src/mod/__init__.py": _make_module_node([
+                _make_function_node("init_func"),
+            ]),
+            "src/mod/util.py": _make_module_node([
+                _make_function_node("util_func"),
+                _make_class_node("HelperClass"),
+            ]),
+        }
+        module_to_files = {"src/mod": ["src/mod/__init__.py", "src/mod/util.py"]}
+        contract_fields: dict[str, dict] = {}
+
+        result = merge_contracts(file_cards, contract_fields, module_to_files, ast_map)
+
+        assert "src/mod" in result
+        card = result["src/mod"]
+        assert "init_func" in card.public_api
+        assert "util_func" in card.public_api
+        assert "HelperClass" in card.public_api
+
+    def test_merge_contracts_aggregates_signatures(self) -> None:
+        """モジュール単位で signatures が集約されること。"""
+        file_cards = {
+            "src/mod/util.py": _make_file_card("src/mod/util.py", public_api=["util_func"]),
+        }
+        ast_map = {
+            "src/mod/util.py": _make_module_node([
+                _make_function_node("util_func"),
+            ]),
+        }
+        module_to_files = {"src/mod": ["src/mod/util.py"]}
+        contract_fields: dict[str, dict] = {}
+
+        result = merge_contracts(file_cards, contract_fields, module_to_files, ast_map)
+
+        card = result["src/mod"]
+        assert any("util_func" in sig for sig in card.signatures)
+
+    def test_merge_contracts_applies_contract_fields(self) -> None:
+        """parse_contract の結果が ContractCard に反映されること。"""
+        file_cards = {
+            "src/mod/util.py": _make_file_card("src/mod/util.py"),
+        }
+        ast_map = {
+            "src/mod/util.py": _make_module_node([_make_function_node("util_func")]),
+        }
+        module_to_files = {"src/mod": ["src/mod/util.py"]}
+        contract_fields = {
+            "src/mod": {
+                "preconditions": ["arg is not None"],
+                "postconditions": ["returns list"],
+                "side_effects": [],
+                "invariants": [],
+            }
+        }
+
+        result = merge_contracts(file_cards, contract_fields, module_to_files, ast_map)
+
+        card = result["src/mod"]
+        assert card.preconditions == ["arg is not None"]
+        assert card.postconditions == ["returns list"]
+
+
+class TestSaveLoadContractCard:
+    """save_contract_card / load_contract_card のテスト（D-2: FR-7c）。"""
+
+    def test_save_load_roundtrip(self, tmp_path: Path) -> None:
+        """ContractCard が正しく永続化・復元されること。"""
+        state_dir = tmp_path / "review-state"
+        card = ContractCard(
+            module_name="src/mod",
+            public_api=["func_a", "ClassB"],
+            signatures=["def func_a():", "class ClassB:"],
+            preconditions=["arg is not None"],
+            postconditions=["returns list"],
+            side_effects=["writes to log"],
+            invariants=["state unchanged"],
+        )
+
+        save_contract_card(state_dir, card)
+        loaded = load_contract_card(state_dir, "src/mod")
+
+        assert loaded is not None
+        assert loaded.module_name == card.module_name
+        assert loaded.public_api == card.public_api
+        assert loaded.signatures == card.signatures
+        assert loaded.preconditions == card.preconditions
+        assert loaded.postconditions == card.postconditions
+        assert loaded.side_effects == card.side_effects
+        assert loaded.invariants == card.invariants
+
+    def test_load_returns_none_when_missing(self, tmp_path: Path) -> None:
+        """存在しないカードを読み込んだ場合 None が返ること。"""
+        state_dir = tmp_path / "review-state"
+        state_dir.mkdir()
+
+        result = load_contract_card(state_dir, "src/nonexistent")
+
+        assert result is None
+
+
+# ===================================================================
+# D-3: format_contract_cards_for_prompt（FR-7b）
+# ===================================================================
+
+
+class TestFormatContractCardsForPrompt:
+    """format_contract_cards_for_prompt() のテスト（D-3: FR-7b）。"""
+
+    def test_format_contract_cards_for_prompt(self) -> None:
+        """ContractCard が JSON 形式で整形されること。"""
+        card = ContractCard(
+            module_name="src.upstream",
+            public_api=["func_a"],
+            signatures=["def func_a():"],
+            preconditions=["input must not be None"],
+            postconditions=["returns valid result"],
+            side_effects=[],
+            invariants=["state is consistent"],
+        )
+
+        result = format_contract_cards_for_prompt([card])
+
+        assert "---CONTRACT-CARD---" in result
+        assert "---END-CONTRACT-CARD---" in result
+        # JSON として解釈できる部分に module_name が含まれること
+        assert "src.upstream" in result
+
+    def test_format_contract_cards_for_prompt_empty(self) -> None:
+        """空リストで空文字列が返ること。"""
+        result = format_contract_cards_for_prompt([])
+        assert result == ""
+
+
+# ===================================================================
+# D-4: analyze_impact / classify_impact_for_cards（FR-7d）
+# ===================================================================
+
+
+class TestAnalyzeImpact:
+    """analyze_impact() のテスト（D-4: FR-7d）。"""
+
+    def test_direct_dependency(self) -> None:
+        """A→B で B を修正すると A が影響範囲に入ること。"""
+        # A imports B: import_map["a.py"] = ["b"]
+        import_map = {
+            "a.py": ["b"],
+            "b.py": [],
+        }
+        result = analyze_impact(["b.py"], import_map)
+
+        assert "b.py" in result["in_scope"]
+        assert "a.py" in result["in_scope"]
+        assert "a.py" not in result["out_of_scope"]
+
+    def test_indirect_dependency(self) -> None:
+        """A→B→C で C を修正すると A, B が影響範囲に入ること。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["c"],
+            "c.py": [],
+        }
+        result = analyze_impact(["c.py"], import_map)
+
+        assert "c.py" in result["in_scope"]
+        assert "b.py" in result["in_scope"]
+        assert "a.py" in result["in_scope"]
+        assert len(result["out_of_scope"]) == 0
+
+    def test_scc_whole_in_scope(self) -> None:
+        """SCC 内の1ノードを修正すると SCC 全体が影響範囲に入ること。"""
+        # A ↔ B（循環）, C → A
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["a"],
+            "c.py": ["a"],
+        }
+        result = analyze_impact(["a.py"], import_map)
+
+        assert "a.py" in result["in_scope"]
+        assert "b.py" in result["in_scope"]
+        assert "c.py" in result["in_scope"]
+        assert len(result["out_of_scope"]) == 0
+
+    def test_no_dependency_self_only(self) -> None:
+        """依存なしファイルの修正で影響範囲が自身のみ。"""
+        import_map = {
+            "a.py": [],
+            "b.py": [],
+        }
+        result = analyze_impact(["a.py"], import_map)
+
+        assert "a.py" in result["in_scope"]
+        assert "b.py" in result["out_of_scope"]
+
+    def test_modified_file_always_in_scope(self) -> None:
+        """修正ファイル自身は常に in_scope に含まれること。"""
+        import_map = {
+            "standalone.py": [],
+        }
+        result = analyze_impact(["standalone.py"], import_map)
+
+        assert "standalone.py" in result["in_scope"]
+
+    def test_unrelated_files_out_of_scope(self) -> None:
+        """修正に無関係なファイルが out_of_scope に分類されること。"""
+        # A → B, C は独立
+        import_map = {
+            "a.py": ["b"],
+            "b.py": [],
+            "c.py": [],
+        }
+        result = analyze_impact(["b.py"], import_map)
+
+        assert "b.py" in result["in_scope"]
+        assert "a.py" in result["in_scope"]
+        assert "c.py" in result["out_of_scope"]
+
+
+class TestClassifyImpactForCards:
+    """classify_impact_for_cards() のテスト（D-4: FR-7d）。"""
+
+    def test_in_scope_file_regenerate(self) -> None:
+        """影響範囲内のファイルは regenerate になること。"""
+        result = classify_impact_for_cards(
+            in_scope=["a.py"],
+            out_of_scope=[],
+            current_hashes={"a.py": "hash1"},
+            previous_hashes={"a.py": "hash1"},
+        )
+
+        assert result["a.py"] == "regenerate"
+
+    def test_out_of_scope_unchanged_reuse(self) -> None:
+        """影響範囲外かつハッシュ未変更のファイルは reuse_mechanical になること。"""
+        result = classify_impact_for_cards(
+            in_scope=[],
+            out_of_scope=["b.py"],
+            current_hashes={"b.py": "hash_unchanged"},
+            previous_hashes={"b.py": "hash_unchanged"},
+        )
+
+        assert result["b.py"] == "reuse_mechanical"
+
+    def test_out_of_scope_changed_regenerate(self) -> None:
+        """影響範囲外だがハッシュ変更ありのファイルは regenerate になること。"""
+        result = classify_impact_for_cards(
+            in_scope=[],
+            out_of_scope=["c.py"],
+            current_hashes={"c.py": "hash_new"},
+            previous_hashes={"c.py": "hash_old"},
+        )
+
+        assert result["c.py"] == "regenerate"

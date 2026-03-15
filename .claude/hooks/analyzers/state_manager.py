@@ -296,6 +296,7 @@ def load_chunks_index(state_dir: Path) -> list[Chunk]:
 # ============================================================
 
 _DEPENDENCY_GRAPH_FILE = "dependency-graph.json"
+_CONTRACTS_DIR = "contracts"
 
 def _empty_dependency_graph() -> dict:
     """空の依存グラフ構造を生成する。呼び出しごとに新しいインスタンスを返す。"""
