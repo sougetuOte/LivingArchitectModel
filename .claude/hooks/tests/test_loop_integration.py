@@ -12,6 +12,8 @@ import datetime
 import json
 from pathlib import Path
 
+from conftest import write_state as _write_state
+
 # テスト対象フックのパス
 STOP_HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 
@@ -33,9 +35,6 @@ DEFAULT_INPUT = {
     "stop_hook_active": False,
     "last_assistant_message": "done",
 }
-
-
-from conftest import write_state as _write_state
 
 
 def _read_state(project_root: Path) -> dict | None:

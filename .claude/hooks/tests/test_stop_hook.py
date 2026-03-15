@@ -6,8 +6,9 @@ W4-T1: Red フェーズ（テストファースト）
 """
 import datetime
 import json
-import re
 from pathlib import Path
+
+from conftest import write_state as _write_state
 
 # テスト対象フックのパス
 HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
@@ -22,9 +23,6 @@ DEFAULT_STATE = {
     "started_at": "2026-03-10T00:00:00Z",
     "log": [],
 }
-
-
-from conftest import write_state as _write_state
 
 
 class TestStopHook:
