@@ -22,12 +22,12 @@ stdin から JSON を受け取り、アクティブなループ中に Claude が
 
 対応仕様: docs/design/hooks-python-migration-design.md H3（lam-stop-hook）
 """
+
 from __future__ import annotations
 
 import datetime
 import json
 import os
-import re
 import sys
 import time
 from pathlib import Path
@@ -46,16 +46,6 @@ from _hook_utils import (  # noqa: E402
 
 # PreCompact 発火から何秒以内を「直近」とみなすか（10分）
 PRE_COMPACT_THRESHOLD_SECONDS = 600
-
-# シークレットスキャン用パターン（テストから参照可能にモジュールレベルで公開）
-_SECRET_PATTERN = re.compile(
-    r'(password|secret|api_key|apikey|token|private_key)\s*[=:]\s*["\']([^"\']{8,})',
-    re.IGNORECASE,
-)
-_SAFE_PATTERN = re.compile(
-    r"(\btest\b|\bspec\b|\bmock\b|\bexample\b|\bplaceholder\b|\bxxx\b|\bchangeme\b)",
-    re.IGNORECASE,
-)
 
 
 def _get_log_file(project_root: Path) -> Path:
@@ -166,7 +156,11 @@ def _check_max_iterations(
     max_iterations = int(state.get("max_iterations", 5))
 
     if iteration >= max_iterations:
-        _log(log_file, "WARN", f"max_iterations reached ({iteration}/{max_iterations}) → stop loop")
+        _log(
+            log_file,
+            "WARN",
+            f"max_iterations reached ({iteration}/{max_iterations}) → stop loop",
+        )
         _save_loop_log(project_root, state, log_file, "max_iterations")
         _cleanup_state_file(state_file)
         _stop(log_file, "max_iterations reached → stopped")
@@ -175,7 +169,11 @@ def _check_max_iterations(
 
 
 def _check_context_pressure(
-    pre_compact_flag: Path, state: dict, state_file: Path, project_root: Path, log_file: Path
+    pre_compact_flag: Path,
+    state: dict,
+    state_file: Path,
+    project_root: Path,
+    log_file: Path,
 ) -> None:
     """STEP 4: コンテキスト残量チェック（PreCompact 発火検出）。"""
     if not pre_compact_flag.exists():
@@ -189,7 +187,10 @@ def _check_context_pressure(
         if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
             _save_loop_log(project_root, state, log_file, "context_exhaustion")
             _cleanup_state_file(state_file)
-            _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago → context pressure, stop loop")
+            _stop(
+                log_file,
+                f"PreCompact fired {elapsed:.0f}s ago → context pressure, stop loop",
+            )
     except Exception:
         try:
             flag_mtime = os.path.getmtime(str(pre_compact_flag))
@@ -197,7 +198,10 @@ def _check_context_pressure(
             if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
                 _save_loop_log(project_root, state, log_file, "context_exhaustion")
                 _cleanup_state_file(state_file)
-                _stop(log_file, f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop")
+                _stop(
+                    log_file,
+                    f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop",
+                )
         except Exception:
             pass
 
@@ -214,9 +218,15 @@ def main() -> None:
     state = _check_recursion_and_state(input_data, state_file, log_file)
 
     # STEP 3: 反復上限チェック
-    iteration, max_iterations = _check_max_iterations(state, state_file, project_root, log_file)
+    iteration, max_iterations = _check_max_iterations(
+        state, state_file, project_root, log_file
+    )
     command = state.get("command", "")
-    _log(log_file, "INFO", f"loop active: command={command}, iteration={iteration}/{max_iterations}")
+    _log(
+        log_file,
+        "INFO",
+        f"loop active: command={command}, iteration={iteration}/{max_iterations}",
+    )
 
     # STEP 4: コンテキスト残量チェック
     _check_context_pressure(pre_compact_flag, state, state_file, project_root, log_file)
@@ -227,8 +237,15 @@ def main() -> None:
     # Stop hook は「Claude が途中で止まろうとした場合に引き戻す」安全ネット。
     # stop_hook_active=true の再帰防止により、同一ターン内での再帰は防止される。
 
-    _log(log_file, "INFO", f"safety net: blocking to continue loop (iteration {iteration})")
-    _block(log_file, f"ループ継続中（イテレーション {iteration}）。Phase 2 に戻って再監査してください。")
+    _log(
+        log_file,
+        "INFO",
+        f"safety net: blocking to continue loop (iteration {iteration})",
+    )
+    _block(
+        log_file,
+        f"ループ継続中（イテレーション {iteration}）。Phase 2 に戻って再監査してください。",
+    )
 
 
 if __name__ == "__main__":

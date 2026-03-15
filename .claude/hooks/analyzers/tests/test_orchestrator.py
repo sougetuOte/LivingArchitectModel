@@ -5,12 +5,14 @@
 """
 from __future__ import annotations
 
+from analyzers.base import Issue
 from analyzers.chunker import Chunk
 from analyzers.orchestrator import (
     ReviewResult,
     batch_chunks,
     build_review_prompt,
     collect_results,
+    parse_llm_issues,
 )
 
 
@@ -118,10 +120,17 @@ class TestCollectResults:
 
     def test_collect_success(self) -> None:
         """成功した結果を収集できること。"""
+        issue1 = Issue(
+            file="a.py", line=1, severity="warning", category="lint",
+            tool="test", message="issue1", rule_id="T001", suggestion="",
+        )
+        issue2 = Issue(
+            file="b.py", line=2, severity="info", category="review",
+            tool="llm", message="issue2", rule_id="", suggestion="",
+        )
         results = [
-            # NOTE: issues は現在 list[str]（LLM 出力テキスト）。Phase 3 で list[Issue] に統一予定（S-2）
-            ReviewResult(chunk_name="f0", file_path="a.py", issues=["issue1"], success=True),
-            ReviewResult(chunk_name="f1", file_path="b.py", issues=["issue2"], success=True),
+            ReviewResult(chunk_name="f0", file_path="a.py", issues=[issue1], success=True),
+            ReviewResult(chunk_name="f1", file_path="b.py", issues=[issue2], success=True),
         ]
         batch_result = collect_results(results)
         assert batch_result.total == 2
@@ -131,8 +140,12 @@ class TestCollectResults:
 
     def test_collect_with_failures(self) -> None:
         """失敗を含む結果の収集。"""
+        issue1 = Issue(
+            file="a.py", line=1, severity="warning", category="lint",
+            tool="test", message="issue1", rule_id="T001", suggestion="",
+        )
         results = [
-            ReviewResult(chunk_name="f0", file_path="a.py", issues=["issue1"], success=True),
+            ReviewResult(chunk_name="f0", file_path="a.py", issues=[issue1], success=True),
             ReviewResult(chunk_name="f1", file_path="b.py", issues=[], success=False, error="timeout"),
         ]
         batch_result = collect_results(results)
@@ -151,9 +164,82 @@ class TestCollectResults:
 
     def test_collect_aggregates_issues(self) -> None:
         """全チャンクの Issue が統合されること。"""
+        issue1 = Issue(
+            file="a.py", line=1, severity="warning", category="lint",
+            tool="test", message="i1", rule_id="T001", suggestion="",
+        )
+        issue2 = Issue(
+            file="a.py", line=2, severity="info", category="lint",
+            tool="test", message="i2", rule_id="T002", suggestion="",
+        )
+        issue3 = Issue(
+            file="b.py", line=1, severity="critical", category="security",
+            tool="test", message="i3", rule_id="T003", suggestion="fix",
+        )
         results = [
-            ReviewResult(chunk_name="f0", file_path="a.py", issues=["i1", "i2"], success=True),
-            ReviewResult(chunk_name="f1", file_path="b.py", issues=["i3"], success=True),
+            ReviewResult(chunk_name="f0", file_path="a.py", issues=[issue1, issue2], success=True),
+            ReviewResult(chunk_name="f1", file_path="b.py", issues=[issue3], success=True),
         ]
         batch_result = collect_results(results)
         assert len(batch_result.all_issues) == 3
+
+
+class TestReviewResultIssueType:
+    """ReviewResult.issues が list[Issue] 型であることのテスト（FR-7f）。"""
+
+    def test_issues_accepts_issue_objects(self) -> None:
+        """ReviewResult.issues に Issue オブジェクトを格納できること。"""
+        issue = Issue(
+            file="test.py", line=1, severity="warning",
+            category="lint", tool="test", message="test issue",
+            rule_id="T001", suggestion="fix it",
+        )
+        result = ReviewResult(
+            chunk_name="f0", file_path="test.py",
+            issues=[issue], success=True,
+        )
+        assert len(result.issues) == 1
+        assert isinstance(result.issues[0], Issue)
+
+    def test_batch_result_all_issues_are_issue_type(self) -> None:
+        """BatchResult.all_issues も list[Issue] であること。"""
+        issue = Issue(
+            file="test.py", line=1, severity="warning",
+            category="lint", tool="test", message="msg",
+            rule_id="T001", suggestion="",
+        )
+        results = [
+            ReviewResult(chunk_name="f0", file_path="a.py", issues=[issue], success=True),
+        ]
+        batch = collect_results(results)
+        assert all(isinstance(i, Issue) for i in batch.all_issues)
+
+
+class TestParseLlmIssues:
+    """parse_llm_issues() のテスト。"""
+
+    def test_parses_structured_output(self) -> None:
+        """構造化された LLM 出力を Issue に変換できること。"""
+        raw = (
+            "- severity: warning\n"
+            "- line: 42\n"
+            "- message: Unused variable 'x'\n"
+            "- suggestion: Remove the variable\n"
+        )
+        issues = parse_llm_issues(raw, "test.py")
+        assert len(issues) >= 1
+        assert issues[0].severity == "warning"
+        assert issues[0].line == 42
+
+    def test_unstructured_text_becomes_info_issue(self) -> None:
+        """パースできないテキストは info Issue になること。"""
+        raw = "This code looks fine overall."
+        issues = parse_llm_issues(raw, "test.py")
+        assert len(issues) == 1
+        assert issues[0].severity == "info"
+        assert issues[0].category == "review"
+
+    def test_empty_input(self) -> None:
+        """空文字列は空リストを返すこと。"""
+        issues = parse_llm_issues("", "test.py")
+        assert issues == []

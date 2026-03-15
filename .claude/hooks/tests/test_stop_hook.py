@@ -142,64 +142,6 @@ class TestStopHook:
         assert loaded["log"][0]["test_count"] == 42
 
 
-class TestSecretPattern:
-    """_SECRET_PATTERN のパターンマッチテスト
-
-    注: テスト値には _SAFE_PATTERN キーワード（test, example 等）を含めて
-    G5 シークレットスキャナーの誤検出を防止する。
-    """
-
-    @classmethod
-    def setup_class(cls) -> None:
-        """lam-stop-hook.py からパターンをロード（DRY 原則）。"""
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("lam_stop_hook", HOOK_PATH)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        cls._SECRET_PATTERN = mod._SECRET_PATTERN
-        cls._SAFE_PATTERN = mod._SAFE_PATTERN
-
-    def test_equals_format_detected(self):
-        """従来の等号形式 password="value" が検出される"""
-        line = 'password="example_secret_value"'
-        m = self._SECRET_PATTERN.search(line)
-        assert m is not None, "等号形式が検出されるべき"
-        assert m.group(1) == "password"
-
-    def test_colon_format_detected(self):
-        """YAML/JSON コロン形式 password: "value" が検出される"""
-        line = 'password: "example_secret_value"'
-        m = self._SECRET_PATTERN.search(line)
-        assert m is not None, "コロン形式が検出されるべき"
-        assert m.group(1) == "password"
-
-    def test_colon_format_single_quotes(self):
-        """コロン形式のシングルクォート api_key: 'value' が検出される"""
-        line = "api_key: 'test_abcdefghij123456'"
-        m = self._SECRET_PATTERN.search(line)
-        assert m is not None, "コロン＋シングルクォート形式が検出されるべき"
-        assert m.group(1) == "api_key"
-
-    def test_safe_pattern_not_flagged(self):
-        """テスト用の値（test, example 等）は safe として除外される"""
-        line = 'password: "this is a test value"'
-        m = self._SECRET_PATTERN.search(line)
-        assert m is not None
-        assert self._SAFE_PATTERN.search(m.group(2)), "test を含む値は safe であるべき"
-
-    def test_short_values_ignored(self):
-        """8文字未満の値は検出されない"""
-        line = 'password: "short"'
-        m = self._SECRET_PATTERN.search(line)
-        assert m is None, "8文字未満の値は検出されないべき"
-
-    def test_equals_still_works(self):
-        """コロン対応後も等号形式が引き続き動作する"""
-        line = 'secret = "placeholder_value_123"'
-        m = self._SECRET_PATTERN.search(line)
-        assert m is not None, "等号形式が引き続き検出されるべき"
-
-
 class TestSafetyNetBlock:
     """Stop hook が安全ネットとして block する動作のテスト。
 
