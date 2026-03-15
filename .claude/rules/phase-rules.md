@@ -10,6 +10,14 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 
 成果物完成時は必ず「承認」を求める。ユーザーが「承認」と言うまで次へ進まない。
 
+### 品質基準
+
+成果物は `.claude/rules/planning-quality-guideline.md` に準拠すること:
+- 仕様書: Requirements Smells 検出 + RFC 2119 キーワード統一
+- 設計書: Design Doc チェックリスト（非スコープ・代替案・成功基準）
+- タスク: SPIDR 分割 + WBS 100% Rule（仕様⇔タスクのトレーサビリティ）
+- 明確化: Example Mapping（`/clarify` 併用）
+
 ### 禁止
 
 - 実装コード生成（.ts, .py, .go 等）
@@ -82,7 +90,7 @@ PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 
 ### 必須
 
 - チェックリストに基づく網羅的確認
-- 重要度分類: Critical / Warning / Info
+- 重要度分類: Critical / Warning / Info（判断基準は `.claude/rules/code-quality-guideline.md` に準拠）
 - 3 Agents Model 適用、根拠明示
 - 問題の PG/SE/PM 分類（権限等級に基づく）
 
@@ -112,6 +120,15 @@ PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 
 - 複数の関心事を1関数に統合
 - デバッグ困難な「賢い」コード提案
 - 主観的な好みに基づく指摘
+
+### Green State 条件
+
+```
+Critical = 0 かつ Warning = 0 → Green State（監査通過）
+```
+
+Info は件数にかかわらず Green State を阻害しない。
+詳細な判断基準は `.claude/rules/code-quality-guideline.md` を参照。
 
 ### レポート形式
 

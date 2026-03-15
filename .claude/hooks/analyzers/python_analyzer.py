@@ -15,6 +15,8 @@ from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
 
 logger = logging.getLogger(__name__)
 
+_SUBPROCESS_TIMEOUT = 300  # seconds (config.static_analysis_timeout_sec のデフォルト値)
+
 _SEVERITY_MAP = {
     "HIGH": "critical",
     "MEDIUM": "warning",
@@ -45,14 +47,29 @@ class PythonAnalyzer(LanguageAnalyzer):
             ToolRequirement(command="bandit", install_hint="pip install bandit"),
         ]
 
+    def _relativize_path(self, filename: str, target: Path) -> str:
+        """ファイルパスを target からの相対パスに変換する。
+
+        ValueError が発生した場合（target 外のパス等）はそのまま返す。
+        """
+        try:
+            return str(Path(filename).relative_to(target))
+        except ValueError:
+            return filename
+
     def run_lint(self, target: Path) -> list[Issue]:
         """ruff check を実行して Issue リストに変換して返す。"""
-        result = subprocess.run(
-            ["ruff", "check", "--output-format", "json", str(target)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                ["ruff", "check", "--output-format", "json", str(target)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=_SUBPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("ruff timed out after %d seconds", _SUBPROCESS_TIMEOUT)
+            return []
         try:
             raw_issues = json.loads(result.stdout)
         except json.JSONDecodeError:
@@ -63,10 +80,7 @@ class PythonAnalyzer(LanguageAnalyzer):
         issues: list[Issue] = []
         for item in raw_issues:
             filename = item.get("filename", "")
-            try:
-                file_rel = str(Path(filename).relative_to(target))
-            except ValueError:
-                file_rel = filename
+            file_rel = self._relativize_path(filename, target)
 
             fix = item.get("fix")
             suggestion = "Auto-fixable" if fix is not None else ""
@@ -87,12 +101,17 @@ class PythonAnalyzer(LanguageAnalyzer):
 
     def run_security(self, target: Path) -> list[Issue]:
         """bandit を実行して Issue リストに変換して返す。"""
-        result = subprocess.run(
-            ["bandit", "-r", "-f", "json", str(target)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                ["bandit", "-r", "-f", "json", str(target)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=_SUBPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("bandit timed out after %d seconds", _SUBPROCESS_TIMEOUT)
+            return []
         try:
             data = json.loads(result.stdout)
         except json.JSONDecodeError:
@@ -103,10 +122,7 @@ class PythonAnalyzer(LanguageAnalyzer):
         issues: list[Issue] = []
         for item in data.get("results", []):
             filename = item.get("filename", "")
-            try:
-                file_rel = str(Path(filename).relative_to(target))
-            except ValueError:
-                file_rel = filename
+            file_rel = self._relativize_path(filename, target)
 
             raw_severity = item.get("issue_severity", "LOW").upper()
             severity = _SEVERITY_MAP.get(raw_severity, "info")
@@ -126,7 +142,7 @@ class PythonAnalyzer(LanguageAnalyzer):
 
     def parse_ast(self, file_path: Path) -> ASTNode:
         """Python 標準 ast モジュールを使用して ASTNode ツリーを構築する。"""
-        source = file_path.read_text(encoding="utf-8")
+        source = file_path.read_text(encoding="utf-8", errors="replace")
         tree = ast.parse(source, filename=str(file_path))
 
         lines = source.splitlines()

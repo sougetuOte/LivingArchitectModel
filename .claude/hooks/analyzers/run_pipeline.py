@@ -30,6 +30,11 @@ _DEFAULT_EXCLUDE_DIRS = {"node_modules", ".venv", "venv", "vendor", "dist",
                          "__pycache__", ".git", ".tox", ".mypy_cache",
                          ".pytest_cache", "build", "target", ".next"}
 
+# config.exclude_dirs が指定された場合も常に除外するディレクトリ
+_ALWAYS_EXCLUDE_DIRS = {".git", "__pycache__"}
+
+_SUGGEST_THRESHOLD = 10000
+
 
 @dataclass
 class Phase0Result:
@@ -44,8 +49,16 @@ def count_lines(
     project_root: Path,
     exclude_dirs: list[str] | None = None,
 ) -> int:
-    """プロジェクトのコード行数をカウントする。"""
-    excludes = set(exclude_dirs) if exclude_dirs is not None else _DEFAULT_EXCLUDE_DIRS
+    """プロジェクトのコード行数をカウントする。
+
+    exclude_dirs が指定された場合はその値を尊重しつつ、
+    _ALWAYS_EXCLUDE_DIRS (.git, __pycache__) を常に追加する。
+    未指定の場合は _DEFAULT_EXCLUDE_DIRS を使用する。
+    """
+    if exclude_dirs is not None:
+        excludes = set(exclude_dirs) | _ALWAYS_EXCLUDE_DIRS
+    else:
+        excludes = _DEFAULT_EXCLUDE_DIRS
     total = 0
     for path in project_root.rglob("*"):
         if path.is_file() and path.suffix in _CODE_EXTENSIONS:
@@ -70,13 +83,18 @@ def should_enable_static_analysis(
     """
     if line_count >= auto_threshold:
         return "auto"
-    if line_count >= 10000:
+    if line_count >= _SUGGEST_THRESHOLD:
         return "suggest"
     return "skip"
 
 
 def _build_registry() -> AnalyzerRegistry:
-    """組み込み Analyzer を登録した Registry を返す。"""
+    """組み込み Analyzer を登録した Registry を返す。
+
+    組み込み Analyzer を明示的に登録し、auto_discover でカスタム Analyzer を追加探索する。
+    auto_discover はクラス名ベースの重複チェックで組み込み分をスキップする（base.py _load_module）。
+    同名クラスのカスタム Analyzer は組み込みよりも優先されない（クラス名ベースの重複チェックによりスキップされる）。
+    """
     registry = AnalyzerRegistry()
     registry.register(PythonAnalyzer)
     registry.register(JavaScriptAnalyzer)

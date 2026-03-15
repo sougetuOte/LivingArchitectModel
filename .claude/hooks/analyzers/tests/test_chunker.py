@@ -29,6 +29,7 @@ class TestCountTokens:
 
     def test_multiple_words(self) -> None:
         """複数ワードのカウント。"""
+        # 空白区切り: ["def", "foo(x:", "int)", "->", "str:"] = 5 ワード
         assert count_tokens("def foo(x: int) -> str:") == 5
 
     def test_multiline_code(self) -> None:

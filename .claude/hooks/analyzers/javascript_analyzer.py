@@ -10,12 +10,20 @@ Phase 2: tree-sitter による本格的な AST 解析に置換予定
 from __future__ import annotations
 
 import json
+import logging
 import subprocess
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
 
+logger = logging.getLogger(__name__)
+
+_SUBPROCESS_TIMEOUT = 300  # seconds (config.static_analysis_timeout_sec のデフォルト値)
+
 _SEVERITY_ESLINT: dict[int, str] = {
+    # ESLint: 2=error, 1=warning, 0=off
+    # ESLint の error はコード品質問題であり、セキュリティの critical とは異なる。
+    # ruff (Python) も E/F を "warning" にマッピングしており、それに合わせる。
     2: "warning",
     1: "info",
 }
@@ -54,12 +62,17 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
         - 1: lint エラーあり（正常終了、stdout をパース）
         - その他: eslint 自体の実行失敗 → 空リストを返す
         """
-        result = subprocess.run(
-            ["npx", "eslint", "--format", "json", str(target)],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            result = subprocess.run(
+                ["npx", "eslint", "--format", "json", str(target)],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=_SUBPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("eslint timed out after %d seconds", _SUBPROCESS_TIMEOUT)
+            return []
 
         if result.returncode not in (0, 1):
             return []
@@ -104,13 +117,18 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
         target ディレクトリ（package.json の場所）で実行する。
         """
         cwd = target if target.is_dir() else target.parent
-        result = subprocess.run(
-            ["npm", "audit", "--json"],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=cwd,
-        )
+        try:
+            result = subprocess.run(
+                ["npm", "audit", "--json"],
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=cwd,
+                timeout=_SUBPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("npm audit timed out after %d seconds", _SUBPROCESS_TIMEOUT)
+            return []
 
         try:
             data = json.loads(result.stdout)

@@ -9,9 +9,16 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-
 from analyzers.base import ASTNode, Issue, ToolRequirement
 from analyzers.javascript_analyzer import JavaScriptAnalyzer
+
+
+def _make_mock_result(stdout: str = "", stderr: str = "", returncode: int = 0) -> MagicMock:
+    result = MagicMock()
+    result.stdout = stdout
+    result.stderr = stderr
+    result.returncode = returncode
+    return result
 
 
 # ── detect ─────────────────────────────────────────────────
@@ -132,11 +139,7 @@ class TestRunLint:
 
     def test_severity_2_maps_to_warning(self, tmp_path: Path) -> None:
         """eslint severity=2 は Issue.severity="warning" に変換される。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -145,11 +148,7 @@ class TestRunLint:
 
     def test_severity_1_maps_to_info(self, tmp_path: Path) -> None:
         """eslint severity=1 は Issue.severity="info" に変換される。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_WARNING
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_WARNING, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -158,11 +157,7 @@ class TestRunLint:
 
     def test_category_is_lint(self, tmp_path: Path) -> None:
         """category は "lint" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -170,11 +165,7 @@ class TestRunLint:
 
     def test_tool_is_eslint(self, tmp_path: Path) -> None:
         """tool は "eslint" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -182,11 +173,7 @@ class TestRunLint:
 
     def test_rule_id_from_eslint(self, tmp_path: Path) -> None:
         """rule_id は eslint の ruleId から取得すること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -194,11 +181,7 @@ class TestRunLint:
 
     def test_null_rule_id_becomes_parse_error(self, tmp_path: Path) -> None:
         """ruleId が null の場合 rule_id は "parse-error" になること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_NULL_RULE
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_NULL_RULE, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -206,11 +189,7 @@ class TestRunLint:
 
     def test_fix_present_sets_suggestion(self, tmp_path: Path) -> None:
         """fix が存在する場合 suggestion は "Auto-fixable" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -218,11 +197,7 @@ class TestRunLint:
 
     def test_no_fix_gives_empty_suggestion(self, tmp_path: Path) -> None:
         """fix がない場合 suggestion は空文字列であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_WARNING
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_WARNING, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -230,11 +205,7 @@ class TestRunLint:
 
     def test_line_number_preserved(self, tmp_path: Path) -> None:
         """line 番号が保持されること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -242,11 +213,7 @@ class TestRunLint:
 
     def test_returncode_other_than_0_or_1_returns_empty(self, tmp_path: Path) -> None:
         """returncode が 0 でも 1 でもない場合（eslint 実行失敗）は空リストを返す。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 2
-        mock_result.stdout = ""
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result("", returncode=2)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -254,13 +221,10 @@ class TestRunLint:
 
     def test_returncode_0_returns_empty_issues(self, tmp_path: Path) -> None:
         """eslint returncode=0 はエラーなし（空リスト）。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = json.dumps([
+        stdout = json.dumps([
             {"filePath": "/project/src/app.js", "messages": [], "errorCount": 0, "warningCount": 0}
         ])
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(stdout, returncode=0)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -268,9 +232,7 @@ class TestRunLint:
 
     def test_file_path_is_relative(self, tmp_path: Path) -> None:
         """file は target に対する相対パスに変換されること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = json.dumps([
+        stdout = json.dumps([
             {
                 "filePath": str(tmp_path / "src" / "app.js"),
                 "messages": [
@@ -286,8 +248,7 @@ class TestRunLint:
                 "warningCount": 0,
             }
         ])
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(stdout, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -295,11 +256,7 @@ class TestRunLint:
 
     def test_all_issues_are_issue_instances(self, tmp_path: Path) -> None:
         """返り値の全要素が Issue のインスタンスであること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = ESLINT_OUTPUT_SINGLE_ERROR
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(ESLINT_OUTPUT_SINGLE_ERROR, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_lint(tmp_path)
 
@@ -368,11 +325,7 @@ class TestRunSecurity:
 
     def test_high_severity_maps_to_critical(self, tmp_path: Path) -> None:
         """severity="high" は Issue.severity="critical" に変換される。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -381,11 +334,7 @@ class TestRunSecurity:
 
     def test_critical_severity_maps_to_critical(self, tmp_path: Path) -> None:
         """severity="critical" は Issue.severity="critical" に変換される。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_CRITICAL
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_CRITICAL, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -393,11 +342,7 @@ class TestRunSecurity:
 
     def test_moderate_severity_maps_to_warning(self, tmp_path: Path) -> None:
         """severity="moderate" は Issue.severity="warning" に変換される。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_MODERATE
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_MODERATE, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -405,11 +350,7 @@ class TestRunSecurity:
 
     def test_low_severity_maps_to_info(self, tmp_path: Path) -> None:
         """severity="low" は Issue.severity="info" に変換される。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_STRING_VIA
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_STRING_VIA, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -417,11 +358,7 @@ class TestRunSecurity:
 
     def test_category_is_security(self, tmp_path: Path) -> None:
         """category は "security" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -429,11 +366,7 @@ class TestRunSecurity:
 
     def test_tool_is_npm_audit(self, tmp_path: Path) -> None:
         """tool は "npm-audit" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -441,11 +374,7 @@ class TestRunSecurity:
 
     def test_rule_id_is_package_name(self, tmp_path: Path) -> None:
         """rule_id はパッケージ名であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -453,11 +382,7 @@ class TestRunSecurity:
 
     def test_line_is_zero(self, tmp_path: Path) -> None:
         """line は 0 であること（パッケージレベルの問題）。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -465,11 +390,7 @@ class TestRunSecurity:
 
     def test_file_is_package_json(self, tmp_path: Path) -> None:
         """file は "package.json" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -477,11 +398,7 @@ class TestRunSecurity:
 
     def test_message_from_via_dict_title(self, tmp_path: Path) -> None:
         """via の最初の要素が辞書の場合 title を message に使用する。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -489,11 +406,7 @@ class TestRunSecurity:
 
     def test_message_from_via_string(self, tmp_path: Path) -> None:
         """via の最初の要素が文字列の場合はそのまま message に使用する。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_STRING_VIA
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_STRING_VIA, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -501,11 +414,7 @@ class TestRunSecurity:
 
     def test_fix_available_true_sets_suggestion(self, tmp_path: Path) -> None:
         """fixAvailable=True の場合 suggestion は "Run npm audit fix" であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -513,11 +422,7 @@ class TestRunSecurity:
 
     def test_fix_available_false_gives_empty_suggestion(self, tmp_path: Path) -> None:
         """fixAvailable=False の場合 suggestion は空文字列であること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_MODERATE
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_MODERATE, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -525,11 +430,7 @@ class TestRunSecurity:
 
     def test_invalid_json_returns_empty(self, tmp_path: Path) -> None:
         """stdout が JSON でない場合は空リストを返す。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = "not json"
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result("not json", returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 
@@ -537,11 +438,8 @@ class TestRunSecurity:
 
     def test_npm_executed_in_target_directory(self, tmp_path: Path) -> None:
         """npm audit は target ディレクトリで実行されること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 0
-        mock_result.stdout = json.dumps({"vulnerabilities": {}})
-
-        with patch("subprocess.run", return_value=mock_result) as mock_run:
+        stdout = json.dumps({"vulnerabilities": {}})
+        with patch("subprocess.run", return_value=_make_mock_result(stdout, returncode=0)) as mock_run:
             analyzer = JavaScriptAnalyzer()
             analyzer.run_security(tmp_path)
 
@@ -549,11 +447,7 @@ class TestRunSecurity:
 
     def test_all_issues_are_issue_instances(self, tmp_path: Path) -> None:
         """返り値の全要素が Issue のインスタンスであること。"""
-        mock_result = MagicMock()
-        mock_result.returncode = 1
-        mock_result.stdout = NPM_AUDIT_OUTPUT
-
-        with patch("subprocess.run", return_value=mock_result):
+        with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
             analyzer = JavaScriptAnalyzer()
             issues = analyzer.run_security(tmp_path)
 

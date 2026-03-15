@@ -16,6 +16,14 @@ from analyzers.base import ToolRequirement
 from analyzers.python_analyzer import PythonAnalyzer
 
 
+def _make_mock_result(stdout: str = "", stderr: str = "", returncode: int = 0) -> MagicMock:
+    result = MagicMock()
+    result.stdout = stdout
+    result.stderr = stderr
+    result.returncode = returncode
+    return result
+
+
 # ── detect ──────────────────────────────────────────────────
 
 
@@ -111,24 +119,17 @@ class TestRunLint:
         },
     ])
 
-    def _make_mock_result(self, stdout: str, returncode: int = 0) -> MagicMock:
-        result = MagicMock()
-        result.stdout = stdout
-        result.stderr = ""
-        result.returncode = returncode
-        return result
-
     def test_returns_issue_list(self, tmp_path: Path) -> None:
         """ruff の出力を Issue リストに変換して返す。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.RUFF_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.RUFF_OUTPUT)
             issues = PythonAnalyzer().run_lint(tmp_path)
         assert len(issues) == 2
 
     def test_issue_fields_from_ruff(self, tmp_path: Path) -> None:
         """各フィールドが ruff 出力から正しくマッピングされる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.RUFF_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.RUFF_OUTPUT)
             issues = PythonAnalyzer().run_lint(tmp_path)
         issue = issues[0]
         assert issue.rule_id == "F401"
@@ -141,7 +142,7 @@ class TestRunLint:
     def test_fix_present_means_auto_fixable(self, tmp_path: Path) -> None:
         """fix フィールドが存在すれば suggestion が 'Auto-fixable'。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.RUFF_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.RUFF_OUTPUT)
             issues = PythonAnalyzer().run_lint(tmp_path)
         # issues[0] は fix あり
         assert issues[0].suggestion == "Auto-fixable"
@@ -149,7 +150,7 @@ class TestRunLint:
     def test_fix_none_means_empty_suggestion(self, tmp_path: Path) -> None:
         """fix フィールドが None なら suggestion が空文字列。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.RUFF_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.RUFF_OUTPUT)
             issues = PythonAnalyzer().run_lint(tmp_path)
         # issues[1] は fix なし
         assert issues[1].suggestion == ""
@@ -168,14 +169,14 @@ class TestRunLint:
             "url": "",
         }])
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(ruff_output)
+            mock_run.return_value = _make_mock_result(ruff_output)
             issues = PythonAnalyzer().run_lint(tmp_path)
         assert issues[0].file == "src/main.py"
 
     def test_subprocess_called_with_correct_args(self, tmp_path: Path) -> None:
         """subprocess.run が正しい引数で呼ばれる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result("[]")
+            mock_run.return_value = _make_mock_result("[]")
             PythonAnalyzer().run_lint(tmp_path)
         call_args = mock_run.call_args
         cmd = call_args[0][0]
@@ -188,14 +189,14 @@ class TestRunLint:
     def test_returns_empty_on_invalid_json_output(self, tmp_path: Path) -> None:
         """ruff の出力が不正な JSON の場合は空リストを返す。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result("not json", returncode=1)
+            mock_run.return_value = _make_mock_result("not json", returncode=1)
             issues = PythonAnalyzer().run_lint(tmp_path)
         assert issues == []
 
     def test_returns_empty_on_empty_json_array(self, tmp_path: Path) -> None:
         """ruff の出力が空配列なら空リストを返す。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result("[]")
+            mock_run.return_value = _make_mock_result("[]")
             issues = PythonAnalyzer().run_lint(tmp_path)
         assert issues == []
 
@@ -244,24 +245,17 @@ class TestRunSecurity:
         ]
     })
 
-    def _make_mock_result(self, stdout: str, returncode: int = 0) -> MagicMock:
-        result = MagicMock()
-        result.stdout = stdout
-        result.stderr = ""
-        result.returncode = returncode
-        return result
-
     def test_returns_issue_list(self, tmp_path: Path) -> None:
         """bandit の出力を Issue リストに変換して返す。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.BANDIT_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.BANDIT_OUTPUT)
             issues = PythonAnalyzer().run_security(tmp_path)
         assert len(issues) == 3
 
     def test_severity_high_maps_to_critical(self, tmp_path: Path) -> None:
         """HIGH severity は 'critical' にマッピングされる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.BANDIT_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.BANDIT_OUTPUT)
             issues = PythonAnalyzer().run_security(tmp_path)
         high_issue = next(i for i in issues if i.rule_id == "B105")
         assert high_issue.severity == "critical"
@@ -269,7 +263,7 @@ class TestRunSecurity:
     def test_severity_medium_maps_to_warning(self, tmp_path: Path) -> None:
         """MEDIUM severity は 'warning' にマッピングされる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.BANDIT_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.BANDIT_OUTPUT)
             issues = PythonAnalyzer().run_security(tmp_path)
         medium_issue = next(i for i in issues if i.rule_id == "B404")
         assert medium_issue.severity == "warning"
@@ -277,7 +271,7 @@ class TestRunSecurity:
     def test_severity_low_maps_to_info(self, tmp_path: Path) -> None:
         """LOW severity は 'info' にマッピングされる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.BANDIT_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.BANDIT_OUTPUT)
             issues = PythonAnalyzer().run_security(tmp_path)
         low_issue = next(i for i in issues if i.rule_id == "B307")
         assert low_issue.severity == "info"
@@ -285,7 +279,7 @@ class TestRunSecurity:
     def test_issue_fields(self, tmp_path: Path) -> None:
         """各フィールドが bandit 出力から正しくマッピングされる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(self.BANDIT_OUTPUT)
+            mock_run.return_value = _make_mock_result(self.BANDIT_OUTPUT)
             issues = PythonAnalyzer().run_security(tmp_path)
         issue = next(i for i in issues if i.rule_id == "B105")
         assert issue.line == 5
@@ -310,14 +304,14 @@ class TestRunSecurity:
             }]
         })
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result(bandit_output)
+            mock_run.return_value = _make_mock_result(bandit_output)
             issues = PythonAnalyzer().run_security(tmp_path)
         assert issues[0].file == "src/config.py"
 
     def test_subprocess_called_with_correct_args(self, tmp_path: Path) -> None:
         """subprocess.run が正しい引数で呼ばれる。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result('{"results": []}')
+            mock_run.return_value = _make_mock_result('{"results": []}')
             PythonAnalyzer().run_security(tmp_path)
         call_args = mock_run.call_args
         cmd = call_args[0][0]
@@ -330,14 +324,14 @@ class TestRunSecurity:
     def test_returns_empty_on_parse_failure(self, tmp_path: Path) -> None:
         """JSON 解析失敗時は空リストを返す。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result("not json", returncode=1)
+            mock_run.return_value = _make_mock_result("not json", returncode=1)
             issues = PythonAnalyzer().run_security(tmp_path)
         assert issues == []
 
     def test_returns_empty_on_no_results(self, tmp_path: Path) -> None:
         """results が空なら空リストを返す。"""
         with patch("subprocess.run") as mock_run:
-            mock_run.return_value = self._make_mock_result('{"results": []}')
+            mock_run.return_value = _make_mock_result('{"results": []}')
             issues = PythonAnalyzer().run_security(tmp_path)
         assert issues == []
 

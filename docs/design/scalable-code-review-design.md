@@ -493,29 +493,97 @@ Phase 2 でのチャンク受け渡し:
 ### 4.1 レイヤー構成
 
 ```
-Layer 1 (ファイル): 各ファイルを個別レビュー → 概要カード生成
-    ↓ 概要カード群
-Layer 2 (モジュール): パッケージ定義単位（__init__.py / package.json）で API 整合性チェック → 要約カード生成
-    ↓ 要約カード群
-Layer 3 (システム): 全モジュールの要約 + 仕様書で アーキテクチャチェック
+Layer 1 (ファイル): Phase 2 の並列監査 Agent がレビュー + 概要カード生成（同時実行）
+    ↓ 概要カード群（review-state/cards/file-cards/）
+Layer 2 (モジュール): メインフローで逐次実行。Reduce チェック + モジュール境界固有チェック → 要約カード生成
+    ↓ 要約カード群（review-state/cards/module-cards/）
+Layer 3 (システム): メインフローで逐次実行。機械的チェック + LLM 仕様ドリフト検出
     ↓ 統合レポート
 全体再レビュー: 修正後は Layer 1 からゼロベースで再実行（FR-5）
 ```
 
-### 4.2 概要カード仕様
+### 4.2 full-review への統合位置
 
-各ファイルから生成する概要カード（100-200 トークン）:
+Phase 2.5 として Phase 2（並列監査）と Phase 3（レポート統合）の間に挿入する。
+
+```
+Phase 0    → 静的解析
+Phase 0.5  → context7 MCP 検出
+Phase 1    → ループ初期化
+Phase 1.7  → AST チャンキング
+Phase 2    → 並列監査（Layer 1: レビュー + 概要カード生成を同時実行）
+Phase 2.5  → 階層的レビュー（Layer 2: モジュール統合、Layer 3: システム統合）【新規】
+Phase 3    → レポート統合
+Phase 4    → 修正
+Phase 5    → 検証（Green State 判定）
+Phase 6    → 完了報告
+```
+
+### 4.3 概要カード仕様（Layer 1 出力）
+
+Phase 2 の並列監査 Agent がレビューと同時に生成する（100-200 トークン）。
+Agent プロンプトに「レビュー結果 + 概要カードを出力せよ」と指示する。
 
 ```markdown
 ## [ファイルパス]
-- **責務**: [1行で説明]
-- **公開 API**: [関数/クラス名のリスト]
-- **依存先**: [import しているモジュール]
-- **依存元**: [grep ベースの逆引き検索で取得。Plan D で依存グラフに置換]
+- **責務**: [LLM が1行で生成]
+- **公開 API**: [AST マップから機械的に取得]
+- **依存先**: [import 文から機械的に取得]
+- **依存元**: [ast-map.json の import 情報を逆引きして導出。Plan D で依存グラフに置換]
 - **Issue 数**: Critical: X / Warning: Y / Info: Z
 ```
 
-### 4.3 再レビュー原則（FR-5）
+**フィールド生成方式**:
+
+| フィールド | 方式 | ソース |
+|-----------|------|--------|
+| 責務 | LLM 生成 | Agent がコードを読んで1行サマリー |
+| 公開 API | 機械的 | ast-map.json |
+| 依存先 | 機械的 | import 文（ast-map.json） |
+| 依存元 | 機械的 | ast-map.json の import 情報を逆引き |
+| Issue 数 | 機械的 | static-issues.json + チャンク結果 |
+
+### 4.4 要約カード仕様（Layer 2 出力）
+
+モジュール単位（`__init__.py` / `package.json` 境界）で概要カードを集約する。
+メインフローで逐次実行（Agent 不要。モジュール数は通常少なく、並列化のオーバーヘッドに見合わない）。
+
+**Layer 2 のチェック内容**:
+1. Phase 2 Reduce のチェック結果をモジュール単位に集約
+2. モジュール境界固有チェック（以下3点で開始、運用しながら追加）:
+   - `__init__.py` の `__all__` と実際のエクスポートの一致
+   - `__init__.py` で re-export しているが実際に使われていないシンボル
+   - モジュール内のファイル間で同名の関数/クラスが衝突していないか
+
+### 4.5 システムレビュー（Layer 3）
+
+メインフローで逐次実行。以下の2段構成:
+
+1. **機械的チェック**: 循環依存検出、命名パターン違反（ast-map.json ベース）
+2. **LLM 仕様ドリフト検出**: 全モジュールの要約カード群 + `docs/specs/` 配下の全 `.md` ファイルを
+   LLM に渡し、仕様と実装の乖離を指摘させる
+
+**仕様書の特定方法**: `docs/specs/` 配下の全 `.md` ファイルを自動で渡す。
+`docs/specs/` は SSOT であり、通常は数ファイル程度でトークン量は問題にならない。
+将来的にトークン量が問題になった場合は `review-config.json` に `spec_files` フィールドを追加し、
+対象を明示指定する方式に移行する。
+
+### 4.6 カードの永続化
+
+```
+.claude/review-state/
+├── cards/
+│   ├── file-cards/      # 概要カード（Layer 1 出力）
+│   │   ├── src-analyzers-base-py.json
+│   │   └── ...
+│   └── module-cards/    # 要約カード（Layer 2 出力）
+│       ├── src-analyzers.json
+│       └── ...
+```
+
+ファイル名: パスの `/` を `-` に置換（chunk-results と同じ規則）。
+
+### 4.7 再レビュー原則（FR-5）
 
 修正後の再レビューは Layer 1 からの全体ゼロベース再実行とする。
 部分再レビューは潜在的不具合の放置になるため禁止。
@@ -587,6 +655,9 @@ Stage 5: Green State 判定
 │   ├── ast-map.json
 │   ├── summary.md
 │   ├── chunk-results/
+│   ├── cards/                    # Plan C で追加
+│   │   ├── file-cards/           # 概要カード（Layer 1）
+│   │   └── module-cards/         # 要約カード（Layer 2）
 │   ├── dependency-graph.json   # Plan D で追加
 │   └── contracts/              # Plan D で追加
 ├── review-config.json          # レビュー設定（Section 2.4c 参照）

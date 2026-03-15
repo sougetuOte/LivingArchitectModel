@@ -27,11 +27,11 @@ def deduplicate_issues(issues: list[Issue]) -> list[Issue]:
     return result
 
 
-def _classify_name(name: str) -> str | None:
+def classify_name(name: str) -> str | None:
     """名前の命名規則を判定する。
 
     Returns:
-        "snake_case", "camelCase", or None (判定不能/対象外)
+        "snake_case", "camelCase", "PascalCase", or None (判定不能/対象外)
     """
     # ダンダー名は対象外
     if name.startswith("__") and name.endswith("__"):
@@ -44,14 +44,19 @@ def _classify_name(name: str) -> str | None:
 
     # 1 ワード（アンダースコアも大文字境界もない）は判定不能
     has_underscore = "_" in stripped
-    has_upper = any(c.isupper() for c in stripped[1:])  # 先頭以外に大文字
+    has_upper_internal = any(c.isupper() for c in stripped[1:])  # 先頭以外に大文字
+    starts_with_upper = stripped[0].isupper()
 
-    if not has_underscore and not has_upper:
+    if not has_underscore and not has_upper_internal:
         return None  # 単一ワード
 
     if has_underscore:
         return "snake_case"
-    if has_upper:
+
+    # アンダースコアなしで内部に大文字がある場合
+    if starts_with_upper and has_upper_internal:
+        return "PascalCase"
+    if has_upper_internal:
         return "camelCase"
 
     return None
@@ -64,11 +69,14 @@ def check_naming_consistency(
     """名前リストの命名規則の統一性をチェックする。
 
     snake_case と camelCase が混在している場合に Issue を生成する。
+    PascalCase はクラス名として許容し、混在検出の対象としない。
+
+    将来的に複数 Issue を返す拡張に備えてリスト型を採用している。
     """
     conventions: dict[str, list[str]] = {"snake_case": [], "camelCase": []}
 
     for name in names:
-        conv = _classify_name(name)
+        conv = classify_name(name)
         if conv and conv in conventions:
             conventions[conv].append(name)
 
@@ -84,7 +92,7 @@ def check_naming_consistency(
         return [
             Issue(
                 file=file_path,
-                line=0,
+                line=0,  # ファイル全体横断 Issue は line=0 を使用する慣例（設計書 Section 2.3）
                 severity="warning",
                 category="lint",
                 tool="reducer",
