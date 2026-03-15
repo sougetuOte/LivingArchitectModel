@@ -4,13 +4,18 @@ Task C-1a: 概要カード生成エンジン（機械的フィールド）
 Task C-1b: Phase 2 Agent プロンプト拡張（責務フィールド生成）
 Task C-2a: Layer 2 モジュール統合（要約カード生成）
 Task C-2b: Layer 3 システムレビュー（循環依存検出、命名パターン違反）
-対応仕様: scalable-code-review-spec.md FR-4
-対応設計: scalable-code-review-design.md Section 4.3, 4.4, 4.5
+Task D-1: 依存グラフ構築 + トポロジカルソート（FR-7a）
+Task D-2: 契約カード生成（FR-7c）
+対応仕様: scalable-code-review-spec.md FR-4, FR-7a, FR-7c
+対応設計: scalable-code-review-design.md Section 4.3, 4.4, 4.5, 5.3
 """
+
 from __future__ import annotations
 
+import graphlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -22,6 +27,7 @@ logger = logging.getLogger(__name__)
 _CARDS_DIR = "cards"
 _FILE_CARDS_DIR = "file-cards"
 _MODULE_CARDS_DIR = "module-cards"
+_CONTRACTS_DIR = "contracts"
 
 
 @dataclass
@@ -94,6 +100,23 @@ class ModuleCard:
             f"- **Issue 数**: {issue_str}\n"
             f"- **境界チェック**:\n{boundary_list}\n"
         )
+
+
+@dataclass
+class ContractCard:
+    """モジュール単位の契約カード。
+
+    設計書 Section 5.3 に対応。
+    機械的フィールド（public_api, signatures）と LLM 推論フィールドを持つ。
+    """
+
+    module_name: str
+    public_api: list[str]       # 機械的（FileCard から流用）
+    signatures: list[str]       # 機械的（AST の signature フィールド）
+    preconditions: list[str]    # LLM 推論
+    postconditions: list[str]   # LLM 推論
+    side_effects: list[str]     # LLM 推論
+    invariants: list[str]       # LLM 推論
 
 
 def _file_path_to_module_name(file_path: str) -> str:
@@ -241,7 +264,7 @@ def parse_responsibility(agent_output: str) -> str:
     end_idx = agent_output.find(_RESPONSIBILITY_END, start_idx)
     if end_idx == -1:
         return ""
-    content = agent_output[start_idx + len(_RESPONSIBILITY_START):end_idx]
+    content = agent_output[start_idx + len(_RESPONSIBILITY_START) : end_idx]
     return content.strip()
 
 
@@ -256,6 +279,175 @@ def merge_responsibilities(
     for file_path, responsibility in responsibilities.items():
         if file_path in cards and responsibility:
             cards[file_path].responsibility = responsibility
+
+
+# ============================================================
+# D-2: 契約カード生成（FR-7c）
+# ============================================================
+
+_CONTRACT_START = "---CONTRACT-CARD---"
+_CONTRACT_END = "---END-CONTRACT-CARD---"
+
+_CONTRACT_FIELDS = ("preconditions", "postconditions", "side_effects", "invariants")
+
+
+def _parse_contract_list(value: str) -> list[str]:
+    """'[item1, item2]' 形式の文字列をリストに変換する。
+
+    前後のブラケットを除去して各要素を strip する。
+    """
+    value = value.strip()
+    if value.startswith("["):
+        value = value[1:]
+    if value.endswith("]"):
+        value = value[:-1]
+    if not value.strip():
+        return []
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
+def parse_contract(agent_output: str) -> dict[str, list[str]]:
+    """Agent 出力から CONTRACT-CARD マーカー間のフィールドを抽出する。
+
+    マーカーがない場合は空辞書を返す（フォールバック）。
+    各フィールドは 'field_name: [item1, item2]' 形式。
+    """
+    start_idx = agent_output.find(_CONTRACT_START)
+    if start_idx == -1:
+        return {}
+    end_idx = agent_output.find(_CONTRACT_END, start_idx)
+    if end_idx == -1:
+        return {}
+
+    content = agent_output[start_idx + len(_CONTRACT_START) : end_idx]
+    result: dict[str, list[str]] = {}
+    for line in content.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        for field in _CONTRACT_FIELDS:
+            prefix = field + ":"
+            if line.startswith(prefix):
+                value = line[len(prefix):].strip()
+                result[field] = _parse_contract_list(value)
+                break
+    return result
+
+
+def _collect_signatures_for_files(
+    file_paths: list[str],
+    ast_map: dict[str, ASTNode],
+) -> list[str]:
+    """指定ファイル群のトップレベルノードの signature を収集する。"""
+    signatures: list[str] = []
+    for fp in file_paths:
+        node = ast_map.get(fp)
+        if node is None:
+            continue
+        for child in node.children:
+            if child.kind in ("function", "class") and child.signature:
+                signatures.append(child.signature)
+    return signatures
+
+
+def merge_contracts(
+    file_cards: dict[str, FileCard],
+    contract_fields: dict[str, dict],
+    module_to_files: dict[str, list[str]],
+    ast_map: dict[str, ASTNode],
+) -> dict[str, ContractCard]:
+    """FileCard 群と契約フィールドをモジュール単位に集約して ContractCard を生成する。
+
+    Args:
+        file_cards: ファイルパス → FileCard の辞書。
+        contract_fields: モジュール名 → parse_contract() の返り値の辞書。
+        module_to_files: detect_module_boundaries() の出力。
+        ast_map: ファイルパス → ASTNode の辞書。
+
+    Returns:
+        モジュール名 → ContractCard の辞書。
+    """
+    result: dict[str, ContractCard] = {}
+
+    for module_name, module_files in module_to_files.items():
+        # public_api: モジュール内の全 FileCard から集約
+        public_api: list[str] = []
+        for fp in module_files:
+            card = file_cards.get(fp)
+            if card is not None:
+                for name in card.public_api:
+                    if name not in public_api:
+                        public_api.append(name)
+
+        # signatures: AST の signature フィールドから収集
+        signatures = _collect_signatures_for_files(module_files, ast_map)
+
+        # LLM 推論フィールド: contract_fields から取得（なければ空リスト）
+        fields = contract_fields.get(module_name, {})
+        result[module_name] = ContractCard(
+            module_name=module_name,
+            public_api=public_api,
+            signatures=signatures,
+            preconditions=fields.get("preconditions", []),
+            postconditions=fields.get("postconditions", []),
+            side_effects=fields.get("side_effects", []),
+            invariants=fields.get("invariants", []),
+        )
+
+    return result
+
+
+def _contract_card_filename(module_name: str) -> str:
+    """モジュール名から契約カードのファイル名を生成する。
+
+    設計書 Section 4.6: パスの / を - に置換。
+    """
+    return module_name.replace("/", "-") + ".json"
+
+
+def save_contract_card(state_dir: Path, card: ContractCard) -> None:
+    """契約カードを review-state/contracts/ に永続化する。"""
+    contracts_dir = state_dir / _CONTRACTS_DIR
+    contracts_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = _contract_card_filename(card.module_name)
+    data = asdict(card)
+    (contracts_dir / filename).write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def format_contract_cards_for_prompt(contracts: list[ContractCard]) -> str:
+    """契約カードリストを Agent プロンプトに埋め込むための文字列に整形する。
+
+    JSON 形式で出力する。空リストの場合は空文字列を返す。
+    設計書 Section 5.2: 上流契約カードをコンテキストとして注入する。
+    """
+    if not contracts:
+        return ""
+
+    parts: list[str] = []
+    for card in contracts:
+        card_json = json.dumps(asdict(card), ensure_ascii=False, indent=2)
+        parts.append(f"---CONTRACT-CARD---\n{card_json}\n---END-CONTRACT-CARD---")
+
+    return "\n\n".join(parts)
+
+
+def load_contract_card(state_dir: Path, module_name: str) -> ContractCard | None:
+    """契約カードを読み込む。存在しない場合は None を返す。"""
+    contracts_dir = state_dir / _CONTRACTS_DIR
+    filename = _contract_card_filename(module_name)
+    path = contracts_dir / filename
+
+    if not path.exists():
+        return None
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted contract card: %s", path)
+        return None
+
+    return ContractCard(**data)
 
 
 # ============================================================
@@ -428,7 +620,7 @@ def check_unused_reexports(
     # __init__ を指すモジュール名の候補を作成
     init_module_candidates = {
         init_dir.replace("/", "."),  # "src" → "src"
-        init_dir,                    # パス表記でも
+        init_dir,  # パス表記でも
     }
 
     issues: list[str] = []
@@ -496,7 +688,9 @@ def generate_module_cards(
         boundary_issues: list[str] = []
         boundary_issues.extend(check_name_collisions(module_files, ast_map))
         boundary_issues.extend(check_all_exports(module_files, ast_map))
-        boundary_issues.extend(check_unused_reexports(module_files, ast_map, import_map))
+        boundary_issues.extend(
+            check_unused_reexports(module_files, ast_map, import_map)
+        )
 
         result[module_name] = ModuleCard(
             module_name=module_name,
@@ -617,7 +811,7 @@ def _find_sccs(graph: dict[str, list[str]], all_nodes: set[str]) -> list[list[st
             if len(scc) > 1 or (len(scc) == 1 and v in graph.get(v, [])):
                 sccs.append(scc)
 
-    for node in all_nodes:
+    for node in sorted(all_nodes):
         if node not in indices:
             strongconnect(node)
 
@@ -635,7 +829,10 @@ def detect_circular_dependencies(
     try:
         sccs = _find_sccs(graph, all_nodes)
     except RecursionError:
-        logger.warning("Import graph too large for recursive SCC detection (%d nodes)", len(all_nodes))
+        logger.warning(
+            "Import graph too large for recursive SCC detection (%d nodes)",
+            len(all_nodes),
+        )
         return []
 
     issues: list[Issue] = []
@@ -655,6 +852,126 @@ def detect_circular_dependencies(
         )
 
     return issues
+
+
+def _condense_sccs(
+    graph: dict[str, list[str]],
+    all_nodes: set[str],
+    sccs: list[list[str]],
+) -> tuple[dict[str, list[str]], dict[str, str]]:
+    """SCC をスーパーノードに縮約し、縮約済みグラフと元ノードのマッピングを返す。
+
+    Args:
+        graph: ノード名 → 隣接ノード名リスト（隣接リスト）。
+        all_nodes: グラフ内の全ノード名の集合。
+        sccs: 縮約対象の SCC リスト（各要素はノード名リスト）。
+
+    Returns:
+        (condensed_graph, scc_map) のタプル。
+        condensed_graph: SCC をスーパーノードに置き換えた縮約済みグラフ。
+        scc_map: 元ノード名 → スーパーノード名のマッピング。SCC 外のノードは含まない。
+    """
+    # 元ノード → スーパーノード名のマッピングを構築
+    scc_map: dict[str, str] = {}
+    for idx, scc_members in enumerate(sccs):
+        super_name = f"scc_{idx}"
+        for member in scc_members:
+            scc_map[member] = super_name
+
+    def _resolve(node: str) -> str:
+        """ノードをスーパーノード名に解決する。SCC 外はそのまま返す。"""
+        return scc_map.get(node, node)
+
+    # SCC メンバーを除いた通常ノードを収集
+    scc_members_all = set(scc_map.keys())
+    regular_nodes = all_nodes - scc_members_all
+    super_nodes = {_resolve(m) for m in scc_members_all}
+
+    condensed: dict[str, list[str]] = {}
+    for node in regular_nodes:
+        condensed[node] = _resolve_node_edges(graph, node, _resolve)
+    for super_name in super_nodes:
+        members = [m for m, s in scc_map.items() if s == super_name]
+        condensed[super_name] = _collect_supernode_edges(
+            graph, members, super_name, _resolve
+        )
+    return condensed, scc_map
+
+
+def _resolve_node_edges(
+    graph: dict[str, list[str]],
+    node: str,
+    resolve: Callable[[str], str],
+) -> list[str]:
+    """通常ノードの辺をスーパーノード名に解決する。自己ループと重複を除外。"""
+    edges: list[str] = []
+    for neighbor in graph.get(node, []):
+        resolved = resolve(neighbor)
+        if resolved != node and resolved not in edges:
+            edges.append(resolved)
+    return edges
+
+
+def _collect_supernode_edges(
+    graph: dict[str, list[str]],
+    members: list[str],
+    super_name: str,
+    resolve: Callable[[str], str],
+) -> list[str]:
+    """SCC メンバーの全外部辺を収集してスーパーノードの辺リストを構築する。
+
+    SCC 内部の辺（自己ループ）は除外する。重複辺も除外する。
+    """
+    edges: list[str] = []
+    for member in members:
+        for neighbor in graph.get(member, []):
+            resolved = resolve(neighbor)
+            if resolved != super_name and resolved not in edges:
+                edges.append(resolved)
+    return edges
+
+
+def build_topo_order(
+    import_map: dict[str, list[str]],
+) -> dict:
+    """import_map からトポロジカル順序と SCC 情報を計算する。
+
+    循環依存がある場合は SCC をスーパーノードに縮約してからトポロジカルソートを行う。
+
+    Args:
+        import_map: ファイルパス → ドット区切りモジュール名リスト の辞書。
+
+    Returns:
+        以下のキーを持つ辞書:
+        - topo_order: トポロジカル順のノード名（または SCC スーパーノード名）のリスト。
+        - sccs: 検出された SCC のリスト（各要素はノード名リスト）。
+        - node_to_file: ノード名 → 元ファイルパスの逆引き辞書。
+    """
+    graph, all_nodes, node_to_file = _build_import_graph(import_map)
+
+    try:
+        sccs = _find_sccs(graph, all_nodes)
+    except RecursionError:
+        logger.warning(
+            "Import graph too large for recursive SCC detection (%d nodes)",
+            len(all_nodes),
+        )
+        sccs = []
+
+    condensed, _scc_map = _condense_sccs(graph, all_nodes, sccs)
+
+    try:
+        sorter = graphlib.TopologicalSorter(condensed)
+        topo_order = list(sorter.static_order())
+    except graphlib.CycleError:
+        logger.warning("Cycle detected in condensed graph; returning partial order")
+        topo_order = list(condensed.keys())
+
+    return {
+        "topo_order": topo_order,
+        "sccs": sccs,
+        "node_to_file": node_to_file,
+    }
 
 
 def _collect_function_names(root_node: ASTNode) -> list[str]:
@@ -713,6 +1030,177 @@ def detect_module_naming_violations(
         ]
 
     return []
+
+
+# ===================================================================
+# D-4: 影響範囲分析（FR-7d）
+# 設計書 Section 5.4
+# ===================================================================
+
+
+def _build_reverse_graph(
+    graph: dict[str, list[str]],
+    all_nodes: set[str],
+) -> dict[str, list[str]]:
+    """グラフの逆引きを構築する（import 方向の逆 → 依存元方向）。
+
+    graph は A→B (A imports B) の方向なので、
+    逆引きは B→A (B を import しているのは A) の方向を返す。
+    """
+    reverse: dict[str, list[str]] = {node: [] for node in all_nodes}
+    for src, neighbors in graph.items():
+        for dst in neighbors:
+            if dst in reverse:
+                reverse[dst].append(src)
+    return reverse
+
+
+def _expand_scc_members(
+    initial_scope: set[str],
+    sccs: list[list[str]],
+    node_to_file: dict[str, str],
+) -> set[str]:
+    """SCC 内の1ノードが in_scope なら SCC 全体をノード名で返す。
+
+    戻り値はノード名（モジュール名）の集合。
+    """
+    scc_expanded: set[str] = set(initial_scope)
+    for scc in sccs:
+        scc_node_names = set(scc)
+        if scc_node_names & initial_scope:
+            scc_expanded |= scc_node_names
+    return scc_expanded
+
+
+def _bfs_upstream(
+    start_nodes: set[str],
+    reverse_graph: dict[str, list[str]],
+    sccs: list[list[str]],
+    node_to_file: dict[str, str],
+) -> set[str]:
+    """逆引きグラフで上流方向に BFS し、到達可能なノード集合を返す。
+
+    上流ノードが SCC に属する場合、その SCC 全体も展開する。
+    """
+    visited: set[str] = set(start_nodes)
+    queue = list(start_nodes)
+    while queue:
+        current = queue.pop(0)
+        for upstream in reverse_graph.get(current, []):
+            if upstream not in visited:
+                visited.add(upstream)
+                queue.append(upstream)
+                expanded = _expand_scc_members({upstream}, sccs, node_to_file)
+                for node in expanded - visited:
+                    visited.add(node)
+                    queue.append(node)
+    return visited
+
+
+def _partition_files_by_scope(
+    import_map: dict[str, list[str]],
+    visited: set[str],
+    modified_files: list[str],
+) -> tuple[list[str], list[str]]:
+    """import_map 内のファイルを in_scope / out_of_scope に分類する。
+
+    import_map にないが modified_files に含まれるファイルも in_scope に追加する。
+    """
+    file_to_node = {fp: _file_path_to_module_name(fp) for fp in import_map}
+    in_scope_files: list[str] = []
+    out_of_scope_files: list[str] = []
+
+    for fp in import_map:
+        node = file_to_node.get(fp)
+        if node in visited:
+            in_scope_files.append(fp)
+        else:
+            out_of_scope_files.append(fp)
+
+    for fp in modified_files:
+        if fp not in import_map and fp not in in_scope_files:
+            in_scope_files.append(fp)
+
+    return in_scope_files, out_of_scope_files
+
+
+def analyze_impact(
+    modified_files: list[str],
+    import_map: dict[str, list[str]],
+) -> dict[str, list[str]]:
+    """修正ファイルから影響範囲を計算する（FR-7d）。
+
+    依存グラフを構築し、修正ファイルから上流方向（= そのファイルを
+    import しているファイル）に推移的に辿る。
+    SCC 内の1ノードが修正されている場合、SCC 全体を影響範囲に含める。
+
+    Args:
+        modified_files: 修正されたファイルパスのリスト。
+        import_map: ファイルパス → ドット区切りモジュール名リスト の辞書。
+
+    Returns:
+        {"in_scope": [...], "out_of_scope": [...]} の辞書。
+    """
+    graph, all_nodes, node_to_file = _build_import_graph(import_map)
+
+    try:
+        sccs = _find_sccs(graph, all_nodes)
+    except RecursionError:
+        logger.warning(
+            "Import graph too large for recursive SCC detection (%d nodes)",
+            len(all_nodes),
+        )
+        sccs = []
+
+    file_to_node = {fp: _file_path_to_module_name(fp) for fp in import_map}
+    modified_nodes: set[str] = {
+        file_to_node[fp] for fp in modified_files if fp in file_to_node
+    }
+
+    scope_nodes = _expand_scc_members(modified_nodes, sccs, node_to_file)
+    reverse_graph = _build_reverse_graph(graph, all_nodes)
+    visited = _bfs_upstream(scope_nodes, reverse_graph, sccs, node_to_file)
+
+    in_scope_files, out_of_scope_files = _partition_files_by_scope(
+        import_map, visited, modified_files
+    )
+    return {"in_scope": in_scope_files, "out_of_scope": out_of_scope_files}
+
+
+def classify_impact_for_cards(
+    in_scope: list[str],
+    out_of_scope: list[str],
+    current_hashes: dict[str, str],
+    previous_hashes: dict[str, str],
+) -> dict[str, str]:
+    """影響範囲に基づいて各ファイルの概要カード再利用判定を行う（FR-7d）。
+
+    Args:
+        in_scope: 影響範囲内のファイルパスリスト。
+        out_of_scope: 影響範囲外のファイルパスリスト。
+        current_hashes: 現在のファイルハッシュ辞書。
+        previous_hashes: 前回のファイルハッシュ辞書。
+
+    Returns:
+        {file_path: "regenerate" | "reuse_mechanical"} の辞書。
+        in_scope のファイル → "regenerate"（全フィールド再生成）。
+        out_of_scope かつハッシュ未変更 → "reuse_mechanical"。
+        out_of_scope かつハッシュ変更あり → "regenerate"。
+    """
+    result: dict[str, str] = {}
+
+    for fp in in_scope:
+        result[fp] = "regenerate"
+
+    for fp in out_of_scope:
+        current = current_hashes.get(fp)
+        previous = previous_hashes.get(fp)
+        if current is not None and current == previous:
+            result[fp] = "reuse_mechanical"
+        else:
+            result[fp] = "regenerate"
+
+    return result
 
 
 def collect_spec_drift_context(

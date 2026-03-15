@@ -335,6 +335,29 @@ class TestRunSecurity:
             issues = PythonAnalyzer().run_security(tmp_path)
         assert issues == []
 
+    def test_bandit_b105_detects_hardcoded_password(self, tmp_path: Path) -> None:
+        """bandit B105 がハードコードパスワードを検出すること（FR-7e）。"""
+        bandit_output = json.dumps({
+            "results": [{
+                "code": "password = 'my_secret_password_123'",
+                "filename": str(tmp_path / "src" / "config.py"),
+                "issue_confidence": "MEDIUM",
+                "issue_severity": "HIGH",
+                "issue_text": "Possible hardcoded password: 'my_secret_password_123'",
+                "line_number": 3,
+                "line_range": [3],
+                "test_id": "B105",
+                "test_name": "hardcoded_password_string",
+            }]
+        })
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _make_mock_result(bandit_output)
+            issues = PythonAnalyzer().run_security(tmp_path)
+        b105 = [i for i in issues if i.rule_id == "B105"]
+        assert len(b105) >= 1, "B105 が検出されるべき"
+        assert b105[0].severity == "critical"  # HIGH → critical
+        assert b105[0].category == "security"
+
 
 # ── parse_ast ────────────────────────────────────────────────
 

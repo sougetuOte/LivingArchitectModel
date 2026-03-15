@@ -10,10 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    import tree_sitter as _tree_sitter_module
+from typing import Any
 
 logger = logging.getLogger(__name__)
 

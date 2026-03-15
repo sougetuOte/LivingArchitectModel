@@ -159,7 +159,7 @@ class TestRunPhase0:
         content = result.summary_path.read_text()
         assert "## Review Instructions" in content
         assert "## Summary" in content
-        assert content.rstrip().endswith("/ Info: 0")
+        assert "FR-5 リマインド" in content
 
     def test_returns_line_count(self, project_root: Path) -> None:
         """結果に行数カウントを含むこと。"""

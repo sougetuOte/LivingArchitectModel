@@ -178,19 +178,36 @@ Actual: [実際の値]
 - [ ] レビュー依頼
 ```
 
-## 事前確認チェック
+## Pre-flight（作業開始前に必ず実行）
 
-実装開始前に必ず確認:
+**テストやコードを書く前に、以下を Read ツールで実際に読み込むこと。**
+読まずに作業を開始することは禁止。
 
-```markdown
-## 実装前チェック
+### 1. 品質基準を読む（毎回必須）
 
-- [ ] 対応する仕様書を読んだ
-- [ ] タスク定義の完了条件を確認した
-- [ ] 関連するADRを確認した
-- [ ] 既存のテストがパスしている
-- [ ] BUILDINGフェーズである
 ```
+Read: .claude/rules/code-quality-guideline.md
+```
+
+以下は最低限暗記すべき品質ゲート:
+- **関数**: 50行以内（超過は Warning）
+- **ネスト**: 3階層以内（超過は Warning）
+- **エラー握りつぶし禁止**: 空 catch / except pass / エラーを黙殺 → Critical
+- **Silent Failure 禁止**: 失敗を None/null で返し呼び出し側が検知不能 → Critical
+
+### 2. タスク指定の仕様書を読む
+
+Agent prompt で指定された仕様書パス（`docs/specs/*.md`）を Read で読む。
+仕様の FR 番号と受け入れ条件を把握してからテストを書く。
+
+### 3. 変更対象ファイルを読む
+
+実装対象・テスト対象のファイルを Read で読み、既存コードを理解する。
+**既存コードを読まずに書き始めることは禁止。**
+
+### 4. 既存テストの構造を確認
+
+変更対象に対応するテストファイルを Read で読み、テストの書き方・import パターンを揃える。
 
 ## 禁止事項
 
@@ -234,5 +251,6 @@ Actual: [実際の値]
 
 ## 参照ドキュメント
 
-- `docs/internal/02_DEVELOPMENT_FLOW.md` (Phase 2)
-- `docs/internal/03_QUALITY_STANDARDS.md`
+- `.claude/rules/code-quality-guideline.md`（品質判断基準 — **Pre-flight で必読**）
+- `docs/internal/02_DEVELOPMENT_FLOW.md` (Phase 2: TDD サイクル)
+- `docs/internal/03_QUALITY_STANDARDS.md`（設計原則・リファクタリングトリガー）

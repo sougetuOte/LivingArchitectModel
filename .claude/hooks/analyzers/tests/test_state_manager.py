@@ -21,11 +21,13 @@ from analyzers.state_manager import (
     load_ast_map,
     load_chunk_result,
     load_chunks_index,
+    load_dependency_graph,
     load_file_hashes,
     load_issues,
     save_ast_map,
     save_chunk_result,
     save_chunks_index,
+    save_dependency_graph,
     save_file_hashes,
     save_issues,
 )
@@ -487,3 +489,40 @@ class TestChunksIndex:
         assert loaded[0].start_line == 1
         assert loaded[0].end_line == 10
         assert loaded[0].level == "L1"
+
+
+# ============================================================
+# D-1: 依存グラフの永続化（FR-7a）
+# ============================================================
+
+
+class TestDependencyGraphPersistence:
+    """dependency-graph.json の永続化テスト（D-1: FR-7a）。"""
+
+    def test_save_and_load_roundtrip(self, tmp_path: Path) -> None:
+        """保存→読込のラウンドトリップで同一データが得られること。"""
+        graph_data = {
+            "topo_order": ["c", "b", "a"],
+            "sccs": [["a", "b"]],
+            "node_to_file": {"a": "a.py", "b": "b.py", "c": "c.py"},
+        }
+        save_dependency_graph(tmp_path, graph_data)
+        loaded = load_dependency_graph(tmp_path)
+        assert loaded["topo_order"] == ["c", "b", "a"]
+        assert loaded["sccs"] == [["a", "b"]]
+        assert loaded["node_to_file"] == {"a": "a.py", "b": "b.py", "c": "c.py"}
+
+    def test_load_returns_empty_when_missing(self, tmp_path: Path) -> None:
+        """ファイルが存在しない場合、空の構造を返すこと。"""
+        loaded = load_dependency_graph(tmp_path)
+        assert loaded["topo_order"] == []
+        assert loaded["sccs"] == []
+        assert loaded["node_to_file"] == {}
+
+    def test_load_handles_corrupted_file(self, tmp_path: Path) -> None:
+        """壊れた JSON ファイルがあっても空の構造を返すこと。"""
+        state_dir = tmp_path
+        state_dir.mkdir(exist_ok=True)
+        (state_dir / "dependency-graph.json").write_text("not json", encoding="utf-8")
+        loaded = load_dependency_graph(tmp_path)
+        assert loaded["topo_order"] == []
