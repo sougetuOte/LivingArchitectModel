@@ -223,6 +223,11 @@
 
 ## Phase 4: Plan D — 依存グラフ駆動（将来）
 
+### Task D-0: G5 シークレットスキャン実装（deferred from health check 2026-03-15）
+- `lam-stop-hook.py` の `_SECRET_PATTERN`/`_SAFE_PATTERN` が定義済みだが未使用
+- G5 セキュリティチェックの一部としてスキャンロジックを実装するか、不要と判断して削除
+- **起票理由**: full-review health check で Critical (Dead Code / 機能脱落) として検出
+
 ### Task D-1: 依存グラフ構築
 ### Task D-2: トポロジカルソート + 契約カード
 ### Task D-3: 変更影響分析
