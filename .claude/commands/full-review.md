@@ -256,6 +256,31 @@ Phase 1.7 完了後、Phase 2 に進む。
 
 各エージェントは独立した監査レポートを生成する。
 
+### 概要カード責務フィールド（Phase 2 Agent 追加出力）
+
+Phase 2 の各 Agent プロンプトに以下の指示を追加し、レビュー対象ファイルの責務を1行で出力させる:
+
+```
+レビュー結果の末尾に、以下のマーカーで囲んだ責務フィールドを出力してください。
+対象ファイルが「何を担当するモジュールか」を1行で記述してください。
+
+---FILE-CARD-RESPONSIBILITY---
+[責務の1行サマリー]
+---END-FILE-CARD-RESPONSIBILITY---
+```
+
+Agent 出力から `parse_responsibility()` で責務フィールドを抽出し、`merge_responsibilities()` で概要カードにマージする。
+マーカーがない場合は空文字にフォールバックする（Agent が出力し忘れた場合のロバスト性確保）。
+
+### 概要カード生成フロー（Phase 2 完了後）
+
+Phase 2 の全 Agent 完了後、以下のフローで概要カードを生成する:
+
+1. `generate_file_cards(ast_map, import_map, issues, chunk_issues)` で機械的フィールドのカードを生成
+2. 各 Agent 出力から `parse_responsibility()` で責務を抽出し、ファイルパスをキーとする dict に集約
+3. `merge_responsibilities(cards, responsibilities)` で責務をマージ
+4. `save_file_card(state_dir, card)` で各カードを永続化
+
 ### チャンクモード（Phase 1.7 でチャンクが生成された場合）
 
 Phase 1.7 でチャンクが生成されている場合（`.claude/review-state/chunks.json` が存在）、
