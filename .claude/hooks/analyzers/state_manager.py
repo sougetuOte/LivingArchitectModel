@@ -1,9 +1,17 @@
+"""レビュー状態の永続化管理。
+
+Task A-5: コンパクション対策 — 外部永続化
+Task B-3: チャンク結果の永続化
+対応仕様: scalable-code-review-spec.md FR-5, FR-6
+対応設計: scalable-code-review-design.md Section 2.5, 3.7
+"""
 from __future__ import annotations
 
 import dataclasses
 import hashlib
 import json
 import logging
+import re
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue
@@ -12,11 +20,45 @@ from analyzers.chunker import Chunk
 logger = logging.getLogger(__name__)
 
 _ISSUES_FILE = "static-issues.json"
+_ISSUE_FIELDS = {f.name for f in dataclasses.fields(Issue)}  # インポート時に一度だけ計算（軽量な副作用）
 _AST_MAP_FILE = "ast-map.json"
 _HASHES_FILE = "file-hashes.json"
 _SUMMARY_FILE = "summary.md"
 _CHUNKS_INDEX_FILE = "chunks.json"
 _CHUNK_RESULTS_DIR = "chunk-results"
+
+
+def _deserialize_issue(item: dict, source_path: Path) -> Issue | None:
+    """辞書から Issue を復元する。不正なデータは None を返してスキップする。
+
+    Args:
+        item: JSON から読み込んだ辞書
+        source_path: ログ出力用のファイルパス
+
+    Returns:
+        Issue インスタンス、またはデータが不正な場合は None
+    """
+    if not isinstance(item.get("file"), str):
+        logger.warning("Invalid file field in issue data, skipping")
+        return None
+
+    severity = item.get("severity")
+    if severity not in {"critical", "warning", "info"}:
+        logger.warning(
+            "Invalid severity %r in %s; falling back to 'warning'",
+            severity,
+            source_path,
+        )
+        item = {**item, "severity": "warning"}
+    sanitized = {k: v for k, v in item.items() if k in _ISSUE_FIELDS}
+    try:
+        return Issue(**sanitized)
+    except TypeError as e:
+        logger.warning("Skipping malformed issue in %s: %s", source_path, e)
+        return None
+
+
+_CHUNK_FIELDS = {f.name for f in dataclasses.fields(Chunk)}  # インポート時に一度だけ計算（軽量な副作用）
 
 
 def save_issues(state_dir: Path, issues: list[Issue]) -> None:
@@ -34,7 +76,12 @@ def load_issues(state_dir: Path) -> list[Issue]:
     except json.JSONDecodeError:
         logger.warning("Corrupted issues file: %s", path)
         return []
-    return [Issue(**item) for item in data]
+    validated = []
+    for item in data:
+        issue = _deserialize_issue(item, path)
+        if issue is not None:
+            validated.append(issue)
+    return validated
 
 
 def save_ast_map(state_dir: Path, ast_map: dict[str, ASTNode]) -> None:
@@ -68,6 +115,19 @@ def load_ast_map(state_dir: Path) -> dict[str, ASTNode]:
     return {key: _dict_to_ast_node(node) for key, node in data.items()}
 
 
+def _format_issues(issue_list: list[Issue]) -> str:
+    """Issue リストを Markdown 箇条書き形式に変換する。"""
+    lines = []
+    for issue in issue_list:
+        entry = (
+            f"- [{issue.file}:{issue.line}]"
+            f" ({issue.tool}/{issue.rule_id})"
+            f" {issue.message}"
+        )
+        lines.append(entry)
+    return "\n".join(lines)
+
+
 def generate_summary(issues: list[Issue]) -> str:
     """NFR-4 準拠の LLM 向けサマリーを生成する。
 
@@ -77,17 +137,6 @@ def generate_summary(issues: list[Issue]) -> str:
     criticals = [i for i in issues if i.severity == "critical"]
     warnings = [i for i in issues if i.severity == "warning"]
     infos = [i for i in issues if i.severity == "info"]
-
-    def _format_issues(issue_list: list[Issue]) -> str:
-        lines = []
-        for issue in issue_list:
-            entry = (
-                f"- [{issue.file}:{issue.line}]"
-                f" ({issue.tool}/{issue.rule_id})"
-                f" {issue.message}"
-            )
-            lines.append(entry)
-        return "\n".join(lines)
 
     sections: list[str] = ["# Static Analysis Summary", ""]
 
@@ -120,7 +169,12 @@ def generate_summary(issues: list[Issue]) -> str:
 
 
 def compute_file_hash(file_path: Path) -> str:
-    return hashlib.sha256(file_path.read_bytes()).hexdigest()
+    """ファイルの SHA-256 ハッシュを計算する。チャンク読み込みで大ファイルにも対応。"""
+    h = hashlib.sha256()
+    with file_path.open("rb") as f:
+        for block in iter(lambda: f.read(65536), b""):
+            h.update(block)
+    return h.hexdigest()
 
 
 def save_file_hashes(state_dir: Path, hashes: dict[str, str]) -> None:
@@ -140,6 +194,7 @@ def load_file_hashes(state_dir: Path) -> dict[str, str]:
 
 
 def get_changed_files(state_dir: Path, current_hashes: dict[str, str]) -> list[str]:
+    """前回のハッシュと現在のハッシュを比較し、変更されたファイルパスのリストを返す。"""
     previous = load_file_hashes(state_dir)
     changed = []
     for file_path, current_hash in current_hashes.items():
@@ -157,9 +212,11 @@ def chunk_result_filename(chunk: Chunk) -> str:
     """チャンクの結果ファイル名を生成する。
 
     設計書 Section 3.7: {path_segments}-{level}-{node_name}-{start}-{end}.json
+    node_name はファイルシステム安全な文字（英数字・アンダースコア・ハイフン）のみに制限する。
     """
     path_segments = chunk.file_path.replace("/", "-").replace("\\", "-").replace(".", "-")
-    return f"{path_segments}-{chunk.level}-{chunk.node_name}-{chunk.start_line}-{chunk.end_line}.json"
+    safe_name = re.sub(r"[^\w-]", "_", chunk.node_name)
+    return f"{path_segments}-{chunk.level}-{safe_name}-{chunk.start_line}-{chunk.end_line}.json"
 
 
 def save_chunk_result(state_dir: Path, chunk: Chunk, issues: list[Issue]) -> None:
@@ -184,7 +241,12 @@ def load_chunk_result(state_dir: Path, chunk: Chunk) -> list[Issue]:
     except json.JSONDecodeError:
         logger.warning("Corrupted chunk result file: %s", path)
         return []
-    return [Issue(**item) for item in data]
+    validated = []
+    for item in data:
+        issue = _deserialize_issue(item, path)
+        if issue is not None:
+            validated.append(issue)
+    return validated
 
 
 def save_chunks_index(state_dir: Path, chunks: list[Chunk]) -> None:
@@ -194,13 +256,21 @@ def save_chunks_index(state_dir: Path, chunks: list[Chunk]) -> None:
     (state_dir / _CHUNKS_INDEX_FILE).write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
-def load_chunks_index(state_dir: Path) -> list[dict]:
+def load_chunks_index(state_dir: Path) -> list[Chunk]:
     """チャンク一覧を読み込む。"""
     path = state_dir / _CHUNKS_INDEX_FILE
     if not path.exists():
         return []
     try:
-        return json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         logger.warning("Corrupted chunks index file: %s", path)
         return []
+    chunks = []
+    for item in data:
+        sanitized = {k: v for k, v in item.items() if k in _CHUNK_FIELDS}
+        try:
+            chunks.append(Chunk(**sanitized))
+        except TypeError as e:
+            logger.warning("Skipping malformed chunk in %s: %s", path, e)
+    return chunks

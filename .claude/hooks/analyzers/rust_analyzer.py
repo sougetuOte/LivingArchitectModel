@@ -16,6 +16,8 @@ from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
 
 logger = logging.getLogger(__name__)
 
+_SUBPROCESS_TIMEOUT = 300  # seconds (config.static_analysis_timeout_sec のデフォルト値)
+
 
 class RustAnalyzer(LanguageAnalyzer):
     """Rust プロジェクト向け静的解析プラグイン。
@@ -37,13 +39,18 @@ class RustAnalyzer(LanguageAnalyzer):
         reason="compiler-message" の行のみを Issue に変換する。
         returncode != 0 でも stdout にメッセージが出力されるのでパースを試みる。
         """
-        result = subprocess.run(
-            ["cargo", "clippy", "--message-format", "json", "--", "-W", "clippy::all"],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=target,
-        )
+        try:
+            result = subprocess.run(
+                ["cargo", "clippy", "--message-format", "json", "--", "-W", "clippy::all"],
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=target,
+                timeout=_SUBPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("cargo clippy timed out after %d seconds", _SUBPROCESS_TIMEOUT)
+            return []
 
         issues: list[Issue] = []
         for raw_line in result.stdout.splitlines():
@@ -121,13 +128,18 @@ class RustAnalyzer(LanguageAnalyzer):
         パース失敗時や cargo-audit 未インストール時は空リストを返す。
         """
 
-        result = subprocess.run(
-            ["cargo", "audit", "--json"],
-            capture_output=True,
-            text=True,
-            check=False,
-            cwd=target,
-        )
+        try:
+            result = subprocess.run(
+                ["cargo", "audit", "--json"],
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=target,
+                timeout=_SUBPROCESS_TIMEOUT,
+            )
+        except subprocess.TimeoutExpired:
+            logger.warning("cargo audit timed out after %d seconds", _SUBPROCESS_TIMEOUT)
+            return []
 
         # cargo audit 未インストール時（stderr にエラー、stdout が空）
         if not result.stdout.strip() and result.returncode != 0:

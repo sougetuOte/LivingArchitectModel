@@ -2,13 +2,12 @@
 
 Task B-2a: バッチ分割・プロンプト生成・結果収集
 
-対応仕様: scalable-code-review-spec.md FR-2
+対応仕様: scalable-code-review-spec.md FR-2, FR-3
 対応設計: scalable-code-review-design.md Section 3.3, 3.6, 3.8
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
 from pathlib import PurePath
 
 from analyzers.chunker import Chunk
@@ -41,6 +40,7 @@ class ReviewResult:
 
     chunk_name: str
     file_path: str
+    # TODO: Phase 3 で LLM 出力を Issue 型にパースする機構を実装する際に list[Issue] に統一する（S-2）
     issues: list[str]
     success: bool
     error: str = ""

@@ -1,3 +1,8 @@
+"""Scalable Code Review: レビュー設定モジュール
+
+対応仕様: scalable-code-review-spec.md FR-6
+対応設計: scalable-code-review-design.md Section 2.4c
+"""
 from __future__ import annotations
 
 import json
@@ -26,7 +31,7 @@ class ReviewConfig:
         if not config_path.exists():
             return cls()
         try:
-            data = json.loads(config_path.read_text())
+            data = json.loads(config_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as e:
             raise ValueError(f"review-config.json: {e}") from e
         if not isinstance(data, dict):
