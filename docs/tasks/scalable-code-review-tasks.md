@@ -284,18 +284,23 @@
 - **テスト**: (1) 直接依存の影響範囲テスト (2) 間接依存（A→B→C で C 修正時に A も影響範囲） (3) SCC 内ノード修正時にSCC 全体が影響範囲 (4) 依存なしファイルの修正で影響範囲が自身のみ
 - **受け入れ条件**: (1) `analyze_impact()` が推移的依存を正しく返すこと (2) 修正後の再レビューで影響範囲外ファイルの概要カード機械的フィールドのハッシュが前回と一致し再利用されること（ログで確認可能）
 
-### Task D-5: full-review 全体統合 + Phase 完了検証
-- Phase 2 → 2.5 → 3 → 4 → 5 のフロー全体にグラフ駆動を組み込み
-- `dependency-graph.json` 生成を Phase 0 完了後に挿入
-- 契約カード生成を Phase 2.5 に挿入
-- LAM 自体に対して Phase 4 全体を実行する手動統合テスト
-- **成果物**: `full-review.md` 最終改修
-- **テスト**: LAM 自体（`.claude/hooks/`）に対して full-review を実行し、以下を確認:
-  - (1) `dependency-graph.json` が生成され、トポロジカル順序が含まれること
-  - (2) `contracts/` に契約カードが生成されること
-  - (3) レビュー順序がトポロジカル順であること（ログで確認）
-  - (4) Green State に到達すること
-- **受け入れ条件**: 上記4項目が全て確認できること
+### Task D-5: full-review 全体統合 + 統合チェーンテスト
+- Phase 0 完了後に `dependency-graph.json` 生成ステップを full-review.md に挿入
+- Phase 2.5 に契約カード生成・永続化ステップを full-review.md に挿入
+- **統合チェーンテスト**: モックデータで以下のパイプラインを検証:
+  AST/import_map → build_topo_order → order_chunks_by_topo
+  → build_review_prompt_with_contracts → parse_contract → merge_contracts
+  → save_contract_card（ラウンドトリップ）
+- **成果物**: `full-review.md` 最終改修 + `tests/test_integration_pipeline.py`
+- **テスト**: 上記チェーンテスト（決定的、pytest で自動実行）
+- **受け入れ条件**:
+  - (1) full-review.md に Phase 0 後の graph 生成 + Phase 2.5 の契約カード生成が記述されていること
+  - (2) 統合チェーンテストが PASSED
+  - (3) 既存テスト全件が PASSED
+- **旧受け入れ条件からの変更（2026-03-16 AoT 分析に基づく再定義）**:
+  - 旧(4)「Green State 到達」を削除。理由: LLM 出力に依存する非決定的プロセスであり、自動テストで検証不可能。既存 full-review.md Phase 5 の Green State 判定ロジック（G1〜G5）が継続して担う
+  - 旧「手動統合テスト」を「統合チェーンテスト（pytest）」に置換。手動検証は Wave 3 完了後の `/auditing` で実施
+- **Plan E（E-3）との棲み分け**: D-5 は**データフローの正しさ**（関数チェーンの入出力整合）を検証。**品質・精度・収束性**の検証は E-3 の守備範囲。詳細は下記「Plan E 設計ノート」を参照
 
 ---
 
@@ -324,6 +329,33 @@ D-0b と D-2 も独立しており、Wave 1 と Wave 2 で並列着手可能。
 ### Task E-3: エンドツーエンドテスト
 
 Phase 5 のタスク詳細は Phase 4 完了後に設計する。
+
+### Plan E 設計ノート（Phase 4 完了時の申し送り）
+
+#### D-5 再定義の経緯と E-3 への影響
+
+Phase 4 Wave 3 計画時に D-5 のスコープを AoT + Three Agents Model で分析し、以下を再定義した（2026-03-16）:
+
+**テスト責務の二層分離**:
+
+| レイヤー | 担当 | 検証内容 | 決定性 |
+|---------|------|---------|--------|
+| データフロー | D-5 統合チェーンテスト | 関数チェーンの入出力整合（graph → topo → prompt → contract） | 決定的（pytest） |
+| 品質・精度 | E-3 エンドツーエンドテスト | Issue 検出精度、収束イテレーション数、Green State 到達 | 非決定的（LLM 依存） |
+
+**E-3 設計時の検討事項**:
+- D-5 の `test_integration_pipeline.py` を基盤として活用可能
+- Green State 到達の検証は E-3 が引き受ける（D-5 では削除）
+- full-review.md の Phase 体系は Plan E で Stage 体系に再編される可能性がある。D-5 で追加した Phase 0/2.5 のステップは Stage 2 に吸収される想定
+- `analyze_impact()` の「ログで確認」型検証（D-4 受け入れ条件(2)の運用検証部分）も E-3 のスコープに含めることを推奨
+
+**Plan D で構築済みの Python 関数群**（E-1/E-3 で再利用可能）:
+- `build_topo_order()` — グラフ構築 + SCC 縮約 + トポロジカルソート
+- `order_chunks_by_topo()` — チャンクのトポロジカル順グループ化
+- `build_review_prompt_with_contracts()` — 契約カード注入プロンプト生成
+- `parse_contract()` / `merge_contracts()` — 契約カード抽出・集約
+- `analyze_impact()` — 推移的影響範囲分析（D-4）
+- `order_files_by_topo()` — 修正順序のトポロジカルソート
 
 ---
 
