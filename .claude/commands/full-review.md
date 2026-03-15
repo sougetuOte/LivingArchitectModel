@@ -88,22 +88,14 @@ Phase 0 で生成された `ast-map.json` の import 情報から依存グラフ
 python3 -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.card_generator import build_topo_order
-from analyzers.state_manager import load_ast_map, save_dependency_graph
+from analyzers.state_manager import save_dependency_graph
 from pathlib import Path
 
 state_dir = Path('.claude/review-state')
-ast_map = load_ast_map(state_dir)
 
-# ast-map.json から import_map を構築
-import_map = {}
-for fp, node in ast_map.items() if hasattr(ast_map, 'items') else []:
-    # import_map は Phase 0 で別途永続化されている場合はそちらを使用
-    pass
-
-# import-map.json が存在すればそちらを使用
+# import-map.json は Phase 0 の run_phase0() が永続化済み
 import_map_path = state_dir / 'import-map.json'
-if import_map_path.exists():
-    import_map = json.loads(import_map_path.read_text())
+import_map = json.loads(import_map_path.read_text()) if import_map_path.exists() else {}
 
 if import_map:
     result = build_topo_order(import_map)
@@ -450,9 +442,11 @@ print(f'Modules: {len(boundaries)}')
 "
 ```
 
-### Step 1.5: 契約カード生成・永続化（FR-7c）
+### Step 1.5: 契約カード永続化（FR-7c）
 
-Phase 2 の Agent 出力から契約フィールドを抽出し、モジュール単位に集約して永続化する。
+Phase 2 のトポロジカル順レビュー中に `parse_contract()` でリアルタイム抽出された契約フィールドを、
+モジュール単位に集約して永続化する。
+（契約フィールドの抽出・注入自体は Phase 2 のチャンクモード内で実行済み。ここでは永続化のみ。）
 
 ```bash
 python3 -c "
@@ -482,7 +476,7 @@ print(f'Modules for contracts: {len(module_to_files)}')
 ```
 
 契約カードは `review-state/contracts/{module-name}.json` に永続化される。
-Phase 2 のトポロジカル順レビュー時に下流 Agent のコンテキストとして注入される。
+次回再レビュー時のコンテキストとして利用可能。
 
 ### Step 2: Layer 3 — システムレビュー（機械的チェック）
 

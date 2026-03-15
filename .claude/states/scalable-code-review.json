@@ -1,7 +1,7 @@
 {
   "feature": "scalable-code-review",
   "description": "Scalable Code Review パイプライン: 静的解析 + チャンキング + 階層レビュー + 依存グラフ駆動",
-  "phase": "BUILDING",
+  "phase": "AUDITING",
   "current_phase_scope": "Phase 4 (Plan D: 依存グラフ駆動)",
   "status": {
     "requirements": "approved",

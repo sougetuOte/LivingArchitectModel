@@ -15,6 +15,7 @@ from __future__ import annotations
 import graphlib
 import json
 import logging
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -886,33 +887,36 @@ def _condense_sccs(
     regular_nodes = all_nodes - scc_members_all
     super_nodes = {_resolve(m) for m in scc_members_all}
 
-    # 縮約済みグラフを構築
     condensed: dict[str, list[str]] = {}
-
-    # 通常ノードの辺をスーパーノード解決して追加
     for node in regular_nodes:
-        resolved_edges = []
-        for neighbor in graph.get(node, []):
-            resolved = _resolve(neighbor)
-            if resolved != node and resolved not in resolved_edges:
-                resolved_edges.append(resolved)
-        condensed[node] = resolved_edges
-
-    # スーパーノードの辺を構築（SCC メンバーの全外部辺を集約）
+        condensed[node] = _resolve_node_edges(graph, node, _resolve)
     for super_name in super_nodes:
         members = [m for m, s in scc_map.items() if s == super_name]
         condensed[super_name] = _collect_supernode_edges(
             graph, members, super_name, _resolve
         )
-
     return condensed, scc_map
+
+
+def _resolve_node_edges(
+    graph: dict[str, list[str]],
+    node: str,
+    resolve: Callable[[str], str],
+) -> list[str]:
+    """通常ノードの辺をスーパーノード名に解決する。自己ループと重複を除外。"""
+    edges: list[str] = []
+    for neighbor in graph.get(node, []):
+        resolved = resolve(neighbor)
+        if resolved != node and resolved not in edges:
+            edges.append(resolved)
+    return edges
 
 
 def _collect_supernode_edges(
     graph: dict[str, list[str]],
     members: list[str],
     super_name: str,
-    resolve,
+    resolve: Callable[[str], str],
 ) -> list[str]:
     """SCC メンバーの全外部辺を収集してスーパーノードの辺リストを構築する。
 

@@ -651,11 +651,14 @@ graphlib.TopologicalSorter(condensed_graph) → topo_order  ← Phase 4 新規
 ```json
 {
   "topo_order": ["module_a", "scc_0", "module_b"],
-  "sccs": { "scc_0": ["module_x", "module_y"] },
-  "edges": { "module_a": ["scc_0"], "scc_0": ["module_b"] },
-  "node_to_files": { "module_a": ["src/a.py"], "scc_0": ["src/x.py", "src/y.py"] }
+  "sccs": [["module_x", "module_y"]],
+  "node_to_file": { "module_a": "src/a.py", "module_x": "src/x.py", "module_y": "src/y.py" }
 }
 ```
+
+> **Note**: `sccs` は SCC メンバーリストの配列（`list[list[str]]`）。
+> `node_to_file` はノード名 → 単一ファイルパスのマッピング（SCC のスーパーノード名はキーに含まない）。
+> `edges` は `build_topo_order()` の戻り値には含まない（`graphlib.TopologicalSorter` が内部で使用）。
 
 ### 5.2 トポロジカル順レビュー・修正（FR-7b）
 
