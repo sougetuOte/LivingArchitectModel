@@ -1,8 +1,11 @@
 """card_generator のテスト。
 
 Task C-1a: 概要カード生成エンジン（機械的フィールド）
+Task C-1b: Phase 2 Agent プロンプト拡張（責務フィールド生成）
+Task C-2a: Layer 2 モジュール統合（要約カード生成）
+Task C-2b: Layer 3 システムレビュー（循環依存検出、命名パターン違反、仕様ドリフト）
 対応仕様: scalable-code-review-spec.md
-対応設計: scalable-code-review-design.md Section 4.3
+対応設計: scalable-code-review-design.md Section 4.3, 4.4, 4.5
 """
 from __future__ import annotations
 
@@ -17,6 +20,9 @@ from analyzers.card_generator import (
     check_all_exports,
     check_name_collisions,
     check_unused_reexports,
+    collect_spec_drift_context,
+    detect_circular_dependencies,
+    detect_module_naming_violations,
     detect_module_boundaries,
     generate_file_cards,
     generate_module_cards,
@@ -905,3 +911,185 @@ def test_module_card_to_markdown() -> None:
     assert "Critical: 1" in md
     assert "Warning: 2" in md
     assert "衝突: parse が複数ファイルに存在" in md
+
+
+# ===================================================================
+# C-2b: Layer 3 システムレビュー
+# ===================================================================
+
+
+class TestDetectCircularDependencies:
+    """循環依存検出のテスト。
+
+    設計書 Section 4.5: ast-map.json の import 情報からグラフ構築 → SCC 検出。
+    """
+
+    def test_no_cycles_returns_empty(self) -> None:
+        """循環がない場合は空リストを返す。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["c"],
+            "c.py": [],
+        }
+        issues = detect_circular_dependencies(import_map)
+        assert issues == []
+
+    def test_simple_cycle_detected(self) -> None:
+        """A→B→A の単純な循環を検出する。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["a"],
+        }
+        issues = detect_circular_dependencies(import_map)
+        assert len(issues) == 1
+        assert issues[0].severity == "warning"
+        assert issues[0].category == "circular-dependency"
+        assert all(f in issues[0].message for f in ["a.py", "b.py"])
+
+    def test_three_node_cycle(self) -> None:
+        """A→B→C→A の3ノード循環を検出する。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["c"],
+            "c.py": ["a"],
+        }
+        issues = detect_circular_dependencies(import_map)
+        assert len(issues) == 1
+        assert issues[0].severity == "warning"
+
+    def test_multiple_independent_cycles(self) -> None:
+        """独立した2つの循環を別々に検出する。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["a"],
+            "c.py": ["d"],
+            "d.py": ["c"],
+            "e.py": [],
+        }
+        issues = detect_circular_dependencies(import_map)
+        assert len(issues) == 2
+
+    def test_self_import_detected(self) -> None:
+        """自己参照（A→A）を検出する。"""
+        import_map = {
+            "a.py": ["a"],
+        }
+        issues = detect_circular_dependencies(import_map)
+        assert len(issues) == 1
+
+    def test_empty_import_map(self) -> None:
+        """空の import_map は空リストを返す。"""
+        issues = detect_circular_dependencies({})
+        assert issues == []
+
+    def test_issue_fields_populated(self) -> None:
+        """Issue の各フィールドが正しく設定されていること。"""
+        import_map = {
+            "src/foo.py": ["src.bar"],
+            "src/bar.py": ["src.foo"],
+        }
+        issues = detect_circular_dependencies(import_map)
+        assert len(issues) == 1
+        issue = issues[0]
+        assert issue.tool == "card_generator"
+        assert issue.rule_id == "circular-dependency"
+        assert issue.line == 0
+
+
+class TestDetectModuleNamingViolations:
+    """モジュール横断の命名パターン違反検出のテスト。
+
+    設計書 Section 4.5: snake_case / camelCase の混在をモジュール横断で検出。
+    """
+
+    def test_consistent_naming_returns_empty(self) -> None:
+        """全てsnake_caseなら空リストを返す。"""
+        ast_map: dict[str, ASTNode] = {
+            "a.py": _make_module_node([
+                _make_function_node("my_func"),
+                _make_function_node("another_func", 12, 20),
+            ]),
+            "b.py": _make_module_node([
+                _make_function_node("helper_func"),
+            ]),
+        }
+        issues = detect_module_naming_violations(ast_map)
+        assert issues == []
+
+    def test_mixed_naming_detected(self) -> None:
+        """snake_case と camelCase の混在を検出する。"""
+        ast_map: dict[str, ASTNode] = {
+            "a.py": _make_module_node([_make_function_node("my_func")]),
+            "b.py": _make_module_node([_make_function_node("myFunc")]),
+        }
+        issues = detect_module_naming_violations(ast_map)
+        assert len(issues) >= 1
+        assert issues[0].severity == "warning"
+        assert issues[0].category == "naming-violation"
+
+    def test_pascal_case_classes_not_flagged(self) -> None:
+        """PascalCase のクラス名は違反としない。"""
+        ast_map: dict[str, ASTNode] = {
+            "a.py": _make_module_node([
+                _make_function_node("my_func"),
+                _make_class_node("MyClass"),
+            ]),
+        }
+        issues = detect_module_naming_violations(ast_map)
+        assert issues == []
+
+    def test_empty_ast_map(self) -> None:
+        """空の ast_map は空リストを返す。"""
+        issues = detect_module_naming_violations({})
+        assert issues == []
+
+
+class TestCollectSpecDriftContext:
+    """仕様ドリフト検出用コンテキスト収集のテスト。
+
+    設計書 Section 4.5: 要約カード群 + docs/specs/ を LLM に渡す。
+    """
+
+    def test_collects_module_cards_and_specs(self, tmp_path: Path) -> None:
+        """モジュールカードと仕様書の両方を収集する。"""
+        # モジュールカード
+        state_dir = tmp_path / "review-state"
+        card = ModuleCard(
+            module_name="src/core",
+            file_cards=["src/core/main.py"],
+            total_issue_counts={"critical": 0, "warning": 1, "info": 0},
+            boundary_issues=[],
+        )
+        save_module_card(state_dir, card)
+
+        # 仕様書
+        specs_dir = tmp_path / "docs" / "specs"
+        specs_dir.mkdir(parents=True)
+        (specs_dir / "api-spec.md").write_text("# API Spec\nGET /users returns 200")
+
+        context = collect_spec_drift_context(state_dir, specs_dir)
+
+        assert "src/core" in context
+        assert "API Spec" in context
+        assert "GET /users" in context
+
+    def test_empty_specs_dir(self, tmp_path: Path) -> None:
+        """仕様書が存在しない場合も動作する。"""
+        state_dir = tmp_path / "review-state"
+        specs_dir = tmp_path / "docs" / "specs"
+        specs_dir.mkdir(parents=True)
+
+        context = collect_spec_drift_context(state_dir, specs_dir)
+
+        assert "仕様書" in context or "specs" in context.lower()
+
+    def test_no_module_cards(self, tmp_path: Path) -> None:
+        """モジュールカードがない場合も動作する。"""
+        state_dir = tmp_path / "review-state"
+        specs_dir = tmp_path / "docs" / "specs"
+        specs_dir.mkdir(parents=True)
+        (specs_dir / "test.md").write_text("# Test Spec")
+
+        context = collect_spec_drift_context(state_dir, specs_dir)
+
+        assert "Test Spec" in context
