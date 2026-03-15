@@ -221,17 +221,99 @@
 
 ---
 
-## Phase 4: Plan D — 依存グラフ駆動（将来）
+## Phase 4: Plan D — 依存グラフ駆動
 
-### Task D-0: G5 シークレットスキャン実装（deferred from health check 2026-03-15）
-- `lam-stop-hook.py` の `_SECRET_PATTERN`/`_SAFE_PATTERN` が定義済みだが未使用
-- G5 セキュリティチェックの一部としてスキャンロジックを実装するか、不要と判断して削除
-- **起票理由**: full-review health check で Critical (Dead Code / 機能脱落) として検出
+### Wave 割り当て
 
-### Task D-1: 依存グラフ構築
-### Task D-2: トポロジカルソート + 契約カード
-### Task D-3: 変更影響分析
-### Task D-4: full-review 統合
+| Wave | タスク | 規模 | 概要 |
+|:----:|:-------|:----:|:-----|
+| Wave 1 | D-0, D-0b, D-1 | S+S+M | シークレットスキャン統合 + 型統一 + 依存グラフ構築 |
+| Wave 2 | D-2, D-3 | M+M | 契約カード生成 + トポロジカル順レビュー統合 |
+| Wave 3 | D-4, D-5 | M+S | 影響範囲分析 + full-review 統合 |
+
+### Task D-0: シークレットスキャン Phase 0 統合（FR-7e）
+- `lam-stop-hook.py` から `_SECRET_PATTERN` / `_SAFE_PATTERN` を削除
+- `python_analyzer.py` の bandit 設定で B105/B106 が有効であることを確認（テスト追加）
+- Stop hook の G5 チェックからシークレットスキャン部分を除去
+- **成果物**: `lam-stop-hook.py` 修正、`python_analyzer.py` テスト追加
+- **テスト**: `password = "secret123"` を含むテストファイルに対して bandit B105 が検出されることを確認
+- **受け入れ条件**: (1) Stop hook から `_SECRET_PATTERN`/`_SAFE_PATTERN` が削除されていること (2) `python_analyzer.run_security()` がハードコードパスワードを含むファイルから B105 Issue を返すこと
+
+### Task D-0b: ReviewResult.issues 型統一（FR-7f）
+- `orchestrator.py` の `ReviewResult.issues` を `list[str]` → `list[Issue]` に変更
+- `build_review_prompt()` の出力パースに `Issue` dataclass 変換ロジックを追加
+- 既存の `deduplicate_issues()` / `check_naming_consistency()` との整合性確認
+- **成果物**: `orchestrator.py` 修正
+- **テスト**: `ReviewResult` の型統一テスト、既存テストの修正
+- **受け入れ条件**: `ReviewResult.issues` が `list[Issue]` 型で、既存パイプラインが壊れないこと
+
+### Task D-1: 依存グラフ構築 + トポロジカルソート（FR-7a）
+- `_condense_sccs(graph, sccs)` の実装: SCC をスーパーノードに縮約
+- `build_topo_order(import_map)` の実装: `graphlib.TopologicalSorter` でソート
+- `dependency-graph.json` の永続化（`state_manager.py` 拡張）
+- Phase 3 の `_build_import_graph` / `_find_sccs` を内部で呼び出し
+- **成果物**: `card_generator.py`（グラフ構築部分）、`state_manager.py`（永続化）
+- **テスト**: SCC 縮約テスト、トポロジカルソートテスト（循環あり/なし/複数 SCC）、永続化ラウンドトリップ
+- **受け入れ条件**: `dependency-graph.json` が正しいトポロジカル順序と SCC 情報を含むこと
+
+### Task D-2: 契約カード生成（FR-7c）
+- `ContractCard` dataclass の実装（設計書 Section 5.3）
+- Agent プロンプトに契約フィールド出力マーカー追加（`---CONTRACT-CARD---`）
+- `parse_contract()` で Agent 出力から契約フィールドを抽出
+- `merge_contracts()` でモジュール単位に集約
+- `save_contract_card()` / `load_contract_card()` で永続化（`review-state/contracts/` ディレクトリ作成含む）
+- **成果物**: `card_generator.py`（ContractCard 部分）
+- **テスト**: パーステスト（正常系 + マーカー欠落フォールバック）、集約テスト、永続化ラウンドトリップテスト
+- **受け入れ条件**: (1) モック Agent 出力からの契約フィールド抽出が正しく動作すること (2) モジュール境界が存在する場合、全モジュールの契約カードが `review-state/contracts/` に生成されること (3) モジュール境界がない場合（パッケージ定義なし）、ディレクトリ単位フォールバックで生成されること
+
+### Task D-3: トポロジカル順レビュー統合（FR-7b）
+- Phase 2 の Agent 起動順序をトポロジカル順に変更
+- 下流モジュールの Agent プロンプトに上流の契約カードをコンテキストとして注入
+- Phase 4（修正）の修正順序もトポロジカル順に変更
+- `full-review.md` Phase 2 + Phase 4 を改修
+- **成果物**: `full-review.md` 改修、`orchestrator.py` 拡張、`card_generator.py`（契約カード注入ロジック）
+- **テスト**: (1) トポロジカル順での Agent 起動順序テスト（モック: A→B→C の依存で A が最初にレビューされること） (2) 下流 Agent プロンプトに上流契約カード JSON が含まれることのテスト
+- **受け入れ条件**: (1) Agent 起動順序が dependency-graph.json の topo_order と一致すること (2) 下流 Agent のプロンプトに上流の ContractCard が含まれていること (3) Phase 4 の修正も topo_order 順で実行されること
+
+### Task D-4: 影響範囲分析（FR-7d）
+- `analyze_impact(modified_files, graph)` の実装: 依存グラフを推移的に上流方向に辿る（深さ制限なし）
+- 影響範囲内/外の分類ロジック
+- 概要カードの機械的フィールド再利用判定（`state_manager.py` のファイルハッシュ比較を活用）
+- Phase 5（再レビュー）での影響範囲ベーススコープ適用
+- **成果物**: `card_generator.py`（影響分析部分）、`full-review.md` Phase 5 改修
+- **テスト**: (1) 直接依存の影響範囲テスト (2) 間接依存（A→B→C で C 修正時に A も影響範囲） (3) SCC 内ノード修正時にSCC 全体が影響範囲 (4) 依存なしファイルの修正で影響範囲が自身のみ
+- **受け入れ条件**: (1) `analyze_impact()` が推移的依存を正しく返すこと (2) 修正後の再レビューで影響範囲外ファイルの概要カード機械的フィールドのハッシュが前回と一致し再利用されること（ログで確認可能）
+
+### Task D-5: full-review 全体統合 + Phase 完了検証
+- Phase 2 → 2.5 → 3 → 4 → 5 のフロー全体にグラフ駆動を組み込み
+- `dependency-graph.json` 生成を Phase 0 完了後に挿入
+- 契約カード生成を Phase 2.5 に挿入
+- LAM 自体に対して Phase 4 全体を実行する手動統合テスト
+- **成果物**: `full-review.md` 最終改修
+- **テスト**: LAM 自体（`.claude/hooks/`）に対して full-review を実行し、以下を確認:
+  - (1) `dependency-graph.json` が生成され、トポロジカル順序が含まれること
+  - (2) `contracts/` に契約カードが生成されること
+  - (3) レビュー順序がトポロジカル順であること（ログで確認）
+  - (4) Green State に到達すること
+- **受け入れ条件**: 上記4項目が全て確認できること
+
+---
+
+## 依存関係（Phase 4）
+
+```
+D-0 → D-1（Stop hook 整理後にグラフ構築）
+D-0b → D-3（ReviewResult 型統一後にレビュー統合）
+D-1 → D-3（トポロジカル順が必要）
+D-2 → D-3（契約カードが必要）
+D-1 → D-4（グラフが必要）
+D-3, D-4 → D-5（全コンポーネント統合）
+
+注: D-2（契約カード生成）は D-1（グラフ構築）に依存しない。
+契約カードの生成自体にグラフは不要。グラフが必要なのは
+トポロジカル順で契約カードを注入する D-3。
+D-0b と D-2 も独立しており、Wave 1 と Wave 2 で並列着手可能。
+```
 
 ---
 
@@ -241,8 +323,7 @@
 ### Task E-2: 自動スケール判定
 ### Task E-3: エンドツーエンドテスト
 
-Phase 4/5 のタスク詳細は将来の設計・着手時にこのファイルを拡張する。
-現時点ではタイトルのみ記載し、設計書の Section 5/6 を参照すること。
+Phase 5 のタスク詳細は Phase 4 完了後に設計する。
 
 ---
 
