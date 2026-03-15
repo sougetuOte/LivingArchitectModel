@@ -5,6 +5,7 @@ Task B-3: チャンク結果の永続化
 対応仕様: scalable-code-review-spec.md FR-5, FR-6
 対応設計: scalable-code-review-design.md Section 2.5, 3.7
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -20,7 +21,9 @@ from analyzers.chunker import Chunk
 logger = logging.getLogger(__name__)
 
 _ISSUES_FILE = "static-issues.json"
-_ISSUE_FIELDS = {f.name for f in dataclasses.fields(Issue)}  # インポート時に一度だけ計算（軽量な副作用）
+_ISSUE_FIELDS = {
+    f.name for f in dataclasses.fields(Issue)
+}  # インポート時に一度だけ計算（軽量な副作用）
 _AST_MAP_FILE = "ast-map.json"
 _HASHES_FILE = "file-hashes.json"
 _SUMMARY_FILE = "summary.md"
@@ -58,7 +61,9 @@ def _deserialize_issue(item: dict, source_path: Path) -> Issue | None:
         return None
 
 
-_CHUNK_FIELDS = {f.name for f in dataclasses.fields(Chunk)}  # インポート時に一度だけ計算（軽量な副作用）
+_CHUNK_FIELDS = {
+    f.name for f in dataclasses.fields(Chunk)
+}  # インポート時に一度だけ計算（軽量な副作用）
 
 
 def save_issues(state_dir: Path, issues: list[Issue]) -> None:
@@ -145,13 +150,15 @@ def generate_summary(issues: list[Issue]) -> str:
         sections.extend(["## Critical Issues", _format_issues(criticals), ""])
 
     # NFR-4: レビュー指示（LLM が参照する観点）
-    sections.extend([
-        "## Review Instructions",
-        "- 静的解析で検出済みの Issue は重複検出不要",
-        "- セキュリティ Issue は優先的に確認すること",
-        "- 全体再レビュー原則（FR-5）: 修正後もゼロベースで再監査",
-        "",
-    ])
+    sections.extend(
+        [
+            "## Review Instructions",
+            "- 静的解析で検出済みの Issue は重複検出不要",
+            "- セキュリティ Issue は優先的に確認すること",
+            "- 全体再レビュー原則（FR-5）: 修正後もゼロベースで再監査",
+            "",
+        ]
+    )
 
     if warnings:
         sections.extend(["## Warning Issues", _format_issues(warnings), ""])
@@ -159,12 +166,14 @@ def generate_summary(issues: list[Issue]) -> str:
         sections.extend(["## Info Issues", _format_issues(infos), ""])
 
     # NFR-4: カウントサマリーを末尾に配置
-    sections.extend([
-        "## Summary",
-        f"Critical: {len(criticals)}"
-        f" / Warning: {len(warnings)}"
-        f" / Info: {len(infos)}",
-    ])
+    sections.extend(
+        [
+            "## Summary",
+            f"Critical: {len(criticals)}"
+            f" / Warning: {len(warnings)}"
+            f" / Info: {len(infos)}",
+        ]
+    )
     return "\n".join(sections)
 
 
@@ -179,7 +188,9 @@ def compute_file_hash(file_path: Path) -> str:
 
 def save_file_hashes(state_dir: Path, hashes: dict[str, str]) -> None:
     state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / _HASHES_FILE).write_text(json.dumps(hashes, indent=2), encoding="utf-8")
+    (state_dir / _HASHES_FILE).write_text(
+        json.dumps(hashes, indent=2), encoding="utf-8"
+    )
 
 
 def load_file_hashes(state_dir: Path) -> dict[str, str]:
@@ -214,7 +225,9 @@ def chunk_result_filename(chunk: Chunk) -> str:
     設計書 Section 3.7: {path_segments}-{level}-{node_name}-{start}-{end}.json
     node_name はファイルシステム安全な文字（英数字・アンダースコア・ハイフン）のみに制限する。
     """
-    path_segments = chunk.file_path.replace("/", "-").replace("\\", "-").replace(".", "-")
+    path_segments = (
+        chunk.file_path.replace("/", "-").replace("\\", "-").replace(".", "-")
+    )
     safe_name = re.sub(r"[^\w-]", "_", chunk.node_name)
     return f"{path_segments}-{chunk.level}-{safe_name}-{chunk.start_line}-{chunk.end_line}.json"
 
@@ -253,7 +266,9 @@ def save_chunks_index(state_dir: Path, chunks: list[Chunk]) -> None:
     """チャンク一覧を chunks.json に保存する。"""
     state_dir.mkdir(parents=True, exist_ok=True)
     data = [dataclasses.asdict(chunk) for chunk in chunks]
-    (state_dir / _CHUNKS_INDEX_FILE).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    (state_dir / _CHUNKS_INDEX_FILE).write_text(
+        json.dumps(data, indent=2), encoding="utf-8"
+    )
 
 
 def load_chunks_index(state_dir: Path) -> list[Chunk]:
@@ -274,3 +289,39 @@ def load_chunks_index(state_dir: Path) -> list[Chunk]:
         except TypeError as e:
             logger.warning("Skipping malformed chunk in %s: %s", path, e)
     return chunks
+
+
+# ============================================================
+# D-1: 依存グラフの永続化（FR-7a）
+# ============================================================
+
+_DEPENDENCY_GRAPH_FILE = "dependency-graph.json"
+
+def _empty_dependency_graph() -> dict:
+    """空の依存グラフ構造を生成する。呼び出しごとに新しいインスタンスを返す。"""
+    return {"topo_order": [], "sccs": [], "node_to_file": {}}
+
+
+def save_dependency_graph(state_dir: Path, graph_data: dict) -> None:
+    """依存グラフをJSONファイルに永続化する。"""
+    state_dir.mkdir(parents=True, exist_ok=True)
+    (state_dir / _DEPENDENCY_GRAPH_FILE).write_text(
+        json.dumps(graph_data, indent=2), encoding="utf-8"
+    )
+
+
+def load_dependency_graph(state_dir: Path) -> dict:
+    """依存グラフを読み込む。ファイルが存在しないかパース失敗時は空の構造を返す。"""
+    path = state_dir / _DEPENDENCY_GRAPH_FILE
+    if not path.exists():
+        return _empty_dependency_graph()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        logger.warning("Corrupted dependency graph file: %s", path)
+        return _empty_dependency_graph()
+    return {
+        "topo_order": data.get("topo_order", []),
+        "sccs": data.get("sccs", []),
+        "node_to_file": data.get("node_to_file", {}),
+    }

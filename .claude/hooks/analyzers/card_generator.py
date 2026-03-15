@@ -4,11 +4,14 @@ Task C-1a: 概要カード生成エンジン（機械的フィールド）
 Task C-1b: Phase 2 Agent プロンプト拡張（責務フィールド生成）
 Task C-2a: Layer 2 モジュール統合（要約カード生成）
 Task C-2b: Layer 3 システムレビュー（循環依存検出、命名パターン違反）
-対応仕様: scalable-code-review-spec.md FR-4
+Task D-1: 依存グラフ構築 + トポロジカルソート（FR-7a）
+対応仕様: scalable-code-review-spec.md FR-4, FR-7a
 対応設計: scalable-code-review-design.md Section 4.3, 4.4, 4.5
 """
+
 from __future__ import annotations
 
+import graphlib
 import json
 import logging
 from dataclasses import asdict, dataclass
@@ -241,7 +244,7 @@ def parse_responsibility(agent_output: str) -> str:
     end_idx = agent_output.find(_RESPONSIBILITY_END, start_idx)
     if end_idx == -1:
         return ""
-    content = agent_output[start_idx + len(_RESPONSIBILITY_START):end_idx]
+    content = agent_output[start_idx + len(_RESPONSIBILITY_START) : end_idx]
     return content.strip()
 
 
@@ -428,7 +431,7 @@ def check_unused_reexports(
     # __init__ を指すモジュール名の候補を作成
     init_module_candidates = {
         init_dir.replace("/", "."),  # "src" → "src"
-        init_dir,                    # パス表記でも
+        init_dir,  # パス表記でも
     }
 
     issues: list[str] = []
@@ -496,7 +499,9 @@ def generate_module_cards(
         boundary_issues: list[str] = []
         boundary_issues.extend(check_name_collisions(module_files, ast_map))
         boundary_issues.extend(check_all_exports(module_files, ast_map))
-        boundary_issues.extend(check_unused_reexports(module_files, ast_map, import_map))
+        boundary_issues.extend(
+            check_unused_reexports(module_files, ast_map, import_map)
+        )
 
         result[module_name] = ModuleCard(
             module_name=module_name,
@@ -635,7 +640,10 @@ def detect_circular_dependencies(
     try:
         sccs = _find_sccs(graph, all_nodes)
     except RecursionError:
-        logger.warning("Import graph too large for recursive SCC detection (%d nodes)", len(all_nodes))
+        logger.warning(
+            "Import graph too large for recursive SCC detection (%d nodes)",
+            len(all_nodes),
+        )
         return []
 
     issues: list[Issue] = []
@@ -655,6 +663,123 @@ def detect_circular_dependencies(
         )
 
     return issues
+
+
+def _condense_sccs(
+    graph: dict[str, list[str]],
+    all_nodes: set[str],
+    sccs: list[list[str]],
+) -> tuple[dict[str, list[str]], dict[str, str]]:
+    """SCC をスーパーノードに縮約し、縮約済みグラフと元ノードのマッピングを返す。
+
+    Args:
+        graph: ノード名 → 隣接ノード名リスト（隣接リスト）。
+        all_nodes: グラフ内の全ノード名の集合。
+        sccs: 縮約対象の SCC リスト（各要素はノード名リスト）。
+
+    Returns:
+        (condensed_graph, scc_map) のタプル。
+        condensed_graph: SCC をスーパーノードに置き換えた縮約済みグラフ。
+        scc_map: 元ノード名 → スーパーノード名のマッピング。SCC 外のノードは含まない。
+    """
+    # 元ノード → スーパーノード名のマッピングを構築
+    scc_map: dict[str, str] = {}
+    for idx, scc_members in enumerate(sccs):
+        super_name = f"scc_{idx}"
+        for member in scc_members:
+            scc_map[member] = super_name
+
+    def _resolve(node: str) -> str:
+        """ノードをスーパーノード名に解決する。SCC 外はそのまま返す。"""
+        return scc_map.get(node, node)
+
+    # SCC メンバーを除いた通常ノードを収集
+    scc_members_all = set(scc_map.keys())
+    regular_nodes = all_nodes - scc_members_all
+    super_nodes = {_resolve(m) for m in scc_members_all}
+
+    # 縮約済みグラフを構築
+    condensed: dict[str, list[str]] = {}
+
+    # 通常ノードの辺をスーパーノード解決して追加
+    for node in regular_nodes:
+        resolved_edges = []
+        for neighbor in graph.get(node, []):
+            resolved = _resolve(neighbor)
+            if resolved != node and resolved not in resolved_edges:
+                resolved_edges.append(resolved)
+        condensed[node] = resolved_edges
+
+    # スーパーノードの辺を構築（SCC メンバーの全外部辺を集約）
+    for super_name in super_nodes:
+        members = [m for m, s in scc_map.items() if s == super_name]
+        condensed[super_name] = _collect_supernode_edges(
+            graph, members, super_name, _resolve
+        )
+
+    return condensed, scc_map
+
+
+def _collect_supernode_edges(
+    graph: dict[str, list[str]],
+    members: list[str],
+    super_name: str,
+    resolve,
+) -> list[str]:
+    """SCC メンバーの全外部辺を収集してスーパーノードの辺リストを構築する。
+
+    SCC 内部の辺（自己ループ）は除外する。重複辺も除外する。
+    """
+    edges: list[str] = []
+    for member in members:
+        for neighbor in graph.get(member, []):
+            resolved = resolve(neighbor)
+            if resolved != super_name and resolved not in edges:
+                edges.append(resolved)
+    return edges
+
+
+def build_topo_order(
+    import_map: dict[str, list[str]],
+) -> dict:
+    """import_map からトポロジカル順序と SCC 情報を計算する。
+
+    循環依存がある場合は SCC をスーパーノードに縮約してからトポロジカルソートを行う。
+
+    Args:
+        import_map: ファイルパス → ドット区切りモジュール名リスト の辞書。
+
+    Returns:
+        以下のキーを持つ辞書:
+        - topo_order: トポロジカル順のノード名（または SCC スーパーノード名）のリスト。
+        - sccs: 検出された SCC のリスト（各要素はノード名リスト）。
+        - node_to_file: ノード名 → 元ファイルパスの逆引き辞書。
+    """
+    graph, all_nodes, node_to_file = _build_import_graph(import_map)
+
+    try:
+        sccs = _find_sccs(graph, all_nodes)
+    except RecursionError:
+        logger.warning(
+            "Import graph too large for recursive SCC detection (%d nodes)",
+            len(all_nodes),
+        )
+        sccs = []
+
+    condensed, _scc_map = _condense_sccs(graph, all_nodes, sccs)
+
+    try:
+        sorter = graphlib.TopologicalSorter(condensed)
+        topo_order = list(sorter.static_order())
+    except graphlib.CycleError:
+        logger.warning("Cycle detected in condensed graph; returning partial order")
+        topo_order = list(condensed.keys())
+
+    return {
+        "topo_order": topo_order,
+        "sccs": sccs,
+        "node_to_file": node_to_file,
+    }
 
 
 def _collect_function_names(root_node: ASTNode) -> list[str]:

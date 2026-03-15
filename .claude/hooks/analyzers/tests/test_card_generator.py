@@ -17,6 +17,8 @@ from analyzers.base import ASTNode, Issue
 from analyzers.card_generator import (
     FileCard,
     ModuleCard,
+    _condense_sccs,
+    build_topo_order,
     check_all_exports,
     check_name_collisions,
     check_unused_reexports,
@@ -1093,3 +1095,109 @@ class TestCollectSpecDriftContext:
         context = collect_spec_drift_context(state_dir, specs_dir)
 
         assert "Test Spec" in context
+
+
+# ===================================================================
+# D-1: 依存グラフ構築 + トポロジカルソート（FR-7a）
+# ===================================================================
+
+
+class TestCondenseSccs:
+    """_condense_sccs() のテスト（D-1: FR-7a）。"""
+
+    def test_no_sccs_returns_original_graph(self):
+        """SCC がない場合、元のグラフがそのまま返ること。"""
+        graph = {"a": ["b"], "b": ["c"], "c": []}
+        all_nodes = {"a", "b", "c"}
+        sccs = []  # SCC なし
+        condensed, scc_map = _condense_sccs(graph, all_nodes, sccs)
+        # ノード数は変わらない
+        assert set(condensed.keys()) == {"a", "b", "c"}
+        assert scc_map == {}
+
+    def test_single_scc_condensed_to_supernode(self):
+        """A→B→A の循環が 1 つのスーパーノードに縮約されること。"""
+        graph = {"a": ["b"], "b": ["a", "c"], "c": []}
+        all_nodes = {"a", "b", "c"}
+        sccs = [["a", "b"]]
+        condensed, scc_map = _condense_sccs(graph, all_nodes, sccs)
+        # スーパーノード名にはSCCメンバーが含まれる
+        super_nodes = [k for k in condensed if k.startswith("scc_")]
+        assert len(super_nodes) == 1
+        # スーパーノードは c への辺を持つ
+        assert "c" in condensed[super_nodes[0]]
+        # scc_map で元ノードがスーパーノードにマップされている
+        assert scc_map["a"] == super_nodes[0]
+        assert scc_map["b"] == super_nodes[0]
+
+    def test_multiple_sccs(self):
+        """複数の SCC が各々スーパーノードに縮約されること。"""
+        graph = {"a": ["b"], "b": ["a"], "c": ["d"], "d": ["c"], "e": []}
+        all_nodes = {"a", "b", "c", "d", "e"}
+        sccs = [["a", "b"], ["c", "d"]]
+        condensed, scc_map = _condense_sccs(graph, all_nodes, sccs)
+        super_nodes = [k for k in condensed if k.startswith("scc_")]
+        assert len(super_nodes) == 2
+        # e は通常ノードとして残る
+        assert "e" in condensed
+
+
+class TestBuildTopoOrder:
+    """build_topo_order() のテスト（D-1: FR-7a）。"""
+
+    def test_linear_dependency(self):
+        """A→B→C の線形依存が正しいトポロジカル順になること。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["c"],
+            "c.py": [],
+        }
+        result = build_topo_order(import_map)
+        order = result["topo_order"]
+        # c が b より前、b が a より前
+        assert order.index("c") < order.index("b")
+        assert order.index("b") < order.index("a")
+
+    def test_no_dependencies(self):
+        """依存なしの場合、全ノードがトポロジカル順に含まれること。"""
+        import_map = {
+            "x.py": [],
+            "y.py": [],
+            "z.py": [],
+        }
+        result = build_topo_order(import_map)
+        assert len(result["topo_order"]) == 3
+        assert result["sccs"] == []
+
+    def test_with_cycle(self):
+        """循環依存がある場合、SCC 縮約後にトポロジカル順が得られること。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["a"],  # A↔B 循環
+            "c.py": ["a"],  # C→A
+        }
+        result = build_topo_order(import_map)
+        assert len(result["topo_order"]) >= 2  # SCC + c
+        assert len(result["sccs"]) == 1  # A↔B の SCC
+
+    def test_result_contains_required_keys(self):
+        """結果に topo_order, sccs, node_to_file が含まれること。"""
+        import_map = {"a.py": []}
+        result = build_topo_order(import_map)
+        assert "topo_order" in result
+        assert "sccs" in result
+        assert "node_to_file" in result
+
+    def test_complex_graph_with_multiple_sccs(self):
+        """複数SCC + 外部ノードの複合グラフ。"""
+        import_map = {
+            "a.py": ["b"],
+            "b.py": ["a"],       # SCC1: a↔b
+            "c.py": ["d"],
+            "d.py": ["c"],       # SCC2: c↔d
+            "e.py": ["a", "c"],  # e → SCC1, SCC2
+        }
+        result = build_topo_order(import_map)
+        assert len(result["sccs"]) == 2
+        order = result["topo_order"]
+        assert len(order) >= 3  # SCC1, SCC2, e
