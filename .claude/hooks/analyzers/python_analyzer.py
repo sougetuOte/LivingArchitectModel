@@ -92,8 +92,8 @@ class PythonAnalyzer(LanguageAnalyzer):
                 severity="warning",
                 category="lint",
                 tool="ruff",
-                message=item["message"],
-                rule_id=item["code"],
+                message=item.get("message", ""),
+                rule_id=item.get("code", ""),
                 suggestion=suggestion,
             ))
 
@@ -143,7 +143,19 @@ class PythonAnalyzer(LanguageAnalyzer):
     def parse_ast(self, file_path: Path) -> ASTNode:
         """Python 標準 ast モジュールを使用して ASTNode ツリーを構築する。"""
         source = file_path.read_text(encoding="utf-8", errors="replace")
-        tree = ast.parse(source, filename=str(file_path))
+        try:
+            tree = ast.parse(source, filename=str(file_path))
+        except SyntaxError:
+            logger.warning("SyntaxError in %s; returning empty AST", file_path)
+            return ASTNode(
+                name=file_path.stem,
+                kind="module",
+                start_line=1,
+                end_line=1,
+                signature="",
+                children=[],
+                docstring=None,
+            )
 
         lines = source.splitlines()
         end_line = len(lines) if lines else 1

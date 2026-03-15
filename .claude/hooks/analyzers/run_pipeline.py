@@ -6,6 +6,7 @@ Task A-6: full-review Phase 0 統合
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -18,6 +19,8 @@ from analyzers.state_manager import (
     generate_summary,
     save_issues,
 )
+
+logger = logging.getLogger(__name__)
 
 _CODE_EXTENSIONS = {
     ".py", ".js", ".jsx", ".ts", ".tsx", ".rs",
@@ -65,8 +68,8 @@ def count_lines(
             if not any(part in excludes for part in path.relative_to(project_root).parts):
                 try:
                     total += len(path.read_text(errors="replace").splitlines())
-                except OSError:
-                    pass
+                except OSError as e:
+                    logger.debug("Skipping unreadable file %s: %s", path, e)
     return total
 
 

@@ -172,6 +172,8 @@ def generate_summary(issues: list[Issue]) -> str:
             f"Critical: {len(criticals)}"
             f" / Warning: {len(warnings)}"
             f" / Info: {len(infos)}",
+            "",
+            "**FR-5 リマインド**: 修正後もゼロベースで全体を再監査すること。",
         ]
     )
     return "\n".join(sections)
@@ -297,6 +299,7 @@ def load_chunks_index(state_dir: Path) -> list[Chunk]:
 
 _DEPENDENCY_GRAPH_FILE = "dependency-graph.json"
 _CONTRACTS_DIR = "contracts"
+
 
 def _empty_dependency_graph() -> dict:
     """空の依存グラフ構造を生成する。呼び出しごとに新しいインスタンスを返す。"""

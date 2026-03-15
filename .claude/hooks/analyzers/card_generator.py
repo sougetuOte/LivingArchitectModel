@@ -306,7 +306,7 @@ def _parse_contract_list(value: str) -> list[str]:
     return [item.strip() for item in value.split(",") if item.strip()]
 
 
-def parse_contract(agent_output: str) -> dict:
+def parse_contract(agent_output: str) -> dict[str, list[str]]:
     """Agent 出力から CONTRACT-CARD マーカー間のフィールドを抽出する。
 
     マーカーがない場合は空辞書を返す（フォールバック）。
@@ -320,7 +320,7 @@ def parse_contract(agent_output: str) -> dict:
         return {}
 
     content = agent_output[start_idx + len(_CONTRACT_START) : end_idx]
-    result: dict = {}
+    result: dict[str, list[str]] = {}
     for line in content.splitlines():
         line = line.strip()
         if not line:
@@ -811,7 +811,7 @@ def _find_sccs(graph: dict[str, list[str]], all_nodes: set[str]) -> list[list[st
             if len(scc) > 1 or (len(scc) == 1 and v in graph.get(v, [])):
                 sccs.append(scc)
 
-    for node in all_nodes:
+    for node in sorted(all_nodes):
         if node not in indices:
             strongconnect(node)
 
