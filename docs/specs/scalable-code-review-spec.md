@@ -112,7 +112,7 @@ Plan D（依存グラフ）実装後は依存グラフに置換する。
 
 修正後の再レビューは**対象全体をゼロベースで実施する**。
 修正対象のみの部分再レビューは禁止。これは現行 full-review の
-Green State 定義（「スキャンして Issue がゼロ」）と一致する。
+Green State 定義（`docs/specs/green-state-definition.md` G3 条件、判断基準は `.claude/rules/code-quality-guideline.md`）と一致する。
 
 **理由**:
 - 修正の副作用で新たな問題が別箇所に生じうる

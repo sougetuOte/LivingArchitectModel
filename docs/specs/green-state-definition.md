@@ -1,6 +1,6 @@
 # Green State 定義書
 
-**バージョン**: 1.0
+**バージョン**: 1.1
 **作成日**: 2026-03-08
 **フェーズ**: BUILDING / Wave 0
 **対応仕様**:
@@ -88,10 +88,10 @@ MVP では G1 + G2 + G5 の3条件を自動判定する。G3, G4 は完全実装
 | 重要度 | Green State 条件 |
 |--------|-----------------|
 | Critical | 0件（必須） |
-| Warning | PG/SE級は修正済み。PM級は「理由付き保留（deferred）」としてログ記録 |
-| Info | PG級は修正済み。SE級以上は「理由付き保留（deferred）」としてログ記録 |
+| Warning | 0件（必須）。PG/SE級は修正済み。PM級は「理由付き保留（deferred）」としてログ記録（deferred は件数に含めない） |
+| Info | **Green State を阻害しない**。件数にかかわらず監査通過。対応は任意 |
 
-**核心ルール**: 「放置」は禁止。残存 Issue は全て `deferred` + 理由が記録されている状態を Green State とする。
+**核心ルール**: Critical と Warning の「放置」は禁止。Warning の残存 Issue は全て修正済みまたは `deferred` + 理由が記録されている状態を Green State とする。Info は対応不要（`code-quality-guideline.md` 参照）。
 
 **PG/SE/PM 等級定義との整合**: 権限等級の判定は `permission-levels.md`（TASK 1-1）に準拠する。G3 は権限等級システムに依存するため、完全実装は Wave 1 完了後に着手する。
 
@@ -203,4 +203,4 @@ Stop hook 発火
 ---
 
 *本文書は BUILDING フェーズ Wave 0 にて作成されました。*
-*更新日: 2026-03-08*
+*更新日: 2026-03-15（v1.1: G3 条件更新 — Info 非阻害、`code-quality-guideline.md` 準拠）*
