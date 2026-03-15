@@ -10,43 +10,55 @@ from analyzers.config import ReviewConfig
 
 
 class TestDefaultValues:
+    """ReviewConfig のデフォルト値テスト。"""
+
     def test_default_exclude_languages(self) -> None:
+        """デフォルトの除外言語リストは空であること。"""
         config = ReviewConfig()
         assert config.exclude_languages == []
 
     def test_default_exclude_dirs(self) -> None:
+        """デフォルトの除外ディレクトリリストが正しいこと。"""
         config = ReviewConfig()
         assert config.exclude_dirs == ["node_modules", ".venv", "vendor", "dist"]
 
     def test_default_max_parallel_agents(self) -> None:
+        """デフォルトの並列エージェント数は 4 であること。"""
         config = ReviewConfig()
         assert config.max_parallel_agents == 4
 
     def test_default_chunk_size_tokens(self) -> None:
+        """デフォルトのチャンクサイズは 3000 トークンであること。"""
         config = ReviewConfig()
         assert config.chunk_size_tokens == 3000
 
     def test_default_overlap_ratio(self) -> None:
+        """デフォルトのオーバーラップ比率は 0.2 であること。"""
         config = ReviewConfig()
         assert config.overlap_ratio == 0.2
 
     def test_default_auto_enable_threshold(self) -> None:
+        """デフォルトの自動有効化閾値は 30000 行であること。"""
         config = ReviewConfig()
         assert config.auto_enable_threshold == 30000
 
     def test_default_agent_retry_count(self) -> None:
+        """デフォルトのエージェントリトライ回数は 2 であること。"""
         config = ReviewConfig()
         assert config.agent_retry_count == 2
 
     def test_default_static_analysis_timeout_sec(self) -> None:
+        """デフォルトの静的解析タイムアウトは 300 秒であること。"""
         config = ReviewConfig()
         assert config.static_analysis_timeout_sec == 300
 
     def test_default_file_size_limit_bytes(self) -> None:
+        """デフォルトのファイルサイズ上限は 1000000 バイトであること。"""
         config = ReviewConfig()
         assert config.file_size_limit_bytes == 1000000
 
     def test_default_summary_max_tokens(self) -> None:
+        """デフォルトのサマリー最大トークン数は 5000 であること。"""
         config = ReviewConfig()
         assert config.summary_max_tokens == 5000
 

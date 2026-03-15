@@ -150,7 +150,8 @@ class TestRegistryManual:
 class TestRegistryAutoDiscover:
     """AnalyzerRegistry の *_analyzer.py 自動探索テスト。"""
 
-    def _write_analyzer_module(self, directory: Path, filename: str,
+    @staticmethod
+    def _write_analyzer_module(directory: Path, filename: str,
                                code: str) -> Path:
         """テスト用の analyzer モジュールを書き出す。"""
         filepath = directory / filename

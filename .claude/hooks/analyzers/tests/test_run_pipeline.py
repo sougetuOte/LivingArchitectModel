@@ -89,6 +89,14 @@ class TestShouldEnableStaticAnalysis:
         """ちょうど 30K 行は auto。"""
         assert should_enable_static_analysis(30000) == "auto"
 
+    def test_boundary_9999_is_skip(self) -> None:
+        """9999行は skip（10K 未満）。"""
+        assert should_enable_static_analysis(9999) == "skip"
+
+    def test_boundary_29999_is_suggest(self) -> None:
+        """29999行は suggest（30K 未満）。"""
+        assert should_enable_static_analysis(29999) == "suggest"
+
     def test_custom_threshold(self) -> None:
         """カスタム閾値を指定できること。"""
         assert should_enable_static_analysis(5000, auto_threshold=5000) == "auto"
@@ -150,7 +158,8 @@ class TestRunPhase0:
             result = run_phase0(project_root)
         content = result.summary_path.read_text()
         assert "## Review Instructions" in content
-        assert content.rstrip().endswith("/ Info: 0") or "## Summary" in content
+        assert "## Summary" in content
+        assert content.rstrip().endswith("/ Info: 0")
 
     def test_returns_line_count(self, project_root: Path) -> None:
         """結果に行数カウントを含むこと。"""
@@ -209,7 +218,7 @@ def _subprocess_side_effect(ruff_output: str = "[]"):
     """ruff と bandit で異なるレスポンスを返す side_effect を生成する。"""
 
     def side_effect(cmd, **kwargs):
-        if any("bandit" in str(c) for c in cmd):
+        if cmd[0] == "bandit":
             return _mock_result(0, _EMPTY_BANDIT)
         return _mock_result(0, ruff_output)
 

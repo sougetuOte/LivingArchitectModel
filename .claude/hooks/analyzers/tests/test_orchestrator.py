@@ -119,6 +119,7 @@ class TestCollectResults:
     def test_collect_success(self) -> None:
         """成功した結果を収集できること。"""
         results = [
+            # NOTE: issues は現在 list[str]（LLM 出力テキスト）。Phase 3 で list[Issue] に統一予定（S-2）
             ReviewResult(chunk_name="f0", file_path="a.py", issues=["issue1"], success=True),
             ReviewResult(chunk_name="f1", file_path="b.py", issues=["issue2"], success=True),
         ]

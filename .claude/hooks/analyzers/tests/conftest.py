@@ -1,6 +1,5 @@
 """analyzers テスト用 conftest.py
 
-hooks/tests/conftest.py の project_root fixture を共有する。
 analyzers パッケージを sys.path に追加し、import を解決する。
 """
 from __future__ import annotations

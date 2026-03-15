@@ -74,25 +74,25 @@ class TestIssue:
         restored = json.loads(json_str)
         assert restored["rule_id"] == "F401"
 
-    def test_severity_values(self) -> None:
+    @pytest.mark.parametrize("sev", ("critical", "warning", "info"))
+    def test_severity_values(self, sev: str) -> None:
         """severity は critical / warning / info のいずれかであること。"""
-        for sev in ("critical", "warning", "info"):
-            issue = Issue(
-                file="x.py", line=1, severity=sev,
-                category="lint", tool="t", message="m",
-                rule_id="R1", suggestion="",
-            )
-            assert issue.severity == sev
+        issue = Issue(
+            file="x.py", line=1, severity=sev,
+            category="lint", tool="t", message="m",
+            rule_id="R1", suggestion="",
+        )
+        assert issue.severity == sev
 
-    def test_category_values(self) -> None:
+    @pytest.mark.parametrize("cat", ("lint", "security", "type", "dead-code"))
+    def test_category_values(self, cat: str) -> None:
         """category は lint / security / type / dead-code のいずれかであること。"""
-        for cat in ("lint", "security", "type", "dead-code"):
-            issue = Issue(
-                file="x.py", line=1, severity="info",
-                category=cat, tool="t", message="m",
-                rule_id="R1", suggestion="",
-            )
-            assert issue.category == cat
+        issue = Issue(
+            file="x.py", line=1, severity="info",
+            category=cat, tool="t", message="m",
+            rule_id="R1", suggestion="",
+        )
+        assert issue.category == cat
 
 
 # ── ASTNode ラッパー型 ─────────────────────────────────────

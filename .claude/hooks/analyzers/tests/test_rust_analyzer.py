@@ -9,7 +9,6 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-
 from analyzers.base import ASTNode, Issue, ToolRequirement
 from analyzers.rust_analyzer import RustAnalyzer
 

@@ -5,6 +5,7 @@ Task A-5: コンパクション対策 — 外部永続化
 """
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 from pathlib import Path
 
@@ -182,6 +183,36 @@ def test_ast_map_preserves_nested_children(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 # summary.md フォーマット検証
 # ---------------------------------------------------------------------------
+
+
+def test_issue_with_invalid_severity_is_not_counted_in_summary() -> None:
+    """無効な severity を持つ Issue は generate_summary() のカウントに含まれないこと。
+
+    Issue は単純な dataclass でバリデーションを持たないため、無効値でもインスタンス化できる。
+    ただし generate_summary() は critical / warning / info のみをカウント対象とするため、
+    無効 severity の Issue は各カテゴリのカウントに現れないことを確認する。
+    """
+    valid_issue = Issue(
+        file="x.py", line=1, severity="critical",
+        category="lint", tool="t", message="m",
+        rule_id="R1", suggestion="",
+    )
+    invalid_issue_unknown = Issue(
+        file="y.py", line=2, severity="unknown",
+        category="lint", tool="t", message="m",
+        rule_id="R2", suggestion="",
+    )
+    invalid_issue_high = Issue(
+        file="z.py", line=3, severity="high",
+        category="security", tool="t", message="m",
+        rule_id="R3", suggestion="",
+    )
+    summary = generate_summary([valid_issue, invalid_issue_unknown, invalid_issue_high])
+    # Critical は valid_issue の1件のみ
+    assert "Critical: 1" in summary
+    # Warning / Info は 0 件
+    assert "Warning: 0" in summary
+    assert "Info: 0" in summary
 
 
 def test_generate_summary_format(sample_issues: list[Issue]) -> None:
@@ -372,10 +403,12 @@ class TestChunkResultFilename:
         assert name == "src-main-py-L1-foo-1-10.json"
 
     def test_nested_path(self) -> None:
-        chunk = _make_test_chunk("bar", "L2")
-        chunk.file_path = "src/hooks/analyzers/base.py"
-        chunk.start_line = 42
-        chunk.end_line = 187
+        chunk = dataclasses.replace(
+            _make_test_chunk("bar", "L2"),
+            file_path="src/hooks/analyzers/base.py",
+            start_line=42,
+            end_line=187,
+        )
         name = chunk_result_filename(chunk)
         assert name == "src-hooks-analyzers-base-py-L2-bar-42-187.json"
 
@@ -437,8 +470,8 @@ class TestChunksIndex:
         save_chunks_index(state_dir, chunks)
         loaded = load_chunks_index(state_dir)
         assert len(loaded) == 2
-        assert loaded[0]["node_name"] == "a"
-        assert loaded[1]["node_name"] == "b"
+        assert loaded[0].node_name == "a"
+        assert loaded[1].node_name == "b"
 
     def test_load_missing_returns_empty(self, tmp_path: Path) -> None:
         state_dir = tmp_path / "review-state"
@@ -450,7 +483,7 @@ class TestChunksIndex:
         chunk = _make_test_chunk("foo")
         save_chunks_index(state_dir, [chunk])
         loaded = load_chunks_index(state_dir)
-        assert loaded[0]["file_path"] == "src/main.py"
-        assert loaded[0]["start_line"] == 1
-        assert loaded[0]["end_line"] == 10
-        assert loaded[0]["level"] == "L1"
+        assert loaded[0].file_path == "src/main.py"
+        assert loaded[0].start_line == 1
+        assert loaded[0].end_line == 10
+        assert loaded[0].level == "L1"
