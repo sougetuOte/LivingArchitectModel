@@ -110,8 +110,53 @@ def _parse_junit_xml(xml_path: Path) -> dict | None:
             "failures": total_failures + total_errors,
             "failed_names": failed_names,
         }
-    except Exception:
+    except ET.ParseError:
         return None
+    except OSError:
+        return None
+
+
+def _read_prev_result(last_result_file: Path) -> bool:
+    """前回のテスト結果を読み取り、失敗だったか返す。"""
+    if last_result_file.exists():
+        try:
+            return last_result_file.read_text(encoding="utf-8").splitlines()[0].startswith("fail")
+        except Exception:
+            pass
+    return False
+
+
+def _record_fail(
+    tdd_log: Path, last_result_file: Path, timestamp: str,
+    test_cmd: str, tests: int, failures: int, failed_names: list[str],
+) -> None:
+    """テスト失敗を記録する。"""
+    summary = ", ".join(failed_names[:5])[:120].replace("\t", " ")
+    _append_to_tdd_log(
+        tdd_log,
+        f'{timestamp}\tFAIL\t{test_cmd}\ttests={tests} failures={failures}\t"{summary}"',
+    )
+    last_result_file.write_text(f"fail {test_cmd}\n", encoding="utf-8")
+    return None
+
+
+def _record_pass(
+    tdd_log: Path, last_result_file: Path, timestamp: str,
+    test_cmd: str, tests: int, prev_was_fail: bool,
+) -> str | None:
+    """テスト成功を記録する。FAIL→PASS 遷移時は通知メッセージを返す。"""
+    if prev_was_fail:
+        _append_to_tdd_log(
+            tdd_log,
+            f'{timestamp}\tPASS\t{test_cmd}\ttests={tests} failures=0\t"{test_cmd} (previously failed)"',
+        )
+        last_result_file.write_text(f"pass {test_cmd}\n", encoding="utf-8")
+        return (
+            "TDD パターンが記録されました（FAIL→PASS 遷移）。"
+            "セッション終了時に /retro でパターン分析を推奨します。"
+        )
+    last_result_file.write_text(f"pass {test_cmd}\n", encoding="utf-8")
+    return None
 
 
 def _handle_test_result(
@@ -160,39 +205,11 @@ def _handle_test_result(
     failures = result["failures"]
     failed_names = result["failed_names"]
 
-    # 前回の結果を読み取る
-    prev_result = ""
-    if last_result_file.exists():
-        try:
-            prev_result = last_result_file.read_text(encoding="utf-8").splitlines()[0]
-        except Exception:
-            pass
+    prev_was_fail = _read_prev_result(last_result_file)
 
     if failures > 0:
-        # 失敗パターンを記録
-        # 失敗テスト名を最大5件・120文字に切り詰めてログ1行に収める
-        summary = ", ".join(failed_names[:5])[:120].replace("\t", " ")
-        _append_to_tdd_log(
-            tdd_log,
-            f'{timestamp}\tFAIL\t{test_cmd}\ttests={tests} failures={failures}\t"{summary}"',
-        )
-        last_result_file.write_text(f"fail {test_cmd}\n", encoding="utf-8")
-    else:
-        # 成功
-        if prev_result.startswith("fail"):
-            # FAIL→PASS 遷移: パターン記録 + 通知A
-            _append_to_tdd_log(
-                tdd_log,
-                f'{timestamp}\tPASS\t{test_cmd}\ttests={tests} failures=0\t"{test_cmd} (previously failed)"',
-            )
-            last_result_file.write_text(f"pass {test_cmd}\n", encoding="utf-8")
-            return (
-                "TDD パターンが記録されました（FAIL→PASS 遷移）。"
-                "セッション終了時に /retro でパターン分析を推奨します。"
-            )
-        last_result_file.write_text(f"pass {test_cmd}\n", encoding="utf-8")
-
-    return None
+        return _record_fail(tdd_log, last_result_file, timestamp, test_cmd, tests, failures, failed_names)
+    return _record_pass(tdd_log, last_result_file, timestamp, test_cmd, tests, prev_was_fail)
 
 
 def _handle_doc_sync_flag(
