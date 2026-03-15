@@ -1,17 +1,22 @@
 """Task B-2a: バッチ並列オーケストレーションのテスト
+Task D-3: トポロジカル順レビュー統合（FR-7b）
 
-対応仕様: scalable-code-review-spec.md FR-2
-対応設計: scalable-code-review-design.md Section 3.3, 3.6, 3.8
+対応仕様: scalable-code-review-spec.md FR-2, FR-7b
+対応設計: scalable-code-review-design.md Section 3.3, 3.6, 3.8, 5.2
 """
 from __future__ import annotations
 
 from analyzers.base import Issue
+from analyzers.card_generator import ContractCard
 from analyzers.chunker import Chunk
 from analyzers.orchestrator import (
     ReviewResult,
     batch_chunks,
     build_review_prompt,
+    build_review_prompt_with_contracts,
     collect_results,
+    order_chunks_by_topo,
+    order_files_by_topo,
     parse_llm_issues,
 )
 
@@ -243,3 +248,152 @@ class TestParseLlmIssues:
         """空文字列は空リストを返すこと。"""
         issues = parse_llm_issues("", "test.py")
         assert issues == []
+
+
+# ---------------------------------------------------------------------------
+# D-3: トポロジカル順レビュー統合のテスト（FR-7b）
+# ---------------------------------------------------------------------------
+
+def _make_chunk_for_file(file_path: str, node_name: str) -> Chunk:
+    """指定ファイルパスの Chunk を生成するヘルパー。"""
+    return Chunk(
+        file_path=file_path,
+        start_line=1,
+        end_line=10,
+        content=f"def {node_name}():\n    pass\n",
+        overlap_header="",
+        overlap_footer="",
+        token_count=5,
+        level="L1",
+        node_name=node_name,
+    )
+
+
+def _make_contract_card(module_name: str) -> ContractCard:
+    """テスト用の ContractCard を生成するヘルパー。"""
+    return ContractCard(
+        module_name=module_name,
+        public_api=["func_a"],
+        signatures=["def func_a():"],
+        preconditions=["input must not be None"],
+        postconditions=["returns valid result"],
+        side_effects=[],
+        invariants=["state is consistent"],
+    )
+
+
+class TestOrderChunksByTopo:
+    """order_chunks_by_topo() のテスト。"""
+
+    def test_order_chunks_by_topo_linear(self) -> None:
+        """A→B→C の線形依存で、チャンクが A, B, C 順にグループ化される。"""
+        # topo_order は被依存側から（A が最上流 = 最初）
+        topo_order = ["a", "b", "c"]
+        node_to_file = {"a": "a.py", "b": "b.py", "c": "c.py"}
+        sccs: list[list[str]] = []
+
+        chunks = [
+            _make_chunk_for_file("c.py", "func_c"),
+            _make_chunk_for_file("a.py", "func_a"),
+            _make_chunk_for_file("b.py", "func_b"),
+        ]
+
+        groups = order_chunks_by_topo(chunks, topo_order, node_to_file, sccs)
+
+        assert len(groups) == 3
+        # グループ0 は a.py のチャンク
+        assert all(c.file_path == "a.py" for c in groups[0])
+        # グループ1 は b.py のチャンク
+        assert all(c.file_path == "b.py" for c in groups[1])
+        # グループ2 は c.py のチャンク
+        assert all(c.file_path == "c.py" for c in groups[2])
+
+    def test_order_chunks_by_topo_with_scc(self) -> None:
+        """SCC スーパーノード内のチャンクが1グループにまとめられる。"""
+        # x, y が循環依存 → scc_0 にまとめられる
+        topo_order = ["a", "scc_0"]
+        node_to_file = {"a": "a.py", "x": "x.py", "y": "y.py"}
+        sccs = [["x", "y"]]  # scc_0 に対応
+
+        chunks = [
+            _make_chunk_for_file("a.py", "func_a"),
+            _make_chunk_for_file("x.py", "func_x"),
+            _make_chunk_for_file("y.py", "func_y"),
+        ]
+
+        groups = order_chunks_by_topo(chunks, topo_order, node_to_file, sccs)
+
+        assert len(groups) == 2
+        # グループ0 は a.py のチャンク
+        assert all(c.file_path == "a.py" for c in groups[0])
+        # グループ1 は x.py と y.py のチャンクをまとめたもの
+        scc_files = {c.file_path for c in groups[1]}
+        assert "x.py" in scc_files
+        assert "y.py" in scc_files
+
+    def test_order_chunks_by_topo_unknown_files(self) -> None:
+        """topo_order に含まれないファイルのチャンクが最後に追加される。"""
+        topo_order = ["a"]
+        node_to_file = {"a": "a.py"}
+        sccs: list[list[str]] = []
+
+        chunks = [
+            _make_chunk_for_file("a.py", "func_a"),
+            _make_chunk_for_file("unknown.py", "func_u"),
+        ]
+
+        groups = order_chunks_by_topo(chunks, topo_order, node_to_file, sccs)
+
+        assert len(groups) == 2
+        assert all(c.file_path == "a.py" for c in groups[0])
+        assert all(c.file_path == "unknown.py" for c in groups[1])
+
+
+class TestBuildReviewPromptWithContracts:
+    """build_review_prompt_with_contracts() のテスト。"""
+
+    def test_build_review_prompt_with_contracts_empty(self) -> None:
+        """空の契約リストでは通常の build_review_prompt と同一出力。"""
+        chunk = _make_chunk("greet", 0)
+        prompt_normal = build_review_prompt(chunk)
+        prompt_with_contracts = build_review_prompt_with_contracts(chunk, [])
+        assert prompt_normal == prompt_with_contracts
+
+    def test_build_review_prompt_with_contracts_includes_upstream(self) -> None:
+        """上流契約カードがプロンプトに含まれる。"""
+        chunk = _make_chunk("process", 0)
+        contract = _make_contract_card("src.upstream")
+
+        prompt = build_review_prompt_with_contracts(chunk, [contract])
+
+        assert "---CONTRACT-CARD---" in prompt
+        assert "---END-CONTRACT-CARD---" in prompt
+        assert "src.upstream" in prompt
+        # 元のレビュー内容も含まれること
+        assert "src/process.py" in prompt
+
+
+class TestOrderFilesByTopo:
+    """order_files_by_topo() のテスト。"""
+
+    def test_order_files_by_topo(self) -> None:
+        """ファイルリストがトポロジカル順にソートされる。"""
+        topo_order = ["a", "b", "c"]
+        node_to_file = {"a": "a.py", "b": "b.py", "c": "c.py"}
+        file_paths = ["c.py", "a.py", "b.py"]
+
+        result = order_files_by_topo(file_paths, topo_order, node_to_file)
+
+        assert result == ["a.py", "b.py", "c.py"]
+
+    def test_order_files_by_topo_unknown_appended_last(self) -> None:
+        """topo_order に含まれないファイルは最後に追加される。"""
+        topo_order = ["a"]
+        node_to_file = {"a": "a.py"}
+        file_paths = ["unknown.py", "a.py"]
+
+        result = order_files_by_topo(file_paths, topo_order, node_to_file)
+
+        assert result[0] == "a.py"
+        assert "unknown.py" in result
+        assert result.index("unknown.py") > result.index("a.py")

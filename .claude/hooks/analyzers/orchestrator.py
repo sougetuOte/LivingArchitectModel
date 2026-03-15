@@ -11,9 +11,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePath
+from typing import TYPE_CHECKING
 
 from analyzers.base import Issue
 from analyzers.chunker import Chunk
+
+if TYPE_CHECKING:
+    from analyzers.card_generator import ContractCard
 
 _EXT_TO_LANG = {
     ".py": "python",
@@ -190,6 +194,138 @@ def _make_fallback_issue(text: str, file_path: str) -> Issue:
         rule_id="",
         suggestion="",
     )
+
+
+def _collect_scc_group(
+    scc_entry: str,
+    scc_idx_to_members: dict[int, list[str]],
+    node_to_file: dict[str, str],
+    file_to_chunks: dict[str, list[Chunk]],
+    used_files: set[str],
+) -> list[Chunk]:
+    """SCC スーパーノードに属するチャンクをまとめて返す。
+
+    スーパーノード名（例: "scc_0"）からインデックスを解析し、
+    SCC 内の全ファイルのチャンクを収集する。
+    """
+    idx_str = scc_entry[len("scc_"):]
+    if not idx_str.isdigit():
+        return []
+
+    members = scc_idx_to_members.get(int(idx_str), [])
+    group: list[Chunk] = []
+    for member in members:
+        file_path = node_to_file.get(member)
+        if file_path is not None:
+            group.extend(file_to_chunks.get(file_path, []))
+            used_files.add(file_path)
+    return group
+
+
+def order_chunks_by_topo(
+    chunks: list[Chunk],
+    topo_order: list[str],
+    node_to_file: dict[str, str],
+    sccs: list[list[str]],
+) -> list[list[Chunk]]:
+    """topo_order に基づいてチャンクをグループ化・順序付けする。
+
+    設計書 Section 5.2: トポロジカル順序でレビューを実施する。
+
+    通常ノード: そのノードのファイルに属するチャンクを1グループ。
+    SCC スーパーノード: SCC 内の全ファイルに属するチャンクを1グループ（バッチレビュー）。
+    topo_order に含まれないファイルのチャンクは最後に追加する。
+    """
+    scc_idx_to_members: dict[int, list[str]] = dict(enumerate(sccs))
+    file_to_chunks: dict[str, list[Chunk]] = {}
+    for chunk in chunks:
+        file_to_chunks.setdefault(chunk.file_path, []).append(chunk)
+
+    used_files: set[str] = set()
+    groups: list[list[Chunk]] = []
+
+    for entry in topo_order:
+        if entry.startswith("scc_"):
+            group = _collect_scc_group(
+                entry, scc_idx_to_members, node_to_file, file_to_chunks, used_files
+            )
+        else:
+            file_path = node_to_file.get(entry)
+            if file_path is not None:
+                group = list(file_to_chunks.get(file_path, []))
+                used_files.add(file_path)
+            else:
+                group = []
+
+        if group:
+            groups.append(group)
+
+    remaining = [
+        chunk
+        for file_path, file_chunks in file_to_chunks.items()
+        if file_path not in used_files
+        for chunk in file_chunks
+    ]
+    if remaining:
+        groups.append(remaining)
+
+    return groups
+
+
+def build_review_prompt_with_contracts(
+    chunk: Chunk,
+    upstream_contracts: list[ContractCard],
+) -> str:
+    """上流契約カードをコンテキストに含むレビュープロンプトを生成する。
+
+    設計書 Section 5.2: 下流モジュールの Agent プロンプトに上流の契約カードを注入する。
+    upstream_contracts が空の場合は build_review_prompt() と同一出力を返す。
+    """
+    from analyzers.card_generator import format_contract_cards_for_prompt
+
+    base_prompt = build_review_prompt(chunk)
+    contracts_text = format_contract_cards_for_prompt(upstream_contracts)
+
+    if not contracts_text:
+        return base_prompt
+
+    header = (
+        "以下は上流モジュールの契約です。"
+        "これらの前提条件・保証に違反する呼び出しがないか確認してください。\n\n"
+        + contracts_text
+        + "\n\n"
+    )
+    return header + base_prompt
+
+
+def order_files_by_topo(
+    file_paths: list[str],
+    topo_order: list[str],
+    node_to_file: dict[str, str],
+) -> list[str]:
+    """ファイルパスのリストをトポロジカル順にソートする。
+
+    設計書 Section 5.2: Phase 4（修正順序）でも同じトポロジカル順を使用する。
+    topo_order に含まれないファイルは最後に追加する。
+    """
+    # ノード名 → ファイルパスの逆引き
+    file_to_topo_idx: dict[str, int] = {}
+    for idx, entry in enumerate(topo_order):
+        file_path = node_to_file.get(entry)
+        if file_path is not None:
+            file_to_topo_idx[file_path] = idx
+
+    ordered: list[str] = []
+    remaining: list[str] = []
+
+    for fp in file_paths:
+        if fp in file_to_topo_idx:
+            ordered.append(fp)
+        else:
+            remaining.append(fp)
+
+    ordered.sort(key=lambda fp: file_to_topo_idx[fp])
+    return ordered + remaining
 
 
 def collect_results(results: list[ReviewResult]) -> BatchResult:
