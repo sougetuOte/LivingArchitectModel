@@ -27,7 +27,7 @@ def deduplicate_issues(issues: list[Issue]) -> list[Issue]:
     return result
 
 
-def _classify_name(name: str) -> str | None:
+def classify_name(name: str) -> str | None:
     """名前の命名規則を判定する。
 
     Returns:
@@ -76,7 +76,7 @@ def check_naming_consistency(
     conventions: dict[str, list[str]] = {"snake_case": [], "camelCase": []}
 
     for name in names:
-        conv = _classify_name(name)
+        conv = classify_name(name)
         if conv and conv in conventions:
             conventions[conv].append(name)
 

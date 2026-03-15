@@ -3,8 +3,9 @@
 Task C-1a: 概要カード生成エンジン（機械的フィールド）
 Task C-1b: Phase 2 Agent プロンプト拡張（責務フィールド生成）
 Task C-2a: Layer 2 モジュール統合（要約カード生成）
+Task C-2b: Layer 3 システムレビュー（循環依存検出、命名パターン違反）
 対応仕様: scalable-code-review-spec.md FR-4
-対応設計: scalable-code-review-design.md Section 4.3, 4.4
+対応設計: scalable-code-review-design.md Section 4.3, 4.4, 4.5
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue
+from analyzers.reducer import classify_name
 
 logger = logging.getLogger(__name__)
 
@@ -399,18 +401,10 @@ def check_unused_reexports(
     _ast_map: dict[str, ASTNode],
     import_map: dict[str, list[str]],
 ) -> list[str]:
-    """__init__.py で re-export しているが実際に使われていないシンボルのチェック。
+    """__init__.py で re-export しているが使われていないシンボルのチェック。
 
-    - __init__.py の import_map から import しているモジュールを取得
-    - それらが他のファイル（__init__.py 以外）から import されているか確認
-    - 誰にも import されていない re-export → 警告
-
-    Note: _ast_map は将来の __all__ 解析拡張のためにシグネチャに含める。
-    C-2a スコープでは _ast_map は未使用。将来の __all__ 解析拡張で利用予定。
-    C-2a の近似チェックでは import_map のみを使用する。
-
-    既知の制限: 深いパス（src.analyzers）での import 検出は不完全。
-    Phase 3 以降で精度向上予定。
+    _ast_map は将来の __all__ 解析拡張用（C-2a では未使用）。
+    既知の制限: 深いパスでの import 検出は不完全（Phase 3 以降で精度向上予定）。
     """
     init_files = [f for f in module_files if f.endswith("__init__.py")]
     if not init_files:
@@ -548,3 +542,218 @@ def load_module_card(state_dir: Path, module_name: str) -> ModuleCard | None:
         return None
 
     return ModuleCard(**data)
+
+
+# ===================================================================
+# Layer 3: システムレビュー（Task C-2b）
+# 設計書 Section 4.5
+# ===================================================================
+
+
+def _build_import_graph(
+    import_map: dict[str, list[str]],
+) -> tuple[dict[str, list[str]], set[str], dict[str, str]]:
+    """import_map からグラフ（隣接リスト）を構築する。
+
+    import_map のキーはファイルパス形式（例: "src/foo.py"）、
+    値はドット区切りモジュール名のリスト（例: ["src.bar", "os"]）。
+
+    Returns:
+        (graph, all_nodes, node_to_file) のタプル。
+        graph: ノード名 → 隣接ノード名リスト。
+        all_nodes: 全ノード名の集合。
+        node_to_file: ノード名 → 元のファイルパスの逆引き辞書。
+    """
+    file_to_node = {fp: _file_path_to_module_name(fp) for fp in import_map}
+    node_to_file: dict[str, str] = {v: k for k, v in file_to_node.items()}
+    all_nodes: set[str] = set(file_to_node.values())
+
+    graph: dict[str, list[str]] = {}
+    for file_path, imports in import_map.items():
+        src = file_to_node[file_path]
+        graph[src] = [imp for imp in imports if imp in all_nodes]
+
+    return graph, all_nodes, node_to_file
+
+
+def _find_sccs(graph: dict[str, list[str]], all_nodes: set[str]) -> list[list[str]]:
+    """Tarjan のアルゴリズムで強連結成分（SCC）を検出する。
+
+    サイズ2以上の SCC、または自己参照を含む SCC のみ返す。
+
+    Note: 再帰実装のため、ノード数が Python の再帰上限（デフォルト1000）を
+    超えるプロジェクトでは RecursionError が発生する可能性がある。
+    大規模プロジェクト対応が必要な場合は反復実装に置き換えること。
+    """
+    index_counter = [0]
+    stack: list[str] = []
+    on_stack: set[str] = set()
+    indices: dict[str, int] = {}
+    lowlinks: dict[str, int] = {}
+    sccs: list[list[str]] = []
+
+    def strongconnect(v: str) -> None:
+        indices[v] = index_counter[0]
+        lowlinks[v] = index_counter[0]
+        index_counter[0] += 1
+        stack.append(v)
+        on_stack.add(v)
+
+        for w in graph.get(v, []):
+            if w not in indices:
+                strongconnect(w)
+                lowlinks[v] = min(lowlinks[v], lowlinks[w])
+            elif w in on_stack:
+                lowlinks[v] = min(lowlinks[v], indices[w])
+
+        if lowlinks[v] == indices[v]:
+            scc: list[str] = []
+            while True:
+                w = stack.pop()
+                on_stack.discard(w)
+                scc.append(w)
+                if w == v:
+                    break
+            if len(scc) > 1 or (len(scc) == 1 and v in graph.get(v, [])):
+                sccs.append(scc)
+
+    for node in all_nodes:
+        if node not in indices:
+            strongconnect(node)
+
+    return sccs
+
+
+def detect_circular_dependencies(
+    import_map: dict[str, list[str]],
+) -> list[Issue]:
+    """import_map からグラフを構築し、循環依存（SCC）を検出する。
+
+    サイズ2以上の SCC（または自己参照）を Warning Issue として返す。
+    """
+    graph, all_nodes, node_to_file = _build_import_graph(import_map)
+    try:
+        sccs = _find_sccs(graph, all_nodes)
+    except RecursionError:
+        logger.warning("Import graph too large for recursive SCC detection (%d nodes)", len(all_nodes))
+        return []
+
+    issues: list[Issue] = []
+    for scc in sccs:
+        file_paths = [node_to_file.get(n, n) for n in sorted(scc)]
+        issues.append(
+            Issue(
+                file=file_paths[0],
+                line=0,
+                severity="warning",
+                category="circular-dependency",
+                tool="card_generator",
+                message=f"Circular dependency detected: {' → '.join(file_paths)}",
+                rule_id="circular-dependency",
+                suggestion="Break the cycle by introducing an interface or restructuring imports",
+            )
+        )
+
+    return issues
+
+
+def _collect_function_names(root_node: ASTNode) -> list[str]:
+    """ASTNode ツリーから関数/メソッド名を再帰的に収集する。"""
+    names: list[str] = []
+    if root_node.kind in ("function", "method"):
+        names.append(root_node.name)
+    for child in root_node.children:
+        names.extend(_collect_function_names(child))
+    return names
+
+
+def detect_module_naming_violations(
+    ast_map: dict[str, ASTNode],
+) -> list[Issue]:
+    """モジュール横断で命名規則の混在を検出する。
+
+    全ファイルの関数名を集約し、snake_case と camelCase の混在を検出する。
+    PascalCase（クラス名）は除外する。
+    """
+    conventions: dict[str, list[tuple[str, str]]] = {
+        "snake_case": [],
+        "camelCase": [],
+    }
+
+    for file_path, root_node in ast_map.items():
+        for name in _collect_function_names(root_node):
+            conv = classify_name(name)
+            if conv and conv in conventions:
+                conventions[conv].append((file_path, name))
+
+    snake = conventions["snake_case"]
+    camel = conventions["camelCase"]
+
+    if snake and camel:
+        snake_dominant = len(snake) >= len(camel)
+        minority = camel if snake_dominant else snake
+        majority_style = "snake_case" if snake_dominant else "camelCase"
+
+        examples = [f"{f}:{name}" for f, name in minority[:5]]
+        return [
+            Issue(
+                file="(project-wide)",
+                line=0,
+                severity="warning",
+                category="naming-violation",
+                tool="card_generator",
+                message=(
+                    f"Cross-module naming inconsistency: "
+                    f"{majority_style} is dominant ({len(snake)} snake vs {len(camel)} camel). "
+                    f"Violations: {', '.join(examples)}"
+                ),
+                rule_id="naming-consistency",
+                suggestion=f"Standardize on {majority_style} across the project",
+            )
+        ]
+
+    return []
+
+
+def collect_spec_drift_context(
+    state_dir: Path,
+    specs_dir: Path,
+) -> str:
+    """仕様ドリフト検出用のコンテキストを収集する。
+
+    モジュールカード（Layer 2 出力）と docs/specs/ の仕様書を
+    LLM に渡すための単一テキストに整形する。
+    """
+    sections: list[str] = []
+
+    # モジュールカードを収集
+    sections.append("## モジュール実装サマリー（Layer 2 出力）\n")
+    cards_dir = state_dir / _CARDS_DIR / _MODULE_CARDS_DIR
+    if cards_dir.exists():
+        card_files = sorted(cards_dir.glob("*.json"))
+        for card_file in card_files:
+            try:
+                data = json.loads(card_file.read_text(encoding="utf-8"))
+                card = ModuleCard(**data)
+            except (json.JSONDecodeError, TypeError):
+                logger.warning("Corrupted module card: %s", card_file)
+                card = None
+            if card:
+                sections.append(card.to_markdown())
+                sections.append("")
+    if len(sections) == 1:
+        sections.append("(モジュールカードなし)\n")
+
+    # 仕様書を収集
+    sections.append("## 仕様書（docs/specs/）\n")
+    if specs_dir.exists():
+        spec_files = sorted(specs_dir.glob("*.md"))
+        for spec_file in spec_files:
+            content = spec_file.read_text(encoding="utf-8", errors="ignore")
+            sections.append(f"### {spec_file.name}\n")
+            sections.append(content)
+            sections.append("")
+    if not specs_dir.exists() or not list(specs_dir.glob("*.md")):
+        sections.append("(仕様書なし)\n")
+
+    return "\n".join(sections)

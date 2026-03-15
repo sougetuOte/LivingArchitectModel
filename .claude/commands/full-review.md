@@ -342,9 +342,98 @@ print(f'Batches: {(len(index) + 3) // 4}')
 - **設定整合性**: `settings.json` の hooks 定義と実際のスクリプトパス・イベント名が一致しているか
 - **ドキュメント間整合性**: 同一概念（スキーマ、フロー、等級定義等）が複数ファイルに記述されている場合、記述が一致しているか
 
+## Phase 2.5: 階層的レビュー（Scalable Code Review Phase 3）
+
+Phase 2 の並列監査完了後、Layer 2 → Layer 3 の順で逐次実行する。
+
+### Step 1: Layer 2 — モジュール統合
+
+Phase 2 の概要カード生成（C-1a/C-1b）完了後、モジュール境界を検出し要約カードを生成する。
+
+```bash
+python3 -c "
+import sys, json; sys.path.insert(0, '.claude/hooks')
+from analyzers.card_generator import (
+    detect_module_boundaries, generate_module_cards, save_module_card
+)
+from analyzers.state_manager import load_chunks_index
+from pathlib import Path
+
+state_dir = Path('.claude/review-state')
+# ast_map と import_map は Phase 0/2 で永続化済み
+ast_map = json.loads((state_dir / 'ast-map.json').read_text()) if (state_dir / 'ast-map.json').exists() else {}
+import_map = json.loads((state_dir / 'import-map.json').read_text()) if (state_dir / 'import-map.json').exists() else {}
+
+root = Path('\$TARGET').resolve()
+boundaries = detect_module_boundaries(list(ast_map.keys()))
+# file_cards は Phase 2 で生成済み（cards/file-cards/ に永続化）
+# generate_module_cards と save_module_card で要約カードを生成・保存
+print(f'Modules: {len(boundaries)}')
+"
+```
+
+### Step 2: Layer 3 — システムレビュー（機械的チェック）
+
+```bash
+python3 -c "
+import sys, json; sys.path.insert(0, '.claude/hooks')
+from analyzers.card_generator import (
+    detect_circular_dependencies, detect_module_naming_violations
+)
+from pathlib import Path
+
+state_dir = Path('.claude/review-state')
+import_map = json.loads((state_dir / 'import-map.json').read_text()) if (state_dir / 'import-map.json').exists() else {}
+ast_map = json.loads((state_dir / 'ast-map.json').read_text()) if (state_dir / 'ast-map.json').exists() else {}
+
+circ_issues = detect_circular_dependencies(import_map)
+naming_issues = detect_module_naming_violations(ast_map)
+print(f'Circular dependencies: {len(circ_issues)}')
+print(f'Naming violations: {len(naming_issues)}')
+
+# Issue を review-state に永続化
+all_issues = [{'file': i.file, 'line': i.line, 'severity': i.severity, 'category': i.category, 'tool': i.tool, 'message': i.message, 'rule_id': i.rule_id, 'suggestion': i.suggestion} for i in circ_issues + naming_issues]
+(state_dir / 'layer3-issues.json').write_text(json.dumps(all_issues, indent=2, ensure_ascii=False))
+"
+```
+
+### Step 3: Layer 3 — LLM 仕様ドリフト検出
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0, '.claude/hooks')
+from analyzers.card_generator import collect_spec_drift_context
+from pathlib import Path
+
+context = collect_spec_drift_context(
+    Path('.claude/review-state'),
+    Path('docs/specs')
+)
+Path('.claude/review-state/spec-drift-context.md').write_text(context)
+print(f'Context size: {len(context)} chars')
+"
+```
+
+上記でコンテキストを永続化した後、Agent を起動して仕様ドリフトを検出する:
+
+```
+Agent(quality-auditor): 仕様ドリフト検出
+  入力: .claude/review-state/spec-drift-context.md の内容
+  指示: 「モジュール実装サマリー」と「仕様書」を比較し、
+        仕様に記述されているが実装されていない機能、
+        実装されているが仕様に記述されていない機能を
+        Issue として報告してください。
+  出力: Critical/Warning/Info ラベル付き Issue リスト
+```
+
+### Phase 2.5 の Issue 統合
+
+Layer 2 の境界チェック Issue + Layer 3 の機械的チェック Issue + LLM 仕様ドリフト Issue を
+Phase 3（レポート統合）に合流させる。
+
 ## Phase 3: レポート統合 + PG/SE/PM 分類（v4.0.0）
 
-1. 各エージェントの結果を統合
+1. 各エージェントの結果 + **Phase 2.5 の Issue** を統合
 2. 重複 Issue を排除
 3. 重要度分類: Critical / Warning / Info
 4. **各 Issue を PG/SE/PM に分類**（権限等級に基づく）
@@ -445,11 +534,29 @@ iter 3: 発見  0件 →             → ✅ Green State 達成
 ツールが未インストールの場合は PASS（スキップ）扱いとし、ログに記録する。
 プロジェクトに Anthropic 公式 `security-guidance` plugin がインストールされている場合は、そちらの検出結果も考慮する。
 
+### 再レビューループでの Phase 2.5 再実行（C-3b）
+
+修正後の再スキャン時、Phase 2.5 も含めて全 Layer をゼロベースで再実行する:
+
+- **概要カード・要約カードも再生成する**（キャッシュしない）
+- Layer 2 の境界チェック、Layer 3 の循環依存・命名・仕様ドリフトも毎回再実行
+- 静的解析（Phase 0）は変更ファイルのみ再実行（キャッシュ利用）
+
+```
+再スキャンフロー:
+Phase 0（静的解析: 変更ファイルのみ）
+  → Phase 1.7（チャンク分割: 再実行）
+  → Phase 2（並列監査: ゼロベース全体）
+  → Phase 2.5（階層的レビュー: Layer 2→3 全再実行）
+  → Phase 3〜5（統合・修正・検証）
+```
+
 ### 監査範囲と検証範囲
 
 | フェーズ | 範囲 | 目的 |
 |---------|------|------|
 | Phase 2（監査） | **毎回、対象全体をゼロベース** | 修正の副作用、他エラーに隠れていた問題を発見 |
+| Phase 2.5（階層的レビュー） | **毎回、全 Layer をゼロベース** | カード再生成、構造問題の再検出 |
 | Phase 5（テスト・lint） | 変更ファイル中心（最終サイクルで全体） | テスト実行コストの最適化 |
 
 **フルスキャンの発動手順**: 差分チェックで Green State を達成したら、Claude が状態ファイルに `fullscan_pending: true` をセットし、自分で Phase 2 に戻る:
@@ -476,8 +583,8 @@ Phase 4 完了時に `.claude/lam-loop-state.json` を更新する:
 次のイテレーションで再スキャン（Phase 2）し、**スキャン結果が 0件** であって初めて Green State となる。
 
 ```
-Phase 2（再スキャン）
-  ├── Issue 0件（Before=0）→ ✅ Green State 達成 → Phase 6 へ
+Phase 2 + 2.5（再スキャン: 全 Layer）
+  ├── Issue 0件（Before=0、全 Layer 含む）→ ✅ Green State 達成 → Phase 6 へ
   └── Issue 1件以上 → Phase 3〜5（修正）→ Phase 2 に戻る（応答を継続）
 
 例外（応答を終了してよいケース）:
@@ -516,7 +623,8 @@ Green State 確定後（Claude が実行）:
 - Phase 0（静的解析パイプライン）: Scalable Code Review Phase 1 として実装済み
 - Phase 1.7（AST チャンキング）: Scalable Code Review Phase 2 として実装済み
 - Phase 2（チャンクモード並列監査）: Scalable Code Review Phase 2 として実装済み
-- Phase 3 以降（階層的レビュー、依存グラフ駆動）は将来の Phase で実装予定
+- Phase 2.5（階層的レビュー）: Scalable Code Review Phase 3 として実装済み（C-2b/C-3a/C-3b）
+- Phase 4 以降（依存グラフ駆動、ハイブリッド統合）は将来の Phase で実装予定
 
 - 要件仕様: `docs/specs/scalable-code-review-spec.md`
 - 設計書: `docs/design/scalable-code-review-design.md`
