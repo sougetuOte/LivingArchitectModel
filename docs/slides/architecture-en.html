@@ -504,13 +504,13 @@ graph LR
         </div>
       </section>
 
-      <!-- Slide 10: 3 Agents Model -->
+      <!-- Slide 10: MAGI System -->
       <section>
-        <h2>3 Agents Model</h2>
+        <h2>MAGI System</h2>
         <div class="bento-grid" style="margin-top: 0.5rem;">
           <div class="card" style="border-color: var(--accent-primary);">
-            <h3 style="color: var(--accent-primary);">Affirmative</h3>
-            <p><strong>Advocate</strong></p>
+            <h3 style="color: var(--accent-primary);">MELCHIOR</h3>
+            <p><strong>Scientist (Advocate)</strong></p>
             <ul>
               <li>Value</li>
               <li>Speed</li>
@@ -518,8 +518,8 @@ graph LR
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-warning);">
-            <h3 style="color: var(--accent-warning);">Critical</h3>
-            <p><strong>Critic</strong></p>
+            <h3 style="color: var(--accent-warning);">BALTHASAR</h3>
+            <p><strong>Mother (Challenger)</strong></p>
             <ul>
               <li>Risk</li>
               <li>Security</li>
@@ -527,8 +527,8 @@ graph LR
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-secondary);">
-            <h3 style="color: var(--accent-secondary);">Mediator</h3>
-            <p><strong>Mediator</strong></p>
+            <h3 style="color: var(--accent-secondary);">CASPAR</h3>
+            <p><strong>Woman (Synthesizer)</strong></p>
             <ul>
               <li>Synthesis</li>
               <li>Balance</li>
@@ -544,6 +544,7 @@ graph LR
   style B fill:#ce9178,stroke:#fff,color:#000
   style C fill:#569cd6,stroke:#fff,color:#fff
         </pre>
+        <p class="small-text" style="margin-top: 0.5rem;">MAGI: Three independent minds deliberating as one (inspired by Evangelion)</p>
       </section>
 
       <!-- Slide 11: AoT (Atom of Thought) -->
@@ -555,19 +556,21 @@ graph LR
           <li>Affected layers: <strong>3 or more</strong></li>
           <li>Viable options: <strong>3 or more</strong></li>
         </ul>
-        <p style="font-size: 0.85em; margin-top: 1rem;">Decompose complex decisions into independent <strong>Atoms</strong>,<br>then apply 3 Agents to each Atom</p>
+        <p style="font-size: 0.85em; margin-top: 1rem;">Decompose complex decisions into independent <strong>Atoms</strong>,<br>MAGI deliberation per Atom &rarr; Reflection validates conclusions</p>
         <pre class="mermaid" style="margin-top: 0.5rem;">
 graph LR
-  D["AoT<br/>Decomposition"] --> A1["Atom 1<br/>3 Agents"]
-  D --> A2["Atom 2<br/>3 Agents"]
-  D --> A3["Atom 3<br/>3 Agents"]
-  A1 --> S["AoT<br/>Synthesis"]
-  A2 --> S
-  A3 --> S
+  D["AoT<br/>Decomposition"] --> A1["Atom 1<br/>MAGI"]
+  D --> A2["Atom 2<br/>MAGI"]
+  D --> A3["Atom 3<br/>MAGI"]
+  A1 --> R["Reflection"]
+  A2 --> R
+  A3 --> R
+  R --> S["AoT<br/>Synthesis"]
   style D fill:#569cd6,stroke:#fff,color:#fff
   style A1 fill:#4ec9b0,stroke:#fff,color:#000
   style A2 fill:#4ec9b0,stroke:#fff,color:#000
   style A3 fill:#4ec9b0,stroke:#fff,color:#000
+  style R fill:#569cd6,stroke:#fff,color:#fff
   style S fill:#ce9178,stroke:#fff,color:#000
         </pre>
       </section>
@@ -575,7 +578,7 @@ graph LR
       <!-- Slide 12: lam-orchestrate (merged from ultimate-think) -->
       <section>
         <h2>/lam-orchestrate</h2>
-        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">Task decomposition, parallel execution + structured thinking (AoT + 3 Agents)</p>
+        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">Task decomposition, parallel execution + structured thinking (MAGI System). Also available standalone via <code>/magi</code></p>
         <pre class="mermaid">
 graph TD
   T["Large task"] --> D["Task decomposition"]
@@ -593,7 +596,7 @@ graph TD
   style M fill:#ce9178,stroke:#fff,color:#000
         </pre>
         <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;"><strong>Automatic decomposition and parallel execution</strong> of work spanning multiple files/modules. Uses AoT + 3 Agents to <strong>suppress hallucination</strong> in design decisions</p>
+          <p style="font-size: 0.8em;"><strong>Automatic decomposition and parallel execution</strong> of work spanning multiple files/modules. Uses MAGI System + Reflection to <strong>suppress hallucination</strong> in design decisions</p>
         </div>
       </section>
 

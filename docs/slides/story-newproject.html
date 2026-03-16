@@ -470,11 +470,11 @@ $ claude</div>
         <h2><span class="phase-badge phase-planning">PLANNING</span> ADR と設計</h2>
         <div class="chat-bubble ai">
           <span class="chat-label">Living Architect</span>
-          <p>3 Agents Model で技術選定を検討します。Affirmative（推進者）、Critical（批判者）、Mediator（調停者）が意見を集約します。</p>
+          <p>MAGI System で技術選定を検討します。MELCHIOR（科学者/推進者）、BALTHASAR（母/批判者）、CASPAR（女/調停者）が合議します。</p>
         </div>
         <div class="bento-grid fragment">
           <div class="card" style="border-color: var(--accent-primary);">
-            <h3 style="color: var(--accent-primary);">Affirmative（推進者）</h3>
+            <h3 style="color: var(--accent-primary);">MELCHIOR（推進者）</h3>
             <ul>
               <li>FastAPI + JWT で高速</li>
               <li>Stripe SDK が充実</li>
@@ -482,7 +482,7 @@ $ claude</div>
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-warning);">
-            <h3 style="color: var(--accent-warning);">Critical（批判者）</h3>
+            <h3 style="color: var(--accent-warning);">BALTHASAR（批判者）</h3>
             <ul>
               <li>JWT 即時失効が困難</li>
               <li>Stripe webhook 検証必須</li>
@@ -490,7 +490,7 @@ $ claude</div>
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-secondary);">
-            <h3 style="color: var(--accent-secondary);">Mediator（調停者）</h3>
+            <h3 style="color: var(--accent-secondary);">CASPAR（調停者）</h3>
             <ul>
               <li>JWT + Redis で即時失効対応</li>
               <li>webhook 署名検証を必須化</li>
@@ -710,15 +710,15 @@ tests/test_auth.py::test_password_reset_sends_email     PASSED
         <h2><span class="phase-badge phase-auditing">AUDITING</span> 自動収束ループ</h2>
         <pre class="mermaid">
 graph LR
-  P1["Phase 1 監査"] --> P2["Phase 2 レポート"]
-  P2 --> P3["Phase 3 修正"]
-  P3 --> P4{"Phase 4 Green?"}
-  P4 -->|No| P1
-  P4 -->|Yes| Done["完了"]
-  style P1 fill:#ce9178,stroke:#fff,color:#000
-  style P2 fill:#ce9178,stroke:#fff,color:#000
-  style P3 fill:#4ec9b0,stroke:#fff,color:#000
-  style P4 fill:#569cd6,stroke:#fff,color:#000
+  S2["Stage 2 監査"] --> S3["Stage 3 レポート"]
+  S3 --> S4["Stage 4 修正"]
+  S4 --> S5{"Stage 5 Green?"}
+  S5 -->|No| S2
+  S5 -->|Yes| Done["完了"]
+  style S2 fill:#ce9178,stroke:#fff,color:#000
+  style S3 fill:#ce9178,stroke:#fff,color:#000
+  style S4 fill:#4ec9b0,stroke:#fff,color:#000
+  style S5 fill:#569cd6,stroke:#fff,color:#000
   style Done fill:#4ec9b0,stroke:#fff,color:#000
         </pre>
         <div class="iteration-log fragment">

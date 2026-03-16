@@ -504,13 +504,13 @@ graph LR
         </div>
       </section>
 
-      <!-- Slide 10: 3 Agents Model -->
+      <!-- Slide 10: MAGI System -->
       <section>
-        <h2>3 Agents Model</h2>
+        <h2>MAGI System</h2>
         <div class="bento-grid" style="margin-top: 0.5rem;">
           <div class="card" style="border-color: var(--accent-primary);">
-            <h3 style="color: var(--accent-primary);">Affirmative</h3>
-            <p><strong>推進者</strong></p>
+            <h3 style="color: var(--accent-primary);">MELCHIOR</h3>
+            <p><strong>科学者（推進者）</strong></p>
             <ul>
               <li>Value</li>
               <li>Speed</li>
@@ -518,8 +518,8 @@ graph LR
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-warning);">
-            <h3 style="color: var(--accent-warning);">Critical</h3>
-            <p><strong>批判者</strong></p>
+            <h3 style="color: var(--accent-warning);">BALTHASAR</h3>
+            <p><strong>母（批判者）</strong></p>
             <ul>
               <li>Risk</li>
               <li>Security</li>
@@ -527,8 +527,8 @@ graph LR
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-secondary);">
-            <h3 style="color: var(--accent-secondary);">Mediator</h3>
-            <p><strong>調停者</strong></p>
+            <h3 style="color: var(--accent-secondary);">CASPAR</h3>
+            <p><strong>女（調停者）</strong></p>
             <ul>
               <li>Synthesis</li>
               <li>Balance</li>
@@ -536,14 +536,7 @@ graph LR
             </ul>
           </div>
         </div>
-        <pre class="mermaid" style="margin-top: 0.8rem;">
-graph LR
-  A["Divergence<br/>意見出し"] --> B["Debate<br/>対立解決"]
-  B --> C["Convergence<br/>最終決定"]
-  style A fill:#4ec9b0,stroke:#fff,color:#000
-  style B fill:#ce9178,stroke:#fff,color:#000
-  style C fill:#569cd6,stroke:#fff,color:#fff
-        </pre>
+        <p style="font-size: 0.8em; margin-top: 0.8rem;">MAGI: 3つの独立した思考体による合議（エヴァンゲリオン由来）</p>
       </section>
 
       <!-- Slide 11: AoT（Atom of Thought） -->
@@ -555,19 +548,21 @@ graph LR
           <li>影響レイヤーが <strong>3つ以上</strong></li>
           <li>選択肢が <strong>3つ以上</strong></li>
         </ul>
-        <p style="font-size: 0.85em; margin-top: 1rem;">複雑な判断を独立した <strong>Atom</strong> に分解し、<br>各 Atom で 3 Agents を適用</p>
+        <p style="font-size: 0.85em; margin-top: 1rem;">複雑な判断を独立した <strong>Atom</strong> に分解し、<br>各 Atom で MAGI 合議 → Reflection で結論検証</p>
         <pre class="mermaid" style="margin-top: 0.5rem;">
 graph LR
-  D["AoT<br/>Decomposition"] --> A1["Atom 1<br/>3 Agents"]
-  D --> A2["Atom 2<br/>3 Agents"]
-  D --> A3["Atom 3<br/>3 Agents"]
-  A1 --> S["AoT<br/>Synthesis"]
-  A2 --> S
-  A3 --> S
+  D["AoT<br/>Decomposition"] --> A1["Atom 1<br/>MAGI"]
+  D --> A2["Atom 2<br/>MAGI"]
+  D --> A3["Atom 3<br/>MAGI"]
+  A1 --> R["Reflection"]
+  A2 --> R
+  A3 --> R
+  R --> S["AoT<br/>Synthesis"]
   style D fill:#569cd6,stroke:#fff,color:#fff
   style A1 fill:#4ec9b0,stroke:#fff,color:#000
   style A2 fill:#4ec9b0,stroke:#fff,color:#000
   style A3 fill:#4ec9b0,stroke:#fff,color:#000
+  style R fill:#569cd6,stroke:#fff,color:#fff
   style S fill:#ce9178,stroke:#fff,color:#000
         </pre>
       </section>
@@ -575,7 +570,7 @@ graph LR
       <!-- Slide 12: lam-orchestrate（旧 ultimate-think を統合） -->
       <section>
         <h2>/lam-orchestrate</h2>
-        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">タスク分解・並列実行 + 構造化思考（AoT + 3 Agents）を統合</p>
+        <p style="font-size: 0.85em; margin-bottom: 0.6rem;">タスク分解・並列実行 + 構造化思考（MAGI System）を統合。<code>/magi</code> で単独起動も可能</p>
         <pre class="mermaid">
 graph TD
   T["大きなタスク"] --> D["タスク分解"]
@@ -593,7 +588,7 @@ graph TD
   style M fill:#ce9178,stroke:#fff,color:#000
         </pre>
         <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;">複数ファイル/モジュールにまたがる作業を<strong>自動分解・並列実行</strong>。設計判断では AoT + 3 Agents で<strong>ハルシネーションを抑制</strong></p>
+          <p style="font-size: 0.8em;">複数ファイル/モジュールにまたがる作業を<strong>自動分解・並列実行</strong>。設計判断では MAGI System + Reflection で<strong>ハルシネーションを抑制</strong></p>
         </div>
       </section>
 

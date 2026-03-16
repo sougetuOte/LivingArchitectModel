@@ -470,11 +470,11 @@ $ claude</div>
         <h2><span class="phase-badge phase-planning">PLANNING</span> ADR and Design</h2>
         <div class="chat-bubble ai">
           <span class="chat-label">Living Architect</span>
-          <p>I'll evaluate technology choices using the 3 Agents Model. Affirmative (advocate), Critical (challenger), and Mediator (synthesizer) will converge on a decision.</p>
+          <p>I'll evaluate technology choices using the MAGI System. MELCHIOR (scientist/advocate), BALTHASAR (mother/challenger), and CASPAR (woman/synthesizer) will deliberate.</p>
         </div>
         <div class="bento-grid fragment">
           <div class="card" style="border-color: var(--accent-primary);">
-            <h3 style="color: var(--accent-primary);">Affirmative</h3>
+            <h3 style="color: var(--accent-primary);">MELCHIOR</h3>
             <ul>
               <li>FastAPI + JWT for speed</li>
               <li>Stripe SDK is mature</li>
@@ -482,7 +482,7 @@ $ claude</div>
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-warning);">
-            <h3 style="color: var(--accent-warning);">Critical</h3>
+            <h3 style="color: var(--accent-warning);">BALTHASAR</h3>
             <ul>
               <li>JWT immediate revocation is difficult</li>
               <li>Stripe webhook verification is essential</li>
@@ -490,7 +490,7 @@ $ claude</div>
             </ul>
           </div>
           <div class="card" style="border-color: var(--accent-secondary);">
-            <h3 style="color: var(--accent-secondary);">Mediator</h3>
+            <h3 style="color: var(--accent-secondary);">CASPAR</h3>
             <ul>
               <li>JWT + Redis for instant revocation</li>
               <li>Mandate webhook signature verification</li>
@@ -710,15 +710,15 @@ tests/test_auth.py::test_password_reset_sends_email     PASSED
         <h2><span class="phase-badge phase-auditing">AUDITING</span> Auto-Convergence Loop</h2>
         <pre class="mermaid">
 graph LR
-  P1["Phase 1 Audit"] --> P2["Phase 2 Report"]
-  P2 --> P3["Phase 3 Fix"]
-  P3 --> P4{"Phase 4 Green?"}
-  P4 -->|No| P1
-  P4 -->|Yes| Done["Done"]
-  style P1 fill:#ce9178,stroke:#fff,color:#000
-  style P2 fill:#ce9178,stroke:#fff,color:#000
-  style P3 fill:#4ec9b0,stroke:#fff,color:#000
-  style P4 fill:#569cd6,stroke:#fff,color:#000
+  S2["Stage 2 Audit"] --> S3["Stage 3 Report"]
+  S3 --> S4["Stage 4 Fix"]
+  S4 --> S5{"Stage 5 Green?"}
+  S5 -->|No| S2
+  S5 -->|Yes| Done["Done"]
+  style S2 fill:#ce9178,stroke:#fff,color:#000
+  style S3 fill:#ce9178,stroke:#fff,color:#000
+  style S4 fill:#4ec9b0,stroke:#fff,color:#000
+  style S5 fill:#569cd6,stroke:#fff,color:#000
   style Done fill:#4ec9b0,stroke:#fff,color:#000
         </pre>
         <div class="iteration-log fragment">
