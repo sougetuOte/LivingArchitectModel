@@ -42,7 +42,7 @@ docs/adr/                  # Architecture Decision Records
 | `core-identity.md` | Living Architect behavioral guidelines |
 | `phase-rules.md` | Phase-specific guardrails (PLANNING/BUILDING/AUDITING) |
 | `security-commands.md` | Command safety standards (Allow/Deny List) |
-| `decision-making.md` | Decision-making protocol |
+| `decision-making.md` | Decision-making protocol (MAGI System) |
 | `permission-levels.md` | Permission level classification (PG/SE/PM) **New in v4.0.0** |
 | `upstream-first.md` | Upstream First principle (verify platform docs before implementation) |
 | `test-result-output.md` | Test result file output rule (JUnit XML) |
@@ -131,7 +131,9 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 
 | Skill | Purpose | Usage example |
 |-------|---------|---------------|
-| `lam-orchestrate` | Task breakdown, parallel execution + structured thinking (AoT + Three Agents) | "Run with lam-orchestrate" |
+| `magi` | Structured decision-making (AoT + MAGI System + Reflection) | `/magi <topic>` |
+| `clarify` | Document refinement (ambiguity, contradiction, gap detection) | `/clarify docs/specs/foo.md` |
+| `lam-orchestrate` | Task breakdown, parallel execution + `/magi` integration | "Run with lam-orchestrate" |
 | `skill-creator` | Skill creation guide | "I want to create a new skill" |
 | `adr-template` | ADR creation template | Auto-applied during ADR creation |
 | `spec-template` | Spec creation template | Auto-applied during spec creation |
@@ -174,27 +176,48 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 | `docs/internal/03_QUALITY_STANDARDS.md` | Quality standards |
 | `docs/internal/04_RELEASE_OPS.md` | Release, deployment, and incident response |
 | `docs/internal/05_MCP_INTEGRATION.md` | MCP integration and MEMORY.md usage policy |
-| `docs/internal/06_DECISION_MAKING.md` | Decision-making (3 Agents + AoT) |
+| `docs/internal/06_DECISION_MAKING.md` | Decision-making (MAGI System + AoT + Reflection) |
 | `docs/internal/07_SECURITY_AND_AUTOMATION.md` | Command safety standards (Allow/Deny List) |
 | `docs/internal/99_reference_generic.md` | Generic reference template |
 
-## AoT (Atom of Thought) Quick Guide
+## /magi (Structured Decision-Making) Quick Guide
 
 **When to use?** (any of the following apply)
 - **2 or more** decision points
 - **3 or more** affected layers/modules
 - **3 or more** viable options
 
+**MAGI System** (inspired by Evangelion)
+```
+MELCHIOR (Scientist/Advocate)  — Value, Speed, Innovation
+BALTHASAR (Mother/Challenger)  — Risk, Security, Debt
+CASPAR (Woman/Synthesizer)     — Synthesis, Balance, Decision
+```
+
 **Workflow**
 ```
-1. Decomposition: Break the topic into Atoms
-2. Debate: 3 Agents discuss each Atom
-3. Synthesis: Integrated conclusion -> Implementation
+0. Decomposition: Break the topic into Atoms
+1-3. MAGI Debate: MELCHIOR/BALTHASAR/CASPAR deliberate per Atom
+4. Reflection: Validate conclusions for critical oversights (once only)
+5. Synthesis: Integrated conclusion -> Action Items
 ```
 
 **Atom table format**
 ```
 | Atom | Description | Dependencies | Parallelizable (optional) |
+```
+
+## /clarify (Document Refinement) Quick Guide
+
+**When to use?**
+- After drafting specs or design documents
+- When detecting ambiguous expressions like "appropriately" or "as needed"
+- For cross-document consistency checks
+
+**Usage**
+```
+/clarify docs/specs/foo-spec.md                    # Refine a single document
+/clarify docs/specs/foo.md docs/design/foo.md      # Cross-check multiple documents
 ```
 
 ## Quick Reference
