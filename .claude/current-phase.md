@@ -1,8 +1,8 @@
 # Current Phase
 
-**AUDITING**
+**BUILDING**
 
-_レビュー・監査・リファクタリングフェーズ_
+_TDD実装フェーズ_
 
 ---
 
