@@ -1,0 +1,17 @@
+{
+  "feature": "magi-skill",
+  "description": "/magi — AoT + Three Agents Model による構造化意思決定スキル",
+  "phase": "PLANNING",
+  "current_phase_scope": "独立スキル化",
+  "status": {
+    "requirements": "approved",
+    "design": "approved",
+    "tasks": "approved"
+  },
+  "current_wave": null,
+  "current_task": null,
+  "completed_tasks": [],
+  "approvals": { "requirements": "2026-03-16", "design": "2026-03-16", "tasks": "2026-03-16" },
+  "created_at": "2026-03-16T00:00:00Z",
+  "updated_at": "2026-03-16T00:00:00Z"
+}
