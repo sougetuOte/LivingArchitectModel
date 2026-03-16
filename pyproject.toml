@@ -1,3 +1,7 @@
 # [project] セクションなし: テスト専用設定。pip-audit スキップ対象（.claude/hooks/lam-stop-hook.py 参照）
 [tool.pytest.ini_options]
-addopts = "--junitxml=.claude/test-results.xml"
+addopts = "--junitxml=.claude/test-results.xml -m 'not e2e_llm and not e2e_convergence'"
+markers = [
+    "e2e_llm: LLM依存テスト（CI除外）",
+    "e2e_convergence: 収束テスト（CI除外・手動実行）",
+]

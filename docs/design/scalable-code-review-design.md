@@ -10,43 +10,41 @@
 ## 1. アーキテクチャ概要
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    /full-review (拡張版)                      │
-│                                                              │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐  │
-│  │ Phase 0  │→│ Phase 1  │→│ Phase 2  │→│ Phase 3-5  │  │
-│  │ 静的解析 │  │ チャンク │  │ 並列     │  │ 統合・修正 │  │
-│  │ (Python) │  │ 分割     │  │ LLMレビュー│  │ ・検証     │  │
-│  └──────────┘  └──────────┘  └──────────┘  └────────────┘  │
-│       ↓              ↓              ↓              ↓         │
-│  .claude/review-state/ (外部永続化)                          │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    /full-review (Stage 体系)                   │
+│                                                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────────┐  │
+│  │ Stage 0  │→│ Stage 1  │→│ Stage 2  │→│ Stage 3-5   │  │
+│  │ 初期化   │  │ 静的解析 │  │ チャンク │  │ 統合・修正  │  │
+│  │ +Scale   │  │ +依存グラフ│  │ +レビュー │  │ ・検証      │  │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────────┘  │
+│       ↓              ↓              ↓              ↓          │
+│  .claude/review-state/ (外部永続化)                           │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### 既存 full-review との Phase 対応
+### Stage 体系（Plan E で再編）
 
-既存 full-review の Phase 番号を +1 してリナンバリングし、新 Phase 0 に静的解析を挿入する。
+Plan E で full-review.md を 11 Phase → 6 Stage に再編した。
 
-| 新 Phase | 旧 Phase | 内容 |
-|----------|----------|------|
-| Phase 0 | （新規） | 静的解析パイプライン（Plan A） |
-| Phase 0.5 | Phase 0.5 | context7 MCP 検出（変更なし） |
-| Phase 1 | Phase 0 | ループ初期化 |
-| Phase 2 | Phase 1 | 並列監査（チャンク分割適用時は Map-Reduce） |
-| Phase 3 | Phase 2 | レポート統合 |
-| Phase 4 | Phase 3 | 修正 |
-| Phase 5 | Phase 4 | 検証（Green State 判定） |
-| Phase 6 | Phase 5 | 完了報告 |
+| Stage | 内容 | 統合元 Phase |
+|:------|:-----|:-------------|
+| Stage 0 | 初期化（ループ状態、context7 検出、Scale Detection） | Phase 1, 1.5 |
+| Stage 1 | 静的分析 + 依存グラフ構築 | Phase 0, 0.3 |
+| Stage 2 | チャンク分割 + トポロジカル順レビュー | Phase 1.7, 2 |
+| Stage 3 | 階層的統合 + レポート生成 | Phase 2.5, 3 |
+| Stage 4 | トポロジカル順修正 | Phase 4 |
+| Stage 5 | 検証 + Green State 判定 + 完了 | Phase 5, 6 |
 
 ### Plan 別の有効化
 
-| 規模 | 有効な Plan | Phase | 有効化 |
-|------|-----------|-------|--------|
-| ~10K | 現行 full-review（変更なし） | — | — |
-| 10K-30K | Plan A（提案） | Phase 0 | ユーザーが選択 |
-| 30K-100K | Plan A + B | Phase 0-2 | 自動有効化 |
-| 100K-300K | Plan A + B + C | Phase 0 全て | 自動有効化 |
-| 300K+ | Plan A + B + C + D + E | 全 Phase | 自動有効化 |
+| 規模 | 有効な Plan | 自動判定 |
+|:-----|:-----------|:---------|
+| ~10K | なし（従来 full-review） | scale_detector.py が Plan セット「なし」を返す |
+| 10K-30K | Plan A | Stage 1 実行 |
+| 30K-100K | Plan A + B | Stage 1 + Stage 2 チャンクモード |
+| 100K-300K | Plan A + B + C | 全 Stage 自動 |
+| 300K+ | Plan A + B + C + D | 全 Stage 自動（トポロジカル順） |
 
 ## 2. Plan A: 静的解析パイプライン設計
 
@@ -753,16 +751,536 @@ class ContractCard:
 └── ...
 ```
 
-## 6. Plan E: ハイブリッドパイプライン設計（将来）
+## 6. Plan E: ハイブリッドパイプライン設計
 
-Plan A〜D の統合。詳細は Plan D 実装後に設計する。
+対応仕様: `docs/specs/scalable-code-review-phase5-spec.md` FR-E1〜FR-E3
+
+### 6.0 設計判断の前提
+
+#### Problem Statement
+
+現行の `/full-review` は Plan A〜D の追加により Phase 番号が 11 段階
+（0, 0.3, 1, 1.5, 1.7, 2, 2.5, 3, 4, 5, 6）に肥大化している。
+認知負荷の増大、スケール判定の分散、E2E 検証の欠如が課題。
+
+#### Non-Goals（Plan E でやらないこと）
+
+- `/auditing` や CI/CD パイプラインへの統合（Plan F 以降）
+- プロンプトテンプレートの内容変更（Stage 再編に伴う見出し統合・改番のみ許容）
+- Plan A〜D の Python コードの変更・リファクタリング
+- `_find_sccs` の反復実装化（既知制限、別途対応）
+- `import_map` 生成ロジックの新規実装
+
+#### Alternatives Considered（却下した代替案）
+
+| 代替案 | 却下理由 |
+|:------|:--------|
+| Phase 番号をそのまま維持し、ドキュメント上で Stage グルーピングだけ行う | 二重管理。full-review.md 内の自己参照が Phase 番号のままとなり、認知負荷が解消されない |
+| `run_pipeline.py` に `detect_scale()` を追加（scale_detector.py を作らない） | NFR-E1「既存関数群を修正してはならない」に抵触。関数追加もファイル変更として扱う |
+| `should_enable_static_analysis()` を scale_detector から呼び出して結果をマッピング | 既存関数は 3 値（skip/suggest/auto）しか返さず、Plan A〜D の 4 段階区分に変換するロジックが複雑化する。独立した閾値テーブルの方がシンプル |
+| `base.AnalyzerRegistry.verify_tools()` をラップして例外を握りつぶす | Error Swallowing は code-quality-guideline.md の Critical 指摘対象。`shutil.which()` による独立チェックが正しい |
+| `chunker._TREE_SITTER_AVAILABLE` を直接参照 | プライベート変数の外部参照は将来のリファクタリングで無言破壊リスクあり。`importlib.util.find_spec()` の方が宣言的かつ安定 |
+| E2E テストを `test_scale_detector.py` と `test_e2e_review.py` の 2 ファイルに分割 | NFR-E1「新規 Python ファイルは `scale_detector.py` と `test_e2e_review.py` に限定」に抵触 |
+| Security フィクスチャを LLM 検出テスト（非決定的）として扱う | bandit B105/B106 が確実に検出できるため、静的解析の決定的テストとして扱う方が恒久的に 100% を保証できる |
+
+#### Success Criteria
+
+| 基準 | 計測方法 |
+|:-----|:--------|
+| full-review.md が Stage 体系で構成されている | Stage 0〜5 のセクションが存在し、中間 Phase 番号がないこと |
+| 自動スケール判定が動作する | `scale_detector.py` の単体テストで ~10K / 30K / 100K / 300K の各閾値が正しく判定されること |
+| 前提条件チェックが動作する | ruff/bandit/tree-sitter 未インストール時に Warning 表示され、対応 Plan がスキップされること |
+| E2E テストフレームワークが存在する | `test_e2e_review.py` が実行可能で、3 種のフィクスチャが配置されていること |
+| 既存テストが全 PASSED | 396+ テスト全 PASSED |
+| NFR-2 後方互換 | ~10K 行プロジェクトで Plan セット「なし」が返り、Stage 1〜3 スキップのログが出力されること |
+
+### 6.1 AoT 分解と Three Agents 分析
+
+#### AoT Decomposition
+
+| Atom | 判断内容 | 依存 |
+|:-----|:---------|:-----|
+| A1 | Stage 体系マッピング: Phase → Stage の再編方法 | なし |
+| A2 | scale_detector.py のアーキテクチャ: 既存コードとの関係、責務分担 | A1 |
+| A3 | E2E テストフレームワーク: テストアーキテクチャ、フィクスチャ設計 | なし |
+| A4 | full-review.md 移行戦略: 後方互換を保ちつつ再編する方法 | A1, A2 |
+
+#### Atom A1: Stage 体系マッピング
+
+**[Affirmative]**: 11 段階 → 6 段階への再編は認知負荷を大幅に削減する。Stage 0〜5 の番号体系は直感的で安定的。Python コード変更なし（full-review.md のみ）は安全。
+
+**[Critical]**: 見出し構造の変更は AI の挙動に影響する可能性がある。「Phase 1.7 の次が Phase 2」という非線形番号が消えることは良いが、「Phase 0.3 完了後、Phase 1 に進む」等の誘導文が 23 箇所存在し、全件更新しないとフロー断絶が起きる。Stage 内の Step 実行順序（特に Stage 1 内の静的解析 → 依存グラフ構築の順序）の明確化も必要。
+
+**[Mediator]**: FR-E1 の Stage 体系を採用。Stage 0 にはループ初期化 + context7 検出 + Scale Detection を統合する。Stage 内の Step 構造は既存を維持しつつ、全 self-reference（23 箇所）を漏れなく更新する。各 Stage 先頭に「実行条件 / 入力 / 出力」の契約を明記する。
+
+#### Atom A2: scale_detector.py のアーキテクチャ
+
+**[Affirmative]**: `run_pipeline.count_lines()` を import して再利用し、DRY を維持すべき。判定ロジックの集約は SRP に適合。
+
+**[Critical]**: `verify_tools()` は例外を投げる設計であり、Scale Detector の「Warning + スキップ」セマンティクスと矛盾する。`should_enable_static_analysis()` は 3 値のみで Plan A〜D の 4 段階に不十分。`chunker._TREE_SITTER_AVAILABLE` はプライベート変数。
+
+**[Mediator]**: `count_lines()` のみ import で再利用。`should_enable_static_analysis()` は使用せず独自閾値テーブルを持つ（上位互換）。前提条件チェックは `shutil.which()` と `importlib.util.find_spec()` で独立実装。
+
+#### Atom A3: E2E テストフレームワーク
+
+**[Affirmative]**: フィクスチャで既知 Issue を仕込み検出率を計測する方式は有用。pytest marker でテスト分離すれば CI への影響がない。
+
+**[Critical]**: LLM 出力は非決定的。検出率テストの結果が揺れる。Security フィクスチャは bandit が確実に検出できるため LLM に頼る必要がない。Warning 80% 基準未達でテストを fail させると CI の信頼性が失われる。
+
+**[Mediator]**: 3 層分離（決定的 / LLM 検出率 / 収束テスト）を pytest marker で実現。Security フィクスチャは決定的テストとして扱う。Warning 基準未達は結果記録 + Issue 起票推奨とし、テスト自体は pass。
+
+#### Atom A4: full-review.md 移行戦略
+
+**[Affirmative]**: 一括書き換えで整合性を確保。段階的移行は中途半端な二重管理のリスクがある。
+
+**[Critical]**: 一括書き換えは self-reference 漏れ時にフロー断絶。連鎖ドキュメント（設計書、タスク定義）の更新も必要。
+
+**[Mediator]**: self-reference を全件棚卸し（Section 6.5 テーブル参照）した上で一括移行。移行は 6 ステップで実施し、各ステップ後に検証。
+
+#### AoT Synthesis
+
+**統合結論**: Stage 体系への一括移行を採用し、scale_detector.py は既存コードを import しつつ独自閾値テーブルを持つ独立モジュールとして設計する。E2E テストは pytest marker による 3 層分離で管理する。
+
+### 6.2 Stage 体系設計（FR-E1）
+
+#### 6.2.1 Stage-to-Phase 完全マッピング
 
 ```
-Stage 1: 静的事前分析（Plan A）→ static-issues.json
-Stage 2: AST チャンク分割 + 依存グラフ活用（Plan B + D）
-Stage 3: 並列 Map レビュー + 階層的 Reduce（Plan B + C）
-Stage 4: 修正 + 全体再レビュー（FR-5）
-Stage 5: Green State 判定
+Stage 0: 初期化
+  Step 1: ループ状態ファイル生成        ← Phase 1
+  Step 2: context7 MCP 検出            ← Phase 1.5
+  Step 3: Scale Detection 判定（新規）  ← Phase 0 Step 1 から移管 + FR-E2
+
+Stage 1: 静的分析 + 依存グラフ構築 【実行条件: Plan A 以上】
+  Step 1: 静的解析実行（run_phase0）    ← Phase 0 Step 2
+  Step 2: 結果の Stage 2 への接続      ← Phase 0 Step 3
+  Step 3: 依存グラフ構築               ← Phase 0.3
+
+Stage 2: チャンク分割 + トポロジカル順レビュー
+  Step 1: tree-sitter 利用可否チェック  ← Phase 1.7 Step 1
+  Step 2: チャンク分割（chunks.json）   ← Phase 1.7 Step 2
+  Step 3: 並列監査                     ← Phase 2（全内容）
+  Step 4: 概要カード + 契約カード生成   ← Phase 2 完了後フロー
+
+Stage 3: 階層的統合 + レポート生成
+  Step 1: Layer 2 — モジュール統合      ← Phase 2.5 Step 1
+  Step 2: 契約カード永続化              ← Phase 2.5 Step 1.5
+  Step 3: Layer 3 — 機械的チェック      ← Phase 2.5 Step 2
+  Step 4: Layer 3 — LLM 仕様ドリフト検出← Phase 2.5 Step 3
+  Step 5: レポート統合 + PG/SE/PM 分類  ← Phase 3
+
+Stage 4: トポロジカル順修正
+  Step 1: PG/SE 級修正（トポロジカル順）← Phase 4
+  Step 2: PM 級処理フロー              ← Phase 4 PM 級処理
+
+Stage 5: 検証 + Green State 判定 + 完了
+  Step 1: G1〜G5 チェック              ← Phase 5
+  Step 2: 影響範囲分析                 ← Phase 5（FR-7d）
+  Step 3: ループ継続/停止判定           ← Phase 5 ループ制御
+  Step 4: 完了報告 + ループログ出力     ← Phase 6
+```
+
+#### 6.2.2 Stage 間データフロー契約（FR-E1b）
+
+**永続化成果物（Stage 間で引き継ぐファイル）**:
+
+| Stage | 入力（前 Stage から） | 出力（次 Stage へ） |
+|:------|:---------------------|:-------------------|
+| **Stage 0** | 対象パス（引数） | `lam-loop-state.json`, `scale-detection.json` |
+| **Stage 1** | 対象パス, `review-config.json`（任意）, `scale-detection.json` | `static-issues.json`, `ast-map.json`, `import-map.json`, `dependency-graph.json`, `summary.md` |
+| **Stage 2** | `ast-map.json`, `import-map.json`, `dependency-graph.json`（任意）, `static-issues.json`（任意） | `file-cards/`, `contracts/`, `chunk-results/`（チャンクモード時） |
+| **Stage 3** | `file-cards/`, `contracts/`（任意）, `ast-map.json`, `import-map.json` | 統合レポート（`audit-reports/YYYY-MM-DD-iterN.md`）, `module-cards/`, `layer3-issues.json` |
+| **Stage 4** | 統合レポート, `dependency-graph.json`（任意） | 修正済みコード, 更新済み `lam-loop-state.json` |
+| **Stage 5** | テスト結果, lint 結果, `lam-loop-state.json` | Green State 判定, ループログ（`logs/`） |
+
+**ステージ制御フラグ（lam-loop-state.json 内）**:
+
+| フラグ | セット Stage | 参照 Stage | 意味 |
+|:-------|:------------|:-----------|:-----|
+| `active` | Stage 0 | Stage 5 | ループ有効フラグ |
+| `iteration` | Stage 5 | Stage 2, 5 | 現在イテレーション番号 |
+| `fullscan_pending` | Stage 5 | Stage 2 | フルスキャン待ちフラグ |
+| `pm_pending` | Stage 4 | Stage 4, Stop hook | PM級承認待ちフラグ |
+
+#### 6.2.3 後方互換メカニズム（~10K 行プロジェクト）
+
+Scale Detection が Plan セット「なし」を返す場合（~10K 行）の動作:
+
+```
+Stage 0: ループ初期化 + context7 検出 + Scale Detection → Plan セット「なし」
+Stage 1: スキップ（Plan A 未満のため）
+Stage 2: 従来モード（ファイル全体レビュー、チャンクなし、トポロジカル順なし）
+Stage 3: レポート統合のみ実行（Layer 2, 3 はスキップ）
+Stage 4: 従来通り修正（重要度順）
+Stage 5: 従来通り検証 + 完了報告
+```
+
+各 Stage 先頭に「実行条件」を記述し、条件分岐を明示する:
+
+| Stage | 実行条件 |
+|:------|:---------|
+| Stage 0 | 常に実行 |
+| Stage 1 | Scale Detection で Plan A 以上が有効と判定された場合のみ |
+| Stage 2 | 常に実行（チャンクモード/従来モードは Plan B の有無で分岐） |
+| Stage 3 | 常に実行（Layer 2/3 は Plan C 以上の場合のみ。レポート統合は常に実行） |
+| Stage 4 | 常に実行（トポロジカル順は Plan D の場合のみ） |
+| Stage 5 | 常に実行 |
+
+### 6.3 scale_detector.py 設計（FR-E2）
+
+#### 6.3.1 データモデル
+
+```python
+@dataclass
+class PlanStatus:
+    """個別 Plan の判定結果。"""
+    enabled: bool      # 行数閾値から有効化すべきか
+    available: bool    # 前提条件が充足されているか
+    reason: str        # 表示用メッセージ（例: "ruff: installed, bandit: installed"）
+
+@dataclass
+class ScaleDetectionResult:
+    """Scale Detection の判定結果全体。"""
+    line_count: int
+    recommended_plans: list[str]                # 閾値テーブルからの推奨 ["A", "B", "C"]
+    active_plans: list[str]                     # enabled=True かつ available=True のプラン
+    plan_statuses: dict[str, PlanStatus]        # "A"|"B"|"C"|"D" → PlanStatus
+```
+
+#### 6.3.2 閾値テーブル
+
+```python
+_PLAN_THRESHOLDS: list[tuple[int, list[str]]] = [
+    (300_000, ["A", "B", "C", "D"]),
+    (100_000, ["A", "B", "C"]),
+    ( 30_000, ["A", "B"]),
+    ( 10_000, ["A"]),
+    (      0, []),
+]
+```
+
+`should_enable_static_analysis()` を利用しない理由: 既存関数は 3 値（skip/suggest/auto）を返し、Plan A 単体の有効化判定にしか使えない。scale_detector は Plan A〜D の 4 段階を区別する必要があり、独立した閾値テーブルを持つ方がシンプル。両者の閾値（10K/30K）は重複するが、scale_detector がより多くの段階を表現する上位互換として位置づける。
+
+#### 6.3.3 前提条件チェック
+
+| Plan | チェック方法 | 判定ロジック |
+|:-----|:-----------|:-----------|
+| Plan A | `shutil.which("ruff")`, `shutil.which("bandit")` | 両方インストール済みなら available=True |
+| Plan B | `importlib.util.find_spec("tree_sitter")` | tree-sitter パッケージが見つかれば available=True |
+| Plan C | Plan B の PlanStatus.available を参照 | Plan B が available なら自動的に available=True |
+| Plan D | `Path(".claude/review-state/import-map.json").exists()` | ファイル存在で available=True |
+
+**設計判断**: `base.AnalyzerRegistry.verify_tools()` は `ToolNotFoundError` を投げて処理を停止する設計であり、Scale Detector の「Warning 表示 + スキップ」セマンティクスと矛盾するため使用しない。`chunker._TREE_SITTER_AVAILABLE` はプライベート変数であり外部参照は設計違反のため、`importlib.util.find_spec()` で代替する。
+
+#### 6.3.4 公開 API
+
+```python
+def detect_scale(
+    project_root: Path,
+    config: ReviewConfig | None = None,
+) -> ScaleDetectionResult:
+    """プロジェクト規模を検出し、有効化する Plan を判定する。
+
+    1. count_lines() で行数をカウント（run_pipeline.py から import）
+    2. 閾値テーブルで推奨 Plan セットを決定
+    3. 各 Plan の前提条件をチェック
+    4. 結果を ScaleDetectionResult として返す
+    """
+
+def format_scale_detection(result: ScaleDetectionResult) -> str:
+    """FR-E2c 準拠のフォーマット済み出力を生成する。
+
+    出力例:
+    === Scale Detection ===
+    Lines: 45,230
+    Recommended: Plan A + B + C
+    Active Plans:
+      Plan A: ✓ (ruff: installed, bandit: installed)
+      Plan B: ✓ (tree-sitter: installed)
+      Plan C: ✓ (auto)
+      Plan D: ✗ (import-map.json not found — skipping topological ordering)
+    """
+```
+
+**CLI エントリポイント**: `if __name__ == "__main__":` ブロックで CLI として実行可能にし、`ScaleDetectionResult` を JSON 変換して stdout 出力 + `.claude/review-state/scale-detection.json` に永続化する。full-review.md の Stage 0 は `python3 .claude/hooks/analyzers/scale_detector.py <project_root>` を呼び出す。
+
+#### 6.3.5 既存コードとの関係
+
+| 既存要素 | 利用方法 | 修正の要否 |
+|:---------|:---------|:---------|
+| `run_pipeline.count_lines()` | `from analyzers.run_pipeline import count_lines` で直接 import | 不要 |
+| `run_pipeline.should_enable_static_analysis()` | **利用しない**（独自閾値テーブルで上位互換） | 不要 |
+| `base.AnalyzerRegistry.verify_tools()` | **利用しない**（例外投出設計のため不適合） | 不要 |
+| `chunker._TREE_SITTER_AVAILABLE` | **利用しない**（`importlib.util.find_spec` で代替） | 不要 |
+| `config.ReviewConfig` | `detect_scale()` の引数として受け取り、`exclude_dirs` を `count_lines()` に渡す | 不要 |
+
+依存方向: `scale_detector` → `run_pipeline`（単方向）。`run_pipeline` は `scale_detector` に依存しないため循環 import のリスクなし。
+
+#### 6.3.6 Stage 0 への統合フロー
+
+```
+Stage 0 Step 3: Scale Detection
+  1. python3 .claude/hooks/analyzers/scale_detector.py $PROJECT_ROOT を実行
+  2. stdout に FR-E2c フォーマットの判定結果が表示される
+  3. .claude/review-state/scale-detection.json に結果が永続化される
+  4. active_plans に基づいて後続 Stage の動作を決定:
+     - active_plans が空    → Stage 1 スキップ、Stage 2 従来モード
+     - "A" を含む           → Stage 1 実行
+     - "B" を含む           → Stage 2 チャンクモード
+     - "C" を含む           → Stage 3 全 Layer 実行
+     - "D" を含む           → Stage 2/4 トポロジカル順
+```
+
+### 6.4 E2E テストフレームワーク設計（FR-E3）
+
+#### 6.4.1 テスト責務の 3 層分離
+
+| 層 | クラス | pytest marker | CI | 決定性 |
+|:---|:------|:-------------|:---|:------|
+| 決定的 | `TestScaleDetection` | なし | 組み込む | 決定的（pytest） |
+| LLM 検出率 | `TestDetectionRate` | `@pytest.mark.e2e_llm` | 除外 | 非決定的（LLM 依存） |
+| 収束 | `TestConvergence` | `@pytest.mark.e2e_convergence` | 除外 | 非決定的（LLM 依存） |
+
+`pyproject.toml` 追記:
+
+```toml
+[tool.pytest.ini_options]
+markers = [
+    "e2e_llm: LLM依存テスト（CI除外）",
+    "e2e_convergence: 収束テスト（CI除外・手動実行）",
+]
+```
+
+既存の `addopts` に `-m 'not e2e_llm and not e2e_convergence'` を追加し、素の `pytest` 実行では決定的テストのみが走るようにする。LLM 依存テストは `pytest -m e2e_llm` で明示的に実行する。
+
+#### 6.4.2 test_e2e_review.py インターフェース
+
+```python
+# .claude/hooks/analyzers/tests/test_e2e_review.py
+
+@dataclass
+class DetectionResult:
+    """検出率テストの1回分の結果。"""
+    fixture_name: str
+    expected_count: int
+    detected_count: int
+    detection_rate: float
+    meets_target: bool
+
+@dataclass
+class E2ERunRecord:
+    """E2E テスト全体の実行記録。"""
+    run_id: str               # YYYYMMDD_HHMMSS
+    test_type: str            # "detection" | "convergence" | "scale"
+    status: str               # "passed" | "failed" | "skipped"
+    summary: str
+    details: list[dict]
+    elapsed_seconds: float
+
+
+class TestScaleDetection:
+    """FR-E3b-3: scale_detector.py 決定的テスト（CI 対象）。"""
+
+    def test_under_10k_returns_no_plans(self) -> None: ...
+    def test_10k_to_30k_returns_plan_a(self) -> None: ...
+    def test_30k_to_100k_returns_plan_a_and_b(self) -> None: ...
+    def test_100k_to_300k_returns_plan_a_b_c(self) -> None: ...
+    def test_over_300k_returns_all_plans(self) -> None: ...
+    def test_plan_a_skipped_when_ruff_missing(self, monkeypatch) -> None: ...
+    def test_plan_a_skipped_when_bandit_missing(self, monkeypatch) -> None: ...
+    def test_plan_b_fallback_when_tree_sitter_missing(self, monkeypatch) -> None: ...
+    def test_plan_d_skipped_when_import_map_missing(self, tmp_path) -> None: ...
+    def test_output_format_matches_fr_e2c(self) -> None: ...
+
+
+@pytest.mark.e2e_llm
+class TestDetectionRate:
+    """FR-E3b-1: 検出率テスト（CI 除外）。"""
+
+    def test_critical_silent_failure_detection(self) -> None: ...
+    def test_warning_long_function_detection(self) -> None: ...
+    def test_security_hardcoded_password_detection(self) -> None: ...
+    def test_detection_results_are_recorded(self) -> None: ...
+
+
+@pytest.mark.e2e_convergence
+class TestConvergence:
+    """FR-E3b-2: 収束テスト（CI 除外・手動実行）。"""
+
+    def test_lam_reaches_green_state(self) -> None: ...
+```
+
+#### 6.4.3 フィクスチャ設計
+
+**配置先**: `.claude/hooks/analyzers/tests/fixtures/e2e/`
+
+```
+fixtures/e2e/
+├── README.md                        # フィクスチャ概要・Issue 箇所一覧
+├── critical_silent_failure.py       # Critical: Silent Failure × 3箇所
+├── warning_long_function.py         # Warning: Long Function (51行+) × 2箇所
+├── security_hardcoded_password.py   # Security: ハードコードパスワード × 3箇所
+└── combined_issues.py               # 複合: 全 Issue 種別 × 各1箇所
+```
+
+**フィクスチャ設計原則**:
+
+- 各ファイルは単一の Issue 種別に特化（`combined_issues.py` を除く）
+- 各 Issue 箇所に `# FIXTURE-ISSUE-N:` コメントを付与し、行番号を固定
+- Security フィクスチャは bandit B105/B106 が確実に検出するパターンを使用（決定的テスト層）
+- フィクスチャの変更は PM 級扱い（テスト基準の変更に相当）
+
+**critical_silent_failure.py の構造例**:
+
+```python
+"""E2E フィクスチャ: Critical - Silent Failure (3箇所)"""
+
+def process_payment(amount: float) -> bool:
+    try:
+        result = _call_payment_api(amount)
+        return result.success
+    except Exception:
+        # FIXTURE-ISSUE-1: Silent Failure — 例外握りつぶし
+        return False
+
+def load_config(path: str) -> dict:
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        # FIXTURE-ISSUE-2: Silent Failure — 空 dict で隠蔽
+        return {}
+
+class DataProcessor:
+    def transform(self, data: list) -> list:
+        results = []
+        for item in data:
+            try:
+                results.append(self._process_item(item))
+            except ValueError:
+                # FIXTURE-ISSUE-3: Silent Failure — エラースキップ
+                pass
+        return results
+```
+
+#### 6.4.4 結果記録フォーマット
+
+**配置先**: `docs/artifacts/e2e-results/`
+
+```
+docs/artifacts/e2e-results/
+├── README.md
+├── latest.json              # 最新実行結果（上書き）
+├── latest-summary.md        # 人間向けサマリー（上書き）
+└── history/
+    ├── 20260316_143022.json
+    └── ...
+```
+
+**latest.json スキーマ（実装準拠）**:
+
+```json
+{
+  "run_id": "20260316_143022",
+  "executed_at": "2026-03-16T14:30:22+09:00",
+  "test_type": "detection",
+  "overall_status": "passed",
+  "summary": "Critical 3/3 (100%), Warning 4/5 (80%), Security 3/3 (100%)",
+  "details": [],
+  "elapsed_seconds": 127.4
+}
+```
+
+> **Note**: `details` フィールドは汎用的なリスト型。LLM 検出率テスト拡張時に
+> `detection_results`（fixture 別の検出率）や `improvement_triggers`（SHOULD 基準未達フラグ）を
+> `details` 内に格納する。現時点では空リスト。
+
+Warning 基準未達時はテストを fail させず、`details` 内に改善トリガー情報を記録し `/retro` での確認対象とする（仕様: SHOULD 基準、改善トリガーとして扱う）。
+
+### 6.5 full-review.md 移行設計
+
+#### 6.5.1 self-reference 全件テーブル
+
+full-review.md 内の Phase 参照を全件棚卸しした結果（23 箇所）:
+
+| # | 現行テキスト（抜粋） | 更新後 |
+|:--|:---------------------|:------|
+| R-01 | `Phase 0 完了後、Phase 0.3 に進む。` | Stage 1 内部: Step 完了後 Step 3 に進む |
+| R-02 | `Phase 0.3 完了後、Phase 1 に進む。` | Stage 1 完了後、Stage 2 に進む |
+| R-03 | `Phase 1 完了後、Phase 1.5 に進む。` | 削除（同一 Stage 0 内） |
+| R-04 | `Phase 5 完了後に自分で Phase 2 に戻る` | Stage 5 → Stage 2 に戻る |
+| R-05 | `Phase 1.7 完了後、Phase 2 に進む。` | 削除（同一 Stage 2 内） |
+| R-06 | `Phase 2 では従来のファイル全体レビューにフォールバック` | Stage 2 では〜 |
+| R-07 | `Phase 2 への接続` | レビューへの接続 |
+| R-08 | `（Phase 4: Plan D）` | （Stage 4: Plan D） |
+| R-09 | `Phase 0 Step 3: 静的解析結果の Phase 2 への接続` | Stage 1: 静的解析結果の Stage 2 への接続 |
+| R-10 | `Phase 2（並列監査）のエージェント` | Stage 2（並列監査）のエージェント |
+| R-11 | `Phase 2.5 も含めて全 Layer をゼロベース` | Stage 3 も含めて〜 |
+| R-12 | 再スキャンフロー: `Phase 0→1.7→2→2.5→3〜5` | `Stage 1→2→3→4〜5` |
+| R-13 | 監査範囲テーブル: `Phase 2`, `Phase 2.5`, `Phase 5` | `Stage 2`, `Stage 3`, `Stage 5` |
+| R-14 | `Phase 2 に戻って再監査` | Stage 2 に戻って〜 |
+| R-15 | `再レビューループでの Phase 2.5 再実行` | Stage 3 再実行 |
+| R-16 | `自分で Phase 2 に戻る` | Stage 2 に戻る |
+| R-17 | `Phase 6 に進む` | Stage 5（完了報告）に進む |
+| R-18 | `Phase 2 + 2.5`, `Phase 3〜5→Phase 2` | `Stage 2 + 3`, `Stage 4〜5→Stage 2` |
+| R-19 | `max_iterations → Phase 6` | Stage 5（完了報告）へ |
+| R-20 | 参照セクション（7 行の Phase 参照） | 全件 Stage 参照に更新 |
+| R-21 | `Phase 2（並列監査）のエージェントに` | Stage 2（並列監査）のエージェントに |
+| R-22 | `Phase 1 以降は静的解析なしで続行可能` | Stage 2 以降は〜 |
+| R-23 | `Phase 4: Plan D` | Stage 4: Plan D |
+
+#### 6.5.2 移行ステップ計画
+
+| Step | 作業内容 | 検証ポイント |
+|:-----|:---------|:-----------|
+| M-1 | full-review.md の見出し再編（Phase → Stage） | Stage 0〜5 の見出しが存在し、中間 Phase がないこと |
+| M-2 | R-01〜R-23 の self-reference 全件更新 | grep で `Phase` が残っていないこと（参照セクションの歴史的記述を除く） |
+| M-3 | Stage 0 に Scale Detection Step を追加 | Stage 0 Step 3 が scale_detector.py を呼び出す記述があること |
+| M-4 | 各 Stage 先頭に実行条件 / 入力 / 出力の契約を追加 | 6 Stage 全てに契約セクションがあること |
+| M-5 | 連鎖ドキュメント更新（設計書 Section 1, タスク定義） | Phase 対応表が Stage 対応表に更新されていること |
+| M-6 | 参照セクションの更新 | Stage 番号で整合していること |
+
+### 6.6 永続化構造（Plan E 追加分）
+
+```
+.claude/
+├── hooks/
+│   └── analyzers/
+│       ├── scale_detector.py          # Plan E 新規: スケール判定
+│       └── tests/
+│           ├── test_e2e_review.py     # Plan E 新規: E2E テスト
+│           └── fixtures/
+│               └── e2e/               # Plan E 新規: E2E フィクスチャ
+│                   ├── README.md
+│                   ├── critical_silent_failure.py
+│                   ├── warning_long_function.py
+│                   ├── security_hardcoded_password.py
+│                   └── combined_issues.py
+├── review-state/
+│   ├── scale-detection.json           # Plan E 新規: スケール判定結果
+│   ├── static-issues.json             # 既存（Plan A）
+│   ├── ast-map.json                   # 既存（Plan A）
+│   ├── import-map.json                # 既存（Plan A）
+│   ├── summary.md                     # 既存（Plan A）
+│   ├── chunks.json                    # 既存（Plan B）
+│   ├── chunk-results/                 # 既存（Plan B）
+│   ├── cards/                         # 既存（Plan C）
+│   │   ├── file-cards/
+│   │   └── module-cards/
+│   ├── dependency-graph.json          # 既存（Plan D）
+│   └── contracts/                     # 既存（Plan D）
+├── review-config.json                 # 既存
+└── commands/
+    └── full-review.md                 # 改修: Stage 体系に再編
+```
+
+```
+docs/artifacts/
+└── e2e-results/                       # Plan E 新規
+    ├── README.md
+    ├── latest.json
+    ├── latest-summary.md
+    └── history/
 ```
 
 ## 7. ファイル構成
@@ -770,32 +1288,47 @@ Stage 5: Green State 判定
 ```
 .claude/
 ├── hooks/
-│   └── analyzers/              # 静的解析プラグイン（新規）
+│   └── analyzers/              # 静的解析プラグイン
 │       ├── __init__.py
 │       ├── base.py             # LanguageAnalyzer ABC
 │       ├── python_analyzer.py
 │       ├── javascript_analyzer.py
 │       ├── rust_analyzer.py
 │       ├── chunker.py            # Plan B
-│       ├── card_generator.py     # Plan C
-│       └── tests/               # analyzers 専用テスト（conftest.py で hooks/tests と fixture 共有）
-├── review-state/               # レビュー状態の永続化（新規）
-│   ├── static-issues.json
-│   ├── ast-map.json
-│   ├── summary.md
-│   ├── chunk-results/
-│   ├── cards/                    # Plan C で追加
-│   │   ├── file-cards/           # 概要カード（Layer 1）
-│   │   └── module-cards/         # 要約カード（Layer 2）
-│   ├── dependency-graph.json   # Plan D で追加
-│   └── contracts/              # Plan D で追加
+│       ├── card_generator.py     # Plan C + D
+│       ├── orchestrator.py       # Plan B + D
+│       ├── reducer.py            # Plan B
+│       ├── run_pipeline.py       # Plan A
+│       ├── state_manager.py      # Plan A〜D
+│       ├── config.py             # Plan A
+│       ├── scale_detector.py     # Plan E: スケール判定
+│       └── tests/
+│           ├── conftest.py
+│           ├── test_*.py         # Plan A〜D テスト群
+│           ├── test_e2e_review.py  # Plan E: E2E テスト
+│           └── fixtures/
+│               └── e2e/          # Plan E: E2E フィクスチャ
+├── review-state/               # レビュー状態の永続化
+│   ├── scale-detection.json      # Plan E
+│   ├── static-issues.json        # Plan A
+│   ├── ast-map.json              # Plan A
+│   ├── import-map.json           # Plan A
+│   ├── summary.md                # Plan A
+│   ├── chunks.json               # Plan B
+│   ├── chunk-results/            # Plan B
+│   ├── cards/                    # Plan C
+│   │   ├── file-cards/
+│   │   └── module-cards/
+│   ├── dependency-graph.json     # Plan D
+│   └── contracts/                # Plan D
 ├── review-config.json          # レビュー設定（Section 2.4c 参照）
 └── commands/
-    └── full-review.md          # 拡張（Phase 0 追加、Phase リナンバリング）
+    └── full-review.md          # Stage 体系（Plan E で再編）
 ```
 
 ## 8. 参照
 
 - 要件仕様: `docs/specs/scalable-code-review-spec.md`
+- Phase 5 仕様: `docs/specs/scalable-code-review-phase5-spec.md`
 - 調査メモ: `docs/specs/scalable-code-review.md`
 - タスク: `docs/tasks/scalable-code-review-tasks.md`
