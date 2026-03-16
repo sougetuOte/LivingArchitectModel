@@ -203,17 +203,21 @@ Stop hook の G5 チェックからシークレットスキャン部分を除去
 `ReviewResult.issues` を `list[str]` から `list[Issue]` に統一する。
 `Issue` dataclass（`base.py` 定義済み）を全パイプラインで一貫使用する。
 
-### FR-8: 将来拡張（Plan E: ハイブリッドパイプライン）
+### FR-8: ハイブリッドパイプライン（Plan E: 実装完了）
 
-Plan A〜D の長所を統合した最終形態。
+Plan A〜D を統一的な Stage 体系に再編し、自動スケール判定と E2E テストを追加。
 
 ```
-Stage 1: 静的事前分析（Plan A）
-Stage 2: チャンク分割 + 並列レビュー（Plan B + D のグラフ活用）
-Stage 3: 階層的統合（Plan C）
-Stage 4: 修正 + 全体再レビュー（FR-5 に従う）
-Stage 5: Green State 判定
+Stage 0: 初期化 + Scale Detection（自動 Plan 判定）
+Stage 1: 静的分析 + 依存グラフ構築（Plan A + D）
+Stage 2: チャンク分割 + トポロジカル順レビュー（Plan B + D）
+Stage 3: 階層的統合 + レポート生成（Plan C）
+Stage 4: トポロジカル順修正
+Stage 5: 検証 + Green State 判定 + 完了
 ```
+
+詳細仕様: `docs/specs/scalable-code-review-phase5-spec.md`
+設計書: `docs/design/scalable-code-review-design.md` Section 6
 
 ## 4. 非機能要件
 
