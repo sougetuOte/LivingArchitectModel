@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.5.0] - 2026-03-16
+
+### 概要
+
+Scalable Code Review Phase 3〜5（Plan C/D/E）完了、/magi スキル新設、
+全文書の MAGI System 命名統一。
+
+### Added
+
+- **feat**: Plan C — 階層的レビュー（Layer 2 モジュール統合 + Layer 3 システムレビュー）
+- **feat**: Plan D — 依存グラフ駆動（トポロジカル順レビュー・修正 + 契約カード + 影響範囲分析）
+- **feat**: Plan E — Stage 体系再編（11 Phase → 6 Stage）+ 自動スケール判定（scale_detector.py）+ E2E テストフレームワーク
+- **feat**: /magi スキル — AoT + MAGI System（MELCHIOR/BALTHASAR/CASPAR）+ Reflection による構造化意思決定
+- **feat**: /clarify スキル — 文書精緻化インタビュー（曖昧さ・矛盾・欠落検出）
+- **docs**: Code Quality Guideline（三層モデル + 重要度分類 + Green State 再定義）
+- **docs**: Planning Quality Guideline（Requirements Smells + RFC 2119 + SPIDR + WBS 100%）
+- **docs**: Green State 定義統一（Info 非阻害）
+- **test**: 435 テスト（v4.4.1 の 68 から大幅増）
+
+### Changed
+
+- **refactor**: Three Agents Model → MAGI System に改名（旧名は括弧書きで後方互換維持）
+- **refactor**: full-review.md を Stage 体系に全面再編（23 箇所の self-reference 更新）
+- **refactor**: lam-orchestrate の構造化思考セクションを /magi 参照に置換
+- **docs**: 全スライド（日英 8 ファイル）を MAGI System + Stage 体系に更新
+- **docs**: README, CHEATSHEET（日英）を MAGI 命名に統一
+- **docs**: 01_REQUIREMENT_MANAGEMENT, 02_DEVELOPMENT_FLOW に /magi + /clarify 反映
+- **docs**: TDD 品質チェックに R-5（テスト名一致）/ R-6（設計書アサーション）追加
+
 ## [v4.4.1] - 2026-03-13
 
 ### 概要
