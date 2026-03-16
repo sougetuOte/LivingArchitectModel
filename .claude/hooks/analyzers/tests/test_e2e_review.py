@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -47,7 +48,7 @@ class E2ERunRecord:
     test_type: str
     status: str
     summary: str
-    details: list
+    details: list[dict]
     elapsed_seconds: float
 
 
@@ -58,7 +59,7 @@ def _count_inline_issue_markers(fixture: Path) -> int:
     実際のコード行に付与されたマーカーのみをカウントする。
     """
     count = 0
-    for line in fixture.read_text().splitlines():
+    for line in fixture.read_text(encoding="utf-8").splitlines():
         stripped = line.strip()
         if stripped.startswith("# FIXTURE-ISSUE-"):
             count += 1
@@ -66,7 +67,10 @@ def _count_inline_issue_markers(fixture: Path) -> int:
 
 
 def _save_result(record: E2ERunRecord) -> None:
-    """結果を docs/artifacts/e2e-results/ に保存する。"""
+    """結果を docs/artifacts/e2e-results/ に保存する。
+
+    latest.json（上書き）+ latest-summary.md（上書き）+ history/{run_id}.json（追記）。
+    """
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     history_dir = RESULTS_DIR / "history"
     history_dir.mkdir(exist_ok=True)
@@ -80,12 +84,19 @@ def _save_result(record: E2ERunRecord) -> None:
         "details": record.details,
         "elapsed_seconds": record.elapsed_seconds,
     }
-    (RESULTS_DIR / "latest.json").write_text(
-        json.dumps(data, indent=2, ensure_ascii=False)
+    json_text = json.dumps(data, indent=2, ensure_ascii=False)
+    (RESULTS_DIR / "latest.json").write_text(json_text, encoding="utf-8")
+    (history_dir / f"{record.run_id}.json").write_text(json_text, encoding="utf-8")
+
+    summary_md = (
+        f"# E2E Review Quality Report\n\n"
+        f"**Run ID**: {record.run_id}\n"
+        f"**Type**: {record.test_type}\n"
+        f"**Status**: {record.status}\n"
+        f"**Summary**: {record.summary}\n"
+        f"**Elapsed**: {record.elapsed_seconds:.1f}s\n"
     )
-    (history_dir / f"{record.run_id}.json").write_text(
-        json.dumps(data, indent=2, ensure_ascii=False)
-    )
+    (RESULTS_DIR / "latest-summary.md").write_text(summary_md, encoding="utf-8")
 
 
 class TestScaleDetection:
@@ -107,8 +118,8 @@ class TestScaleDetection:
 
         assert result.recommended_plans == ["A"]
 
-    def test_10k_boundary_exact(self, project_root: Path) -> None:
-        """10K 行ちょうどでは Plan A が推奨されること（境界値）。"""
+    def test_just_below_30k_still_plan_a(self, project_root: Path) -> None:
+        """30K 直前（29,999行）ではまだ Plan A のみであること。"""
         with patch("analyzers.scale_detector.count_lines", return_value=29_999):
             result = detect_scale(project_root)
 
@@ -121,8 +132,8 @@ class TestScaleDetection:
 
         assert result.recommended_plans == ["A", "B"]
 
-    def test_30k_boundary_exact(self, project_root: Path) -> None:
-        """30K 行ちょうどでは Plan A + B が推奨されること（境界値）。"""
+    def test_just_below_100k_still_plan_a_and_b(self, project_root: Path) -> None:
+        """100K 直前（99,999行）ではまだ Plan A + B であること。"""
         with patch("analyzers.scale_detector.count_lines", return_value=99_999):
             result = detect_scale(project_root)
 
@@ -135,8 +146,8 @@ class TestScaleDetection:
 
         assert result.recommended_plans == ["A", "B", "C"]
 
-    def test_100k_boundary_exact(self, project_root: Path) -> None:
-        """100K 行ちょうどでは Plan A + B + C が推奨されること（境界値）。"""
+    def test_just_below_300k_still_plan_a_b_c(self, project_root: Path) -> None:
+        """300K 直前（299,999行）ではまだ Plan A + B + C であること。"""
         with patch("analyzers.scale_detector.count_lines", return_value=299_999):
             result = detect_scale(project_root)
 
@@ -286,11 +297,16 @@ class TestFixtures:
         _save_result(record)
 
         assert (tmp_path / "latest.json").is_file()
+        assert (tmp_path / "latest-summary.md").is_file()
         assert (tmp_path / "history" / "20260316_000000.json").is_file()
 
         data = json.loads((tmp_path / "latest.json").read_text())
         assert data["run_id"] == "20260316_000000"
         assert data["overall_status"] == "passed"
+
+        summary = (tmp_path / "latest-summary.md").read_text()
+        assert "20260316_000000" in summary
+        assert "passed" in summary
 
     def test_save_result_history_content_matches(
         self, tmp_path: Path, monkeypatch
@@ -483,12 +499,13 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent  # .claude/hooks
 
-        env = {**__import__("os").environ, "PYTHONPATH": str(hooks_dir)}
+        env = {**os.environ, "PYTHONPATH": str(hooks_dir)}
         result = subprocess.run(
             [sys.executable, str(scale_detector_path), str(project_root)],
             capture_output=True,
             text=True,
             env=env,
+            timeout=30,
         )
         assert result.returncode == 0, f"CLI failed: {result.stderr}"
 
@@ -510,12 +527,13 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent
 
-        env = {**__import__("os").environ, "PYTHONPATH": str(hooks_dir)}
+        env = {**os.environ, "PYTHONPATH": str(hooks_dir)}
         result = subprocess.run(
             [sys.executable, str(scale_detector_path), str(project_root)],
             capture_output=True,
             text=True,
             env=env,
+            timeout=30,
         )
         assert result.returncode == 0
         assert "=== Scale Detection ===" in result.stdout
@@ -527,12 +545,13 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent
 
-        env = {**__import__("os").environ, "PYTHONPATH": str(hooks_dir)}
+        env = {**os.environ, "PYTHONPATH": str(hooks_dir)}
         result = subprocess.run(
             [sys.executable, str(scale_detector_path)],
             capture_output=True,
             text=True,
             env=env,
+            timeout=30,
         )
         assert result.returncode != 0
 

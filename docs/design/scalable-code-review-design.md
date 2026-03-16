@@ -1177,7 +1177,7 @@ docs/artifacts/e2e-results/
     └── ...
 ```
 
-**latest.json スキーマ**:
+**latest.json スキーマ（実装準拠）**:
 
 ```json
 {
@@ -1186,23 +1186,16 @@ docs/artifacts/e2e-results/
   "test_type": "detection",
   "overall_status": "passed",
   "summary": "Critical 3/3 (100%), Warning 4/5 (80%), Security 3/3 (100%)",
-  "detection_results": [
-    {
-      "fixture": "critical_silent_failure.py",
-      "severity": "critical",
-      "expected_count": 3,
-      "detected_count": 3,
-      "detection_rate": 1.0,
-      "meets_target": true,
-      "target": 1.0
-    }
-  ],
-  "improvement_triggers": [],
+  "details": [],
   "elapsed_seconds": 127.4
 }
 ```
 
-Warning 基準未達時はテストを fail させず、`improvement_triggers` にフラグを立て `/retro` での確認対象とする（仕様: SHOULD 基準、改善トリガーとして扱う）。
+> **Note**: `details` フィールドは汎用的なリスト型。LLM 検出率テスト拡張時に
+> `detection_results`（fixture 別の検出率）や `improvement_triggers`（SHOULD 基準未達フラグ）を
+> `details` 内に格納する。現時点では空リスト。
+
+Warning 基準未達時はテストを fail させず、`details` 内に改善トリガー情報を記録し `/retro` での確認対象とする（仕様: SHOULD 基準、改善トリガーとして扱う）。
 
 ### 6.5 full-review.md 移行設計
 

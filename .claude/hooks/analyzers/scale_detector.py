@@ -49,11 +49,15 @@ class ScaleDetectionResult:
 
 
 def _determine_recommended_plans(line_count: int) -> list[str]:
-    """行数から推奨 Plan リストを決定する。"""
+    """行数から推奨 Plan リストを決定する。
+
+    _PLAN_THRESHOLDS の末尾 (0, []) により line_count >= 0 で必ずマッチする。
+    末尾の return は負値への防御（count_lines は非負を返すが型安全のため残置）。
+    """
     for threshold, plans in _PLAN_THRESHOLDS:
         if line_count >= threshold:
             return plans
-    return []
+    return []  # pragma: no cover — 防御的コード
 
 
 def _check_plan_a() -> PlanStatus:
@@ -260,6 +264,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     root = Path(sys.argv[1]).resolve()
+    if not root.is_dir():
+        print(f"Error: not a directory: {root}", file=sys.stderr)
+        sys.exit(1)
     detection_result = detect_scale(root)
     print(format_scale_detection(detection_result))
     _persist_result(root, detection_result)
