@@ -1,20 +1,21 @@
-# 意思決定プロトコル
+# 意思決定プロトコル（MAGI System）
 
-## Three Agents Model
+## MAGI System
 
 > **SSOT**: `docs/internal/06_DECISION_MAKING.md`。本ファイルは実行時の要約版。
 
 | Agent | ペルソナ | フォーカス |
 |-------|---------|-----------|
-| **Affirmative** | 推進者 | Value, Speed, Innovation |
-| **Critical** | 批判者 | Risk, Security, Debt |
-| **Mediator** | 調停者 | Synthesis, Balance, Decision |
+| **MELCHIOR** | 科学者（Affirmative / 推進者） | Value, Speed, Innovation |
+| **BALTHASAR** | 母（Critical / 批判者） | Risk, Security, Debt |
+| **CASPAR** | 女（Mediator / 調停者） | Synthesis, Balance, Decision |
 
 ## Execution Flow
 
-1. **Divergence**: Affirmative と Critical が意見を出し尽くす
+1. **Divergence**: MELCHIOR と BALTHASAR が意見を出し尽くす
 2. **Debate**: 対立ポイントについて解決策を検討
-3. **Convergence**: Mediator が最終決定を下す
+3. **Convergence**: CASPAR が最終決定を下す
+4. **Reflection（新規追加）**: 全員で結論を検証（1回限り）。致命的な見落としがあれば修正
 
 ## AoT（Atom of Thought）
 
@@ -35,7 +36,7 @@
 ### ワークフロー
 
 ```
-AoT Decomposition → Three Agents Debate (各Atom) → AoT Synthesis
+AoT Decomposition → MAGI Debate (各Atom) → Reflection → AoT Synthesis
 ```
 
 ## Output Format
@@ -48,9 +49,12 @@ AoT Decomposition → Three Agents Debate (各Atom) → AoT Synthesis
 | A2 | [判断2] | A1 |
 
 ### Atom A1: [判断内容]
-**[Affirmative]**: ...
-**[Critical]**: ...
-**[Mediator]**: 結論: ...
+**[MELCHIOR]**: ...
+**[BALTHASAR]**: ...
+**[CASPAR]**: 結論: ...
+
+### Reflection
+致命的な見落とし: なし → 結論確定
 
 ### AoT Synthesis
 **統合結論**: ...
