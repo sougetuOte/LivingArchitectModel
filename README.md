@@ -176,6 +176,9 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI アシスタント実行環境 | 必須 |
 | Python 3.8+ | フック・StatusLine に必要 | 必須 |
 | Git | バージョン管理 | 必須 |
+| [gitleaks](https://github.com/gitleaks/gitleaks) | シークレットスキャン（`/full-review` の G5 チェック） | 推奨 |
+
+gitleaks が未インストールの場合、`/full-review` で Green State G5 が FAIL になります。不要な場合は `review-config.json` で `"gitleaks_enabled": false` を設定してください。
 
 ## ライセンス
 

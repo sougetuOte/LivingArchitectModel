@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.6.0] - 2026-03-17
+
+### 概要
+
+gitleaks 統合によるシークレットスキャン基盤の導入、延期 Issue 全件解消。
+
+### Added
+
+- **feat**: gitleaks 統合 — 言語・ファイル形式を問わない包括的シークレット検出
+  - `/full-review` Stage 1 に `gitleaks detect`（全体スキャン）統合
+  - `/ship` Phase 1 に `gitleaks protect --staged`（差分スキャン）統合
+  - 未インストール時は G5 FAIL + インストールガイド表示
+  - 明示的オプトアウト: `review-config.json` の `gitleaks_enabled: false`
+  - タイムアウト・実行失敗の検出と区別（scan-timeout / scan-failed）
+- **test**: gitleaks テスト 28 件 + 既存テスト拡充 7 件（合計 480 テスト）
+
+### Changed
+
+- **docs**: `hooks-python-migration-design.md` にテスト方式 3（conftest sys.path）追記
+- **docs**: `scalable-code-review-spec.md` FR-7e に gitleaks 統合言及
+- **docs**: `full-review.md` G5 セキュリティチェックを gitleaks に置換
+- **docs**: `ship.md` Phase 1 に gitleaks protect 追加
+- **docs**: README（日英）に gitleaks を環境要件として追記
+
+### Fixed
+
+- 延期 Issue 全件解消（A〜G）:
+  - A+D: シークレットスキャン範囲拡大（gitleaks 統合で解決）
+  - B: PostToolUseFailure ランタイム検証（正常動作確認）
+  - C: PG 引数制御（既に実装済みと確認）
+  - E: テスト方式記述更新
+  - F: pre-compact.py テスト拡充
+  - G: セキュリティスキャンテスト（既存 + gitleaks で十分）
+
 ## [v4.5.0] - 2026-03-16
 
 ### 概要

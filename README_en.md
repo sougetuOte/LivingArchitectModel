@@ -176,6 +176,9 @@ The tables below list all available commands and agents, but you don't need to m
 | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI assistant runtime | Required |
 | Python 3.8+ | Required for hooks and StatusLine | Required |
 | Git | Version control | Required |
+| [gitleaks](https://github.com/gitleaks/gitleaks) | Secret scanning (`/full-review` G5 check) | Recommended |
+
+If gitleaks is not installed, `/full-review` will fail at Green State G5. Set `"gitleaks_enabled": false` in `review-config.json` to disable if not needed.
 
 ## License
 
