@@ -147,6 +147,13 @@ print(f'Summary: {result.summary_path}')
 
 **注**: Stage 1 の実行可否は Stage 0 の Scale Detection（`scale-detection.json` の `active_plans`）で決定済み。本 Step に到達した時点で Plan A が有効であることが保証されている。
 
+**NOTE: gitleaks シークレットスキャン** — `run_phase0()` 内で gitleaks によるシークレットスキャンが自動実行される（言語 Analyzer の後に実行）。
+
+- gitleaks インストール済み: `gitleaks detect` でリポジトリ全体をスキャン。検出結果は Critical Issue として `static-issues.json` に含まれる
+- gitleaks 未インストール: `rule_id="gitleaks:not-installed"` の Critical Issue が生成される。この Issue が存在する限り **G5 FAIL**（Green State 未達）となり、インストールガイドが表示される
+- gitleaks 実行失敗: `rule_id="gitleaks:scan-failed"` の Critical Issue が生成される（G5 FAIL）
+- 明示的無効化（`review-config.json` で `gitleaks_enabled: false`）: スキップ + INFO ログ（G5 PASS）
+
 ### Step 2: 静的解析結果の Stage 2 への接続
 
 静的解析で Issue が検出された場合、Stage 2（並列監査）のエージェントに以下の追加コンテキストを提供する:
@@ -159,6 +166,9 @@ print(f'Summary: {result.summary_path}')
 静的解析ツール（ruff, bandit 等）が未インストールの場合は `ToolNotFoundError` が発生する。
 エラーメッセージにインストール手順が表示されるため、ユーザーに案内して Stage 1 を中止する。
 Stage 2 以降は静的解析なしで続行可能。
+
+gitleaks が未インストールの場合は Stage 1 を中止せず、not-installed Issue を記録して続行する。
+G5 チェック（Stage 5）でこの Issue が FAIL を引き起こす。
 
 ### Step 3: 依存グラフ構築（FR-7a）
 
@@ -657,13 +667,15 @@ iter 3: 発見  0件 →             → ✅ Green State 達成
 
 #### G5 セキュリティチェックの詳細
 
-| チェック項目 | ツール例 | 判定基準 |
+| チェック項目 | ツール | 判定基準 |
 |:---|:---|:---|
 | 依存脆弱性 | `npm audit` / `pip audit` / `safety check` | Critical/High 脆弱性ゼロ |
-| シークレット漏洩 | `grep` パターンマッチ | API キー・パスワード等のハードコードなし |
+| シークレット漏洩 | **gitleaks**（Stage 1 Step 1.5 で実行済み） | gitleaks Issue ゼロ（`gitleaks:not-installed` 含む） |
 | 危険パターン | OWASP Top 10 チェック | eval/exec、SQL文字列結合、pickle.load 等なし |
 
-ツールが未インストールの場合は PASS（スキップ）扱いとし、ログに記録する。
+**gitleaks 未インストール時の G5 判定**: `gitleaks:not-installed` Issue は Critical として扱われるため、**G5 は FAIL** となる。gitleaks をインストールして再実行すれば解消される。インストールガイドは Stage 1 Step 1.5 のログに表示される。
+
+依存脆弱性・危険パターンのツールが未インストールの場合は PASS（スキップ）扱いとし、ログに記録する。
 プロジェクトに Anthropic 公式 `security-guidance` plugin がインストールされている場合は、そちらの検出結果も考慮する。
 
 ### Step 2: 影響範囲分析（FR-7d）

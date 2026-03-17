@@ -156,7 +156,7 @@ def hook_runner(project_root):
 
 ### テスト実行方式
 
-2つの方式を併用する。テスト対象の性質に応じて使い分ける。
+3つの方式を併用する。テスト対象の性質に応じて使い分ける。
 
 #### 1. subprocess 方式（ブラックボックステスト）
 
@@ -192,12 +192,36 @@ def hook_utils(hooks_on_syspath):
 用途: ユーティリティ関数の単体テスト、エッジケースの網羅的検証。
 subprocess のオーバーヘッドなく高速に実行できる。
 
+#### 3. conftest sys.path 方式（analyzers テスト）
+
+`.claude/hooks/analyzers/tests/` 配下のテストで使用する。
+`conftest.py` で `.claude/hooks` を `sys.path` に追加し、
+`from analyzers.xxx import ...` の形式で直接 import する。
+
+```python
+# .claude/hooks/analyzers/tests/conftest.py
+_HOOKS_DIR = Path(__file__).resolve().parent.parent.parent
+if str(_HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(_HOOKS_DIR))
+```
+
+用途: analyzers パッケージの全テスト。subprocess オーバーヘッドなく、
+かつ analyzers の内部構造（`base.Issue`, `config.ReviewConfig` 等）に
+直接アクセスできる。外部ツール（ruff, bandit, gitleaks 等）の呼び出しは
+`unittest.mock.patch` でモックする。
+
+**注意**: この方式は analyzers がパッケージ構造（`__init__.py` なし、
+`conftest.py` による sys.path 設定に依存）であることに起因する。
+新規テストを追加する際は、必ず `.claude/hooks/analyzers/tests/` 配下に
+配置すること。`tests/` 直下に配置すると import 解決に失敗する。
+
 #### 使い分け基準
 
-| 方式 | 対象 | 例 |
-|------|------|-----|
-| subprocess | フック全体の振る舞い | stdin→stdout 変換、exit code |
-| importlib | 内部関数の単体テスト | パス正規化、JSON パース、ログ出力 |
+| 方式 | テスト配置先 | 対象 | 例 |
+|------|------------|------|-----|
+| subprocess | `.claude/hooks/tests/` | フック全体の振る舞い | stdin→stdout 変換、exit code |
+| importlib | `.claude/hooks/tests/` | 内部関数の単体テスト | パス正規化、JSON パース、ログ出力 |
+| conftest sys.path | `.claude/hooks/analyzers/tests/` | analyzers パッケージ | Issue 変換、パイプライン実行、gitleaks |
 
 ### テストケース対応表
 

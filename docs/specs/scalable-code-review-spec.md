@@ -193,8 +193,11 @@ FR-5 の「全体ゼロベース」原則を以下のように緩和する:
 
 ### FR-7e: D-0 — シークレットスキャンの Phase 0 統合
 
-`lam-stop-hook.py` の `_SECRET_PATTERN` / `_SAFE_PATTERN` を削除し、
-シークレット検出を Phase 0 の静的解析（bandit B105/B106 等）に一元化する。
+`lam-stop-hook.py` の `_SECRET_PATTERN` / `_SAFE_PATTERN` は削除方針を維持する。
+
+シークレット検出は **gitleaks** を基盤として `run_phase0()` に統合済み
+（詳細: `docs/specs/gitleaks-integration-spec.md`）。
+bandit B105/B106 は Python 固有の検出として残留し、gitleaks と補完関係にある。
 
 Stop hook の G5 チェックからシークレットスキャン部分を除去する。
 

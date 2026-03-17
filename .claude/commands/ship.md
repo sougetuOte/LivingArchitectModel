@@ -9,9 +9,32 @@ description: "論理グループ分けコミット - 変更を棚卸し・分類
 ## Phase 1: 棚卸し
 
 1. `git status` + `git diff --stat` で変更ファイルを一覧化
-2. 秘密情報パターンを検出した場合は警告して除外:
+2. **gitleaks シークレットスキャン**（staged changes）:
+   ```bash
+   # Python スクリプトで実行
+   python3 -c "
+   import sys; sys.path.insert(0, '.claude/hooks')
+   from analyzers.gitleaks_scanner import run_protect_staged, is_available, get_install_guide
+   if not is_available():
+       print('⚠️ gitleaks 未インストール: シークレットスキャンをスキップします')
+       print(get_install_guide())
+   else:
+       issues = run_protect_staged()
+       if issues:
+           for i in issues:
+               print(f'  🔴 {i.file}:{i.line} — {i.message} ({i.rule_id})')
+       else:
+           print('✅ シークレット検出なし')
+   "
+   ```
+   - **検出なし**: Step 3 へ
+   - **検出あり**: 検出内容を表示し、ユーザーに判断を求める
+     - 「承知の上で続行」→ Step 3 へ
+     - それ以外 → コミット中止
+   - **gitleaks 未インストール**: WARNING + インストールガイドを表示し、コミットは許可する
+3. 秘密情報パターンを検出した場合は警告して除外:
    - `.env`, `credentials`, `secret`, `token`, `password`, `settings.local.json`
-3. 変更ファイル一覧をユーザーに表示
+4. 変更ファイル一覧をユーザーに表示
 
 ## Phase 2: Doc Sync チェック（v4.0.0 強化）
 
