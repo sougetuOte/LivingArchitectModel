@@ -1,0 +1,11 @@
+# gitleaks 設定ファイル
+# 対応仕様: docs/specs/gitleaks-integration-spec.md FR-5
+# 対応設計: docs/design/gitleaks-integration-design.md Section 5.7
+
+[extend]
+# gitleaks デフォルトルールを継承
+
+[allowlist]
+  paths = [
+    '''.claude/hooks/analyzers/tests/fixtures/''',
+  ]

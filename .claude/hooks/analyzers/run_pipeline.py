@@ -2,7 +2,7 @@
 
 Task A-6: full-review Phase 0 統合
 対応仕様: scalable-code-review-spec.md FR-1, NFR-2, NFR-4
-対応設計: scalable-code-review-design.md Section 2.4
+対応設計: scalable-code-review-design.md Section 2.4, gitleaks-integration-design.md Section 5.4
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ from pathlib import Path
 
 from analyzers.base import AnalyzerRegistry, Issue, LanguageAnalyzer
 from analyzers.config import ReviewConfig
+from analyzers.gitleaks_scanner import run_detect as gitleaks_run_detect
 from analyzers.python_analyzer import PythonAnalyzer
 from analyzers.javascript_analyzer import JavaScriptAnalyzer
 from analyzers.rust_analyzer import RustAnalyzer
@@ -148,20 +149,25 @@ def run_phase0(
     project_root: Path,
     config: ReviewConfig | None = None,
 ) -> Phase0Result:
-    """Phase 0（静的解析パイプライン）を実行する。"""
+    """Phase 0（静的解析パイプライン）を実行する。
+
+    言語別静的解析 + gitleaks シークレットスキャンを実行する。
+    gitleaks は言語非依存のため、言語 Analyzer が見つからない場合でも実行する。
+    """
     if config is None:
         config = ReviewConfig.load(project_root)
 
     analyzers = _detect_analyzers(project_root, config)
-    if not analyzers:
-        return Phase0Result()
 
-    line_count = count_lines(project_root, config.exclude_dirs)
+    line_count = count_lines(project_root, config.exclude_dirs) if analyzers else 0
 
     issues: list[Issue] = []
     for analyzer in analyzers:
         issues.extend(analyzer.run_lint(project_root))
         issues.extend(analyzer.run_security(project_root))
+
+    # gitleaks シークレットスキャン（言語非依存、オプトアウト可）
+    issues.extend(gitleaks_run_detect(project_root, enabled=config.gitleaks_enabled))
 
     summary_path = _persist_results(project_root, issues)
 

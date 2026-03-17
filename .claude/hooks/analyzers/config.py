@@ -24,6 +24,7 @@ class ReviewConfig:
     static_analysis_timeout_sec: int = 300
     file_size_limit_bytes: int = 1000000
     summary_max_tokens: int = 5000
+    gitleaks_enabled: bool = True
 
     @classmethod
     def load(cls, project_root: Path) -> ReviewConfig:
@@ -60,4 +61,17 @@ class ReviewConfig:
                 "file_size_limit_bytes", defaults.file_size_limit_bytes
             ),
             summary_max_tokens=data.get("summary_max_tokens", defaults.summary_max_tokens),
+            gitleaks_enabled=_parse_bool(data, "gitleaks_enabled", defaults.gitleaks_enabled),
         )
+
+
+def _parse_bool(data: dict, key: str, default: bool) -> bool:
+    """JSON の値を bool として安全にパースする。文字列 "false" 等の誤用を防ぐ。"""
+    if key not in data:
+        return default
+    value = data[key]
+    if isinstance(value, bool):
+        return value
+    raise ValueError(
+        f"review-config.json: '{key}' must be a boolean (true/false), got {type(value).__name__}: {value!r}"
+    )
