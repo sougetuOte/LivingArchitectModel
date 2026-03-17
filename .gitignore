@@ -41,6 +41,7 @@ docs/daily/
 .claude/commands/release.md
 
 # LAM runtime state files
+.claude/logs/
 .claude/lam-loop-state.json
 .claude/review-state/
 .claude/doc-sync-flag
