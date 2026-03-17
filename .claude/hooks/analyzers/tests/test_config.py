@@ -144,3 +144,33 @@ class TestLoadInvalidJson:
 
         with pytest.raises(ValueError, match="review-config.json"):
             ReviewConfig.load(project_root)
+
+
+class TestGitleaksEnabledValidation:
+    """gitleaks_enabled の型バリデーションテスト（W-6 対応）。"""
+
+    def test_gitleaks_enabled_default_true(self) -> None:
+        """デフォルトは True であること。"""
+        config = ReviewConfig()
+        assert config.gitleaks_enabled is True
+
+    def test_gitleaks_enabled_false(self, project_root: Path) -> None:
+        """false を正しくパースすること。"""
+        config_path = project_root / ".claude" / "review-config.json"
+        config_path.write_text(json.dumps({"gitleaks_enabled": False}))
+        config = ReviewConfig.load(project_root)
+        assert config.gitleaks_enabled is False
+
+    def test_gitleaks_enabled_string_raises(self, project_root: Path) -> None:
+        """文字列 "false" を渡すと ValueError になること。"""
+        config_path = project_root / ".claude" / "review-config.json"
+        config_path.write_text(json.dumps({"gitleaks_enabled": "false"}))
+        with pytest.raises(ValueError, match="gitleaks_enabled.*boolean"):
+            ReviewConfig.load(project_root)
+
+    def test_gitleaks_enabled_int_raises(self, project_root: Path) -> None:
+        """整数 0 を渡すと ValueError になること。"""
+        config_path = project_root / ".claude" / "review-config.json"
+        config_path.write_text(json.dumps({"gitleaks_enabled": 0}))
+        with pytest.raises(ValueError, match="gitleaks_enabled.*boolean"):
+            ReviewConfig.load(project_root)

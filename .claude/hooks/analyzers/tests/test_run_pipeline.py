@@ -108,11 +108,14 @@ class TestShouldEnableStaticAnalysis:
 class TestRunPhase0:
     """Phase 0（静的解析パイプライン）の統合テスト。"""
 
+    # 既存テストでは gitleaks を無効化（gitleaks 固有のテストは test_gitleaks_scanner.py で実施）
+    _GITLEAKS_MOCK = patch("analyzers.run_pipeline.gitleaks_run_detect", return_value=[])
+
     def test_returns_summary_path(self, project_root: Path) -> None:
         """実行結果の summary.md パスを返すこと。"""
         (project_root / "app.py").write_text("x = 1\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
-        with patch("subprocess.run", side_effect=_subprocess_side_effect()):
+        with patch("subprocess.run", side_effect=_subprocess_side_effect()), self._GITLEAKS_MOCK:
             result = run_phase0(project_root)
         assert result.summary_path.exists()
 
@@ -120,7 +123,7 @@ class TestRunPhase0:
         """review-state/ ディレクトリを作成すること。"""
         (project_root / "app.py").write_text("x = 1\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
-        with patch("subprocess.run", side_effect=_subprocess_side_effect()):
+        with patch("subprocess.run", side_effect=_subprocess_side_effect()), self._GITLEAKS_MOCK:
             run_phase0(project_root)
         state_dir = project_root / ".claude" / "review-state"
         assert state_dir.is_dir()
@@ -139,7 +142,7 @@ class TestRunPhase0:
             "noqa_row": 1,
             "url": "",
         }])
-        with patch("subprocess.run", side_effect=_subprocess_side_effect(ruff_output)):
+        with patch("subprocess.run", side_effect=_subprocess_side_effect(ruff_output)), self._GITLEAKS_MOCK:
             result = run_phase0(project_root)
         issues_path = project_root / ".claude" / "review-state" / "static-issues.json"
         assert issues_path.exists()
@@ -154,7 +157,7 @@ class TestRunPhase0:
         """
         (project_root / "app.py").write_text("x = 1\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
-        with patch("subprocess.run", side_effect=_subprocess_side_effect()):
+        with patch("subprocess.run", side_effect=_subprocess_side_effect()), self._GITLEAKS_MOCK:
             result = run_phase0(project_root)
         content = result.summary_path.read_text()
         assert "## Review Instructions" in content
@@ -165,7 +168,7 @@ class TestRunPhase0:
         """結果に行数カウントを含むこと。"""
         (project_root / "app.py").write_text("a\nb\nc\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
-        with patch("subprocess.run", side_effect=_subprocess_side_effect()):
+        with patch("subprocess.run", side_effect=_subprocess_side_effect()), self._GITLEAKS_MOCK:
             result = run_phase0(project_root)
         assert result.line_count >= 3
 
@@ -173,16 +176,16 @@ class TestRunPhase0:
         """結果に検出された言語リスト（language_name ベース）を含むこと。"""
         (project_root / "app.py").write_text("x = 1\n")
         (project_root / "pyproject.toml").write_text("[project]\n")
-        with patch("subprocess.run", side_effect=_subprocess_side_effect()):
+        with patch("subprocess.run", side_effect=_subprocess_side_effect()), self._GITLEAKS_MOCK:
             result = run_phase0(project_root)
         assert "python" in result.languages
 
     def test_no_languages_detected(self, tmp_path: Path) -> None:
-        """言語ファイルなしの空ディレクトリでは空の結果を返すこと。"""
+        """言語ファイルなしの空ディレクトリでも gitleaks は実行されること。"""
         empty_dir = tmp_path / "empty_project"
         empty_dir.mkdir()
-        result = run_phase0(empty_dir)
-        assert result.issues == []
+        with self._GITLEAKS_MOCK:
+            result = run_phase0(empty_dir)
         assert result.languages == []
 
     def test_tool_not_found_raises(self, project_root: Path) -> None:
@@ -191,9 +194,62 @@ class TestRunPhase0:
 
         (project_root / "pyproject.toml").write_text("[project]\n")
         (project_root / "app.py").write_text("x = 1\n")
-        with patch("analyzers.base.shutil.which", return_value=None):
+        with patch("analyzers.base.shutil.which", return_value=None), self._GITLEAKS_MOCK:
             with pytest.raises(ToolNotFoundError):
                 run_phase0(project_root)
+
+
+class TestRunPhase0GitleaksIntegration:
+    """run_phase0() の gitleaks 統合テスト。
+
+    対応仕様: gitleaks-integration-spec.md FR-1
+    対応設計: gitleaks-integration-design.md Section 5.4, 6.2
+    """
+
+    def test_run_phase0_includes_gitleaks(self, project_root: Path) -> None:
+        """run_phase0() に gitleaks 結果が含まれること。"""
+        (project_root / "app.py").write_text("x = 1\n")
+        (project_root / "pyproject.toml").write_text("[project]\n")
+
+        from analyzers.base import Issue
+        gitleaks_issue = Issue(
+            file="secret.yaml", line=3, severity="critical",
+            category="security", tool="gitleaks",
+            message="Generic password detected",
+            rule_id="gitleaks:generic-password",
+            suggestion="test",
+        )
+        with (
+            patch("subprocess.run", side_effect=_subprocess_side_effect()),
+            patch("analyzers.run_pipeline.gitleaks_run_detect", return_value=[gitleaks_issue]),
+        ):
+            result = run_phase0(project_root)
+
+        gitleaks_issues = [i for i in result.issues if i.tool == "gitleaks"]
+        assert len(gitleaks_issues) == 1
+        assert gitleaks_issues[0].severity == "critical"
+
+    def test_run_phase0_without_gitleaks(self, project_root: Path) -> None:
+        """gitleaks 未インストールでも run_phase0() が動作すること（not-installed Issue を含む）。"""
+        (project_root / "app.py").write_text("x = 1\n")
+        (project_root / "pyproject.toml").write_text("[project]\n")
+
+        from analyzers.base import Issue
+        not_installed = Issue(
+            file="", line=0, severity="critical",
+            category="security", tool="gitleaks",
+            message="gitleaks not installed",
+            rule_id="gitleaks:not-installed",
+            suggestion="install guide",
+        )
+        with (
+            patch("subprocess.run", side_effect=_subprocess_side_effect()),
+            patch("analyzers.run_pipeline.gitleaks_run_detect", return_value=[not_installed]),
+        ):
+            result = run_phase0(project_root)
+
+        not_installed_issues = [i for i in result.issues if i.rule_id == "gitleaks:not-installed"]
+        assert len(not_installed_issues) == 1
 
 
 # ── ヘルパー ───────────────────────────────────────────────

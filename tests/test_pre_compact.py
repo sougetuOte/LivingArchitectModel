@@ -84,6 +84,22 @@ class TestUpdateSessionState:
         assert "- 時刻: 2026-03-12T11:00:00Z" in content
 
 
+    def test_preserves_content_after_precompact_section(self, project_root: Path, pre_compact):
+        """PreCompact セクションの後に別セクションがある場合、それを保持すること。"""
+        ss = project_root / "SESSION_STATE.md"
+        ss.write_text(
+            "# SESSION_STATE\n\n"
+            "## PreCompact 発火\n- 時刻: 2026-03-12T09:00:00Z\n\n"
+            "## 次のステップ\n1. 何かする\n",
+            encoding="utf-8",
+        )
+        pre_compact.update_session_state(ss, "2026-03-12T10:00:00Z")
+        content = ss.read_text(encoding="utf-8")
+        assert "- 時刻: 2026-03-12T10:00:00Z" in content
+        assert "## 次のステップ" in content
+        assert "1. 何かする" in content
+
+
 class TestFallbackLog:
     """fallback_log のテスト。"""
 
@@ -94,6 +110,15 @@ class TestFallbackLog:
         content = log.read_text(encoding="utf-8")
         assert "2026-03-12T10:00:00Z" in content
         assert "PreCompact fired" in content
+
+    def test_appends_on_multiple_calls(self, project_root: Path, pre_compact):
+        """複数回呼び出し時に追記されること。"""
+        pre_compact.fallback_log(project_root, "2026-03-12T10:00:00Z")
+        pre_compact.fallback_log(project_root, "2026-03-12T11:00:00Z")
+        log = project_root / ".claude" / "logs" / "loop.log"
+        content = log.read_text(encoding="utf-8")
+        assert "10:00:00Z" in content
+        assert "11:00:00Z" in content
 
 
 class TestBackupLoopState:
@@ -140,3 +165,12 @@ class TestMainIntegration:
         assert flag.exists()
         log = project_root / ".claude" / "logs" / "loop.log"
         assert log.exists()
+
+    def test_main_exits_zero_on_exception(self, project_root: Path, pre_compact, monkeypatch):
+        """例外発生時も exit 0 で正常終了すること（圧縮をブロックしない）。"""
+        # .claude ディレクトリを削除して write_pre_compact_flag を失敗させる
+        import shutil
+        shutil.rmtree(project_root / ".claude")
+        with pytest.raises(SystemExit) as exc_info:
+            pre_compact.main()
+        assert exc_info.value.code == 0
