@@ -1,0 +1,33 @@
+diff --git a/.claude/agents/code-reviewer.md b/.claude/agents/code-reviewer.md
+index e7cb015..e96deb2 100644
+--- a/.claude/agents/code-reviewer.md
++++ b/.claude/agents/code-reviewer.md
+@@ -44,6 +44,11 @@ LAM の品質基準に基づき、コード品質・セキュリティ・保守
+ - 仕様と実装に差異がないか
+ - ADR 決定事項が反映されているか
+ 
++### 5. モジュール間帰責（契約カード注入時のみ）
++- 上流モジュールの契約に違反する呼び出しがないか
++- 帰責判断が必要な場合は BLAME-HINT マーカーで出力
++- 詳細な指示はレビュープロンプト内の【帰責判断ガイド】に従う
++
+ ## 出力形式
+ 
+ ```markdown
+diff --git a/.claude/agents/quality-auditor.md b/.claude/agents/quality-auditor.md
+index 2294a91..b72a747 100644
+--- a/.claude/agents/quality-auditor.md
++++ b/.claude/agents/quality-auditor.md
+@@ -104,6 +104,12 @@ model: sonnet
+ | エッジケース | ✓/✗ | |
+ ```
+ 
++### Step 2.5: モジュール間帰責チェック（契約カード注入時のみ）
++
++- 上流モジュールの契約に違反する呼び出しがないか
++- 帰責判断が必要な場合は BLAME-HINT マーカーで出力
++- 詳細な指示はレビュープロンプト内の【帰責判断ガイド】に従う
++
+ ### Step 3: ドキュメント整合性監査 + 仕様ドリフトチェック
+ 
+ ```markdown

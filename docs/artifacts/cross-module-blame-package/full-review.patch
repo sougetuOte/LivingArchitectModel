@@ -1,0 +1,61 @@
+diff --git a/.claude/commands/full-review.md b/.claude/commands/full-review.md
+index 6fedb83..18b31c3 100644
+--- a/.claude/commands/full-review.md
++++ b/.claude/commands/full-review.md
+@@ -327,7 +327,8 @@ invariants: [不変条件1]
+ Agent 出力から:
+ - `parse_responsibility()` で責務フィールドを抽出し、`merge_responsibilities()` で概要カードにマージ
+ - `parse_contract()` で契約フィールドを抽出し、`merge_contracts()` でモジュール単位に集約
+-- マーカーがない場合は空文字/空辞書にフォールバック（Agent が出力し忘れた場合のロバスト性確保）
++- `parse_blame_hint()` で帰責ヒントを抽出し、Issue ID と紐付けてレポート統合（Stage 3）に渡す
++- マーカーがない場合は空文字/空辞書/空リストにフォールバック（Agent が出力し忘れた場合のロバスト性確保）
+ 
+ ### Step 4: 概要カード + 契約カード生成
+ 
+@@ -570,12 +571,29 @@ PG: X件（自動修正可） / SE: X件（修正後報告） / PM: X件（承
+ 
+ [C-1] Critical [SE]: <内容> (file:line)
+ [W-1] Warning [PG]: <内容> (file:line)
++[W-3] Warning [SE]: <内容> (file:line)
++      ** 帰責判断求む ** → downstream(Module Z): A の precondition に型チェック要求あり
+ ...
+ 
++=== 帰責判断が必要な Issue ===
++（帰責ヒント付き Issue が 1 件以上の場合のみ出力）
++| # | Issue | 帰責候補 | モジュール | 理由 |
++|---|-------|---------|-----------|------|
++| 1 | [W-3] | downstream | Module Z | A の precondition に型チェック要求あり |
++
++上記 Issue は自動修正の対象外です。帰責判断後に修正方針を指示してください。
++PM級の仕様明確化が必要な Issue: X件
++
+ 修正に進みますか？（承認 / 一部除外 / 中止）
+ PM級の問題がある場合、PG/SE級を先に修正した後、PM級の修正案を提示してループを一時停止します。
+ ```
+ 
++**帰責ヒントの表示ルール（FR-3a/FR-3b）**:
++- `parse_blame_hint()` で抽出された帰責ヒントが存在する Issue には `** 帰責判断求む **` マーカーを付与する
++- `→` 以降に `suspected_responsible` と `reason` を表示する
++- 帰責ヒントがない Issue にはマーカーを付与しない
++- 帰責ヒント付き Issue が 1 件以上ある場合のみ、レポート末尾に帰責サマリーテーブルを出力する
++
+ ---
+ 
+ ## Stage 4: トポロジカル順修正
+@@ -591,6 +609,16 @@ PM級の問題がある場合、PG/SE級を先に修正した後、PM級の修
+ - **SE級**: 修正 + ログ記録 — テスト追加、内部リファクタリング等
+ - **PM級**: **ループ一時停止 + ユーザー判断待ち** — 仕様変更、アーキテクチャ変更等
+ 
++### Step 0: 帰責ヒント付き Issue のガード（FR-4）
++
++修正開始前に、帰責ヒント付き Issue を以下のルールで振り分ける:
++
++- `suspected_responsible` が `spec_ambiguity` → **自動修正しない**。PM級としてユーザーに提示
++- `suspected_responsible` が `upstream` または `downstream` → 帰責ヒントを添えてユーザーに修正方針の確認を求める。ただし `.claude/rules/permission-levels.md` の PG 級に該当する修正（フォーマット、typo、lint 違反等）は帰責ヒントに関わらず自動修正可
++- `suspected_responsible` が `unknown` または帰責ヒントなし → 従来通りの重要度ベース修正
++
++帰責判断の詳細フローチャートは `.claude/rules/code-quality-guideline.md` の「モジュール間帰責判断」セクションを参照。
++
+ ### Step 1: PG/SE 級修正（トポロジカル順）
+ 
+ 依存グラフが存在する場合（`dependency-graph.json`）、修正順序をトポロジカル順にする:

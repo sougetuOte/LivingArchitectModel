@@ -1,0 +1,24 @@
+diff --git a/.claude/hooks/analyzers/orchestrator.py b/.claude/hooks/analyzers/orchestrator.py
+index c7c4c29..c2d1950 100644
+--- a/.claude/hooks/analyzers/orchestrator.py
++++ b/.claude/hooks/analyzers/orchestrator.py
+@@ -292,6 +292,19 @@ def build_review_prompt_with_contracts(
+     header = (
+         "以下は上流モジュールの契約です。"
+         "これらの前提条件・保証に違反する呼び出しがないか確認してください。\n\n"
++        "【帰責判断ガイド】\n"
++        "違反を発見した場合、以下の基準で帰責先を判定してください:\n"
++        "1. 仕様書に定義がある場合 → 仕様と乖離している側が修正対象\n"
++        "2. 仕様書に定義がない場合 → 仕様の欠落として PM級にエスカレーション\n"
++        "3. 下流が上流の契約に違反している場合 → 下流が修正対象\n"
++        "4. 上流の契約自体が不十分な場合 → 上流の契約更新が必要（PM級）\n\n"
++        "帰責判断が必要な Issue には以下のマーカーで出力してください:\n"
++        "---BLAME-HINT---\n"
++        "issue: [Issue の要約]\n"
++        "suspected_responsible: upstream | downstream | spec_ambiguity | unknown\n"
++        "module: [帰責先モジュール名]\n"
++        "reason: [判断理由の1行要約]\n"
++        "---END-BLAME-HINT---\n\n"
+         + contracts_text
+         + "\n\n"
+     )

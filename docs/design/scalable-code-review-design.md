@@ -1332,3 +1332,4 @@ docs/artifacts/
 - Phase 5 仕様: `docs/specs/scalable-code-review-phase5-spec.md`
 - 調査メモ: `docs/specs/scalable-code-review.md`
 - タスク: `docs/tasks/scalable-code-review-tasks.md`
+- モジュール間帰責判断: `docs/design/cross-module-blame-design.md`（契約カード帰責ヒント拡張）
