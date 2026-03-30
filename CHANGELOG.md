@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.6.1] - 2026-03-31
+
+### 概要
+
+モジュール間帰責判断機能の追加。`/full-review` でモジュール境界の Issue を検出した際に、帰責のヒントと判断フローチャートを提供する。
+
+### Added
+
+- **feat**: `parse_blame_hint()` — Agent 出力から BLAME-HINT マーカーを抽出するパーサー
+  - 複数ブロック対応、壊れたマーカーの安全なスキップ（NFR-3）
+  - `_VALID_RESPONSIBLE` による無効値の `unknown` 正規化
+- **feat**: `build_review_prompt_with_contracts()` に帰責判断ガイドを注入
+  - 契約カード注入時のみ帰責指示が有効化（単一モジュール時は従来通り）
+- **feat**: `code-quality-guideline.md` にモジュール間帰責判断フローチャート追加
+  - 仕様ドリフト帰責 → 契約違反帰責 → 組み合わせ顕在化の 3 段階判断
+  - 帰責分類: upstream / downstream / spec_ambiguity / unknown
+- **feat**: `/full-review` Stage 2/3/4 に帰責関連手順追加
+  - `** 帰責判断求む **` マーカーによる視認性確保
+  - 帰責サマリーテーブル（帰責 Issue 1 件以上の場合）
+  - `spec_ambiguity` の自動修正禁止ガード
+- **test**: 帰責パーサー 11 テスト + プロンプト拡張 3 テスト（合計 481 テスト）
+- **docs**: 仕様書・設計書・タスク定義 + 移植パッケージ
+
+### Changed
+
+- **docs**: Agent 定義（quality-auditor, code-reviewer）にモジュール間帰責観点を追加
+- **docs**: `scalable-code-review-design.md` にクロスリファレンス追加
+
 ## [v4.6.0] - 2026-03-17
 
 ### 概要
