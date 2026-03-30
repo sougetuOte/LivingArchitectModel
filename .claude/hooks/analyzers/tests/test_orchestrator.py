@@ -372,6 +372,44 @@ class TestBuildReviewPromptWithContracts:
         # 元のレビュー内容も含まれること
         assert "src/process.py" in prompt
 
+    def test_blame_guide_included_when_contracts_present(self) -> None:
+        """契約カードがある場合、帰責判断ガイドがプロンプトに含まれる (AC-2)。"""
+        chunk = _make_chunk("handler", 0)
+        contract = _make_contract_card("src.upstream")
+
+        prompt = build_review_prompt_with_contracts(chunk, [contract])
+
+        assert "帰責判断ガイド" in prompt
+        assert "---BLAME-HINT---" in prompt
+        assert "suspected_responsible" in prompt
+
+    def test_no_blame_guide_when_contracts_empty(self) -> None:
+        """契約カードがない場合、帰責指示は含まれない (AC-10)。"""
+        chunk = _make_chunk("simple", 0)
+
+        prompt = build_review_prompt_with_contracts(chunk, [])
+
+        assert "帰責判断ガイド" not in prompt
+        assert "---BLAME-HINT---" not in prompt
+
+    def test_blame_guide_token_count(self) -> None:
+        """帰責ガイド追加分のトークン数が 200 以下 (AC-9)。"""
+        chunk = _make_chunk("check", 0)
+        contract = _make_contract_card("src.upstream")
+
+        prompt_with = build_review_prompt_with_contracts(chunk, [contract])
+
+        # 帰責ガイド部分のみを抽出（契約カードテキストは含まない）
+        # 帰責ガイドは「帰責判断ガイド」から「---END-BLAME-HINT---」指示の末尾まで
+        guide_start = prompt_with.find("帰責判断ガイド")
+        guide_end = prompt_with.find("---END-BLAME-HINT---") + len("---END-BLAME-HINT---")
+        assert guide_start != -1
+        guide_text = prompt_with[guide_start:guide_end]
+
+        # 文字数/4 の近似値で 200 トークン以下
+        approx_tokens = len(guide_text) / 4
+        assert approx_tokens <= 200, f"Blame guide is ~{approx_tokens:.0f} tokens (max 200)"
+
 
 class TestOrderFilesByTopo:
     """order_files_by_topo() のテスト。"""
