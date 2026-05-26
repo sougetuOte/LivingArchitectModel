@@ -96,11 +96,14 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
     返却値は文字列（スラッシュ区切り）。
     """
     p = pathlib.Path(file_path)
-    if not p.is_absolute():
+    # POSIX形式の絶対パス（/etc/... 等）は Windows では is_absolute()=False に
+    # なるため、先頭スラッシュも絶対パスとして扱い out-of-root 判定を効かせる
+    if not p.is_absolute() and not file_path.startswith("/"):
         return file_path
     try:
         relative = p.relative_to(project_root)
-        return str(relative)
+        # pre-tool-use.py のパターンは / 区切り前提のため as_posix() で正規化
+        return relative.as_posix()
     except ValueError:
         # project_root の外のパスは out-of-root マーカー付きで返す
         # pre-tool-use.py のパターンマッチで PM級として捕捉される
