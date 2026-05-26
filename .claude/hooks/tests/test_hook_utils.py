@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import io
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -106,6 +107,16 @@ class TestNormalizePath:
         rel_path = "src/main.py"
         result = hook_utils.normalize_path(rel_path, project_root)
         assert result == "src/main.py"
+
+    @pytest.mark.skipif(
+        sys.platform != "win32",
+        reason="バックスラッシュ区切りは Windows でのみ分離子として扱われる",
+    )
+    def test_normalize_path_relative_backslash(self, hook_utils, tmp_path):
+        """相対パスのバックスラッシュは / に正規化する（Windows でのPM保護すり抜け防止）"""
+        project_root = tmp_path
+        result = hook_utils.normalize_path("docs\\specs\\x.md", project_root)
+        assert result == "docs/specs/x.md"
 
     def test_normalize_path_project_root_itself(self, hook_utils, tmp_path):
         """プロジェクトルート自体の絶対パスは '.'"""
