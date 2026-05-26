@@ -176,7 +176,12 @@ class TestRecursionGuard:
 
 
 class TestFullscanPending:
-    """fullscan_pending=true の場合、Green State でも継続する。"""
+    """fullscan_pending=true でもループは継続（block）する。
+
+    Stop hook は安全ネットに格下げされ（2d5ce90 / 596b42d）、active 中は
+    常に block する設計に変更された。fullscan_pending の特別処理は廃止され、
+    「常時 block」に包含されている。
+    """
 
     def test_fullscan_pending_continues(
         self, project_root: Path, monkeypatch: pytest.MonkeyPatch, capsys
@@ -194,7 +199,7 @@ class TestFullscanPending:
         )
         exit_code, stdout = _run_hook(monkeypatch, {}, capsys)
         assert exit_code == 0
-        # Green State でも fullscan_pending=true なら block
+        # active 中は安全ネットとして常に block（ループ継続）
         parsed = json.loads(stdout.strip())
         assert parsed["decision"] == "block"
-        assert "fullscan" in parsed["reason"]
+        assert "ループ継続中" in parsed["reason"]
