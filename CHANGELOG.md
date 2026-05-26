@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.6.2] - 2026-05-26
+
+### 概要
+
+Windows 環境におけるパス区切りの取り扱いを修正。`str(Path.relative_to())` が
+バックスラッシュ区切りを返すことで、権限等級判定（PM 級承認ゲート）とモジュール
+境界検出が Windows 上で機能しなくなる重大バグを解消。あわせてテスト環境の整合性を改善。
+
+### Fixed
+
+- **fix(security)**: Windows で PM 級承認ゲートがすり抜ける問題を修正
+  - `_hook_utils.normalize_path()` を `as_posix()` で `/` 区切りに正規化（絶対・相対両分岐）
+  - 先頭スラッシュの POSIX 絶対パスを Windows でも絶対パスとして扱い out-of-root 判定を有効化
+  - 修正前は `docs\specs\x.md` 等が `pre-tool-use.py` の PM パターンにマッチせず、
+    仕様・ルールファイルの承認ゲートが Windows 上で無効化されていた
+- **fix**: analyzers のパス相対化を `as_posix()` に統一（`python_analyzer`, `javascript_analyzer`）
+  - `Issue.file` のバックスラッシュ混入により `card_generator` の `split("/")` ベースの
+    モジュール境界検出が Windows 上で全崩壊していた問題を解消
+- **fix**: `card_generator.detect_module_boundaries()` 入口でパスを防御的に正規化（W-1）
+
+### Changed
+
+- **test**: tree-sitter 任意依存テスト（chunker 19 件 + e2e 1 件）を `skipif` 化（W-2）
+  - 未インストール時に hard-fail せず skip するよう修正（設計 §3.0 のグレースフルデグレード方針と整合）
+- **test**: `lam-stop-hook` の安全ネット化に伴うテストドリフトを解消
+- **test**: Windows パス正規化・バックスラッシュ正規化の回帰テストを追加
+- **docs**: `requirements-dev.txt` に full スイート実行用の任意依存（tree-sitter 系）を明文化（W-3）
+- **docs**: 監査レポート `2026-05-26-windows-path-robustness.md` を追加
+
 ## [v4.6.1] - 2026-03-31
 
 ### 概要

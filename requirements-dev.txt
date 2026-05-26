@@ -1,2 +1,14 @@
 # LAM hook 開発・テスト用
 pytest>=7.0
+
+# --- 任意依存（full テストスイート実行用）---
+# 以下は scalable-code-review の analyzers（Plan B: AST チャンキング）が使用する。
+# 設計方針（scalable-code-review-design.md §3.0）により pyproject.toml の
+# 必須依存にはしない（未導入時はグレースフルデグレードし、該当テストは skip される）。
+# full スイートを green で回す場合のみインストールすること。
+tree-sitter
+tree-sitter-python
+
+# 外部 CLI（pip 経由でも可。analyzers は shutil.which で検出）:
+#   ruff   — Python lint/format
+#   bandit — Python セキュリティスキャン
