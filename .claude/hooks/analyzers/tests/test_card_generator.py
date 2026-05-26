@@ -692,6 +692,20 @@ def test_detect_module_boundaries_with_init_py() -> None:
     assert "src/analyzers/card_generator.py" in result["src/analyzers"]
 
 
+def test_detect_module_boundaries_normalizes_backslash() -> None:
+    """バックスラッシュ区切りの入力でもモジュール検出が機能すること（W-1 防御）。"""
+    file_paths = [
+        "src\\analyzers\\__init__.py",
+        "src\\analyzers\\base.py",
+    ]
+
+    result = detect_module_boundaries(file_paths)
+
+    assert "src/analyzers" in result
+    assert "src/analyzers/__init__.py" in result["src/analyzers"]
+    assert "src/analyzers/base.py" in result["src/analyzers"]
+
+
 def test_detect_module_boundaries_fallback_to_directory() -> None:
     """__init__.py がない場合ディレクトリ単位にフォールバックすること。"""
     file_paths = [

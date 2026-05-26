@@ -592,7 +592,12 @@ def detect_module_boundaries(
     注意: ファイルシステムにアクセスせず、file_paths リストの内容だけで判定する。
     つまり file_paths に "src/analyzers/__init__.py" が含まれていれば
     "src/analyzers" がモジュールと判定される。
+
+    入力規約: file_paths は POSIX 形式（/ 区切り）であること。以降の処理は
+    split("/") に依存するため、Windows の \\ 区切りが混入すると分割に失敗し
+    モジュール検出が崩壊する。防御的に入口で正規化する。
     """
+    file_paths = [fp.replace("\\", "/") for fp in file_paths]
     module_dirs = _collect_module_dirs(file_paths)
     result = _assign_files_to_modules(file_paths, module_dirs)
     # 空のモジュールを除去
