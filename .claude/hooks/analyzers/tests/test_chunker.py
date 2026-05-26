@@ -8,11 +8,21 @@ from __future__ import annotations
 import dataclasses
 import textwrap
 
+import pytest
+
 from analyzers.chunker import (
     Chunk,
     TreeSitterNotAvailable,
+    _TREE_SITTER_AVAILABLE,
     chunk_file,
     count_tokens,
+)
+
+# tree-sitter は任意依存（design §3.0）。未インストール時は chunk_file が
+# 例外を送出するため、それに依存するテストは skip する。
+requires_tree_sitter = pytest.mark.skipif(
+    not _TREE_SITTER_AVAILABLE,
+    reason="tree-sitter 未インストール（任意依存）: pip install tree-sitter tree-sitter-python",
 )
 
 
@@ -181,6 +191,7 @@ class TestTreeSitterImport:
         assert issubclass(TreeSitterNotAvailable, Exception)
 
 
+@requires_tree_sitter
 class TestChunkFile:
     """chunk_file() のテスト。"""
 
@@ -297,6 +308,7 @@ SOURCE_CLASS_AND_FUNC = textwrap.dedent("""\
 """)
 
 
+@requires_tree_sitter
 class TestOverlapHeader:
     """overlap_header（ファイルヘッダーのりしろ）のテスト。"""
 
@@ -322,6 +334,7 @@ class TestOverlapHeader:
             assert "return f\"Hello" not in c.overlap_header
 
 
+@requires_tree_sitter
 class TestOverlapFooter:
     """overlap_footer（シグネチャサマリーのりしろ）のテスト。"""
 
@@ -354,6 +367,7 @@ class TestOverlapFooter:
         assert "standalone" in class_chunk.overlap_footer
 
 
+@requires_tree_sitter
 class TestOverlapSizeLimit:
     """のりしろサイズ制限のテスト。"""
 

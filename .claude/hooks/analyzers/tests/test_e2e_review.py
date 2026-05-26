@@ -167,6 +167,10 @@ class TestScaleDetection:
 
         assert result.recommended_plans == ["A", "B", "C", "D"]
 
+    @pytest.mark.skipif(
+        importlib.util.find_spec("tree_sitter") is None,
+        reason="tree-sitter 未インストール（任意依存）: Plan B が非活性のため成立しない",
+    )
     def test_active_plans_matches_recommended_when_all_available(
         self, project_root: Path
     ) -> None:
