@@ -99,7 +99,10 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
     # POSIX形式の絶対パス（/etc/... 等）は Windows では is_absolute()=False に
     # なるため、先頭スラッシュも絶対パスとして扱い out-of-root 判定を効かせる
     if not p.is_absolute() and not file_path.startswith("/"):
-        return file_path
+        # 相対パスも as_posix() で / 区切りに正規化する。
+        # Windows の \ 区切りのまま返すと pre-tool-use.py の PM 保護パターンに
+        # マッチせず権限分類をすり抜けるため（docstring のスラッシュ区切り契約）
+        return p.as_posix()
     try:
         relative = p.relative_to(project_root)
         # pre-tool-use.py のパターンは / 区切り前提のため as_posix() で正規化

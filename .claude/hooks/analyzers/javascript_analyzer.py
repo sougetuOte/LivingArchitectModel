@@ -86,7 +86,9 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
         for file_result in data:
             file_path = file_result.get("filePath", "")
             try:
-                relative_file = str(Path(file_path).relative_to(target))
+                # as_posix() で / 区切りに正規化（Windows の \ 混入を防止）。
+                # Issue.file は card_generator が split("/") で解釈するため必須
+                relative_file = Path(file_path).relative_to(target).as_posix()
             except ValueError:
                 relative_file = file_path
 

@@ -53,7 +53,9 @@ class PythonAnalyzer(LanguageAnalyzer):
         ValueError が発生した場合（target 外のパス等）はそのまま返す。
         """
         try:
-            return str(Path(filename).relative_to(target))
+            # as_posix() で / 区切りに正規化（Windows の \ 混入を防止）。
+            # Issue.file は card_generator が split("/") で解釈するため必須
+            return Path(filename).relative_to(target).as_posix()
         except ValueError:
             return filename
 
