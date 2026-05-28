@@ -5,8 +5,8 @@ pre-compact.py - PreCompact hook: コンテキスト圧縮前の状態保存
 bash 版 pre-compact.sh のパリティ実装。
 設計書 H4（pre-compact）準拠。
 
-NOTE: PreCompact は公式ドキュメント未掲載だが動作確認済み（2026-03時点）
-エラーが発生しても exit 0 を返し、圧縮をブロックしない。
+NOTE: PreCompact は公式の正式 hook イベント（ブロック可能）。
+LAM は状態保存のみが目的のため、エラー時も exit 0 を返し意図的に圧縮をブロックしない。
 """
 from __future__ import annotations
 import pathlib
