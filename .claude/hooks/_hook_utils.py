@@ -80,13 +80,16 @@ def get_tool_input(data: dict, key: str) -> str:
 
 def get_tool_response(data: dict, key: str, default: object):
     """
-    data["tool_response"][key] を返す。
-    tool_response またはキーが存在しない場合は default を返す。
+    PostToolUse 入力からツール実行結果の値を返す。
+    公式キー tool_result を優先し、旧キー tool_response にフォールバックする。
+    （V-1 裏取り 2026-05-28: 公式仕様の正キーは tool_result。tool_response は後方互換用）
+    どちらの container も dict でない / key を含まない場合は default を返す。
     """
-    tool_response = data.get("tool_response", {})
-    if not isinstance(tool_response, dict):
-        return default
-    return tool_response.get(key, default)
+    for container_key in ("tool_result", "tool_response"):
+        container = data.get(container_key)
+        if isinstance(container, dict) and key in container:
+            return container[key]
+    return default
 
 
 def normalize_path(file_path: str, project_root: pathlib.Path) -> str:

@@ -92,6 +92,35 @@ class TestGetToolResponse:
         """tool_response 自体がない場合は default を返す"""
         assert hook_utils.get_tool_response({}, "exit_code", -1) == -1
 
+    def test_get_tool_response_from_tool_result(self, hook_utils):
+        """公式キー tool_result から値を取得できる（V-1: 公式は tool_result）"""
+        data = {"tool_result": {"type": "text", "text": "ok"}}
+        assert hook_utils.get_tool_response(data, "text", None) == "ok"
+
+    def test_get_tool_response_prefers_tool_result_over_tool_response(self, hook_utils):
+        """両キー併存時は公式キー tool_result を優先する"""
+        data = {
+            "tool_result": {"text": "official"},
+            "tool_response": {"text": "legacy"},
+        }
+        assert hook_utils.get_tool_response(data, "text", None) == "official"
+
+    def test_get_tool_response_falls_back_to_tool_response(self, hook_utils):
+        """tool_result にキーがない場合は旧キー tool_response にフォールバック（後方互換）"""
+        data = {
+            "tool_result": {"other": 1},
+            "tool_response": {"text": "legacy"},
+        }
+        assert hook_utils.get_tool_response(data, "text", None) == "legacy"
+
+    def test_get_tool_response_tool_result_not_dict(self, hook_utils):
+        """tool_result が dict でない場合は tool_response にフォールバック"""
+        data = {
+            "tool_result": "not a dict",
+            "tool_response": {"text": "legacy"},
+        }
+        assert hook_utils.get_tool_response(data, "text", None) == "legacy"
+
 
 class TestNormalizePath:
     def test_normalize_path_absolute(self, hook_utils, tmp_path):
