@@ -1,23 +1,32 @@
 {
   "feature": "cc-spec-alignment",
   "description": "Claude Code 最新仕様（2026-03-31以降）と現行LAM実装のすり合わせ・更新計画",
-  "phase": "PLANNING",
+  "phase": "BUILDING",
+  "current_task": "Wave 1 完了 → Wave 2 待機",
   "status": {
     "diff_mapping": "approved",
-    "requirements": "draft",
-    "design": "not_started",
-    "tasks": "not_started"
+    "requirements": "approved",
+    "design": "approved",
+    "tasks": "approved"
   },
   "approvals": {
-    "diff_mapping": "2026-05-27T00:00:00Z"
+    "diff_mapping": "2026-05-27T00:00:00Z",
+    "requirements": "2026-05-28T00:00:00Z",
+    "design": "2026-05-28T00:00:00Z",
+    "tasks": "2026-05-28T00:00:00Z"
   },
   "artifacts": {
     "research": "docs/artifacts/research/2026-05-27-cc-spec-survey/",
     "diff_mapping": "docs/specs/cc-spec-alignment/00-diff-mapping-summary.md",
-    "requirements": "docs/specs/cc-spec-alignment/requirements.md"
+    "requirements": "docs/specs/cc-spec-alignment/requirements.md",
+    "design": "docs/specs/cc-spec-alignment/design.md",
+    "tasks": "docs/specs/cc-spec-alignment/tasks.md"
   },
-  "open_decisions": [
-    "C-2/C-3: 公式 memory: 機構へ移行 vs 自前 agent-memory 運用維持（PM級・要ユーザー確認）"
+  "resolved_decisions": [
+    "T1-3: Memory Policy = 分岐(b) 公式 memory: project へ移行（ユーザー承認 2026-05-28、V-6 裏取りで現運用と完全一致を確認）",
+    "T2-5/T2-6: worktree・background / effort.level・新ハンドラを優先度 中 へ昇格（ユーザー承認 2026-05-28）"
   ],
+  "open_decisions": [],
+  "completed_tasks": ["T1-0", "T1-1", "T1-2", "T1-3", "T1-4a", "T1-4b"],
   "createdAt": "2026-05-27T00:00:00Z"
 }

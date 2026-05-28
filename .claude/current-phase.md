@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING**
+**BUILDING**
 
-_要件定義・設計・タスク分解フェーズ_
+_TDD実装フェーズ_
 
 ---
 
