@@ -2,7 +2,7 @@
   "feature": "cc-spec-alignment",
   "description": "Claude Code 最新仕様（2026-03-31以降）と現行LAM実装のすり合わせ・更新計画",
   "phase": "BUILDING",
-  "current_task": "Wave 1 完了 → Wave 2 待機",
+  "current_task": "Wave 2 完了 → Wave 3 待機",
   "status": {
     "diff_mapping": "approved",
     "requirements": "approved",
@@ -20,13 +20,17 @@
     "diff_mapping": "docs/specs/cc-spec-alignment/00-diff-mapping-summary.md",
     "requirements": "docs/specs/cc-spec-alignment/requirements.md",
     "design": "docs/specs/cc-spec-alignment/design.md",
-    "tasks": "docs/specs/cc-spec-alignment/tasks.md"
+    "tasks": "docs/specs/cc-spec-alignment/tasks.md",
+    "future_candidates": "docs/specs/cc-spec-alignment/future-candidates.md",
+    "magi_t2_2": "docs/artifacts/2026-05-28-magi-t2-2-defer.md"
   },
   "resolved_decisions": [
     "T1-3: Memory Policy = 分岐(b) 公式 memory: project へ移行（ユーザー承認 2026-05-28、V-6 裏取りで現運用と完全一致を確認）",
-    "T2-5/T2-6: worktree・background / effort.level・新ハンドラを優先度 中 へ昇格（ユーザー承認 2026-05-28）"
+    "T2-5/T2-6: worktree・background / effort.level・新ハンドラを優先度 中 へ昇格（ユーザー承認 2026-05-28）",
+    "Wave 2 採用: T2-1 paths / T2-3 model:sonnet / T2-4 when_to_use・allowed-tools（ユーザー承認 2026-05-28）",
+    "Wave 2 見送り: T2-2 defer（MAGI 合議・PM級ゲート後退リスク）/ T2-5 worktree・background（未コミット変更不可視・権限自動拒否）/ T2-6 effort.level・新ハンドラ（確実性低下・活用箇所なし）。理由は future-candidates.md（FR-5.2）"
   ],
   "open_decisions": [],
-  "completed_tasks": ["T1-0", "T1-1", "T1-2", "T1-3", "T1-4a", "T1-4b"],
+  "completed_tasks": ["T1-0", "T1-1", "T1-2", "T1-3", "T1-4a", "T1-4b", "T2-1", "T2-2", "T2-3", "T2-4", "T2-5", "T2-6", "T2-7"],
   "createdAt": "2026-05-27T00:00:00Z"
 }
