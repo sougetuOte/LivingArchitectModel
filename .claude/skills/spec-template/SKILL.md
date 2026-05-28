@@ -6,6 +6,11 @@ description: |
   01_REQUIREMENT_MANAGEMENT.md に準拠した構造を提案する。
   要件定義、機能仕様、API仕様の作成時に活用される。
 version: 1.0.0
+paths:
+  - "docs/specs/*.md"
+when_to_use: "仕様書・要件定義・機能仕様・API 仕様を作成するとき。docs/specs/ にファイルを作成する場面で活用する。"
+model: sonnet
+allowed-tools: Read, Write, Edit
 ---
 
 # 仕様書テンプレートスキル

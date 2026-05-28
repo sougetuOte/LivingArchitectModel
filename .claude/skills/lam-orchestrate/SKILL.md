@@ -5,6 +5,7 @@ description: >
   複数ファイル/モジュールにまたがる作業の自動分解・並列実行に使用。
   Use proactively when the user requests multi-file or multi-module operations.
 version: 1.0.0
+when_to_use: "複数ファイル/モジュールにまたがる作業を分解し、複数 Subagent で並列実行したいとき。"
 ---
 
 # LAM Orchestrate Coordinator

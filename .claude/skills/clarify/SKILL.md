@@ -6,6 +6,7 @@ description: |
   ユーザーの回答を反映して文書を更新する。
   ユーザーにアイデアがない場合は Three Agents Model で選択肢を提案する。
 version: 1.0.0
+when_to_use: "spec/design/ADR/tasks 等の文書に曖昧さ・矛盾・欠落があり、インタビュー形式で精緻化したいとき。"
 ---
 
 # Clarify — 文書精緻化インタビュースキル

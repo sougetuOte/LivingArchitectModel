@@ -4,6 +4,7 @@ description: >
   MAGI System — AoT 分解 + MELCHIOR/BALTHASAR/CASPAR 合議 + Reflection による
   構造化意思決定フレームワーク。判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ で使用。
   Use when facing complex decisions with multiple trade-offs or architectural choices.
+when_to_use: "判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ の複雑な意思決定・アーキテクチャ選択を行うとき。"
 ---
 
 # /magi — 構造化意思決定（MAGI System）
