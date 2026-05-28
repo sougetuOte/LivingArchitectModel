@@ -8,6 +8,7 @@ description: |
 # permission-level: SE
 tools: Read, Glob, Grep, Write, Edit
 model: haiku
+memory: project
 ---
 
 # Task Decomposer サブエージェント

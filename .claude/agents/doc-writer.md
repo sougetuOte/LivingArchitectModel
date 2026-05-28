@@ -7,6 +7,7 @@ description: >
 # permission-level: SE
 model: sonnet
 tools: Read, Write, Edit, Glob, Grep
+memory: project
 ---
 
 # Doc Writer サブエージェント

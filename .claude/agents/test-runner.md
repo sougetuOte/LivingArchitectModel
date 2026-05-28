@@ -7,6 +7,7 @@ description: >
 # permission-level: PG
 model: haiku
 tools: Read, Grep, Glob, Bash
+memory: project
 ---
 
 # Test Runner サブエージェント
