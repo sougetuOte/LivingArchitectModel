@@ -4,12 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.7.0] - 2026-05-29
+
 ### 概要
 
 Claude Code 公式仕様とのすり合わせ更新（cc-spec-alignment）。破壊的乖離はゼロだが、
 ドキュメント陳腐化の是正・公式 memory 機構への整合・新機能の選択的採用・
 commands → skills 移行を 3 Wave に分けて実施した。各変更は機能の実在性（裏取り）と
 LAM 設計思想への適合性の両面で判断している。
+あわせて、コマンド表に記載のみ存在した `/release` を実体ある skill として新規実装した。
 
 ### Added
 
@@ -24,11 +27,16 @@ LAM 設計思想への適合性の両面で判断している。
   - `paths` 自動適用（adr/spec/ui-design-guide）、`model: sonnet` 委譲（テンプレート系3スキル）、
     `when_to_use`（全7スキル）、最小 `allowed-tools`（テンプレート系3スキル）
 - **feat(agents)**: 8エージェントに公式 `memory: project` フロントマターを付与（Wave 1）
+- **feat(skills)**: `/release` skill を新規追加（CHANGELOG 版起こし → commit → tag → push）
+  - README/CHEATSHEET のコマンド表に記載がありながら実体が存在しなかった乖離を解消
+  - `disable-model-invocation: true`（手動起動のみ）、`argument-hint: "<version>"` を付与
+  - tag・push を PM級（ユーザー承認必須）とし、同名タグ存在時・テスト未通過時の安全弁を明記
 
 ### Fixed
 
 - **fix(hooks)**: PostToolUse 入力キーを公式 `tool_result` 優先のフォールバックに是正（Wave 1 / FR-2）
 - **docs(hooks)**: `pre-compact.py` の PreCompact 注記を正式イベントである旨に是正（Wave 1 / FR-1.1）
+- **docs**: README/CHEATSHEET（ja/en）の `/release` 記述順を実際の手順（commit → tag → push）へ是正
 
 ### Changed
 
