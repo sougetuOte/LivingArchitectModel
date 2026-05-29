@@ -1,5 +1,8 @@
 ---
+name: pattern-review
 description: "TDD パターン審査 - 蓄積されたパターンの確認とルール候補の承認"
+version: 1.0.0
+disable-model-invocation: true
 ---
 
 # /pattern-review - TDD パターン審査

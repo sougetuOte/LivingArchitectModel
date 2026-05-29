@@ -1,5 +1,8 @@
 ---
+name: quick-load
 description: "セッション状態のロード（SESSION_STATE.md + 関連ドキュメント特定）"
+version: 1.0.0
+disable-model-invocation: true
 ---
 
 # クイックロード

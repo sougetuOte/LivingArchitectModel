@@ -1,5 +1,8 @@
 ---
+name: planning
 description: "PLANNINGフェーズを開始 - 要件定義・設計・タスク分解"
+version: 1.0.0
+disable-model-invocation: true
 ---
 
 # PLANNINGフェーズ開始

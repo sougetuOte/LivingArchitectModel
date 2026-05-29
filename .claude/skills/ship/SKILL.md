@@ -1,5 +1,9 @@
 ---
+name: ship
 description: "論理グループ分けコミット - 変更を棚卸し・分類・コミット"
+version: 1.0.0
+disable-model-invocation: true
+argument-hint: "[dry-run]"
 ---
 
 # /ship - 論理グループ分けコミット

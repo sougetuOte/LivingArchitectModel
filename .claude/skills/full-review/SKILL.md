@@ -1,5 +1,9 @@
 ---
+name: full-review
 description: "並列監査 + 全修正 + 検証の一気通貫レビュー"
+version: 1.0.0
+disable-model-invocation: true
+argument-hint: "<対象ファイル or ディレクトリ>"
 ---
 
 # /full-review - 並列監査 + 全修正 + 自動ループ

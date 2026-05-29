@@ -174,7 +174,7 @@ lam-orchestrate は `/full-review` コマンドと連携し、自動ループの
 lam-orchestrate または `/full-review` Phase 1 が生成し、ループのライフサイクル全体を通じて管理する中核ファイル。
 `/full-review` が単独実行された場合は `/full-review` 自身が生成する。lam-orchestrate 経由の場合は lam-orchestrate が生成する。
 
-**スキーマ定義（SSOT）**: `/full-review` コマンド（`.claude/commands/full-review.md` Phase 1）を参照。
+**スキーマ定義（SSOT）**: `/full-review` スキル（`.claude/skills/full-review/SKILL.md` Stage 0）を参照。
 
 ### ループライフサイクル
 

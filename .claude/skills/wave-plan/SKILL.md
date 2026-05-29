@@ -1,5 +1,9 @@
 ---
+name: wave-plan
 description: "Wave計画 - 次Waveのタスク選定と実行順序を策定"
+version: 1.0.0
+disable-model-invocation: true
+argument-hint: "[N]"
 ---
 
 # Wave Plan（Wave 計画策定）

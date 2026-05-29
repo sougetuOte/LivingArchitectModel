@@ -1,5 +1,9 @@
 ---
+name: retro
 description: "振り返り - Wave/Phase完了時の学習サイクル"
+version: 1.0.0
+disable-model-invocation: true
+argument-hint: "[wave|phase]"
 ---
 
 # Retrospective（振り返り）
@@ -87,7 +91,7 @@ SESSION_STATE.md と git log から対象範囲を特定:
 | アクション | 反映先 | 優先度 |
 |:---------|:-------|:------|
 | [ルール追加/修正] | `.claude/rules/xxx.md` | 高/中/低 |
-| [コマンド改善] | `.claude/commands/xxx.md` | 高/中/低 |
+| [スキル改善] | `.claude/skills/xxx/SKILL.md` | 高/中/低 |
 | [エージェント調整] | `.claude/agents/xxx.md` | 高/中/低 |
 | [知見の蓄積] | `docs/artifacts/knowledge/xxx.md` | 高/中/低 |
 | [ドキュメント更新] | `docs/xxx` | 高/中/低 |

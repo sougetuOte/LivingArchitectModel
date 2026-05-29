@@ -1,5 +1,8 @@
 ---
+name: project-status
 description: "プロジェクトの進捗状況を表示"
+version: 1.0.0
+disable-model-invocation: true
 ---
 
 # 進捗状況表示

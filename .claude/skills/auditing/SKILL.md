@@ -1,5 +1,8 @@
 ---
+name: auditing
 description: "AUDITINGフェーズを開始 - レビュー・リファクタリング・監査"
+version: 1.0.0
+disable-model-invocation: true
 ---
 
 # AUDITINGフェーズ開始

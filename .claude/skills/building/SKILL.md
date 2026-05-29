@@ -1,5 +1,8 @@
 ---
+name: building
 description: "BUILDINGフェーズを開始 - TDD実装サイクル"
+version: 1.0.0
+disable-model-invocation: true
 ---
 
 # BUILDINGフェーズ開始
