@@ -150,7 +150,7 @@ The tables below list all available commands and agents, but you don't need to m
 |---------|---------|
 | `/ship` | Logical grouping commits (inventory -> classify -> commit) |
 | `/full-review <target>` | Parallel audit + fix all + verify (end-to-end) |
-| `/release <version>` | Release (CHANGELOG -> commit -> push -> tag) |
+| `/release <version>` | Release (CHANGELOG -> commit -> tag -> push) |
 | `/wave-plan [N]` | Wave planning (select tasks and execution order for next Wave) |
 | `/retro [wave\|phase]` | Retrospective (learning cycle at Wave/Phase completion) |
 
