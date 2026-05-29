@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 概要
+
+Claude Code 公式仕様とのすり合わせ更新（cc-spec-alignment）。破壊的乖離はゼロだが、
+ドキュメント陳腐化の是正・公式 memory 機構への整合・新機能の選択的採用・
+commands → skills 移行を 3 Wave に分けて実施した。各変更は機能の実在性（裏取り）と
+LAM 設計思想への適合性の両面で判断している。
+
+### Added
+
+- **feat(skills)**: commands 11本を skills 形式へ移行（Wave 3 / C-1 解消）
+  - `planning`, `building`, `auditing`, `full-review`, `pattern-review`, `project-status`,
+    `quick-load`, `quick-save`, `retro`, `ship`, `wave-plan` を
+    `.claude/commands/*.md` → `.claude/skills/*/SKILL.md` へ
+  - 全11本に `disable-model-invocation: true` を付与し、移行前と同じ「手動起動のみ」挙動を保証
+    （起動セマンティクス判定の結果。判定表: `docs/specs/cc-spec-alignment/wave3-migration-table.md`）
+  - 引数を取る4本（full-review/retro/ship/wave-plan）に `argument-hint` を付与
+- **feat(skills)**: 既存7スキルに新機能フロントマターを採用（Wave 2）
+  - `paths` 自動適用（adr/spec/ui-design-guide）、`model: sonnet` 委譲（テンプレート系3スキル）、
+    `when_to_use`（全7スキル）、最小 `allowed-tools`（テンプレート系3スキル）
+- **feat(agents)**: 8エージェントに公式 `memory: project` フロントマターを付与（Wave 1）
+
+### Fixed
+
+- **fix(hooks)**: PostToolUse 入力キーを公式 `tool_result` 優先のフォールバックに是正（Wave 1 / FR-2）
+- **docs(hooks)**: `pre-compact.py` の PreCompact 注記を正式イベントである旨に是正（Wave 1 / FR-1.1）
+
+### Changed
+
+- **docs(memory)**: CLAUDE.md「Subagent Persistent Memory」節を公式 `memory:` 機構準拠へ更新（Wave 1）
+
+### 見送り（将来候補）
+
+- `permissionDecision: "defer"` / `isolation: worktree` / `background` / `effort.level` / 新 hook ハンドラ
+  は LAM の承認ゲート・Zero-Regression・等級判定の設計思想と不整合のため見送り
+  （記録: `docs/specs/cc-spec-alignment/future-candidates.md`）
+
 ## [v4.6.2] - 2026-05-26
 
 ### 概要
