@@ -265,5 +265,5 @@ Phase 1 フロー（変更後）:
 - gitleaks JSON output format: `[{"RuleID": "...", "File": "...", "StartLine": N, ...}]`
 - 既存 Issue dataclass: `.claude/hooks/analyzers/base.py`
 - 既存パイプライン: `.claude/hooks/analyzers/run_pipeline.py`
-- full-review: `.claude/commands/full-review.md`
-- /ship: `.claude/commands/ship.md`
+- full-review: `.claude/skills/full-review/SKILL.md`
+- /ship: `.claude/skills/ship/SKILL.md`

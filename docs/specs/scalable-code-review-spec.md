@@ -300,6 +300,6 @@ tree-sitter のコンパイル済みグラマー（`pip install tree-sitter-pyth
 - 調査メモ: `docs/specs/scalable-code-review.md`
 - 構想メモ: `docs/memos/2026-03-10-scalable-review-and-eval-ideas.md`
 - 計画メモ: `docs/memos/2026-03-12-knowledge-layer-and-platform-alignment.md`
-- 現行 full-review: `.claude/commands/full-review.md`
+- 現行 full-review: `.claude/skills/full-review/SKILL.md`
 - 設計書: `docs/design/scalable-code-review-design.md`
 - タスク: `docs/tasks/scalable-code-review-tasks.md`
