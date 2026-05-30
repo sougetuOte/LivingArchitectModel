@@ -40,7 +40,7 @@
 ## Wave 1 着手の前提条件（T0-1 裏取りで確定）
 
 - **P-1 ✅**: Claude Code を v2.1.139+ にアップグレード（完了: **2.1.158**）。`/goal` 利用可。
-- **P-2**: `/goal`(prompt) × `lam-stop-hook`(script) の共存・**複数 Stop hook の block 合成**（findings 項目14・公式未文書化）を**実機で1回検証**してから T1 実装に入る。あわせて `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`（block cap=8 対策）と auto mode 可用性（`claude auto-mode config`・確認済）を確認。
+- **P-2 ✅ 完了（2026-05-30 実機検証）**: 複数 Stop hook の合成は **「いずれか block→継続」（OR / most-restrictive）** を隔離 headless（`claude -p`）で実機確定（[findings](../../artifacts/research/2026-05-30-goal-survey/findings.md) P-2c・`num_turns=2`）。決定的 `lam-stop-hook`(block) が `/goal` evaluator(stop) に**優先**し gate を維持。block cap（既定 8 / `0` 無効化）・`stop_hook_active`・auto mode（`claude auto-mode config` 動作・`permissions.deny` 前段 override 不可）も 2.1.158 で確定。→ **Wave 1 着手の技術前提クリア**。
 
 ---
 
@@ -300,3 +300,4 @@
 | 2026-05-30 | Living Architect(Opus) + sougetuOte | 初版起草（draft）。Wave 0〜5・SPIDR 垂直分割・WBS 100% 検証・FR-9 を Wave 1 前倒し |
 | 2026-05-30 | sougetuOte | tasks 承認（approved）。DQ-2 = FR-9 前倒し採用で確定 |
 | 2026-05-30 | Living Architect(Opus) + sougetuOte | T0-1 裏取り反映: 前提条件 P-1（✅アップグレード済）/P-2 追加・T1-2/T1-3 に exit code & block cap 仕様・T1-4 を permissions.deny 二重防御へ・T2-2 に auto mode classifier。design 同期（D1精緻化/D7新節）|
+| 2026-05-30 | Living Architect(Opus) + sougetuOte | P-2 実機検証完了を反映（前提条件 P-2 を ✅ クローズ）。複数 Stop hook 合成 = **OR 確定**・auto mode/permissions.deny を 2.1.158 再確認。→ Wave 1 着手可 |

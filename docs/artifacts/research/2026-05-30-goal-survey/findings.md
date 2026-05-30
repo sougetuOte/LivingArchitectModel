@@ -112,9 +112,9 @@ FR-6.2 の MUST は「dynamic workflows を**必須依存にするな**（$100 M
   - `/goal`（per-turn）＋ auto mode（per-tool）＋ script Stop hook（決定的 checker）＝ 三位一体
   - ⚠️ 制約: auto mode は **Anthropic API のみ**（Bedrock/Vertex/Foundry 不可）。ユーザー環境（Max 5x）の可用性を要確認。classifier 自体は非決定的なので、決定的強制は `permissions.deny` 側に置く。
 
-### D. 複数 Stop hook の block 合成（依然未文書化 → P-2 実機検証継続）
+### D. 複数 Stop hook の block 合成（→ P-2 実機検証で確定: OR / most-restrictive）
 
-- 追加調査でも公式明示なし。P-2 で `/goal`(prompt) × `lam-stop-hook`(script) の共存・block 合成（いずれか block で継続か）を実機検証する。
+- T0-1 時点では公式未明示。**P-2 実機検証（2026-05-30）で「いずれか1つでも block→継続」（OR）を確定**。詳細は下記「P-2 実機検証結果」。
 
 ### E. ✅ auto mode 可用性確認（`claude auto-mode config`）+ デフォルトルールの LAM 整合
 
@@ -139,3 +139,34 @@ FR-6.2 の MUST は「dynamic workflows を**必須依存にするな**（$100 M
 | 段階2 LAM 適合性 | ✅ 完了（決定的接地は script hook、FR-9 は permissions.deny、auto mode は段階的統合）|
 | 未確認の残 | 項目14（複数 hook の block 合成）→ **P-2 実機検証**に限定。他は確定 |
 | 反映先 | design: D1 精緻化 + block cap(A) + exit code(B) + 新節 auto mode(C)。tasks: 前提条件 P-1/P-2 + T1-2/3/4 仕様強化 |
+
+---
+
+## P-2 実機検証結果（2026-05-30 / Wave 1 着手ゲート）
+
+再起動後（**2.1.158**）に T0-1 で残した3点を確定。手段: context7 再取得 + `claude auto-mode config` + 隔離 headless 実機検証（`claude -p`）。
+
+### P-2a: block cap（確定）
+
+- `CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`（既定 **8** / **`0` で無効化**＝新情報）・「8 consecutive blocks で override」・`stop_hook_active` 早期 exit を公式再確認（`/en/hooks`・`/en/env-vars`・`/en/hooks-guide`）。本環境の同変数は **unset**（＝既定 8）。
+
+### P-2b: auto mode（確定）
+
+- `claude auto-mode config` が effective config を JSON 出力（**2.1.158 動作確認**）。
+- 🔑 **`permissions.deny` は classifier 前段・override 不可**を公式明記で確認（`/en/auto-mode-config`: *"blocks the action before the classifier is consulted and cannot be overridden"*）→ **D7 層1（FR-9.1 決定的強制点）の裏取り完了**。
+- デフォルト `soft_deny` に **Self-Modification**（`.claude/{settings*.json,rules,hooks,skills,commands,agents,workflows,routines}`・`.mcp.json` 等）/ **Create Unsafe Agents**（*established safety frameworks* 例外を明記）/ **Irreversible Local Destruction** を確認。soft_deny は user intent/allow で**上書き可** → FR-9.1 MUST NOT 保証には層1 `permissions.deny` 固定が必須（§E を公式が補強）。
+
+### P-2c: 複数 Stop hook の block 合成（実機確定）🔑
+
+- **方法**: プロジェクト外の使い捨て `stophook-probe` に **2つの別エントリ** script Stop hook（`hook_block`=`decision:block` / `hook_stop`=`exit 0`）を共存させ、`claude -p "...done"` を headless 実行。`hook_block` は `stop_hook_active=true` で早期 exit（暴走防止）。
+- **結果**（`probe.log` 4行 / `num_turns:2` / `stop_reason:end_turn` / `permission_denials:[]`）:
+  - ターン1: `hook_block`(block) と `hook_stop`(stop) が**両方発火**（`stop_hook_active=False`）→ **ターン継続**。
+  - ターン2: 両 hook に `stop_hook_active=True` → `hook_block` 早期 exit → **停止**。
+- **確定**: 複数 Stop hook の合成は **「いずれか1つでも block→継続」（OR / most-restrictive）**。項目14 の保守的安全側仮説が実機で成立。
+- **設計含意**: LAM の決定的 `lam-stop-hook`(block) は `/goal` evaluator(stop) と共存しても **block が勝つ**＝決定的 checker が完了 gate を維持（FR-4.1b 充足）。**D1/D3 の前提が成立**。
+- **限定と推論**: 検証は script×script。prompt×script は型非依存の decision マージ（公式は hook type 別の合成規則を記述せず）から同じ OR と推論。`/goal` 実起動での確認は Wave 1 の T1-3 実装時に実地でも可能。
+
+### Wave 1 着手判断
+
+- P-2 の核心懸念（evaluator 誤判定で決定的 gate が破られる）は **否定＝安全側**。Wave 1 着手の技術的前提は全て充足。
+- 残作業（PM）: design D1/D3・tasks P-2 の「実機検証する」記述を「実機確定（OR）」へ更新。
