@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING**
+**BUILDING**
 
-_要件定義・設計・タスク分解フェーズ（autonomous-mode: requirements 承認済 / ADR-0005 Accepted → 次は design）_
+_TDD 実装フェーズ（autonomous-mode: requirements / design / tasks 全 approved → Wave 0 T0-1「/goal 機構の二段裏取り」から着手）_
 
 ---
 
