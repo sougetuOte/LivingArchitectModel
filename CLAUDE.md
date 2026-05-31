@@ -48,6 +48,18 @@
 | クイックリファレンス | `CHEATSHEET.md` |
 | 概念説明スライド | `docs/slides/index.html` |
 
+## Execution Environment
+
+実行環境は **Windows 11 Pro**。Bash ツールの実体は **Git Bash（MSYS / MINGW64）** であり、
+環境ヘッダの `Shell: PowerShell` 表記とは異なる（PowerShell でも cmd でもない）。Bash ツール利用時は:
+
+- **パスはフォワードスラッシュ**で書く（`D:/work7/...` または相対 `.claude/hooks/`）。
+  バックスラッシュ（`D:\work7\...`）は bash がエスケープ文字として食い、パスが潰れて失敗する
+- **cmd / PowerShell 専用構文を渡さない**（`dir /b`, `Get-ChildItem`, `where` 等）。
+  GNU coreutils（`ls` / `cat` / `grep`）か専用ツール（Glob / Grep / Read）を使う
+- ディレクトリ走査は Bash より Glob / Grep / Read を優先する
+- **この注意はサブエージェントにも適用する**（Task/Agent で起動する全 Subagent を含む）
+
 ## Context Management
 
 コンテキスト残量が **10% を下回った** と判断したら、現在のタスクの区切りの良いところで
