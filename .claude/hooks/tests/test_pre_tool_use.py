@@ -13,6 +13,13 @@ import pytest
 HOOK_PATH = Path(__file__).resolve().parent.parent / "pre-tool-use.py"
 
 
+def _write_input(tool_name: str, file_path: str) -> dict:
+    """Edit/Write 用の tool_input を組み立てる。"""
+    if tool_name == "Write":
+        return {"file_path": file_path, "content": "x"}
+    return {"file_path": file_path, "old_string": "old", "new_string": "new"}
+
+
 class TestPreToolUse:
     """pre-tool-use.py の権限等級判定テスト"""
 
@@ -214,3 +221,78 @@ class TestPreToolUse:
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0
         assert result.stdout.strip() == "", f"非 AUDITING では SE 許可されるべき。got: {result.stdout!r}"
+
+
+class TestFR9SelfGovernance:
+    """FR-9 自己統治の不可侵: AUTONOMOUS フェーズでの統治ファイル書込 deny テスト
+
+    対応仕様: docs/specs/autonomous-mode/{requirements,design}.md FR-9.1 / design D5。
+    層2（PreToolUse hook・プロンプティング層）の phase-conditional deny を検証する。
+    層1（permissions.deny 決定的層）は T1-5 後に autonomous 専用 settings で別途実装する。
+    """
+
+    @staticmethod
+    def _write_phase(project_root: Path, phase: str) -> None:
+        phase_file = project_root / ".claude" / "current-phase.md"
+        phase_file.parent.mkdir(parents=True, exist_ok=True)
+        phase_file.write_text(f"**{phase}**\n", encoding="utf-8")
+
+    @pytest.mark.parametrize("tool_name,file_path", [
+        ("Edit", ".claude/rules/core-identity.md"),
+        ("Write", ".claude/rules/auto-generated/draft-001.md"),
+        ("Write", "docs/adr/0006-new-decision.md"),
+        ("Edit", ".claude/settings.json"),
+        ("Edit", ".claude/settings.local.json"),
+        ("Edit", ".claude/hooks/pre-tool-use.py"),          # 自己防衛（hook 自身）
+        ("Write", ".claude/hooks/checkers/check_g2_lint.py"),
+        ("Write", ".claude/skills/autonomous/SKILL.md"),    # モード自身の定義
+    ])
+    def test_autonomous_denies_governance_files(self, hook_runner, project_root, tool_name, file_path):
+        """AUTONOMOUS フェーズでは FR9_PATTERNS への書込が deny される（自己破壊的再帰防止）"""
+        self._write_phase(project_root, "AUTONOMOUS")
+        input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, f"deny 時は stdout に JSON が出力されるべき。got: {result.stdout!r}"
+        data = json.loads(stdout)
+        hook_output = data["hookSpecificOutput"]
+        assert hook_output["hookEventName"] == "PreToolUse"
+        assert hook_output["permissionDecision"] == "deny", \
+            f"{file_path} は AUTONOMOUS で deny されるべき。got: {hook_output['permissionDecision']}"
+        assert isinstance(hook_output["permissionDecisionReason"], str)
+        assert len(hook_output["permissionDecisionReason"]) > 0
+
+    @pytest.mark.parametrize("tool_name,file_path", [
+        ("Edit", "src/main.py"),            # 通常コード → SE（deny でない）
+        ("Edit", "docs/specs/foo.md"),      # specs は FR9 対象外 → PM ask（deny でない）
+    ])
+    def test_autonomous_allows_non_governance_paths(self, hook_runner, project_root, tool_name, file_path):
+        """AUTONOMOUS でも FR9_PATTERNS 非該当パスは deny されない"""
+        self._write_phase(project_root, "AUTONOMOUS")
+        input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        if stdout:
+            data = json.loads(stdout)
+            assert data["hookSpecificOutput"]["permissionDecision"] != "deny", \
+                f"{file_path} は AUTONOMOUS でも deny されるべきでない"
+
+    @pytest.mark.parametrize("tool_name,file_path", [
+        ("Edit", ".claude/rules/core-identity.md"),
+        ("Edit", ".claude/hooks/pre-tool-use.py"),
+        ("Edit", ".claude/settings.json"),
+        ("Write", ".claude/skills/autonomous/SKILL.md"),
+    ])
+    def test_non_autonomous_does_not_deny_governance(self, hook_runner, project_root, tool_name, file_path):
+        """非 AUTONOMOUS（BUILDING）では FR9_PATTERNS への書込が deny されない（回帰防止）"""
+        self._write_phase(project_root, "BUILDING")
+        input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        if stdout:
+            data = json.loads(stdout)
+            assert data["hookSpecificOutput"]["permissionDecision"] != "deny", \
+                f"非 AUTONOMOUS では {file_path} は deny されるべきでない（PM ask か SE）"
