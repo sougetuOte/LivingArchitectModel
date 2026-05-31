@@ -28,6 +28,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -44,8 +45,13 @@ from _hook_utils import (  # noqa: E402
     read_stdin_json,
 )
 
+import autonomous_state  # noqa: E402
+
 # PreCompact 発火から何秒以内を「直近」とみなすか（10分）
 PRE_COMPACT_THRESHOLD_SECONDS = 600
+
+# AUTONOMOUS: checker サブプロセスの timeout（hooks 全体 600s 上限内）
+CHECKER_TIMEOUT = 600
 
 
 def _get_log_file(project_root: Path) -> Path:
@@ -206,6 +212,109 @@ def _check_context_pressure(
             pass
 
 
+def _is_autonomous_active(auto_state_file: Path) -> bool:
+    """autonomous-state.json が存在し active=true かを判定する。"""
+    if not auto_state_file.exists():
+        return False
+    try:
+        state = json.loads(auto_state_file.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return state.get("active") is True
+
+
+def _write_autonomous_state(auto_state_file: Path, state: dict) -> None:
+    """autonomous-state.json を更新する（hook が書くためモデル改竄不能）。"""
+    try:
+        auto_state_file.write_text(
+            json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except Exception as e:
+        sys.stderr.write(f"autonomous-state write error: {e}\n")
+
+
+def _run_g1_checker(project_root: Path, log_file: Path) -> int:
+    """G1 checker をサブプロセス厳密実行し実 exit code を返す。
+
+    0=PASS / 非0=FAIL。障害（未検出・timeout・例外）は FAIL(2) 扱いとし、
+    誤って completion させない（決定的 gate を維持）。
+    """
+    checker_path = _HOOKS_DIR / "checkers" / "check_g1_test.py"
+    if not checker_path.is_file():
+        _log(log_file, "ERROR", f"G1 checker not found: {checker_path}")
+        return 2
+    try:
+        proc = subprocess.run(
+            [sys.executable, str(checker_path)],
+            cwd=str(project_root),
+            capture_output=True,
+            text=True,
+            timeout=CHECKER_TIMEOUT,
+            env={**os.environ, "LAM_PROJECT_ROOT": str(project_root)},
+        )
+    except subprocess.TimeoutExpired:
+        _log(log_file, "ERROR", f"G1 checker timeout after {CHECKER_TIMEOUT}s")
+        return 2
+    except Exception as e:
+        _log(log_file, "ERROR", f"G1 checker error: {type(e).__name__}")
+        return 2
+    if proc.stderr:
+        _log(log_file, "INFO", f"G1 checker stderr: {proc.stderr.strip()[:500]}")
+    return proc.returncode
+
+
+def _handle_autonomous(
+    input_data: dict, auto_state_file: Path, project_root: Path, log_file: Path
+) -> None:
+    """AUTONOMOUS フロー（design D3）: checker(G1) 厳密実行で completion を gate する。
+
+    停止条件に該当した場合は _stop()/_block() で SystemExit を送出する。
+    """
+    stop_hook_active = input_data.get("stop_hook_active")
+    _log(log_file, "INFO", f"autonomous flow: stop_hook_active={stop_hook_active}")
+
+    try:
+        state = json.loads(auto_state_file.read_text(encoding="utf-8"))
+    except Exception:
+        _stop(log_file, "autonomous: state read error → normal stop")
+
+    iteration = int(state.get("iteration", 0))
+    max_iterations = int(state.get("max_iterations", 20))
+
+    # 反復上限（主 bound・無限ループ防止）
+    if iteration >= max_iterations:
+        state["active"] = False
+        _write_autonomous_state(auto_state_file, state)
+        _stop(
+            log_file,
+            f"autonomous: max_iterations reached ({iteration}/{max_iterations}) → stop",
+        )
+
+    # G1 checker を厳密実行し実 exit code を checker_results に記録（モデル改竄不能）
+    g1_exit = _run_g1_checker(project_root, log_file)
+    results = state.setdefault("checker_results", {})
+    results["g1_exit"] = g1_exit
+    results["checked_at"] = now_utc_iso8601()
+
+    if g1_exit == 0:
+        # 全 PASS → completion 許可
+        state["active"] = False
+        state["phase"] = "done"
+        _write_autonomous_state(auto_state_file, state)
+        _stop(log_file, "autonomous: G1 PASS → completion (active=false)")
+    else:
+        # FAIL → block でループ継続（building へ戻す）
+        state["iteration"] = iteration + 1
+        state["phase"] = "building"
+        _write_autonomous_state(auto_state_file, state)
+        _block(
+            log_file,
+            f"autonomous: G1 test checker が赤 (exit {g1_exit})。"
+            f"building へ戻りテストを修正してください"
+            f"（iteration {iteration + 1}/{max_iterations}）。",
+        )
+
+
 def main() -> None:
     project_root = get_project_root()
     state_file = project_root / ".claude" / "lam-loop-state.json"
@@ -213,6 +322,14 @@ def main() -> None:
     log_file = _get_log_file(project_root)
 
     input_data = read_stdin_json()
+
+    # AUTONOMOUS フロー（design D3・最優先）: autonomous-state.json の active を検出したら
+    # checker(G1) を厳密実行して completion を gate する。既存 full-review フローとは
+    # 独立ファイルで分離し、非active時は以降の lam-loop-state.json フローが不変。
+    auto_state_file = autonomous_state.state_file_path(project_root)
+    if _is_autonomous_active(auto_state_file):
+        _handle_autonomous(input_data, auto_state_file, project_root, log_file)
+        return
 
     # STEP 1-2: 再帰防止・状態ファイル確認
     state = _check_recursion_and_state(input_data, state_file, log_file)
