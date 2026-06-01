@@ -89,7 +89,7 @@ _SE_PATTERNS = [
 # 統治ファイル群。.claude/hooks/** と .claude/skills/autonomous/** を含めることで、
 # 自律エンジンが FR-9 強制機構そのもの（hook / モード定義）を書き換える再帰ハザードを塞ぐ。
 # これは層2（プロンプティング層）。層1（permissions.deny の決定的層・override 不可）は
-# T1-5 後に autonomous 専用 settings で別途固定する（二重防御）。
+# .claude/settings.autonomous.json で固定済み（T1-4 層1, 5af4a63）。両層で二重防御する。
 _FR9_PATTERNS = [
     (re.compile(r"^\.claude/rules/"), "rules/"),
     (re.compile(r"^docs/adr/"), "adr/"),
