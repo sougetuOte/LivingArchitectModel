@@ -159,7 +159,10 @@ def run_phase0(
 
     analyzers = _detect_analyzers(project_root, config)
 
-    line_count = count_lines(project_root, config.exclude_dirs) if analyzers else 0
+    # 行数は常にカウントする。アナライザ未検出（対応言語なし）でも、コードファイルが
+    # 存在すれば実数を返し、Stage 0 の detect_scale（無条件カウント）と一致させる。
+    # 旧実装は analyzers 空時に 0 固定で、診断表示が Stage 0 と食い違っていた（監査 S2a）。
+    line_count = count_lines(project_root, config.exclude_dirs)
 
     issues: list[Issue] = []
     for analyzer in analyzers:

@@ -188,6 +188,21 @@ class TestRunPhase0:
             result = run_phase0(empty_dir)
         assert result.languages == []
 
+    def test_line_count_counted_without_analyzers(self, tmp_path: Path) -> None:
+        """対応アナライザの無い言語のみでも行数を実数で返すこと（監査 S2a 修正）。
+
+        旧実装は analyzers 空時に line_count=0 固定だったため、Go 等のコードが
+        あっても 0 となり Stage 0（detect_scale の無条件カウント）と食い違った。
+        本修正で常に count_lines を呼ぶため実数が返る。
+        """
+        project = tmp_path / "go_only"
+        project.mkdir()
+        (project / "main.go").write_text("package main\n\nfunc main() {}\n")
+        with self._GITLEAKS_MOCK:
+            result = run_phase0(project)
+        assert result.languages == []          # Go アナライザは未登録
+        assert result.line_count >= 3           # アナライザ空でも行数は実数
+
     def test_tool_not_found_raises(self, project_root: Path) -> None:
         """ツール未インストール時は ToolNotFoundError を送出すること。"""
         from analyzers.base import ToolNotFoundError

@@ -10,17 +10,37 @@
 
 | 区分 | 件数 |
 |------|------|
-| Critical | 1 |
+| Critical | 0（当初 1 → 精査で Info へ再評価。下記 §追記） |
 | Warning | 5 |
-| Info | 3 |
+| Info | 4 |
 
-**評価: Yellow**（Critical 1 件 → Green State 未達）
+**評価: Yellow**（Critical 0 だが Warning 5 件残のため Green State 未達）
+
+> **2026-06-01 精査追記**: 当初 Critical とした run_pipeline.py:162 は、`line_count` の
+> 実消費経路を追跡した結果「判定を誤らせる Silent Failure」ではなく「診断表示の不整合」
+> （Info 相当）と再評価し、修正済み。詳細は下記 Critical セクションの追記を参照。
 
 ---
 
 ## Critical
 
-### [Critical] run_pipeline.py:162 — analyzers が空の場合に line_count=0 を返し、scale_detector.py と count_lines() の呼び出し経路が分岐する（Silent Failure）
+> **【追記 2026-06-01 精査・解決】重大度 Critical → Info に再評価。修正済み。**
+>
+> 監査後の精査で `line_count` の全消費経路を追跡した結果、当初想定した「呼び出し元が
+> 0 を誤判定する Silent Failure」は成立しないことが判明:
+> - **スケール判定（Plan A〜D 有効化）は Stage 0 の `detect_scale` が担い、`count_lines` を
+>   無条件に呼ぶ**（正しい値）。`Phase0Result.line_count` は判定に一切使われない。
+> - `Phase0Result.line_count` の唯一の消費は full-review SKILL.md Step 1 の**診断 print**で、
+>   判定より後段かつ何の分岐にも使われない（SKILL.md:152「Plan 有効性は Stage 0 で決定済み」）。
+> - `should_enable_static_analysis` は本番未使用（design.md:1012「利用しない」）。
+> - Stage 0 / Stage 1 は別プロセスのため、横断観察#2「`Phase0Result.line_count` を
+>   `detect_scale` に渡す」は実行不能（Stage 0 が先）。
+>
+> 実害は「対応アナライザの無い言語のみ（例: Go 単独）の診断表示が過少」にとどまり、**Info 相当**。
+> **修正（採用: 案1）**: 162 行の `if analyzers else 0` を削除し常に `count_lines` を呼ぶ。
+> Stage 0 と表示が一致。回帰テスト `test_line_count_counted_without_analyzers` を追加。
+
+### [Critical→Info] run_pipeline.py:162 — analyzers が空の場合に line_count=0 を返し、scale_detector.py と count_lines() の呼び出し経路が分岐する（当初 Silent Failure と判定）
 
 ```python
 line_count = count_lines(project_root, config.exclude_dirs) if analyzers else 0
