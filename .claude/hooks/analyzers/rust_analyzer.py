@@ -151,6 +151,9 @@ class RustAnalyzer(LanguageAnalyzer):
         try:
             data = json.loads(result.stdout)
         except json.JSONDecodeError:
+            logger.warning(
+                "cargo audit が非JSON出力 (rc=%d); スキップ", result.returncode
+            )
             return []
 
         vulns = data.get("vulnerabilities", {})

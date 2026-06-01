@@ -75,6 +75,10 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
             return []
 
         if result.returncode not in (0, 1):
+            logger.warning(
+                "eslint が異常終了 (code=%d・設定/内部エラー); スキップ",
+                result.returncode,
+            )
             return []
 
         try:

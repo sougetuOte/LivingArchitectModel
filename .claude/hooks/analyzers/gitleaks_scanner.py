@@ -210,7 +210,7 @@ def _run_gitleaks(cmd: list[str], timeout: int) -> list[Issue]:
                 severity="critical",
                 category="security",
                 tool="gitleaks",
-                message=f"gitleaks の実行に失敗しました: {exc}",
+                message="gitleaks の実行に失敗しました（詳細はログ参照）",
                 rule_id="gitleaks:scan-failed",
                 suggestion="gitleaks がインストール済みか、PATH が通っているか確認してください。",
             )
