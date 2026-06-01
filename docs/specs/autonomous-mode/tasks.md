@@ -75,11 +75,12 @@
 
 ### T1-4: FR-9 最小強制（PreToolUse hook + permissions.deny の二重防御）— SE/PM
 
-- **対象**: [.claude/hooks/pre-tool-use.py](../../../.claude/hooks/pre-tool-use.py)（SE）+ `.claude/settings.json` の `permissions.deny`（**PM**・settings 変更）
-- **変更**: (a) `pre-tool-use.py`: `current_phase == "AUTONOMOUS"` かつ書込先が `FR9_PATTERNS`（`.claude/rules/**` / `docs/adr/**` / `.claude/settings*.json` / `.claude/hooks/**` / `.claude/skills/autonomous/**`）に一致したら **deny**（design D5・プロンプティング層）。(b) **`permissions.deny` に FR9_PATTERNS を固定**（design D7 層1・classifier 前段・上書き不可・決定的）。**二重防御**。既存 deny 系（C層・不可逆操作）は隔離と独立に維持（FR-9.2）
-- **完了条件**: FR9_PATTERNS への書込が AUTONOMOUS 下で block される（特に `.claude/hooks/**` と `.claude/skills/autonomous/**` を含む＝自己破壊的再帰防止）/ `permissions.deny` が hook・classifier より前段で効く（決定的）/ 既存フェーズの判定が回帰なし / Red→Green でパターン一致テスト追加
+- **対象**: [.claude/hooks/pre-tool-use.py](../../../.claude/hooks/pre-tool-use.py)（SE・層2）+ `.claude/settings.autonomous.json`（新規・専用 settings・層1・**PM**）。共有 `.claude/settings.json` には FR9 deny を**置かない**（自己ロック回避）
+- **変更**: (a) `pre-tool-use.py`: `current_phase == "AUTONOMOUS"` かつ書込先が `FR9_PATTERNS`（`.claude/rules/**` / `docs/adr/**` / `.claude/settings*.json` / `.claude/hooks/**` / `.claude/skills/autonomous/**`）に一致したら **deny**（design D5・プロンプティング層）。(b) **専用 `.claude/settings.autonomous.json` の `permissions.deny` に FR9_PATTERNS を固定**し、起動時 `claude --permission-mode auto --settings .claude/settings.autonomous.json` で注入（design D7 層1・CLI scope・deny-first で any-scope allow を覆す・自己ロック回避）。deny は `Edit`+`Write` 併記。**二重防御**。既存 deny 系（C層・不可逆操作）は隔離と独立に維持（FR-9.2）
+- **完了条件**: FR9_PATTERNS への書込が AUTONOMOUS 下で block される（特に `.claude/hooks/**` と `.claude/skills/autonomous/**` を含む＝自己破壊的再帰防止）/ 層1 `permissions.deny` が hook・classifier より前段で効く（決定的・override 不可）/ 既存フェーズの判定が回帰なし / Red→Green でパターン一致テスト追加
 - **トレース**: FR-9.1 / FR-9.2 / FR-3.4 / SC-7 / design D5・D7
-- **依存**: T0-1（AUTONOMOUS モード値の確定は T1-6 と並行可）。**settings.json 変更は PM 承認ゲート**
+- **依存**: T0-1。層1 は注入書式の裏取り（[findings 2026-06-01](../../artifacts/research/2026-06-01-layer1-settings/findings.md)）後に実施。**専用 settings 追加は PM 承認ゲート**
+- **✅ 状態**: 完了。層2(a)=`ecda173`（2026-05-31・AUTONOMOUS 限定 deny）。層1(b)=専用 settings 注入（2026-06-01・裏取り [findings](../../artifacts/research/2026-06-01-layer1-settings/findings.md)・Red→Green・`test_settings_autonomous.py` 10件追加・全 119 passed）。protected-paths で `.claude/skills` がデフォルト無保護と判明し、明示 deny の必須性を確認
 
 ### T1-5: autonomous スキル最小版 — PM（モード追加）
 
@@ -301,3 +302,4 @@
 | 2026-05-30 | sougetuOte | tasks 承認（approved）。DQ-2 = FR-9 前倒し採用で確定 |
 | 2026-05-30 | Living Architect(Opus) + sougetuOte | T0-1 裏取り反映: 前提条件 P-1（✅アップグレード済）/P-2 追加・T1-2/T1-3 に exit code & block cap 仕様・T1-4 を permissions.deny 二重防御へ・T2-2 に auto mode classifier。design 同期（D1精緻化/D7新節）|
 | 2026-05-30 | Living Architect(Opus) + sougetuOte | P-2 実機検証完了を反映（前提条件 P-2 を ✅ クローズ）。複数 Stop hook 合成 = **OR 確定**・auto mode/permissions.deny を 2.1.158 再確認。→ Wave 1 着手可 |
+| 2026-06-01 | Living Architect(Opus) + sougetuOte | T1-5/T1-6 完了（`3ca2428`/`656f66f`）。T1-4 層1 完了: 注入書式を裏取り（[findings 2026-06-01](../../artifacts/research/2026-06-01-layer1-settings/findings.md)）し**専用 `.claude/settings.autonomous.json` を `--settings` 注入**する方式へ確定（自己ロック回避）。T1-4 状態行・design D7 同期 |

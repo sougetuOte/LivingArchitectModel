@@ -27,18 +27,27 @@ disable-model-invocation: true
 
 1. **`/goal` 利用可**: Claude Code v2.1.139+（現環境 2.1.158 で確認済）。trust dialog 承認済み
    ワークスペースであること（`disableAllHooks` / `allowManagedHooksOnly` 時は使用不可）。
-2. **block cap 引き上げ**: Stop hook は 8 回連続 block でターン終了する（既定 cap=8）。
+2. **層1 deny の起動注入（FR-9.1 決定的層・T1-4 層1）**: autonomous セッションは
+   **`claude --permission-mode auto --settings .claude/settings.autonomous.json`** で起動する。
+   これにより統治ファイル（`FR9_PATTERNS`）への書込が `permissions.deny`（CLI scope・
+   deny-first・override 不可）で決定的に block される。共有 `.claude/settings.json` には
+   置かない（自己ロック回避）。**起動・再開（`--resume`/`--continue`）とも常にこのフラグを付ける**
+   （付けないと層1 が無効化。FR-7.1）。
+3. **block cap 引き上げ**: Stop hook は 8 回連続 block でターン終了する（既定 cap=8）。
    `max_iterations`（既定 20）を活かすため、起動前に環境変数
    **`CLAUDE_CODE_STOP_HOOK_BLOCK_CAP`** を `max_iterations` 以上、または **`0`（無効化）**
    に設定する（これは起動時の環境設定でありユーザー操作）。
-3. **人間監視下での実証**: MVP は権限エンベロープ（FR-2）・PM キュー（FR-3）・last-line
+4. **人間監視下での実証**: MVP は権限エンベロープ（FR-2）・PM キュー（FR-3）・last-line
    自己起動（FR-5.6）が**未実装**。人間が監視しながら実施すること（tasks.md Wave 1 注意）。
 
 ## 実行ステップ
 
-### 1. 起動引数の検証
-- `<spec_target>` が指定され、ファイルが実在することを確認する。
-- 不在なら起動を中止し、対象 spec のパスを尋ねる。
+### 1. 起動引数の検証 + 層1 自己点検（fail-safe）
+- `<spec_target>` が指定され、ファイルが実在することを確認する。不在なら起動を中止し、対象 spec のパスを尋ねる。
+- **層1 deny の有効性を自己点検する**: `.claude/settings.autonomous.json` が存在し、`--settings` で
+  注入されているか確認する（例: `claude auto-mode config` の effective config に統治ファイルの deny が
+  含まれるか）。`--settings` 付け忘れ等で層1 が無効なら **警告して中止**する（層2=phase 条件 deny は
+  残るが、決定的層を欠いたまま自律ループに入らない）。
 
 ### 2. 完了条件の提示（MVP = G1）
 - MVP の完了条件は **G1（テスト全 PASS）** のみ。決定的 checker
@@ -110,7 +119,8 @@ AUTONOMOUS 下では、自律エンジンが自身の統治を定義するファ
 - 対象（`FR9_PATTERNS`）: `.claude/rules/**` / `docs/adr/**` / `.claude/settings*.json` /
   `.claude/hooks/**` / `.claude/skills/autonomous/**`（**このスキル自身を含む**）。
 - 二重防御: プロンプティング層 = PreToolUse hook（[`pre-tool-use.py`](../../hooks/pre-tool-use.py)・
-  AUTONOMOUS 限定 deny）/ 決定的層 = `permissions.deny`（classifier 前段・上書き不可・Wave 1 層1）。
+  AUTONOMOUS 限定 deny）/ 決定的層 = `permissions.deny`（[`settings.autonomous.json`](../../settings.autonomous.json) を
+  `--settings` 注入・classifier 前段・上書き不可・T1-4 層1）。`Edit`+`Write` 併記で MUST NOT 境界を防御。
 
 ## MVP スコープ外（後続 Wave で実装）
 
@@ -139,6 +149,7 @@ AUTONOMOUS 下では、自律エンジンが自身の統治を定義するファ
 対象 spec : docs/specs/<feature>/requirements.md
 完了条件   : G1（テスト全 PASS / lam-stop-hook の G1 checker が exit 0）
 上限       : max_iterations=20
+層1 deny   : settings.autonomous.json [有効/無効]（無効なら起動中止）
 block cap  : CLAUDE_CODE_STOP_HOOK_BLOCK_CAP=[0 または 20以上 / 未設定なら警告]
 
 起動する /goal 条件:

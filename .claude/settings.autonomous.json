@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "auto",
+    "disableBypassPermissionsMode": "disable",
+    "deny": [
+      "Edit(/.claude/rules/**)",
+      "Write(/.claude/rules/**)",
+      "Edit(/docs/adr/**)",
+      "Write(/docs/adr/**)",
+      "Edit(/.claude/settings*.json)",
+      "Write(/.claude/settings*.json)",
+      "Edit(/.claude/hooks/**)",
+      "Write(/.claude/hooks/**)",
+      "Edit(/.claude/skills/autonomous/**)",
+      "Write(/.claude/skills/autonomous/**)"
+    ]
+  }
+}
