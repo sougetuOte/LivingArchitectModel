@@ -185,6 +185,59 @@ class TestTDDPatternDetection:
         assert not tdd_log.exists(), "前回失敗なしでの成功時は tdd-patterns.log が作成されてはいけない"
 
 
+class TestPostToolUseFailure:
+    """PostToolUseFailure イベント分岐テスト（監査 B4）。
+
+    ツール実行自体が非ゼロ exit で失敗したイベント。古い XML による誤判定を防ぐため、
+    XML を読まず直接 FAIL を記録する（post-tool-use.py: is_failure_event 分岐）。
+    """
+
+    def _failure_input(self, command: str) -> dict:
+        return {
+            "hook_event_name": "PostToolUseFailure",
+            "tool_name": "Bash",
+            "tool_input": {"command": command},
+            "tool_response": {"stdout": "", "stderr": "error"},
+        }
+
+    def test_failure_event_records_fail_directly(self, hook_runner, project_root):
+        """PostToolUseFailure + テストコマンド → XML 無しでも直接 FAIL 記録。"""
+        result = hook_runner(HOOK_PATH, self._failure_input("pytest tests/ -v"))
+        assert result.returncode == 0
+
+        tdd_log = project_root / ".claude" / "tdd-patterns.log"
+        assert tdd_log.exists(), "PostToolUseFailure 時に tdd-patterns.log が作成されるべき"
+        content = tdd_log.read_text(encoding="utf-8")
+        assert "FAIL" in content
+        assert "PostToolUseFailure event" in content, (
+            "失敗イベント由来であることがマーカーで記録されるべき"
+        )
+
+        last_result = project_root / ".claude" / "last-test-result"
+        assert last_result.read_text(encoding="utf-8").startswith("fail")
+
+    def test_failure_event_ignores_stale_pass_xml(self, hook_runner, project_root):
+        """古い PASS XML が残っていても PostToolUseFailure は FAIL を記録（XML 不読）。"""
+        # 直前実行の PASS XML を残置
+        _write_junit_xml(project_root, tests=5, failures=0)
+
+        result = hook_runner(HOOK_PATH, self._failure_input("pytest tests/ -v"))
+        assert result.returncode == 0
+
+        tdd_log = project_root / ".claude" / "tdd-patterns.log"
+        content = tdd_log.read_text(encoding="utf-8")
+        assert "FAIL" in content, "古い PASS XML に惑わされず FAIL を記録すべき"
+        assert "PASS" not in content
+
+    def test_failure_event_non_test_command_no_record(self, hook_runner, project_root):
+        """PostToolUseFailure でもテストコマンドでなければ記録しない（ls 失敗等）。"""
+        result = hook_runner(HOOK_PATH, self._failure_input("ls -la"))
+        assert result.returncode == 0
+
+        tdd_log = project_root / ".claude" / "tdd-patterns.log"
+        assert not tdd_log.exists(), "非テストコマンドの失敗では記録されないべき"
+
+
 class TestDocSyncFlag:
     """doc-sync-flag テスト（責務2）"""
 
