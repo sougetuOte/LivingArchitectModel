@@ -66,10 +66,23 @@ _CHUNK_FIELDS = {
 }  # インポート時に一度だけ計算（軽量な副作用）
 
 
+def _write_json_file(path: Path, data, *, label: str) -> None:
+    """JSON データを path に書き込む（save_* 共通）。
+
+    state_manager は障害回復を担う層であり、書き込み失敗（OSError: ディスク満杯・
+    権限不足等）でパイプライン全体を停止させない。失敗は黙殺せず warning ログに残して
+    続行する（load_* 系の JSONDecodeError フォールバックと対称な信頼性設計）。
+    """
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except OSError as e:
+        logger.warning("Failed to save %s to %s: %s", label, path, e)
+
+
 def save_issues(state_dir: Path, issues: list[Issue]) -> None:
-    state_dir.mkdir(parents=True, exist_ok=True)
     data = [dataclasses.asdict(issue) for issue in issues]
-    (state_dir / _ISSUES_FILE).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_json_file(state_dir / _ISSUES_FILE, data, label="issues")
 
 
 def load_issues(state_dir: Path) -> list[Issue]:
@@ -90,9 +103,8 @@ def load_issues(state_dir: Path) -> list[Issue]:
 
 
 def save_ast_map(state_dir: Path, ast_map: dict[str, ASTNode]) -> None:
-    state_dir.mkdir(parents=True, exist_ok=True)
     data = {key: dataclasses.asdict(node) for key, node in ast_map.items()}
-    (state_dir / _AST_MAP_FILE).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_json_file(state_dir / _AST_MAP_FILE, data, label="ast map")
 
 
 def _dict_to_ast_node(d: dict) -> ASTNode:
@@ -189,10 +201,7 @@ def compute_file_hash(file_path: Path) -> str:
 
 
 def save_file_hashes(state_dir: Path, hashes: dict[str, str]) -> None:
-    state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / _HASHES_FILE).write_text(
-        json.dumps(hashes, indent=2), encoding="utf-8"
-    )
+    _write_json_file(state_dir / _HASHES_FILE, hashes, label="file hashes")
 
 
 def load_file_hashes(state_dir: Path) -> dict[str, str]:
@@ -236,12 +245,11 @@ def chunk_result_filename(chunk: Chunk) -> str:
 
 def save_chunk_result(state_dir: Path, chunk: Chunk, issues: list[Issue]) -> None:
     """チャンクごとの Issue リストを個別ファイルで保存する。"""
-    results_dir = state_dir / _CHUNK_RESULTS_DIR
-    results_dir.mkdir(parents=True, exist_ok=True)
-
     filename = chunk_result_filename(chunk)
     data = [dataclasses.asdict(issue) for issue in issues]
-    (results_dir / filename).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_json_file(
+        state_dir / _CHUNK_RESULTS_DIR / filename, data, label="chunk result"
+    )
 
 
 def load_chunk_result(state_dir: Path, chunk: Chunk) -> list[Issue]:
@@ -266,11 +274,8 @@ def load_chunk_result(state_dir: Path, chunk: Chunk) -> list[Issue]:
 
 def save_chunks_index(state_dir: Path, chunks: list[Chunk]) -> None:
     """チャンク一覧を chunks.json に保存する。"""
-    state_dir.mkdir(parents=True, exist_ok=True)
     data = [dataclasses.asdict(chunk) for chunk in chunks]
-    (state_dir / _CHUNKS_INDEX_FILE).write_text(
-        json.dumps(data, indent=2), encoding="utf-8"
-    )
+    _write_json_file(state_dir / _CHUNKS_INDEX_FILE, data, label="chunks index")
 
 
 def load_chunks_index(state_dir: Path) -> list[Chunk]:
@@ -308,9 +313,8 @@ def _empty_dependency_graph() -> dict:
 
 def save_dependency_graph(state_dir: Path, graph_data: dict) -> None:
     """依存グラフをJSONファイルに永続化する。"""
-    state_dir.mkdir(parents=True, exist_ok=True)
-    (state_dir / _DEPENDENCY_GRAPH_FILE).write_text(
-        json.dumps(graph_data, indent=2), encoding="utf-8"
+    _write_json_file(
+        state_dir / _DEPENDENCY_GRAPH_FILE, graph_data, label="dependency graph"
     )
 
 
