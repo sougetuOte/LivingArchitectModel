@@ -212,15 +212,30 @@ def _check_context_pressure(
             pass
 
 
-def _is_autonomous_active(auto_state_file: Path) -> bool:
-    """autonomous-state.json が存在し active=true かを判定する。"""
+def _load_active_autonomous_state(
+    auto_state_file: Path, log_file: Path
+) -> dict | None:
+    """autonomous-state.json をロードし active=true の state dict を返す（fail-close）。
+
+    非存在 / 読取・パース失敗 / active≠true はいずれも None を返す。main() はこの
+    単一読込結果だけで autonomous フローへ分岐するため、旧 _is_autonomous_active +
+    _handle_autonomous 内再読込による「二度読み」fail-open 経路（design D3）を持たない。
+    読取失敗は観測性のため WARN ログに残す（黙殺せず None=fail-close へ落とす）。
+    """
     if not auto_state_file.exists():
-        return False
+        return None
     try:
         state = json.loads(auto_state_file.read_text(encoding="utf-8"))
-    except Exception:
-        return False
-    return state.get("active") is True
+    except Exception as e:
+        _log(
+            log_file,
+            "WARN",
+            f"autonomous state read/parse error: {type(e).__name__} → fail-close (None)",
+        )
+        return None
+    if state.get("active") is not True:
+        return None
+    return state
 
 
 def _write_autonomous_state(auto_state_file: Path, state: dict) -> None:
@@ -264,19 +279,20 @@ def _run_g1_checker(project_root: Path, log_file: Path) -> int:
 
 
 def _handle_autonomous(
-    input_data: dict, auto_state_file: Path, project_root: Path, log_file: Path
+    input_data: dict,
+    state: dict,
+    auto_state_file: Path,
+    project_root: Path,
+    log_file: Path,
 ) -> None:
     """AUTONOMOUS フロー（design D3）: checker(G1) 厳密実行で completion を gate する。
 
-    停止条件に該当した場合は _stop()/_block() で SystemExit を送出する。
+    state は main() の _load_active_autonomous_state が読込済みの active=true 状態を
+    引数で受け取る（二度読み廃止）。停止条件に該当した場合は _stop()/_block() で
+    SystemExit を送出する。
     """
     stop_hook_active = input_data.get("stop_hook_active")
     _log(log_file, "INFO", f"autonomous flow: stop_hook_active={stop_hook_active}")
-
-    try:
-        state = json.loads(auto_state_file.read_text(encoding="utf-8"))
-    except Exception:
-        _stop(log_file, "autonomous: state read error → normal stop")
 
     iteration = int(state.get("iteration", 0))
     max_iterations = int(state.get("max_iterations", 20))
@@ -327,8 +343,11 @@ def main() -> None:
     # checker(G1) を厳密実行して completion を gate する。既存 full-review フローとは
     # 独立ファイルで分離し、非active時は以降の lam-loop-state.json フローが不変。
     auto_state_file = autonomous_state.state_file_path(project_root)
-    if _is_autonomous_active(auto_state_file):
-        _handle_autonomous(input_data, auto_state_file, project_root, log_file)
+    auto_state = _load_active_autonomous_state(auto_state_file, log_file)
+    if auto_state is not None:
+        _handle_autonomous(
+            input_data, auto_state, auto_state_file, project_root, log_file
+        )
         return
 
     # STEP 1-2: 再帰防止・状態ファイル確認
