@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**AUDITING**
 
-_TDD 実装フェーズ（autonomous-mode: requirements / design / tasks 全 approved → Wave 0 T0-1「/goal 機構の二段裏取り」から着手）_
+_whole-project 品質棚卸し Pass 1（コード S1〜S4: hooks/analyzers/autonomous/tests）。autonomous-mode Wave 1 実装完了後の初回ホリスティック監査。成果物は docs/artifacts/audit-2026-06-01/ に永続化_
 
 ---
 
