@@ -72,3 +72,64 @@ GitHub issue 番号 60033（open・未修正）が本命。Write に渡す内容
 - GitHub issue 番号 63547（参考・別系統）: Windows で computer-use 系ツールが初回後に切断。
 - メモリ: claude-code-malformed-write-bug。
 - セッション状態: SESSION_STATE.md の「ツール malformed 障害 調査決着」。
+
+---
+
+## Update 2026-06-02（2.1.160 リリース後の再調査・主因再分類）
+
+CC 2.1.160 リリースを受けた再裏取りで、当初分析を**根本的に修正**する必要が出た。要旨: **真の現主因は #60033 単体ではなく Opus 4.8 の tool_use 破損退行（2.1.150 導入）**。本記録の「対策」は #60033 系サブケースには有効だが、主クラスタはサイズ非依存のため**書込分割だけでは消えない**。
+
+### 1. 2.1.160 でも未修正であることの確認
+
+- CHANGELOG 全文走査（4146行・最新=2.1.160）。`could not be parsed` 文字列は**一度も出てこない**。
+- 2.1.160 の 27 項目はすべて背景エージェント / Windows TUI / クリップボード・IME 系で、tool_use エンコーダに触れる項目はゼロ。
+- Windows + heavy CPU load の入力不応答 fix は語感は近いが**キー入力→TUI の応答性**の話で、parse 失敗とは別クラス。
+- 最有力の間接候補だった 2.1.156「Opus 4.8 の thinking ブロック改変を修正」も、出荷後に malformed 件数が**増加**しており実測で反証（#64176/#64235 が v2.1.158 で 68件・57件観測）。
+- 「v2.1.116 で全解決」という検索結果は時系列矛盾（issue 報告日が 5–6月）・全件 OPEN・CHANGELOG 無記載の3点で却下。
+
+### 2. 主因の再分類（#60033 → Opus 4.8 退行クラスタ）
+
+| 観点 | 当初記録 | 再調査後 |
+|---|---|---|
+| 追跡 issue | #60033 単体 | **#60033 含む 12件以上の重複クラスタ** |
+| 中核機構 | 大 Write の入力 JSON エスケープ破損 | **`stop_reason=tool_use` なのに content が thinking のみ・tool_use ブロック欠落**（#64235/#63481/#64418） |
+| サイズ依存 | あり（大 Write で発生） | **なし**（単純な Bash でも発生 = #64235 area:bash） |
+| ツール依存 | Write/Edit 中心 | **なし**（ツール非依存・退行ベースライン） |
+| 導入バージョン | 不明 | **2.1.150**（#64176 の二分探索: 2.1.148 で 0件 → 2.1.150 で初発 → 2.1.152 で 19件 → 2.1.158 で 68件と単調悪化） |
+| モデル相関 | 言及なし | **Opus 4.8 で頻発・Opus 4.7 では出ない**（#63604 で確認） |
+| 本プロジェクト直撃 issue | #60033 | **#63687**（"Opus 4.8 (1M context) — frequent tool_use malformed client errors"・platform:windows・has repro） |
+
+### 3. 関連 issue（全件 OPEN・2026-06-02 時点）
+
+- **#60033**: Built-in Write tool: large escape-dense content intermittently yields malformed tool-input JSON; retry resends identical payload and also fails（Windows 11 / CC 2.1.143 / opus-4-7）— 本記録の原典。クラスタの1サブケース。
+- **#63604**: Opus 4.8 repeatedly emits malformed tool_use blocks, entire response discarded (4.7 works fine)— **4.7 切替で解消**を確認した重要 issue。
+- **#63687**: Opus 4.8 (1M context) — frequent "tool_use malformed" client errors despite tools executing successfully（platform:windows）— **本プロジェクトのモデルに直接該当**。
+- **#64176**: Regression in 2.1.150-2.1.158: malformed tool_use blocks not parseable, retry-resistant — **退行の二分探索**を行った決定的 issue。
+- **#64235**: Regression (since 2026-05-29): intermittent "tool call was malformed and could not be parsed"（area:bash, platform:macos）— **単純な Bash でも発生**を示す根拠。
+- **#64127**: Spurious "tool call was malformed and could not be parsed" appended after successful tool calls（platform:windows）。
+- **#63481**: Tool call parsing fails when extended thinking is triggered（platform:macos）。
+- **#64418**: Tool calls serialized as plain text instead of tool_use blocks in high-composition sessions（platform:macos, has repro）。
+- **#64658**: Desktop app (Code tab) 1.9659.4: Opus 4.8 "tool call could not be parsed"（area:desktop, platform:macos）。
+- **#61133（CLOSED）**: Opus 4.7 tool calls fail... since 2026-05-20（CC 2.1.146, opus-4-7）— 文言は類似だが**別系統**（サーバ側モデル退行・修正版明記なし）。
+
+### 4. 対策の優先順位（更新版）
+
+1. **根本回避（最優先）: モデルを Opus 4.7 (1M context) へ切替** — `/model claude-opus-4-7[1m]`。本プロジェクトでは 2026-06-02 にこの対応を採用。Auto Mode + 4.7 で再開可能。
+2. **代替の根本回避: CC 2.1.149 へダウングレード** — #64176 の二分探索で「退行前」と確認されたバージョン。
+3. **4.8 のまま続ける場合の緩和**: 既存対策（大 Write 分割）は #60033 系サブケースには有効。ただし**主クラスタはサイズ非依存なので分割だけでは消えない**。
+4. **コンテキスト総量を抑える**: コミット境界で `/quick-save` → 新セッション。長セッションほど確率が上がる（本セッションの実観測でも、後半に密度の低い Bash でも malformed が発生）。
+
+### 5. 本記録の前提のうち陳腐化したもの
+
+- 「バージョンは既に latest（2.1.159）なのでアップデートでは直らない」→ 2.1.160 が出たので前提は古い。ただし 2.1.160 にも修正がないため**結論（未修正）は不変**。
+- 「Write の大きくエスケープ密度の高い内容で入力 JSON が壊れる」→ #60033 サブケースとしては正しい。だが**全体の主因ではない**。
+
+### 6. 裏取りのトレース
+
+- CHANGELOG: https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md（4146行全走査）
+- 主要 issue を WebFetch で直接確認（#60033 / #63604 / #61133 / 一覧）
+- 敵対的検証（反証試行）で「未修正」結論を強化（refutesNotFixed=false / confidence=high）
+
+### 7. 関連メモリ
+
+`claude-code-malformed-write-bug.md` も同日に更新（同じ再分類）。
