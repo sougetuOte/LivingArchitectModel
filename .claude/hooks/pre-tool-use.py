@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+import unicodedata
 from pathlib import Path
 
 # sys.path に hooks ディレクトリを追加（_hook_utils を import するため）
@@ -108,6 +109,60 @@ _FR34_SPEC_PATTERNS = [
 ]
 
 
+def _determine_by_path(
+    file_path: str,
+    project_root: Path,
+    phase_file: Path,
+) -> tuple[str, str]:
+    """ファイルパスから権限等級を判定する（パスベース判定）。"""
+    normalized = normalize_path(file_path, project_root)
+
+    # FR-9（自己統治の不可侵）: AUTONOMOUS フェーズでは統治ファイルへの書込を
+    # deny する（design D5・自己破壊的再帰防止）。PM 照合より前段で判定する。
+    if _read_current_phase(phase_file) == "AUTONOMOUS":
+        for pattern, fr9_reason in _FR9_PATTERNS:
+            if pattern.match(normalized):
+                return "DENY", f"FR-9 self-governance immutability ({fr9_reason})"
+        # FR-3.4 spec freeze（FR-9 とは別系統・成果物の即時ハードストップ）。
+        # reason の "FR-3.4" 接頭辞を main() が見て deny 文言を出し分ける。
+        for pattern, spec_reason in _FR34_SPEC_PATTERNS:
+            if pattern.match(normalized):
+                return "DENY", f"FR-3.4 spec freeze ({spec_reason})"
+
+    # PM パターン照合
+    for pattern, reason in _PM_PATTERNS:
+        if pattern.match(normalized):
+            return "PM", reason
+
+    # SE パターン照合
+    for pattern, reason in _SE_PATTERNS:
+        if pattern.match(normalized):
+            return "SE", reason
+
+    return "SE", "default path"
+
+
+def _determine_by_command(
+    command: str,
+    phase_file: Path,
+) -> tuple[str, str]:
+    """コマンド文字列から権限等級を判定する（コマンドベース判定・Bash ツール等）。"""
+    # AUDITING フェーズの PG コマンド特別処理
+    if _read_current_phase(phase_file) == "AUDITING":
+        for pg_prefix in _AUDITING_PG_COMMANDS:
+            if command == pg_prefix or command.startswith(pg_prefix + " "):
+                # ブラックリスト引数チェック（単語境界で照合し誤マッチを防止）
+                args_part = command[len(pg_prefix):]
+                if any(
+                    re.search(r'(?:^|\s)' + re.escape(bl) + r'(?:\s|=|$)', args_part, re.IGNORECASE)
+                    for bl in _PG_BLACKLISTED_ARGS
+                ):
+                    return "PM", "PG command with blacklisted arg"
+                return "PG", "AUDITING phase PG allow"
+
+    return "SE", "command (default SE)"
+
+
 def _determine_level_and_reason(
     tool_name: str,
     file_path: str,
@@ -117,57 +172,35 @@ def _determine_level_and_reason(
 ) -> tuple[str, str]:
     """ツール名とパスから権限等級とその理由を判定する。
 
+    パスがあればパスベース判定、なければコマンドベース判定に委譲する。
+
     Returns:
         (level, reason): level は "PG" | "SE" | "PM" | "DENY"
     """
     # 1. ファイルパスが存在する場合はパスベース判定
     if file_path:
-        normalized = normalize_path(file_path, project_root)
-
-        # FR-9（自己統治の不可侵）: AUTONOMOUS フェーズでは統治ファイルへの書込を
-        # deny する（design D5・自己破壊的再帰防止）。PM 照合より前段で判定する。
-        if _read_current_phase(phase_file) == "AUTONOMOUS":
-            for pattern, fr9_reason in _FR9_PATTERNS:
-                if pattern.match(normalized):
-                    return "DENY", f"FR-9 self-governance immutability ({fr9_reason})"
-            # FR-3.4 spec freeze（FR-9 とは別系統・成果物の即時ハードストップ）。
-            # reason の "FR-3.4" 接頭辞を main() が見て deny 文言を出し分ける。
-            for pattern, spec_reason in _FR34_SPEC_PATTERNS:
-                if pattern.match(normalized):
-                    return "DENY", f"FR-3.4 spec freeze ({spec_reason})"
-
-        # PM パターン照合
-        for pattern, reason in _PM_PATTERNS:
-            if pattern.match(normalized):
-                return "PM", reason
-
-        # SE パターン照合
-        for pattern, reason in _SE_PATTERNS:
-            if pattern.match(normalized):
-                return "SE", reason
-
-        return "SE", "default path"
+        return _determine_by_path(file_path, project_root, phase_file)
 
     # 2. コマンドベース判定（Bash ツール等）
     if command:
-        # AUDITING フェーズの PG コマンド特別処理
-        current_phase = _read_current_phase(phase_file)
-        if current_phase == "AUDITING":
-            for pg_prefix in _AUDITING_PG_COMMANDS:
-                if command == pg_prefix or command.startswith(pg_prefix + " "):
-                    # ブラックリスト引数チェック（単語境界で照合し誤マッチを防止）
-                    args_part = command[len(pg_prefix):]
-                    if any(
-                        re.search(r'(?:^|\s)' + re.escape(bl) + r'(?:\s|=|$)', args_part, re.IGNORECASE)
-                        for bl in _PG_BLACKLISTED_ARGS
-                    ):
-                        return "PM", "PG command with blacklisted arg"
-                    return "PG", "AUDITING phase PG allow"
-
-        return "SE", "command (default SE)"
+        return _determine_by_command(command, phase_file)
 
     # 3. パスもコマンドもない（Agent 等）
     return "SE", "no-path (default SE)"
+
+
+def _sanitize_target(raw: str) -> str:
+    """ログ用ターゲット文字列を無害化する（100 文字トランケート + 制御文字除去）。
+
+    タブ/改行に加え、Unicode 双方向制御文字（U+202E 等の Cf カテゴリ）や C0/C1
+    制御文字（Cc カテゴリ）を半角スペースへ置換する。これらはログ表示時に
+    パス偽装（Trojan Source 型）やターミナル制御列注入を引き起こしうるため、
+    記録前に除去する。
+    """
+    return "".join(
+        " " if unicodedata.category(ch) in ("Cc", "Cf") else ch
+        for ch in raw[:100]
+    )
 
 
 def _read_current_phase(phase_file: Path) -> str:
@@ -222,9 +255,9 @@ def main() -> None:
         tool_name, file_path, command, project_root, phase_file
     )
 
-    # ログ用のターゲット文字列（100 文字にトランケート、タブ/改行をエスケープ）
+    # ログ用のターゲット文字列（100 文字トランケート + 制御文字・双方向制御文字を除去）
     raw_target = file_path or command or "-"
-    target = raw_target[:100].replace("\t", " ").replace("\n", " ")
+    target = _sanitize_target(raw_target)
 
     # ログ記録（TSV 形式: timestamp\tlevel\ttool_name\ttarget\t"reason"）
     log_entry(log_file, level, tool_name, f"{target}\t\"{reason}\"")

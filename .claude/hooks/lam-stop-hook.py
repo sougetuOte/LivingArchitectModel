@@ -307,7 +307,25 @@ def _handle_autonomous(
             f"autonomous: max_iterations reached ({iteration}/{max_iterations}) → stop",
         )
 
-    # G1 checker を厳密実行し実 exit code を checker_results に記録（モデル改竄不能）
+    # G1 checker 実行 → 結果に応じて completion(stop)/継続(block) を gate
+    _apply_g1_result(
+        state, auto_state_file, project_root, iteration, max_iterations, log_file
+    )
+
+
+def _apply_g1_result(
+    state: dict,
+    auto_state_file: Path,
+    project_root: Path,
+    iteration: int,
+    max_iterations: int,
+    log_file: Path,
+) -> None:
+    """G1 checker を厳密実行し、実 exit code に応じて completion/継続を gate する。
+
+    exit code は checker_results に記録（モデル改竄不能）。PASS(0) なら active=false で
+    _stop()、FAIL なら iteration++ で building へ _block()。いずれも SystemExit を送出する。
+    """
     g1_exit = _run_g1_checker(project_root, log_file)
     results = state.setdefault("checker_results", {})
     results["g1_exit"] = g1_exit
