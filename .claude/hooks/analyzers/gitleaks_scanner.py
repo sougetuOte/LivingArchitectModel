@@ -173,12 +173,13 @@ def _run_gitleaks(cmd: list[str], timeout: int) -> list[Issue]:
 
     TimeoutExpired は scan-timeout、その他の例外は scan-failed として区別する。
     """
-    with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
-        report_path = Path(tmp.name)
-
-    cmd.extend(["--report-path", str(report_path)])
-
+    report_path: Path | None = None
     try:
+        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
+            report_path = Path(tmp.name)
+
+        cmd.extend(["--report-path", str(report_path)])
+
         # subprocess.run は TimeoutExpired 発生時に子プロセスを自動 kill する（Python 3.3+）
         result = subprocess.run(cmd, capture_output=True, timeout=timeout)
         logger.debug(
@@ -216,7 +217,8 @@ def _run_gitleaks(cmd: list[str], timeout: int) -> list[Issue]:
             )
         ]
     finally:
-        report_path.unlink(missing_ok=True)
+        if report_path is not None:
+            report_path.unlink(missing_ok=True)
 
 
 def _parse_gitleaks_json(json_path: Path) -> list[Issue]:

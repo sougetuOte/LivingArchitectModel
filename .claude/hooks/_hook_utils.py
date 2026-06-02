@@ -40,7 +40,11 @@ def get_project_root() -> pathlib.Path:
         resolved = pathlib.Path(env_root).resolve()
         if resolved.is_dir():
             return resolved
-        # テスト用変数が不正なパスの場合はフォールバック
+        # テスト用変数が不正なパスの場合はフォールバック（握りつぶさずログに残す）
+        sys.stderr.write(
+            f"WARNING: LAM_PROJECT_ROOT is not a directory: {env_root!r}, "
+            "falling back to __file__\n"
+        )
     # __file__ は .claude/hooks/_hook_utils.py
     # parent   -> .claude/hooks/
     # parent.parent -> .claude/
