@@ -2,8 +2,12 @@
 
 **起票日**: 2026-06-02
 **起票元**: full-review iter2（`docs/artifacts/audit-reports/2026-06-02-iter2.md`）
-**ステータス**: 未対応（次セッションで Critical/Warning 全件 + Info 可能な限り + PM 全件を潰す方針）
-**今セッション修正済み**: W2-3（握りつぶしログ化）/ W2-5（hookEventName 対称化）/ RET501（冗長 return None 削除）— 663 passed 回帰なし
+**ステータス**: **全件決着（2026-06-02 追補セッション・CLOSED）**。SE/PG 7件解消 + PM 2件決着（W2-P2 解消 / W2-P1 見送り）。
+**前セッション修正済み**: W2-3（握りつぶしログ化）/ W2-5（hookEventName 対称化）/ RET501（冗長 return None 削除）— 663 passed 回帰なし
+**追補セッション修正済み（2026-06-02・670 passed 回帰なし）**:
+- SE: W2-1（`_apply_g1_result()` 抽出）/ W2-2（`_determine_by_path`/`_determine_by_command` 分離）/ W2-6（`conftest.make_default_state` ファクトリ集約）/ W2-7（isinstance アサート）/ W2-8（3テスト分割）/ Info-a（gitleaks report_path 防御初期化）/ Info-b（_hook_utils stderr ログ）
+- PG: SEC-N2（test env allowlist 化）/ SEC-N3（`_sanitize_target` で Cc/Cf 制御文字除去）
+- 検証: ruff クリーン（残 F401 1件は e2e フィクスチャの意図的・対象外）/ 全 670 passed（e2e マーカー5件含む）
 
 ## 方針
 
@@ -31,12 +35,28 @@
 | SEC-N2 | `analyzers/tests/test_e2e_review.py:504,532,550` | `{**os.environ}` env 全継承 → `_ENV_ALLOWLIST` パターン適用（conftest hook_runner は iter1 修正済み） |
 | SEC-N3 | `pre-tool-use.py:221-225` | `target` の Unicode 双方向制御文字（U+202E 等）未エスケープ → Cf カテゴリフィルタ追加 |
 
-### PM 級（指摘のみ・要承認）
+### PM 級（承認・決着済み 2026-06-02）
 
-| # | 箇所 | 内容 |
-|---|------|------|
-| W2-P1 | `javascript_analyzer.py:53-116` | ESLint flat config（`eslint.config.{js,mjs,cjs}`）未検出。ESLint v9 普及で実害率増。検出ロジック追加は仕様判断 |
-| W2-P2（=W-6） | `SKILL.md` Stage1 Step3 / `run_pipeline.py` | SKILL.md は「import-map.json を `run_phase0()` が永続化」と記すが実装に生成処理なし（`save_import_map` 不在）。Plan D を無効化。現状 Plan A のみで実害なし。SKILL.md 修正 or run_phase0 に生成追加 |
+| # | 箇所 | 内容 | 決定 |
+|---|------|------|------|
+| W2-P1 | `javascript_analyzer.py:53-116` | ESLint flat config（`eslint.config.{js,mjs,cjs}`）未検出。ESLint v9 普及で実害率増。検出ロジック追加は仕様判断 | **見送り（future-candidates 相当）** |
+| W2-P2（=W-6） | `SKILL.md` Stage1 Step3 / `run_pipeline.py` | SKILL.md は「import-map.json を `run_phase0()` が永続化」と記すが実装に生成処理なし（`save_import_map` 不在）。Plan D を無効化。現状 Plan A のみで実害なし | **解消（SKILL.md を実態へ修正）** |
+
+#### W2-P2 解消内容（ユーザー承認: SKILL.md 修正方針）
+
+`run_phase0()` の実出力は `static-issues.json` + `summary.md` の 2 ファイルのみ。`ast-map.json` /
+`import-map.json` / `dependency-graph.json` は未生成（AST/import 抽出が `parse_ast` Phase 1 簡易実装どまり）。
+`.claude/skills/full-review/SKILL.md` の Stage 1（出力行・Step 3）/ Stage 2 入力 / Stage 3 入力・Layer 2 コメントに
+**「実装状況 NOTE」** を追加し、虚偽の「永続化済み」記述を「現状未生成・`{}` 縮退・実質 no-op（Plan D 無効）」へ修正。
+前方互換の足場コードブロックは残置（将来 AST/import-map 生成実装時にそのまま機能）。Zero-Regression（挙動不変・ドキュメントのみ）。
+
+#### W2-P1 見送り判断（ユーザー承認: 現状維持）
+
+- `javascript_analyzer.run_lint` は `npx eslint --format json` を直実行し、ESLint 自身が flat（v9）/ legacy 両設定を
+  ネイティブに解決する。設定不在時も `returncode∉(0,1)` → warning ログ + 空リスト（完全な silent failure ではない）。
+- 実害は限定的・追加価値は低・検出仕様変更のリスクに見合わないため**見送り**。
+- 将来 JS/TS 案件比率が上がり「設定不在の明示スキップ」が必要になった時点で再評価する（flat + legacy + `package.json` の
+  `eslintConfig` 検出 → 不在時は明示スキップ + テスト追加）。本項を future-candidate として記録。
 
 ## 棄却（再検出不要）
 
