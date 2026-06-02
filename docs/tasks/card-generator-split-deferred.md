@@ -26,3 +26,12 @@
 - card_generator が2モジュールに分割され、C-1 の戻り値契約が仕様化・テスト化される。
 - C-2 が反復実装に置換され、大規模グラフ（>1000ノード）のテストが緑。
 - W-4/I-2 が分割の過程で解消。
+
+## iter2 追加分（分割時に一括解消）
+
+full-review iter2（`docs/artifacts/audit-reports/2026-06-02-iter2.md`）で検出。card_generator 内の性能系のため⑤分割と同時に解消するのが効率的。
+
+| # | 重要度 | 箇所 | 内容 |
+|---|--------|------|------|
+| W2-4 | Warning(SE) | `card_generator.py:1143-1154` | `_bfs_upstream()` が `queue.pop(0)` で O(N) 削除 → `collections.deque` + `popleft()` |
+| iter2-Info | Info(SE) | `card_generator.py:952` | `_condense_sccs()` が SCC メンバー探索で `scc_map` 全体を毎回走査（O(N^2)）→ 逆引き辞書で O(N) |
