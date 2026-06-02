@@ -8,6 +8,8 @@
       "Write(/.claude/rules/**)",
       "Edit(/docs/adr/**)",
       "Write(/docs/adr/**)",
+      "Edit(/docs/specs/**)",
+      "Write(/docs/specs/**)",
       "Edit(/.claude/settings*.json)",
       "Write(/.claude/settings*.json)",
       "Edit(/.claude/hooks/**)",

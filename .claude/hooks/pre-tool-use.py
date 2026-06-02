@@ -98,6 +98,15 @@ _FR9_PATTERNS = [
     (re.compile(r"^\.claude/skills/autonomous/"), "skills/autonomous/"),
 ]
 
+# FR-3.4 spec freeze（requirements FR-3.4 MUST / design D2 §4・D7 層1）: AUTONOMOUS フェーズで
+# docs/specs/ 配下の書込を deny する。spec は FR-9 の統治ファイル（自己統治の強制点）ではなく
+# 「成果物」だが、FR-3.4 が「spec 書換」を不可逆 C 操作の即時ハードストップに明示列挙するため、
+# FR-9 とは別系統で deny する（成果物と統治ファイルの混同を避ける）。層1（permissions.deny の
+# 決定的層・override 不可）は .claude/settings.autonomous.json に docs/specs/** を併記済み（二重防御）。
+_FR34_SPEC_PATTERNS = [
+    (re.compile(r"^docs/specs/"), "specs/"),
+]
+
 
 def _determine_level_and_reason(
     tool_name: str,
@@ -121,6 +130,11 @@ def _determine_level_and_reason(
             for pattern, fr9_reason in _FR9_PATTERNS:
                 if pattern.match(normalized):
                     return "DENY", f"FR-9 self-governance immutability ({fr9_reason})"
+            # FR-3.4 spec freeze（FR-9 とは別系統・成果物の即時ハードストップ）。
+            # reason の "FR-3.4" 接頭辞を main() が見て deny 文言を出し分ける。
+            for pattern, spec_reason in _FR34_SPEC_PATTERNS:
+                if pattern.match(normalized):
+                    return "DENY", f"FR-3.4 spec freeze ({spec_reason})"
 
         # PM パターン照合
         for pattern, reason in _PM_PATTERNS:
@@ -212,14 +226,24 @@ def main() -> None:
 
     # 応答
     if level == "DENY":
+        # DENY は2系統: FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・成果物の
+        # 即時ハードストップ）。reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
+        if reason.startswith("FR-3.4"):
+            deny_reason = (
+                f"FR-3.4 spec freeze: AUTONOMOUS モードでは仕様（docs/specs/）を変更できません"
+                f"（{reason}）。spec 書換は不可逆 C 操作として即時ハードストップに当たり、"
+                f"自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
+            )
+        else:
+            deny_reason = (
+                f"FR-9 自己統治の不可侵: AUTONOMOUS モードでは統治ファイルを変更できません"
+                f"（{reason}）。自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
+            )
         deny_output = {
             "hookSpecificOutput": {
                 "hookEventName": "PreToolUse",
                 "permissionDecision": "deny",
-                "permissionDecisionReason": (
-                    f"FR-9 自己統治の不可侵: AUTONOMOUS モードでは統治ファイルを変更できません"
-                    f"（{reason}）。自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
-                ),
+                "permissionDecisionReason": deny_reason,
             }
         }
         print(json.dumps(deny_output, ensure_ascii=False))

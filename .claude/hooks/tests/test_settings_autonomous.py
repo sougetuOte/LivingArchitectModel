@@ -8,6 +8,7 @@ T1-4 層1（design D7）: autonomous 専用 settings `.claude/settings.autonomou
 以下の不変条件を検証する:
   - JSON として妥当で permissions.deny を持つ
   - 層2 _FR9_PATTERNS（pre-tool-use.py）の5パス系列を Edit+Write 併記で網羅（二重防御の整合）
+  - FR-3.4 spec freeze（docs/specs/**）を Edit+Write 併記で deny（FR-9 とは別系統・成果物の即時停止）
   - disableBypassPermissionsMode=disable（bypass 経由の deny 回避封鎖）
   - defaultMode=auto（auto mode 既定・FR-2 利便層）
 
@@ -36,6 +37,11 @@ _FR9_DENY_PATHS = (
     "/.claude/skills/autonomous/**",
 )
 
+# FR-3.4 spec freeze（requirements FR-3.4・design D2/D7 層1）の層1 deny パス。
+# spec は FR-9 統治ファイルではなく成果物だが、FR-3.4 が「spec 書換」を即時ハードストップに
+# 明示列挙するため層1 でも deny する（FR-9 とは別系統）。
+_FR34_SPEC_DENY_PATH = "/docs/specs/**"
+
 
 @pytest.fixture(scope="module")
 def settings() -> dict:
@@ -62,6 +68,12 @@ class TestLayer1Settings:
         deny = settings["permissions"]["deny"]
         assert f"Edit({path})" in deny, f"Edit deny 欠落: {path}"
         assert f"Write({path})" in deny, f"Write deny 欠落: {path}"
+
+    def test_fr34_spec_path_denied_for_edit_and_write(self, settings: dict) -> None:
+        """FR-3.4 spec freeze: docs/specs/** が Edit+Write 併記で deny される（FR-9 とは別系統）。"""
+        deny = settings["permissions"]["deny"]
+        assert f"Edit({_FR34_SPEC_DENY_PATH})" in deny, f"Edit spec deny 欠落: {_FR34_SPEC_DENY_PATH}"
+        assert f"Write({_FR34_SPEC_DENY_PATH})" in deny, f"Write spec deny 欠落: {_FR34_SPEC_DENY_PATH}"
 
     def test_disable_bypass_permissions_mode(self, settings: dict) -> None:
         """bypassPermissions 経由の deny 回避を封鎖する。"""

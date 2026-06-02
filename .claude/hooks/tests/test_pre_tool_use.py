@@ -265,10 +265,13 @@ class TestFR9SelfGovernance:
 
     @pytest.mark.parametrize("tool_name,file_path", [
         ("Edit", "src/main.py"),            # 通常コード → SE（deny でない）
-        ("Edit", "docs/specs/foo.md"),      # specs は FR9 対象外 → PM ask（deny でない）
     ])
     def test_autonomous_allows_non_governance_paths(self, hook_runner, project_root, tool_name, file_path):
-        """AUTONOMOUS でも FR9_PATTERNS 非該当パスは deny されない"""
+        """AUTONOMOUS でも統治ファイル/spec いずれにも非該当のパス（src 等）は deny されない
+
+        注: docs/specs/ は FR-9 統治ファイルではないが FR-3.4 spec freeze で別途 deny される
+        （TestFR34SpecFreeze 参照）。本テストは FR-9/FR-3.4 いずれの対象でもない src 等を検証する。
+        """
         self._write_phase(project_root, "AUTONOMOUS")
         input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
         result = hook_runner(HOOK_PATH, input_json)
@@ -296,3 +299,61 @@ class TestFR9SelfGovernance:
             data = json.loads(stdout)
             assert data["hookSpecificOutput"]["permissionDecision"] != "deny", \
                 f"非 AUTONOMOUS では {file_path} は deny されるべきでない（PM ask か SE）"
+
+
+class TestFR34SpecFreeze:
+    """FR-3.4 spec freeze: AUTONOMOUS フェーズでの docs/specs/ 書込 deny テスト
+
+    対応仕様: requirements.md FR-3.4（MUST・不可逆 C 操作の即時ハードストップに
+    「spec 書換」を明示列挙）/ design.md D2(§4)・D7 層1（FR-3.4 C層の強制点）。
+    spec は FR-9 の統治ファイル（自己統治の強制点）ではなく「成果物」だが、FR-3.4 が
+    spec 書換の即時ハードストップを MUST とするため、FR-9 とは別系統で deny する
+    （成果物と統治ファイルの混同を避ける）。本クラスは層2（PreToolUse hook）の
+    phase-conditional deny を検証する。層1（permissions.deny 決定的層）は
+    test_settings_autonomous.py が検証する（二重防御）。
+    """
+
+    @staticmethod
+    def _write_phase(project_root: Path, phase: str) -> None:
+        phase_file = project_root / ".claude" / "current-phase.md"
+        phase_file.parent.mkdir(parents=True, exist_ok=True)
+        phase_file.write_text(f"**{phase}**\n", encoding="utf-8")
+
+    @pytest.mark.parametrize("tool_name,file_path", [
+        ("Edit", "docs/specs/autonomous-mode/requirements.md"),
+        ("Write", "docs/specs/autonomous-mode/design.md"),
+        ("Edit", "docs/specs/green-state-definition.md"),
+        ("Write", "docs/specs/new-feature/tasks.md"),
+    ])
+    def test_autonomous_denies_spec_files(self, hook_runner, project_root, tool_name, file_path):
+        """AUTONOMOUS フェーズでは docs/specs/ への書込が deny される（FR-3.4 spec freeze）"""
+        self._write_phase(project_root, "AUTONOMOUS")
+        input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, f"deny 時は stdout に JSON が出力されるべき。got: {result.stdout!r}"
+        data = json.loads(stdout)
+        hook_output = data["hookSpecificOutput"]
+        assert hook_output["hookEventName"] == "PreToolUse"
+        assert hook_output["permissionDecision"] == "deny", \
+            f"{file_path} は AUTONOMOUS で deny されるべき。got: {hook_output['permissionDecision']}"
+        assert isinstance(hook_output["permissionDecisionReason"], str)
+        assert len(hook_output["permissionDecisionReason"]) > 0
+
+    @pytest.mark.parametrize("tool_name,file_path", [
+        ("Edit", "docs/specs/autonomous-mode/requirements.md"),
+        ("Write", "docs/specs/foo/design.md"),
+    ])
+    def test_non_autonomous_does_not_deny_spec(self, hook_runner, project_root, tool_name, file_path):
+        """非 AUTONOMOUS（BUILDING）では docs/specs/ は deny されない（PM ask のまま・回帰防止）"""
+        self._write_phase(project_root, "BUILDING")
+        input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "PM ask 時は stdout に JSON が出力されるべき（spec は PM パターン該当）"
+        data = json.loads(stdout)
+        hook_output = data["hookSpecificOutput"]
+        assert hook_output["permissionDecision"] == "ask", \
+            f"非 AUTONOMOUS では {file_path} は PM ask であるべき（deny でない）。got: {hook_output['permissionDecision']}"
