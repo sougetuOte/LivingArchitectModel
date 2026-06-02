@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-from .base import Issue
+from analyzers.base import Issue
 
 logger = logging.getLogger(__name__)
 

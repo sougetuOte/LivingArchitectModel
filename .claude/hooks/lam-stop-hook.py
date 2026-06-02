@@ -114,8 +114,9 @@ def _save_loop_log(
             )
         loop_log_file.write_text("\n".join(lines), encoding="utf-8")
         _log(log_file, "INFO", f"Loop log saved to {loop_log_file}")
-    except Exception:
-        pass
+    except Exception as e:
+        # ループログ保存失敗は致命的ではないが、黙殺せず警告として残す（監査 W-2）。
+        _log(log_file, "WARNING", f"Failed to save loop log: {type(e).__name__}: {e}")
 
 
 def _cleanup_state_file(state_file: Path) -> None:
