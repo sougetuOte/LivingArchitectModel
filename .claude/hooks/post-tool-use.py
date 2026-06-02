@@ -137,7 +137,6 @@ def _record_fail(
         f'{timestamp}\tFAIL\t{test_cmd}\ttests={tests} failures={failures}\t"{summary}"',
     )
     last_result_file.write_text(f"fail {test_cmd}\n", encoding="utf-8")
-    return None
 
 
 def _record_pass(

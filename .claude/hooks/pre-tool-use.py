@@ -184,8 +184,13 @@ def _read_current_phase(phase_file: Path) -> str:
             match = re.match(r"^\*\*([A-Z]+)\*\*", line)
             if match:
                 return match.group(1)
-    except Exception:
-        pass
+    except Exception as e:
+        # フェーズ読取失敗は AUTONOMOUS の FR-9/FR-3.4 判定を無効化しうる
+        # （フェイルオープン方向）。黙殺せず stderr に記録する（iter1 W-2 同型）。
+        sys.stderr.write(
+            f"WARNING: failed to read phase file {phase_file}: "
+            f"{type(e).__name__}: {e}\n"
+        )
     return ""
 
 
@@ -250,6 +255,7 @@ def main() -> None:
     elif level == "PM":
         ask_output = {
             "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
                 "permissionDecision": "ask",
                 "permissionDecisionReason": f"PM級変更です。承認してください: {target}",
             }
