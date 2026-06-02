@@ -1,18 +1,23 @@
 ---
 name: test_structure_duplication
-description: テストスイート構成と重複問題（2026-03-12 初回監査）
+description: テストスイート構成と重複問題（2026-03-12 初回監査 → 2026-06-02 一元化）
 type: project
 ---
 
-テストスイートが 2 か所に分散: `.claude/hooks/tests/`（subprocess ベース）と `tests/`（importlib ベース）
+テストスイートは 2 か所: `.claude/hooks/tests/`（hook 本体・subprocess/in-process 混在）と
+`.claude/hooks/analyzers/tests/`（analyzer 群）。同時実行で **663 passed**（2026-06-02 時点）。
 
-**Why:** 初回監査で判明。重複カバレッジと不整合な _write_state / DEFAULT_STATE 定義が 3 ファイルに散在。
+**Why:** 初回監査（2026-03-12）では root `tests/`（importlib ベース）が併存し、重複カバレッジと
+conftest 衝突（`from conftest import write_state` が root 起動時に root conftest へ解決され ImportError）が
+あった。2026-06-02 の監査 CP-C ② で root `tests/` を hooks/tests/ へ一元化し削除（コミット 21afc79 / 44f0dbc）。
 
-**How to apply:** テスト追加時は既存ヘルパーの重複がないか確認する。conftest.py の hook_runner fixture は hooks/tests/ にのみ存在。
+**How to apply:** テスト追加時は既存ヘルパーの重複がないか確認する。state 書込は
+`conftest.py::write_state` fixture（`.claude/hooks/tests/conftest.py:110`）を使う（自前実装を増やさない）。
+hook 起動は同 conftest の `hook_runner` fixture（subprocess・クリーン環境・timeout=30）を使う。
 
-主要な既知課題:
-- `_write_state()` が test_stop_hook.py / test_loop_integration.py / tests/test_lam_stop_hook.py の 3 ファイルに重複
-- `DEFAULT_STATE` が test_stop_hook.py と test_loop_integration.py の 2 ファイルに重複
-- tests/test_lam_stop_hook.py が hooks/tests/ の conftest.py fixture を使わず独自 _run_hook() を持つ（二重メンテナンス）
-- _run_security() / _detect_*() 系の関数に直接ユニットテストがない
-- test_loop_integration.py 内で `import datetime` がテストメソッドのローカルスコープ内に重複 (L199, L223)
+主要な課題（2026-06-02 更新）:
+- ✅ 解消: `_write_state()` の 3 ファイル重複 → `conftest.py::write_state` fixture に一元化
+- ✅ 解消: root `tests/test_lam_stop_hook.py` の独自 `_run_hook()`（二重メンテナンス）→ root 削除で消滅
+- ✅ 解消: `test_loop_integration.py` の `import datetime` ローカルスコープ重複 → モジュールトップに集約
+- ⚠️ 残存: `DEFAULT_STATE` が `test_stop_hook.py` と `test_loop_integration.py` の 2 ファイルに重複
+- ⚠️ 残存: `_run_security()` / `_detect_*()` 系の関数に直接ユニットテストがない
