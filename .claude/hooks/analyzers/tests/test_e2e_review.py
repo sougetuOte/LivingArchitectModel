@@ -9,7 +9,6 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -20,7 +19,6 @@ from unittest.mock import patch
 import pytest
 
 from analyzers.scale_detector import (
-    ScaleDetectionResult,
     detect_scale,
     format_scale_detection,
 )

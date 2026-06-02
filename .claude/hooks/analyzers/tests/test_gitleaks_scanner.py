@@ -19,7 +19,6 @@ from analyzers.gitleaks_scanner import (
     run_detect,
     run_protect_staged,
 )
-from analyzers.base import Issue
 
 
 class TestIsAvailable:
