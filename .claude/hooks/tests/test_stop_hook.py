@@ -68,6 +68,22 @@ class TestStopHook:
             f"再帰防止時は stdout が空であるべき。got: {result.stdout!r}"
         )
 
+    def test_pm_pending_allows_stop(self, hook_runner, project_root):
+        """pm_pending=true の場合、block せず停止を許可する（移植: 判断2 テスト一元化）。
+
+        移植元: tests/test_lam_stop_hook.py::TestPmPending::test_pm_pending_allows_stop。
+        full-review フローで PM 保留中は人間判断待ちのため安全ネットを発動しない。
+        """
+        state = {**DEFAULT_STATE, "pm_pending": True, "iteration": 1}
+        _write_state(project_root, state)
+
+        result = hook_runner(HOOK_PATH, {"session_id": "test-session"})
+
+        assert result.returncode == 0
+        assert result.stdout.strip() == "", (
+            f"pm_pending=true 時は block せず停止許可（stdout 空）。got: {result.stdout!r}"
+        )
+
     def test_active_loop_blocks_regardless_of_env(self, hook_runner, project_root):
         """アクティブなループ中は環境（Makefile 等）に関わらず block を返す。"""
         state = {**DEFAULT_STATE, "iteration": 0, "max_iterations": 5}
