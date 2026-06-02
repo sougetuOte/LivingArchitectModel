@@ -8,21 +8,13 @@ import datetime
 import json
 from pathlib import Path
 
-from conftest import write_state as _write_state
+from conftest import make_default_state, write_state as _write_state
 
 # テスト対象フックのパス
 HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 
-# 状態ファイルのデフォルト構造
-DEFAULT_STATE = {
-    "active": True,
-    "iteration": 0,
-    "max_iterations": 5,
-    "command": "test_command",
-    "target": "test_target",
-    "started_at": "2026-03-10T00:00:00Z",
-    "log": [],
-}
+# 状態ファイルのデフォルト構造（共通定義は conftest.make_default_state に集約・W2-6）
+DEFAULT_STATE = make_default_state(command="test_command", target="test_target")
 
 
 class TestStopHook:

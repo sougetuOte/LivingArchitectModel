@@ -12,21 +12,13 @@ import datetime
 import json
 from pathlib import Path
 
-from conftest import write_state as _write_state
+from conftest import make_default_state, write_state as _write_state
 
 # テスト対象フックのパス
 STOP_HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 
-# 状態ファイルのデフォルト構造
-DEFAULT_STATE = {
-    "active": True,
-    "iteration": 0,
-    "max_iterations": 5,
-    "command": "full-review",
-    "target": "src/",
-    "started_at": "2026-03-10T00:00:00Z",
-    "log": [],
-}
+# 状態ファイルのデフォルト構造（共通定義は conftest.make_default_state に集約・W2-6）
+DEFAULT_STATE = make_default_state(command="full-review", target="src/")
 
 DEFAULT_INPUT = {
     "session_id": "test-integration",
@@ -212,21 +204,34 @@ class TestContextExhaustion:
 
 
 class TestFullLifecycle:
-    """S-5: ループライフサイクル全体（初期化→複数サイクル→収束）"""
+    """S-5: ループライフサイクル全体（初期化→複数サイクル→収束）
 
-    def test_init_fail_then_converge(self, hook_runner, project_root):
-        """S-5-1: Phase 0 初期化 → サイクル1(失敗) → サイクル2(成功) の流れ"""
+    元 test_init_fail_then_converge を Phase 0 / サイクル1 / サイクル2 の
+    3 単位に分割。検証内容は元テストと等価。共通の初期化は
+    _init_state_file ヘルパに括り出す。
+    """
 
-        # Phase 0: 初期化（状態ファイル生成）
+    @staticmethod
+    def _init_state_file(project_root: Path) -> Path:
+        """Phase 0 相当の状態ファイルを生成し、そのパスを返す共通セットアップ。"""
         now_ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         state = {
             **DEFAULT_STATE,
             "started_at": now_ts,
         }
-        state_file = _write_state(project_root, state)
+        return _write_state(project_root, state)
+
+    def test_init_creates_state_file(self, hook_runner, project_root):
+        """S-5-1a: Phase 0 初期化で状態ファイルが生成される。"""
+        state_file = self._init_state_file(project_root)
         assert state_file.exists(), "Phase 0: 状態ファイルが生成されるべき"
 
-        # サイクル1: テスト失敗 → block で継続
+    def test_cycle1_test_failure_blocks_and_preserves_iteration(
+        self, hook_runner, project_root
+    ):
+        """S-5-1b: サイクル1（テスト失敗）→ block 継続・iteration 不変・状態保持。"""
+        state_file = self._init_state_file(project_root)
+
         _create_makefile(project_root, test_exit=1)
         input_data = _make_input(project_root, "Green State 未達。残 Issue: 3件")
         result = hook_runner(STOP_HOOK_PATH, input_data)
@@ -243,7 +248,13 @@ class TestFullLifecycle:
             "安全ネットは iteration を変更しない"
         )
 
-        # サイクル2: 安全ネットとして再び block（Green State 判定は Claude 側の責務）
+    def test_cycle2_safety_net_blocks_and_preserves_state(
+        self, hook_runner, project_root
+    ):
+        """S-5-1c: サイクル2（安全ネット）→ 再び block・状態ファイル非削除。"""
+        state_file = self._init_state_file(project_root)
+
+        # 安全ネットとして再び block（Green State 判定は Claude 側の責務）
         input_data = _make_input(project_root, "修正完了。再スキャンへ。")
         result = hook_runner(STOP_HOOK_PATH, input_data)
 

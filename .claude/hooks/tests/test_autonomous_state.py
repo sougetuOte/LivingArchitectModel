@@ -6,6 +6,8 @@ T1-1: autonomous-state.json 最小スキーマ（design D1）
 
 from __future__ import annotations
 
+from pathlib import Path
+
 
 class TestBuildInitialState:
     """build_initial_state が design D1 スキーマと文字単位で一致することを検証。"""
@@ -72,6 +74,7 @@ class TestBuildInitialState:
         import autonomous_state
 
         p = autonomous_state.state_file_path(tmp_path)
+        assert isinstance(p, Path)
         assert p.name == "autonomous-state.json"
         assert p.name != "lam-loop-state.json"
         assert p.parent.name == ".claude"
