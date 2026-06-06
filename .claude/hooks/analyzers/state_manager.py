@@ -311,8 +311,15 @@ def _empty_dependency_graph() -> dict:
     return {"topo_order": [], "sccs": [], "node_to_file": {}}
 
 
-def save_dependency_graph(state_dir: Path, graph_data: dict) -> None:
-    """依存グラフをJSONファイルに永続化する。"""
+def save_dependency_graph(state_dir: Path, graph_data) -> None:
+    """依存グラフをJSONファイルに永続化する。
+
+    Args:
+        graph_data: dict または dataclass（例: TopoOrderResult）。dataclass の場合は
+            asdict で dict に変換してから JSON シリアライズする。
+    """
+    if dataclasses.is_dataclass(graph_data) and not isinstance(graph_data, type):
+        graph_data = dataclasses.asdict(graph_data)
     _write_json_file(
         state_dir / _DEPENDENCY_GRAPH_FILE, graph_data, label="dependency graph"
     )

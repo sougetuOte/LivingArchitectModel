@@ -18,6 +18,8 @@ from analyzers.card_generator import (
     ContractCard,
     FileCard,
     ModuleCard,
+    SccDetectionSkippedError,
+    TopoOrderResult,
     _condense_sccs,
     analyze_impact,
     build_topo_order,
@@ -1119,6 +1121,33 @@ class TestCollectSpecDriftContext:
 
         assert "Test Spec" in context
 
+    def test_collects_specs_recursively(self, tmp_path: Path) -> None:
+        """サブディレクトリ内の仕様書も再帰的に収集する（I-2）。
+
+        Why: docs/specs/<feature>/ のようなサブディレクトリ階層が実プロジェクトに存在
+        するため（例: scalable-code-review/, autonomous-mode/）、非再帰 glob では
+        サブディレクトリの仕様書が prompt から欠落して仕様ドリフト検出を見落とす。
+        """
+        state_dir = tmp_path / "review-state"
+        specs_dir = tmp_path / "docs" / "specs"
+        specs_dir.mkdir(parents=True)
+
+        # トップレベルの仕様書
+        (specs_dir / "top-spec.md").write_text(
+            "# Top Spec\nTOP_CONTENT_MARKER", encoding="utf-8"
+        )
+        # サブディレクトリの仕様書
+        sub_dir = specs_dir / "feature-a"
+        sub_dir.mkdir()
+        (sub_dir / "nested-spec.md").write_text(
+            "# Nested Spec\nNESTED_CONTENT_MARKER", encoding="utf-8"
+        )
+
+        context = collect_spec_drift_context(state_dir, specs_dir)
+
+        assert "TOP_CONTENT_MARKER" in context
+        assert "NESTED_CONTENT_MARKER" in context
+
 
 # ===================================================================
 # D-1: 依存グラフ構築 + トポロジカルソート（FR-7a）
@@ -1176,7 +1205,7 @@ class TestBuildTopoOrder:
             "c.py": [],
         }
         result = build_topo_order(import_map)
-        order = result["topo_order"]
+        order = result.topo_order
         # c が b より前、b が a より前
         assert order.index("c") < order.index("b")
         assert order.index("b") < order.index("a")
@@ -1189,8 +1218,8 @@ class TestBuildTopoOrder:
             "z.py": [],
         }
         result = build_topo_order(import_map)
-        assert len(result["topo_order"]) == 3
-        assert result["sccs"] == []
+        assert len(result.topo_order) == 3
+        assert result.sccs == []
 
     def test_with_cycle(self):
         """循環依存がある場合、SCC 縮約後にトポロジカル順が得られること。"""
@@ -1200,16 +1229,16 @@ class TestBuildTopoOrder:
             "c.py": ["a"],  # C→A
         }
         result = build_topo_order(import_map)
-        assert len(result["topo_order"]) >= 2  # SCC + c
-        assert len(result["sccs"]) == 1  # A↔B の SCC
+        assert len(result.topo_order) >= 2  # SCC + c
+        assert len(result.sccs) == 1  # A↔B の SCC
 
-    def test_result_contains_required_keys(self):
-        """結果に topo_order, sccs, node_to_file が含まれること。"""
+    def test_result_has_required_fields(self):
+        """結果に topo_order, sccs, node_to_file フィールドが含まれること。"""
         import_map = {"a.py": []}
         result = build_topo_order(import_map)
-        assert "topo_order" in result
-        assert "sccs" in result
-        assert "node_to_file" in result
+        assert hasattr(result, "topo_order")
+        assert hasattr(result, "sccs")
+        assert hasattr(result, "node_to_file")
 
     def test_complex_graph_with_multiple_sccs(self):
         """複数SCC + 外部ノードの複合グラフ。"""
@@ -1221,8 +1250,8 @@ class TestBuildTopoOrder:
             "e.py": ["a", "c"],  # e → SCC1, SCC2
         }
         result = build_topo_order(import_map)
-        assert len(result["sccs"]) == 2
-        order = result["topo_order"]
+        assert len(result.sccs) == 2
+        order = result.topo_order
         assert len(order) >= 3  # SCC1, SCC2, e
 
 
@@ -1713,3 +1742,163 @@ class TestParseBlameHint:
         result = parse_blame_hint(output)
         assert len(result) == 1
         assert result[0]["suspected_responsible"] == "unknown"
+
+
+# ===================================================================
+# C-1 / FR-7a-bis: SCC 検出失敗時の契約（Fail-fast）
+# 対応仕様: scalable-code-review-spec.md FR-7a-bis
+# ===================================================================
+
+
+class TestSccDetectionSkippedError:
+    """SccDetectionSkippedError 例外型の契約テスト。"""
+
+    def test_is_runtime_error_subclass(self) -> None:
+        """RuntimeError のサブクラスであること（呼び出し側で広めに catch 可能）。"""
+        assert issubclass(SccDetectionSkippedError, RuntimeError)
+
+
+class TestSccDetectionSkippedPropagation:
+    """`_find_sccs` の SccDetectionSkippedError が 3 公開関数で
+    catch されず伝播することを保証する。
+
+    現状実装は `try/except RecursionError → return []/sccs=[]` で握り潰しているため、
+    Green 実装（try/except 削除）まで本テストは Red。
+    """
+
+    @staticmethod
+    def _patch_find_sccs_to_raise(monkeypatch: pytest.MonkeyPatch) -> None:
+        """`_find_sccs` を例外発火版に差し替える。
+
+        Note: グラフ解析・影響範囲分析モジュール切り出し（Task ⑤）以降、
+        `_find_sccs` は `analyzers.graph.scc` が SSOT だが、scc.py 内の関数
+        （detect_circular_dependencies / build_topo_order）、impact.py 内の関数
+        （analyze_impact）、card_generator.py の re-export がそれぞれ
+        ローカル名前空間に取り込んでいるため、全モジュールに setattr する。
+        """
+        from analyzers import card_generator as cg
+        from analyzers.analysis import impact as impact_module
+        from analyzers.graph import scc as scc_module
+
+        def _fail(*_args, **_kwargs):
+            raise SccDetectionSkippedError("test-injection")
+
+        monkeypatch.setattr(scc_module, "_find_sccs", _fail)
+        monkeypatch.setattr(impact_module, "_find_sccs", _fail)
+        monkeypatch.setattr(cg, "_find_sccs", _fail)
+
+    def test_detect_circular_dependencies_propagates(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """detect_circular_dependencies は SccDetectionSkippedError を伝播する。"""
+        self._patch_find_sccs_to_raise(monkeypatch)
+        import_map = {"a.py": ["b"], "b.py": ["a"]}
+        with pytest.raises(SccDetectionSkippedError):
+            detect_circular_dependencies(import_map)
+
+    def test_build_topo_order_propagates(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """build_topo_order は SccDetectionSkippedError を伝播する。"""
+        self._patch_find_sccs_to_raise(monkeypatch)
+        import_map = {"a.py": ["b"], "b.py": ["a"]}
+        with pytest.raises(SccDetectionSkippedError):
+            build_topo_order(import_map)
+
+    def test_analyze_impact_propagates(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """analyze_impact は SccDetectionSkippedError を伝播する。"""
+        self._patch_find_sccs_to_raise(monkeypatch)
+        import_map = {"a.py": ["b"], "b.py": ["a"]}
+        with pytest.raises(SccDetectionSkippedError):
+            analyze_impact(["a.py"], import_map)
+
+
+class TestTopoOrderResultDataclass:
+    """build_topo_order の戻り値型契約テスト。
+
+    戻り値は frozen dataclass `TopoOrderResult` であり、3 フィールド
+    (topo_order, sccs, node_to_file) を持つ。
+    """
+
+    def test_result_is_topo_order_result_instance(self) -> None:
+        """戻り値が TopoOrderResult のインスタンスである。"""
+        result = build_topo_order({"a.py": []})
+        assert isinstance(result, TopoOrderResult)
+
+    def test_result_is_frozen(self) -> None:
+        """TopoOrderResult は frozen=True で不変。"""
+        import dataclasses
+
+        result = build_topo_order({"a.py": []})
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            result.topo_order = []  # type: ignore[misc]
+
+    def test_result_fields_have_correct_types(self) -> None:
+        """topo_order: list / sccs: list / node_to_file: dict の3フィールド。"""
+        result = build_topo_order({"a.py": []})
+        assert isinstance(result.topo_order, list)
+        assert isinstance(result.sccs, list)
+        assert isinstance(result.node_to_file, dict)
+
+
+# ===================================================================
+# C-2: _find_sccs 反復実装（再帰上限非依存）
+# 対応設計: docs/artifacts/audit-2026-06-01/S2b-card-generator.md L131-146
+# ===================================================================
+
+
+class TestFindSccsIterativeImplementation:
+    """`_find_sccs` の反復実装は再帰上限を超える大規模グラフでも完了する。
+
+    Red 状態（再帰 Tarjan）: setrecursionlimit を下げた深い線形チェーンで
+        RecursionError → SccDetectionSkippedError を raise → テスト失敗。
+    Green 状態（反復 Tarjan）: スタックを使わないため例外なく完了 → テスト成功。
+    """
+
+    def test_handles_deep_linear_chain_under_low_recursion_limit(self) -> None:
+        """再帰上限 250 / 線形 600 ノードで _find_sccs が完了すること。
+
+        n = 600 の線形チェーン a0000 → a0001 → ... → a0599 を構築。
+        再帰上限を 250 に下げた状態で build_topo_order を呼ぶ。
+        反復実装ならスタック深度に依存せず完了し、全 600 ノードが
+        topo_order に並ぶ。
+        """
+        import sys
+
+        n = 600
+        import_map = {f"a{i:04d}.py": [f"a{i + 1:04d}"] for i in range(n - 1)}
+        import_map[f"a{n - 1:04d}.py"] = []
+
+        original_limit = sys.getrecursionlimit()
+        try:
+            sys.setrecursionlimit(250)
+            result = build_topo_order(import_map)
+        finally:
+            sys.setrecursionlimit(original_limit)
+
+        assert len(result.topo_order) == n
+        assert result.sccs == []  # 線形なので SCC なし
+
+    def test_handles_large_cycle_under_low_recursion_limit(self) -> None:
+        """再帰上限 250 / 400 ノードの大きな単一サイクルで SCC を1件検出する。
+
+        n = 400 のサイクル a000 → a001 → ... → a399 → a000 を構築。
+        反復実装なら 400 ノード全体を1つの SCC として正しく検出する。
+        """
+        import sys
+
+        n = 400
+        import_map = {f"a{i:03d}.py": [f"a{(i + 1) % n:03d}"] for i in range(n)}
+
+        original_limit = sys.getrecursionlimit()
+        try:
+            sys.setrecursionlimit(250)
+            result = build_topo_order(import_map)
+        finally:
+            sys.setrecursionlimit(original_limit)
+
+        # 全 n ノードが1つの SCC を構成する
+        assert len(result.sccs) == 1
+        assert len(result.sccs[0]) == n

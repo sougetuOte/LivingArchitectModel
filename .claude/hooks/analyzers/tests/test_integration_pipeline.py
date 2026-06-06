@@ -121,9 +121,9 @@ class TestPlanDIntegrationPipeline:
         }
 
         result = build_topo_order(import_map)
-        topo_order = result["topo_order"]
-        node_to_file = result["node_to_file"]
-        sccs = result["sccs"]
+        topo_order = result.topo_order
+        node_to_file = result.node_to_file
+        sccs = result.sccs
 
         # 各チャンクを作成
         chunks = [
@@ -217,9 +217,9 @@ class TestPlanDIntegrationPipeline:
         }
 
         result = build_topo_order(import_map)
-        topo_order = result["topo_order"]
-        node_to_file = result["node_to_file"]
-        sccs = result["sccs"]
+        topo_order = result.topo_order
+        node_to_file = result.node_to_file
+        sccs = result.sccs
 
         chunks = [
             _make_chunk("src/a.py", "func_a"),
@@ -272,7 +272,7 @@ class TestPlanDIntegrationPipeline:
 
         # build_topo_order でグラフ情報を取得
         topo_result = build_topo_order(import_map)
-        assert len(topo_result["topo_order"]) == 3
+        assert len(topo_result.topo_order) == 3
 
         # C を修正した場合の影響範囲計算
         impact = analyze_impact(["src/c.py"], import_map)
@@ -352,9 +352,9 @@ class TestPlanDIntegrationPipeline:
 
         # Step 1: build_topo_order でグラフ構築
         topo_result = build_topo_order(import_map)
-        topo_order = topo_result["topo_order"]
-        node_to_file = topo_result["node_to_file"]
-        sccs = topo_result["sccs"]
+        topo_order = topo_result.topo_order
+        node_to_file = topo_result.node_to_file
+        sccs = topo_result.sccs
 
         assert len(topo_order) == 4  # A, B, C, D の 4 ノード
 
