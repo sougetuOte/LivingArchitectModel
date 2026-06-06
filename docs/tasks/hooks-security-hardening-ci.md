@@ -3,7 +3,7 @@
 **起票日**: 2026-06-02
 **起票元**: full-review iter1（`docs/artifacts/audit-reports/2026-06-02-iter1.md` W-14 / W-15）
 **権限等級**: SE
-**ステータス**: **W-14 完了** / **W-15 完了**（2026-06-06）/ **W-16 新規起票**（2026-06-06・未着手）
+**ステータス**: **W-14 完了** / **W-15 完了** / **W-16 完了**（すべて 2026-06-06）
 
 ## 概要
 
@@ -45,7 +45,7 @@ LAM はローカル個人開発が前提のため現状で実害はないが、C
 
 - W-14: G1 checker 起動時の env が allowlist 化され、機密変数が継承されないテストが緑。**達成 (2026-06-06)**。
 - W-15: symlink 経由のパスが境界判定で正しく project_root 外と判定されるテストが緑。**達成 (2026-06-06)**。
-- W-16: `../../etc/passwd` 等の相対 traversal が project_root 外と判定され、かつ良性の `..`（`docs/../specs/x.md`）が誤検知されないテストが両方緑。pre-tool-use の PM/SE 照合に退行がない。
+- W-16: `../../etc/passwd` 等の相対 traversal が project_root 外と判定され、かつ良性の `..`（`docs/../specs/x.md`）が誤検知されないテストが両方緑。pre-tool-use の PM/SE 照合に退行がない。**達成 (2026-06-06)**。
 
 ## 実装記録（W-14・2026-06-06）
 
@@ -64,6 +64,14 @@ LAM はローカル個人開発が前提のため現状で実害はないが、C
 - 検証: **687 passed**（前 685 + 新規 2・e2e 含む）/ ruff clean / 既存5テスト非退行。本環境では symlink 作成可（開発者モード）で防御を実証。
 - **残課題**: W-16（相対 path traversal）は別タスクとして起票済み・未着手。
 - **留意事項（full-review iter1 Info I-5）**: 将来 `.claude/rules/` や `docs/specs/` 等に対する **root 内 symlink** を構成に追加する場合、resolve 後は symlink のパス名ではなく**実体パス**で PM/SE パターンマッチが行われる。意図した権限分類になるか検証すること（現構成では root 内 symlink 不使用のため実害なし）。
+
+## 実装記録（W-16・2026-06-06 / Opus 4.8 (1M)）
+
+- 方針 SSOT: `docs/artifacts/2026-06-06-magi-w15-scope.md` Atom A3（symlink とは別タスクで分離・良性 `..` 誤検知回避が完了条件）。
+- `_hook_utils.py` に純関数 `_normalize_relative_segments(file_path) -> (norm, escaped)` を追加。`.`/`..` をスタックで字句的に畳み込み（cwd 非依存・FS 非アクセス・`\` は `/` 正規化）、先頭に `..` が残れば越境フラグを立てる。
+- `normalize_path` の相対分岐を `p.as_posix()` 即返しから当該ヘルパー経由に変更。越境（escaped）は `__out_of_root__/{生file_path}` を返し PM 級に捕捉、root 内畳み込みは正規化パス（root 自身は `.`）を返す。**`..` を含まない通常パスは結果不変で素通し契約を維持**。
+- 新規テスト4件: 越境 `../../etc/passwd` / 良性 `docs/../specs/x.md` → `specs/x.md` / `docs/..` → `.` / 回帰 `docs/specs/x.md` 不変。
+- 検証: **691 passed**（W-15 後 687 + 新規 4・e2e 含む）/ ruff clean / pre-tool-use の PM/SE 照合テスト含む全体非退行（MAGI 要求の完了条件）。
 
 ## full-review 監査記録（W-15・2026-06-06）
 
