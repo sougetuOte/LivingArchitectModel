@@ -123,28 +123,59 @@ def get_tool_response(data: dict, key: str, default: object):
     return default
 
 
+def _normalize_relative_segments(file_path: str) -> tuple[str, bool]:
+    """相対パスを字句的に正規化する（W-16・cwd 非依存・FS 非アクセス）。
+
+    `.`/`..` をスタックで畳み込み、(正規化パス, 越境フラグ) を返す。
+    越境フラグは先頭に `..` が残った（project_root を越えた）場合に True。
+    FS にアクセスしないため cwd・実在性に依存せず、`..` を含まない通常パスは
+    結果が不変（素通し契約の維持）。\\ は / に正規化してから処理する。
+    """
+    stack: list[str] = []
+    escaped = False
+    for seg in file_path.replace("\\", "/").split("/"):
+        if seg in ("", "."):
+            continue
+        if seg == ".." and stack and stack[-1] != "..":
+            stack.pop()
+        elif seg == "..":
+            # 畳み込めない .. は root 越境。マーカーとして積み、escaped を立てる。
+            escaped = True
+            stack.append("..")
+        else:
+            stack.append(seg)
+    return "/".join(stack), escaped
+
+
 def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
     """
     絶対パスを project_root からの相対パスに変換する。
-    すでに相対パスの場合はそのまま返す。
+    すでに相対パスの場合は字句的に正規化して返す。
     返却値は文字列（スラッシュ区切り）。
 
     W-15: 絶対パスの境界判定は resolve() で symlink を実体に展開してから行う。
     root 内の symlink が project_root 外を指す偽装（`<root>/link/x` → 外部）を
     out-of-root として捕捉するため。resolve(strict=False) のため未作成パス
-    （Write 新規）も親まで解決される。相対パス分岐は素通し契約を維持し変更しない。
+    （Write 新規）も親まで解決される。
+    W-16: 相対パス分岐は `..` を字句的に畳み込んで境界判定する。root を越境する
+    相対 traversal（`../../etc/passwd` 等）は out-of-root とし、root 内に収まる
+    良性の `..`（`docs/../specs` 等）は正規化して返す。`..` を含まない通常パスは
+    結果が不変で素通し契約を維持する。
     project_root は resolve 済み/未 resolve のどちらも受け付ける（内部で再 resolve・べき等）。
     """
     p = pathlib.Path(file_path)
     # POSIX形式の絶対パス（/etc/... 等）は Windows では is_absolute()=False に
     # なるため、先頭スラッシュも絶対パスとして扱い out-of-root 判定を効かせる。
-    # 注: Windows では `/etc/passwd` を resolve() するとカレントドライブ基点
-    # （C:\etc\passwd）に解決される既存挙動がある。相対 traversal の扱いは W-16 で整理。
     if not p.is_absolute() and not file_path.startswith("/"):
-        # 相対パスも as_posix() で / 区切りに正規化する。
-        # Windows の \ 区切りのまま返すと pre-tool-use.py の PM 保護パターンに
-        # マッチせず権限分類をすり抜けるため（docstring のスラッシュ区切り契約）
-        return p.as_posix()
+        # W-16: 相対パスの .. を字句的に畳み込んで境界判定する（cwd 非依存・FS 非アクセス）。
+        # \ 区切りも / に正規化されるため、pre-tool-use.py の PM 保護パターン
+        # （/ 区切り前提）への権限分類すり抜けも併せて防ぐ。
+        norm, escaped = _normalize_relative_segments(file_path)
+        if escaped:
+            # root を越境する相対 traversal は out-of-root マーカーで PM 級に捕捉させる。
+            return f"__out_of_root__/{file_path}"
+        # 空（root 自身に畳み込まれた）場合は絶対分岐の root 自身と整合させ '.' を返す。
+        return norm or "."
     # 絶対パス: symlink を展開した実体で境界判定する（両辺 resolve）。
     # strict=False（デフォルト）なので未作成の Write 新規パスも親まで解決される。
     root = project_root.resolve()

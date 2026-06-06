@@ -187,6 +187,27 @@ class TestNormalizePath:
         result = hook_utils.normalize_path(new_path, project_root)
         assert result == "newdir/new.py"
 
+    def test_normalize_path_relative_traversal_escapes(self, hook_utils, tmp_path):
+        """W-16: 相対 .. が root を越境する場合は out_of_root と判定される"""
+        result = hook_utils.normalize_path("../../etc/passwd", tmp_path)
+        assert result.startswith("__out_of_root__/")
+        assert "../../etc/passwd" in result
+
+    def test_normalize_path_relative_benign_dotdot(self, hook_utils, tmp_path):
+        """W-16: root 内に収まる良性の .. は誤検知せず正規化して返す"""
+        result = hook_utils.normalize_path("docs/../specs/x.md", tmp_path)
+        assert result == "specs/x.md"
+
+    def test_normalize_path_relative_dotdot_to_root(self, hook_utils, tmp_path):
+        """W-16: 相対 .. で root 自身に戻る場合は '.' を返す"""
+        result = hook_utils.normalize_path("docs/..", tmp_path)
+        assert result == "."
+
+    def test_normalize_path_relative_no_dotdot_unchanged(self, hook_utils, tmp_path):
+        """W-16 回帰防止: .. を含まない通常の相対パスは従来どおり不変"""
+        result = hook_utils.normalize_path("docs/specs/x.md", tmp_path)
+        assert result == "docs/specs/x.md"
+
 
 class TestAtomicWriteJson:
     def test_atomic_write_json(self, hook_utils, tmp_path):
