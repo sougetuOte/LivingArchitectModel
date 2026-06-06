@@ -8,8 +8,8 @@
     "design": "approved",
     "tasks": "approved"
   },
-  "current_wave": null,
-  "current_task": null,
+  "current_wave": "card-generator-split-⑤",
+  "current_task": "card-generator-split-⑤ (C-1 SCC契約 / C-2 反復Tarjan / W2-4 deque / W-4 nonlocal / iter2-Info 逆引き辞書 / I-2 specs_dir再帰 / グラフ解析モジュール切り出し / 影響範囲分析モジュール切り出し)",
   "completed_tasks": ["A-1a", "A-1b", "A-2", "A-3", "A-4", "A-5", "A-5b", "A-6", "B-1a", "B-1b", "B-2a", "B-2b", "B-3", "C-1a", "C-1b", "C-2a", "C-2b", "C-3a", "C-3b", "D-0", "D-0b", "D-1", "D-2", "D-3", "D-4", "D-5", "E-1a", "E-1b", "E-1c", "E-2a", "E-2b", "E-3a", "E-3b"],
   "approvals": {
     "requirements": "2026-03-14",

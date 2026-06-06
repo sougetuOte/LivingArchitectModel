@@ -1,8 +1,8 @@
 # Current Phase
 
-**AUDITING**
+**BUILDING**
 
-_whole-project 品質棚卸し Pass 1（コード S1〜S4: hooks/analyzers/autonomous/tests）。autonomous-mode Wave 1 実装完了後の初回ホリスティック監査。成果物は docs/artifacts/audit-2026-06-01/ に永続化_
+_⑤ card_generator 2モジュール分割（scalable-code-review）。Critical 解消（C-1: SccDetectionSkippedError 契約 / C-2: 反復 Tarjan）＋ Warning 解消（W2-4 deque / W-4 nonlocal / iter2-Info 逆引き辞書 / I-2 specs_dir.glob 再帰化）＋ グラフ解析（L799-1090）/ 影響範囲分析（L1093-1305）モジュール切り出し。モデル: Opus 4.7 (1M context)._
 
 ---
 
