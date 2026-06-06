@@ -63,6 +63,14 @@ LAM はローカル個人開発が前提のため現状で実害はないが、C
 - 新規テスト 2 件（`test_hook_utils.py`）: `test_normalize_path_symlink_escapes_root`（root 内 symlink が外部を指す絶対パスを out_of_root 判定。`os.symlink` 不可環境は `pytest.skip`）/ `test_normalize_path_nonexistent_within_root`（未作成 Write 新規パスの相対化・回帰防止）。
 - 検証: **687 passed**（前 685 + 新規 2・e2e 含む）/ ruff clean / 既存5テスト非退行。本環境では symlink 作成可（開発者モード）で防御を実証。
 - **残課題**: W-16（相対 path traversal）は別タスクとして起票済み・未着手。
+- **留意事項（full-review iter1 Info I-5）**: 将来 `.claude/rules/` や `docs/specs/` 等に対する **root 内 symlink** を構成に追加する場合、resolve 後は symlink のパス名ではなく**実体パス**で PM/SE パターンマッチが行われる。意図した権限分類になるか検証すること（現構成では root 内 symlink 不使用のため実害なし）。
+
+## full-review 監査記録（W-15・2026-06-06）
+
+- レポート: `docs/artifacts/audit-reports/2026-06-06-iter1.md`。
+- iter1: Critical 0 / Warning 1（W-1: resolve except の意図不明確）/ Info 6。W-1 を SE 修正（コメント意図明示）。
+- iter2 再スキャン: Warning 0 = **真の Green State 到達**（code-reviewer 確認済み）。
+- Info 対応: I-2/I-3/I-4/I-6 を修正（docstring 補足・テスト dead code 除去）、I-5 を本留意事項に記録、I-1 は W-16 ポインタコメントのみ（実装は W-16 スコープ）。
 
 ## 参照
 
