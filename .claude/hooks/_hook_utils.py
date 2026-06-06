@@ -22,6 +22,33 @@ import time
 _ATOMIC_WRITE_RETRY_DELAYS: tuple[float, ...] = (0.1, 0.2, 0.4)
 
 
+# W-14: hook サブプロセスへ継承する環境変数の allowlist。
+# 機密（AWS_SECRET_ACCESS_KEY / GITHUB_TOKEN 等）の漏出を防ぐ。
+CHECKER_ENV_ALLOWLIST: tuple[str, ...] = (
+    "PATH", "HOME", "LANG", "LC_ALL", "TERM",
+    "TMPDIR", "TEMP", "TMP",
+    "VIRTUAL_ENV", "CONDA_PREFIX",
+    "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
+    "LAM_PROJECT_ROOT",
+    # Windows: pytest/checker 起動に必須のシステム変数
+    "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR", "COMSPEC",
+    "USERPROFILE", "APPDATA", "LOCALAPPDATA",
+    "PATHEXT", "PROCESSOR_ARCHITECTURE",
+)
+
+
+def build_allowlisted_env(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """親 os.environ から CHECKER_ENV_ALLOWLIST のキーのみを抽出し、extra をマージして返す。
+
+    W-14 対応: G1 checker 等のサブプロセスに機密環境変数を継承させないための共通ヘルパー。
+    extra は最後にマージされるので、LAM_PROJECT_ROOT 等の上書きが可能。
+    """
+    env = {k: v for k, v in os.environ.items() if k in CHECKER_ENV_ALLOWLIST}
+    if extra:
+        env.update(extra)
+    return env
+
+
 def now_utc_iso8601() -> str:
     """UTC の ISO 8601 タイムスタンプ文字列を返す。"""
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -39,6 +39,7 @@ if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 from _hook_utils import (  # noqa: E402
+    build_allowlisted_env,
     get_project_root,
     log_entry,
     now_utc_iso8601,
@@ -266,7 +267,7 @@ def _run_g1_checker(project_root: Path, log_file: Path) -> int:
             capture_output=True,
             text=True,
             timeout=CHECKER_TIMEOUT,
-            env={**os.environ, "LAM_PROJECT_ROOT": str(project_root)},
+            env=build_allowlisted_env({"LAM_PROJECT_ROOT": str(project_root)}),
         )
     except subprocess.TimeoutExpired:
         _log(log_file, "ERROR", f"G1 checker timeout after {CHECKER_TIMEOUT}s")
