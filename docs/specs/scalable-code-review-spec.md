@@ -151,6 +151,71 @@ Issue リスト + AST マップの永続化のみ実装する。
 - SCC はスーパーノードに縮約し、内部は任意順序で処理
 - 依存グラフは `review-state/dependency-graph.json` に永続化
 
+#### FR-7a-bis: SCC 検出失敗時の契約（Fail-fast）
+
+`_find_sccs` および `_find_sccs` を内部で呼ぶ全公開関数
+（`detect_circular_dependencies` / `build_topo_order` / `analyze_impact`）は、
+SCC 検出が完遂できなかった場合に専用例外 `SccDetectionSkippedError`
+（モジュール分割後は `analyzers/graph/scc.py` 定義）を raise して
+呼び出し側に fail-fast で伝達する MUST。
+
+理由: 「循環なし（空 SCC）」と「検出スキップ（未知）」を戻り値で区別できない構造は
+サイレント false negative を生む（`code-quality-guideline.md` "Silent Failure" 違反）。
+
+##### 契約詳細
+
+- `_find_sccs(graph, all_nodes) -> list[list[str]]`: 失敗時は `SccDetectionSkippedError` を raise MUST。
+  返り値が返った場合、それは検出完了済みの全 SCC を意味する（空 list は「循環なし」を意味する）。
+- `detect_circular_dependencies(import_map) -> list[Issue]`: 同上。空 list は「循環依存なし」のみを意味する MUST。
+- `build_topo_order(import_map) -> TopoOrderResult`: 同上。返り値は dataclass（後述）。
+- `analyze_impact(modified_files, import_map) -> dict[str, list[str]]`: 同上。
+
+##### TopoOrderResult dataclass
+
+`build_topo_order` の返り値型を `dict` から下記 dataclass に変更する MUST:
+
+```python
+@dataclass(frozen=True)
+class TopoOrderResult:
+    topo_order: list[str]         # トポロジカル順のノード名 / SCC スーパーノード名
+    sccs: list[list[str]]         # 検出された SCC のリスト
+    node_to_file: dict[str, str]  # ノード名 → 元ファイルパス
+```
+
+`graphlib.CycleError` は SCC 縮約後グラフでは論理的に発生しない（SCC 検出成功時の
+縮約グラフは DAG であることが Tarjan アルゴリズムの保証）。仮に発生した場合は
+バグ（縮約ロジックの不整合）として扱い、握り潰さず再 raise する MUST。
+
+##### 例外型定義
+
+```python
+class SccDetectionSkippedError(RuntimeError):
+    """SCC 検出が完遂できなかったことを示す。
+
+    呼び出し側は本例外を「循環依存の有無が未知」として扱う SHOULD。
+    現行実装では再帰 Tarjan の RecursionError から変換されるが、
+    反復実装移行後はメモリ不足等の将来的失敗モードに備えて契約として残す。
+    """
+```
+
+##### 既存 try/except RecursionError パターンの撤廃
+
+`card_generator.py` 内の以下 3 箇所の `try/except RecursionError` 構造は **削除 MUST**:
+- `detect_circular_dependencies`
+- `build_topo_order`
+- `analyze_impact`
+
+代わりに `_find_sccs` 自身が `SccDetectionSkippedError` を raise し、3 公開関数では
+catch せず伝播させる。
+
+##### 呼び出し側の振る舞い
+
+呼び出し側（パイプライン・テスト・将来の上位レイヤー）は本例外について以下の自由度を持つ:
+
+- 上位まで例外を伝播させて fail-fast 停止する SHOULD（推奨）
+- または明示的に catch し、縮退戦略（影響範囲を全ファイルに広げる、レビューステージをスキップする等）を選択する MAY
+- サイレントに空 SCC として扱い続けることは MUST NOT
+
 #### FR-7b: トポロジカル順レビュー・修正
 
 トポロジカルソート結果を以下の2箇所で活用する:
@@ -190,6 +255,13 @@ FR-5 の「全体ゼロベース」原則を以下のように緩和する:
 - 概要カードの機械的フィールド（公開 API、依存先等）は変更がなければ再利用 MAY
 - LLM レビューは全モジュールで毎回ゼロベース実行 MUST（スキップ MUST NOT）
 - 契約カードは毎回再生成 MUST（キャッシュ MUST NOT）
+
+##### FR-7d 補足: SCC 検出失敗時
+
+`analyze_impact` は SCC 検出失敗時に `SccDetectionSkippedError` を raise する MUST
+（FR-7a-bis の契約詳細を参照）。本例外発生時の縮退戦略は呼び出し側で選択する SHOULD（影響範囲を
+全ファイルに広げる、ステージを fail-fast で停止する等）。サイレントに `out_of_scope` を
+推論することは MUST NOT。
 
 ### FR-7e: D-0 — シークレットスキャンの Phase 0 統合
 
