@@ -128,6 +128,10 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
     絶対パスを project_root からの相対パスに変換する。
     すでに相対パスの場合はそのまま返す。
     返却値は文字列（スラッシュ区切り）。
+
+    W-15: 絶対パスの境界判定は resolve() で symlink を実体に展開してから行う。
+    root 内の symlink が project_root 外を指す偽装（`<root>/link/x` → 外部）を
+    out-of-root として捕捉するため。相対パス分岐は素通し契約を維持し変更しない。
     """
     p = pathlib.Path(file_path)
     # POSIX形式の絶対パス（/etc/... 等）は Windows では is_absolute()=False に
@@ -137,12 +141,26 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
         # Windows の \ 区切りのまま返すと pre-tool-use.py の PM 保護パターンに
         # マッチせず権限分類をすり抜けるため（docstring のスラッシュ区切り契約）
         return p.as_posix()
+    # 絶対パス: symlink を展開した実体で境界判定する（両辺 resolve）。
+    # strict=False（デフォルト）なので未作成の Write 新規パスも親まで解決される。
+    root = project_root.resolve()
     try:
-        relative = p.relative_to(project_root)
+        resolved = p.resolve()
+    except (OSError, RuntimeError) as e:
+        # 循環 symlink 等で resolve 不能な場合は生パスにフォールバック。
+        # 握りつぶさず WARNING を残す（get_project_root と同じ作法）。
+        # 生パスで relative_to に失敗すれば out-of-root（厳しい側）に倒れる。
+        sys.stderr.write(
+            f"WARNING: normalize_path: resolve() failed for {file_path!r}: {e}\n"
+        )
+        resolved = p
+    try:
+        relative = resolved.relative_to(root)
         # pre-tool-use.py のパターンは / 区切り前提のため as_posix() で正規化
         return relative.as_posix()
     except ValueError:
-        # project_root の外のパスは out-of-root マーカー付きで返す
+        # project_root の外のパスは out-of-root マーカー付きで返す。
+        # 表示は resolve 前の生 file_path を保持（既存テスト互換・ログ可読性）。
         # pre-tool-use.py のパターンマッチで PM級として捕捉される
         return f"__out_of_root__/{file_path}"
 

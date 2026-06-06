@@ -162,6 +162,29 @@ class TestNormalizePath:
         assert result.startswith("__out_of_root__/")
         assert "/etc/passwd" in result
 
+    def test_normalize_path_symlink_escapes_root(self, hook_utils, tmp_path):
+        """W-15: root 内 symlink が外部を指す絶対パスは out_of_root と判定される"""
+        project_root = tmp_path / "project"
+        project_root.mkdir()
+        external = tmp_path / "external"
+        external.mkdir()
+        link = project_root / "link"
+        try:
+            link.symlink_to(external, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            pytest.skip("symlink not permitted in this environment")
+        # 文字列上は project_root 配下に見えるが、実体は external/secret.txt
+        target_via_link = str(link / "secret.txt")
+        result = hook_utils.normalize_path(target_via_link, project_root)
+        assert result.startswith("__out_of_root__/")
+
+    def test_normalize_path_nonexistent_within_root(self, hook_utils, tmp_path):
+        """W-15 回帰防止: 未作成（Write 新規）の root 内絶対パスは相対化される"""
+        project_root = tmp_path
+        new_path = str(tmp_path / "newdir" / "new.py")
+        result = hook_utils.normalize_path(new_path, project_root)
+        assert result == "newdir/new.py"
+
 
 class TestAtomicWriteJson:
     def test_atomic_write_json(self, hook_utils, tmp_path):
