@@ -3,7 +3,7 @@
 **起票日**: 2026-06-02
 **起票元**: full-review iter1（`docs/artifacts/audit-reports/2026-06-02-iter1.md` W-14 / W-15）
 **権限等級**: SE
-**ステータス**: 延期（ローカル実行では実害なし・CI 展開時にリスク顕在化）
+**ステータス**: **W-14 完了**（2026-06-06）/ W-15 延期
 
 ## 概要
 
@@ -30,8 +30,16 @@ LAM はローカル個人開発が前提のため現状で実害はないが、C
 
 ## 完了条件
 
-- W-14: G1 checker 起動時の env が allowlist 化され、機密変数が継承されないテストが緑。
+- W-14: G1 checker 起動時の env が allowlist 化され、機密変数が継承されないテストが緑。**達成 (2026-06-06)**。
 - W-15: symlink 経由のパスが境界判定で正しく project_root 外と判定されるテストが緑。
+
+## 実装記録（W-14・2026-06-06）
+
+- `_hook_utils.py` に公開定数 `CHECKER_ENV_ALLOWLIST` と公開ヘルパー `build_allowlisted_env(extra)` を追加（Windows 必須キー SYSTEMROOT / USERPROFILE / APPDATA / PATHEXT 等を含む）。
+- `lam-stop-hook.py:_run_g1_checker` の `env={**os.environ, "LAM_PROJECT_ROOT": ...}` を `env=build_allowlisted_env({"LAM_PROJECT_ROOT": ...})` に差し替え。
+- 新規テスト `tests/test_lam_stop_hook_env_allowlist.py`（5 件）: 機密 env 非伝播 / LAM_PROJECT_ROOT 伝播 / PATH 伝播 / 定数存在 / ヘルパー動作。
+- 検証: 685 passed（既存 680 + 新規 5・e2e マーカー含む） / ruff clean / gitleaks no leaks。
+- **未着手の DRY 統合**: `.claude/hooks/tests/conftest.py:_ENV_ALLOWLIST` と `.claude/hooks/analyzers/tests/test_e2e_review.py:_ENV_ALLOWLIST`（同内容）の `CHECKER_ENV_ALLOWLIST` への統一は別タスクで保留（test 用 allowlist に本番用 Windows キーを追加することの副作用を最小化するため）。
 
 ## 参照
 
