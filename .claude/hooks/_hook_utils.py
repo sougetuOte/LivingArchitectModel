@@ -131,11 +131,15 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
 
     W-15: 絶対パスの境界判定は resolve() で symlink を実体に展開してから行う。
     root 内の symlink が project_root 外を指す偽装（`<root>/link/x` → 外部）を
-    out-of-root として捕捉するため。相対パス分岐は素通し契約を維持し変更しない。
+    out-of-root として捕捉するため。resolve(strict=False) のため未作成パス
+    （Write 新規）も親まで解決される。相対パス分岐は素通し契約を維持し変更しない。
+    project_root は resolve 済み/未 resolve のどちらも受け付ける（内部で再 resolve・べき等）。
     """
     p = pathlib.Path(file_path)
     # POSIX形式の絶対パス（/etc/... 等）は Windows では is_absolute()=False に
-    # なるため、先頭スラッシュも絶対パスとして扱い out-of-root 判定を効かせる
+    # なるため、先頭スラッシュも絶対パスとして扱い out-of-root 判定を効かせる。
+    # 注: Windows では `/etc/passwd` を resolve() するとカレントドライブ基点
+    # （C:\etc\passwd）に解決される既存挙動がある。相対 traversal の扱いは W-16 で整理。
     if not p.is_absolute() and not file_path.startswith("/"):
         # 相対パスも as_posix() で / 区切りに正規化する。
         # Windows の \ 区切りのまま返すと pre-tool-use.py の PM 保護パターンに
@@ -147,9 +151,12 @@ def normalize_path(file_path: str, project_root: pathlib.Path) -> str:
     try:
         resolved = p.resolve()
     except (OSError, RuntimeError) as e:
-        # 循環 symlink 等で resolve 不能な場合は生パスにフォールバック。
-        # 握りつぶさず WARNING を残す（get_project_root と同じ作法）。
+        # resolve 失敗時は生パスにフォールバック（握りつぶさず WARNING）。
         # 生パスで relative_to に失敗すれば out-of-root（厳しい側）に倒れる。
+        #   OSError    : 循環 symlink（POSIX ELOOP / Windows WinError）等の OS エラー。
+        #   RuntimeError: 現行 resolve(strict=False) では通常発生しないが、予期せぬ
+        #                 内部エラーでも hook をクラッシュさせず out-of-root へ倒す
+        #                 フェイルセーフとして併せて捕捉する（意図的に広め）。
         sys.stderr.write(
             f"WARNING: normalize_path: resolve() failed for {file_path!r}: {e}\n"
         )

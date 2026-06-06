@@ -171,7 +171,9 @@ class TestNormalizePath:
         link = project_root / "link"
         try:
             link.symlink_to(external, target_is_directory=True)
-        except (OSError, NotImplementedError):
+        except OSError:
+            # Windows の非特権ユーザー環境では [WinError 1314] で失敗する。
+            # （Path.symlink_to は NotImplementedError を送出しないため OSError のみ）
             pytest.skip("symlink not permitted in this environment")
         # 文字列上は project_root 配下に見えるが、実体は external/secret.txt
         target_via_link = str(link / "secret.txt")
