@@ -12,9 +12,9 @@ from __future__ import annotations
 import logging
 from collections import deque
 
+from analyzers.base import file_path_to_module_name
 from analyzers.graph.scc import (
     _build_import_graph,
-    _file_path_to_module_name,
     _find_sccs,
 )
 
@@ -90,7 +90,7 @@ def _partition_files_by_scope(
 
     import_map にないが modified_files に含まれるファイルも in_scope に追加する。
     """
-    file_to_node = {fp: _file_path_to_module_name(fp) for fp in import_map}
+    file_to_node = {fp: file_path_to_module_name(fp) for fp in import_map}
     in_scope_files: list[str] = []
     out_of_scope_files: list[str] = []
 
@@ -133,7 +133,7 @@ def analyze_impact(
     graph, all_nodes, node_to_file = _build_import_graph(import_map)
     sccs = _find_sccs(graph, all_nodes)
 
-    file_to_node = {fp: _file_path_to_module_name(fp) for fp in import_map}
+    file_to_node = {fp: file_path_to_module_name(fp) for fp in import_map}
     modified_nodes: set[str] = {
         file_to_node[fp] for fp in modified_files if fp in file_to_node
     }

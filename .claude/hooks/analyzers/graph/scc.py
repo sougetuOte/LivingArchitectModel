@@ -13,7 +13,7 @@ import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from analyzers.base import Issue
+from analyzers.base import Issue, file_path_to_module_name
 
 logger = logging.getLogger(__name__)
 
@@ -45,16 +45,6 @@ class TopoOrderResult:
     node_to_file: dict[str, str]
 
 
-# TODO: card_generator._file_path_to_module_name と重複（共通 utility 再編で統合候補）。
-# 移動先候補: analyzers/base.py または新規 analyzers/utils.py（PM 級判断）。
-def _file_path_to_module_name(file_path: str) -> str:
-    """ファイルパスをモジュール名に変換する。
-
-    例: "src/foo.py" -> "src.foo"
-    """
-    return file_path.replace("/", ".").replace("\\", ".").removesuffix(".py")
-
-
 def _build_import_graph(
     import_map: dict[str, list[str]],
 ) -> tuple[dict[str, list[str]], set[str], dict[str, str]]:
@@ -69,7 +59,7 @@ def _build_import_graph(
         all_nodes: グラフに含まれる全ノード名（モジュール名）。
         node_to_file: モジュール名 → ファイルパスの逆引き。
     """
-    file_to_node = {fp: _file_path_to_module_name(fp) for fp in import_map}
+    file_to_node = {fp: file_path_to_module_name(fp) for fp in import_map}
     node_to_file: dict[str, str] = {v: k for k, v in file_to_node.items()}
     all_nodes: set[str] = set(file_to_node.values())
 

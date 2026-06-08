@@ -19,6 +19,17 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+def file_path_to_module_name(file_path: str) -> str:
+    """ファイルパスをドット区切りモジュール名に変換する。
+
+    例: "src/foo.py" -> "src.foo"
+
+    A-3: card_generator / graph.scc に重複していた純ヘルパーを base に集約。
+    依存グラフ系（card_generator / graph.scc / analysis.impact）が共有する。
+    """
+    return file_path.replace("/", ".").replace("\\", ".").removesuffix(".py")
+
+
 @dataclass
 class Issue:
     """静的解析が検出した問題を表すデータモデル。

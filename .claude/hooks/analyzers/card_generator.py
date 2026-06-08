@@ -30,7 +30,7 @@ from analyzers.analysis.impact import (
     analyze_impact as analyze_impact,
     classify_impact_for_cards as classify_impact_for_cards,
 )
-from analyzers.base import ASTNode, Issue
+from analyzers.base import ASTNode, Issue, file_path_to_module_name
 from analyzers.graph.scc import (
     SccDetectionSkippedError as SccDetectionSkippedError,
     TopoOrderResult as TopoOrderResult,
@@ -141,14 +141,6 @@ class ContractCard:
     invariants: list[str]       # LLM 推論
 
 
-def _file_path_to_module_name(file_path: str) -> str:
-    """ファイルパスをモジュール名に変換する。
-
-    例: "src/foo.py" -> "src.foo"
-    """
-    return file_path.replace("/", ".").replace("\\", ".").removesuffix(".py")
-
-
 def _build_reverse_import_map(
     ast_map: dict[str, ASTNode],
     import_map: dict[str, list[str]],
@@ -159,7 +151,7 @@ def _build_reverse_import_map(
     ast_map のキーはパス形式（例: "src/foo.py"）なので変換が必要。
     """
     # ファイルパス → モジュール名の対応表
-    path_to_module = {fp: _file_path_to_module_name(fp) for fp in ast_map}
+    path_to_module = {fp: file_path_to_module_name(fp) for fp in ast_map}
     module_to_path = {mod: fp for fp, mod in path_to_module.items()}
 
     dependents: dict[str, list[str]] = {fp: [] for fp in ast_map}
