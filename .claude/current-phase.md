@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**AUDITING**
 
-_hooks 残課題の TDD 消化。A-1: テスト env allowlist の重複（conftest / test_e2e_review の `_ENV_ALLOWLIST`）を正本 `_hook_utils.CHECKER_ENV_ALLOWLIST` へ DRY 統合。A-2: Stop hook 通知B（W-9・未分析 TDD パターンの /retro 推奨）を `_save_loop_log` funnel に実装。700 passed / ruff clean。モデル: Opus 4.8 (1M context)._
+_B-1: 本セッション変更分（A-1 env allowlist DRY / A-2 通知B W-9 / A-3 `file_path_to_module_name` の base 集約）＋ card_generator 分割モジュール（graph.scc / analysis.impact）の Green State 確定再確認。B-2（LAM 全体 full-review）とは切り分け、対象を限定。モデル: Opus 4.8 (1M context)._
 
 ---
 
