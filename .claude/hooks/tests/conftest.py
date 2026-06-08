@@ -7,20 +7,11 @@ W2-T1: conftest.py（共通 pytest fixtures）
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
-
-# テスト実行に必要な最小限の環境変数のみ引き継ぐ
-_ENV_ALLOWLIST = (
-    "PATH", "HOME", "LANG", "LC_ALL", "TERM",
-    "TMPDIR", "TEMP", "TMP",
-    "VIRTUAL_ENV", "CONDA_PREFIX",
-    "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
-)
 
 # hooks ディレクトリのパス
 _HOOKS_DIR = Path(__file__).resolve().parent.parent
@@ -63,7 +54,7 @@ def hook_utils(hooks_on_syspath: Path):
 
 
 @pytest.fixture()
-def hook_runner(project_root: Path):
+def hook_runner(project_root: Path, hook_utils):
     """フックを subprocess で実行するヘルパー関数を返す fixture。
 
     返す run_hook() 関数の仕様:
@@ -90,11 +81,11 @@ def hook_runner(project_root: Path):
             subprocess.CompletedProcess: stdout, stderr, returncode を含む
         """
         stdin_input = json.dumps(input_json) if input_json is not None else ""
-        merged_env = {
-            k: v for k, v in os.environ.items() if k in _ENV_ALLOWLIST
-        }
-        merged_env["LAM_PROJECT_ROOT"] = str(project_root)
-        merged_env.update(env or {})
+        # 機密環境変数の継承を防ぐ共通 allowlist（_hook_utils.CHECKER_ENV_ALLOWLIST）に統一。
+        # LAM_PROJECT_ROOT は extra で明示設定し、呼び出し側 env で上書き可能にする。
+        merged_env = hook_utils.build_allowlisted_env(
+            {"LAM_PROJECT_ROOT": str(project_root), **(env or {})}
+        )
         return subprocess.run(
             [sys.executable, str(hook_path)],
             input=stdin_input,

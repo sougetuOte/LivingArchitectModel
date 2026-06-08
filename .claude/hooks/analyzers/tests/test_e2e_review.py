@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -18,6 +17,7 @@ from unittest.mock import patch
 
 import pytest
 
+from _hook_utils import build_allowlisted_env
 from analyzers.scale_detector import (
     detect_scale,
     format_scale_detection,
@@ -25,28 +25,6 @@ from analyzers.scale_detector import (
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "e2e"
 RESULTS_DIR = Path(__file__).parents[4] / "docs" / "artifacts" / "e2e-results"
-
-# subprocess 実行時に子プロセスへ引き継ぐ環境変数の allowlist。
-# os.environ を丸ごと継承せず、テスト実行に必要な最小限のみを渡す
-# （.claude/hooks/tests/conftest.py の hook_runner と同型）。
-_ENV_ALLOWLIST = (
-    "PATH", "HOME", "LANG", "LC_ALL", "TERM",
-    "TMPDIR", "TEMP", "TMP",
-    "VIRTUAL_ENV", "CONDA_PREFIX",
-    "PYTHONPATH", "PYTHONDONTWRITEBYTECODE",
-)
-
-
-def _allowlisted_env(**overrides: str) -> dict[str, str]:
-    """os.environ から allowlist のキーのみを抽出し、overrides をマージして返す。
-
-    全環境変数を子プロセスへ継承する `{**os.environ}` の代替。
-    呼び出し側が PYTHONPATH 等を overrides で明示的に上書きできる。
-    """
-    env = {k: v for k, v in os.environ.items() if k in _ENV_ALLOWLIST}
-    env.update(overrides)
-    return env
-
 
 @dataclass
 class DetectionResult:
@@ -522,7 +500,7 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent  # .claude/hooks
 
-        env = _allowlisted_env(PYTHONPATH=str(hooks_dir))
+        env = build_allowlisted_env({"PYTHONPATH": str(hooks_dir)})
         result = subprocess.run(
             [sys.executable, str(scale_detector_path), str(project_root)],
             capture_output=True,
@@ -550,7 +528,7 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent
 
-        env = _allowlisted_env(PYTHONPATH=str(hooks_dir))
+        env = build_allowlisted_env({"PYTHONPATH": str(hooks_dir)})
         result = subprocess.run(
             [sys.executable, str(scale_detector_path), str(project_root)],
             capture_output=True,
@@ -568,7 +546,7 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent
 
-        env = _allowlisted_env(PYTHONPATH=str(hooks_dir))
+        env = build_allowlisted_env({"PYTHONPATH": str(hooks_dir)})
         result = subprocess.run(
             [sys.executable, str(scale_detector_path)],
             capture_output=True,
