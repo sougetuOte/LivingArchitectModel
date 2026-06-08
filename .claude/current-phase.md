@@ -2,7 +2,7 @@
 
 **BUILDING**
 
-_⑤ card_generator 2モジュール分割（scalable-code-review）。Critical 解消（C-1: SccDetectionSkippedError 契約 / C-2: 反復 Tarjan）＋ Warning 解消（W2-4 deque / W-4 nonlocal / iter2-Info 逆引き辞書 / I-2 specs_dir.glob 再帰化）＋ グラフ解析（L799-1090）/ 影響範囲分析（L1093-1305）モジュール切り出し。モデル: Opus 4.7 (1M context)._
+_hooks 残課題の TDD 消化。A-1: テスト env allowlist の重複（conftest / test_e2e_review の `_ENV_ALLOWLIST`）を正本 `_hook_utils.CHECKER_ENV_ALLOWLIST` へ DRY 統合。A-2: Stop hook 通知B（W-9・未分析 TDD パターンの /retro 推奨）を `_save_loop_log` funnel に実装。700 passed / ruff clean。モデル: Opus 4.8 (1M context)._
 
 ---
 
