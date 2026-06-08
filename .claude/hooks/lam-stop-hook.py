@@ -118,6 +118,46 @@ def _save_loop_log(
     except Exception as e:
         # ループログ保存失敗は致命的ではないが、黙殺せず警告として残す（監査 W-2）。
         _log(log_file, "WARNING", f"Failed to save loop log: {type(e).__name__}: {e}")
+    # 通知B（W-9）: ループ終了時に未分析の TDD パターンがあれば /retro を推奨。
+    # ループログ保存の成否に依存させないため try の外で呼ぶ。
+    _notify_unanalyzed_patterns(project_root, log_file)
+
+
+def _count_unanalyzed_tdd_patterns(tdd_log: Path) -> int:
+    """tdd-patterns.log の最終 ANALYZED マーカー以降のエントリ行数を返す（通知B・W-9）。
+
+    エントリ行は PASS/FAIL 記録、マーカー行は field[1] == "ANALYZED"。
+    ファイル不在・読取失敗時はフェイルセーフに 0 を返す（提案機能のため）。
+    """
+    try:
+        if not tdd_log.is_file():
+            return 0
+        lines = [
+            ln for ln in tdd_log.read_text(encoding="utf-8").splitlines() if ln.strip()
+        ]
+    except OSError:
+        return 0
+    last_marker = -1
+    for i, line in enumerate(lines):
+        fields = line.split("\t")
+        if len(fields) >= 2 and fields[1] == "ANALYZED":
+            last_marker = i
+    return len(lines) - (last_marker + 1)
+
+
+def _notify_unanalyzed_patterns(project_root: Path, log_file: Path) -> None:
+    """未分析の TDD パターンが1件以上あれば loop.log に /retro 推奨を INFO 記録する（通知B・W-9）。
+
+    仕様 docs/specs/tdd-introspection-v2.md §5.1。ログ出力のみでループ動作には影響しない。
+    """
+    tdd_log = project_root / ".claude" / "tdd-patterns.log"
+    count = _count_unanalyzed_tdd_patterns(tdd_log)
+    if count >= 1:
+        _log(
+            log_file,
+            "INFO",
+            f"TDD patterns: {count}件の未分析パターンあり。/retro を推奨。",
+        )
 
 
 def _cleanup_state_file(state_file: Path) -> None:
