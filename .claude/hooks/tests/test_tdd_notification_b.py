@@ -79,6 +79,17 @@ class TestCountUnanalyzedPatterns:
         )
         assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 1
 
+    def test_non_utf8_file_returns_zero(self, stop_hook, project_root):
+        """非 UTF-8 バイト混入時もフェイルセーフに 0（例外を投げない）。
+
+        通知B は advisory 機能でループ動作に影響してはならない（spec §5.1）。
+        UnicodeDecodeError は OSError のサブクラスではないため明示捕捉が必要。
+        """
+        tdd_log = project_root / ".claude" / "tdd-patterns.log"
+        tdd_log.parent.mkdir(parents=True, exist_ok=True)
+        tdd_log.write_bytes(b"\xff\xfe not valid utf-8\n")
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
+
 
 class TestNotifyUnanalyzedPatterns:
     """_notify_unanalyzed_patterns の通知B 出力（loop.log への INFO 記録）"""

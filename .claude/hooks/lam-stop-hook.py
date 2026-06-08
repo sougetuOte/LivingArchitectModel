@@ -135,7 +135,9 @@ def _count_unanalyzed_tdd_patterns(tdd_log: Path) -> int:
         lines = [
             ln for ln in tdd_log.read_text(encoding="utf-8").splitlines() if ln.strip()
         ]
-    except OSError:
+    except (OSError, UnicodeDecodeError):
+        # advisory 機能（通知B）はループ動作に影響してはならない（spec §5.1）。
+        # 読取失敗・文字コード破損のいずれもフェイルセーフに 0 とする。
         return 0
     last_marker = -1
     for i, line in enumerate(lines):
