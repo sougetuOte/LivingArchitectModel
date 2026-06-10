@@ -305,3 +305,80 @@ class TestPersistResult:
         result = ScaleDetectionResult(0, [], [], {})
         out = _persist_result(tmp_path, result)
         assert out.parent.is_dir()
+
+
+# ---------------------------------------------------------------------------
+# W-12: state_dir パス不整合バグの回帰テスト
+# ---------------------------------------------------------------------------
+
+
+from analyzers.scale_detector import _find_project_root  # noqa: E402
+
+
+class TestFindProjectRoot:
+    """_find_project_root() のテスト。"""
+
+    def test_returns_root_when_git_at_path(self, tmp_path: Path) -> None:
+        """ターゲット自体に .git がある場合、そのパスを返す。"""
+        (tmp_path / ".git").mkdir()
+        result = _find_project_root(tmp_path)
+        assert result == tmp_path
+
+    def test_returns_root_from_subdir(self, tmp_path: Path) -> None:
+        """サブディレクトリをターゲットにしても祖先の .git を見つける。"""
+        (tmp_path / ".git").mkdir()
+        subdir = tmp_path / ".claude" / "hooks"
+        subdir.mkdir(parents=True)
+        result = _find_project_root(subdir)
+        assert result == tmp_path
+
+    def test_fallback_when_no_git(self, tmp_path: Path) -> None:
+        """.git が見つからない場合はターゲット自身を返す（フォールバック）。"""
+        subdir = tmp_path / "subdir"
+        subdir.mkdir()
+        result = _find_project_root(subdir)
+        assert result == subdir
+
+
+class TestMainBlockPersistToProjectRoot:
+    """__main__ 相当の永続化経路が正しいプロジェクトルートに書き込むことを検証する。
+
+    バグ再現: ターゲットが <project>/.claude/hooks のとき、
+    旧実装では <project>/.claude/hooks/.claude/review-state/ に書き込んでいた。
+    修正後はプロジェクトルート（.git がある祖先）側に書き込まれるべき。
+    """
+
+    def test_persist_uses_project_root_not_subdir_target(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        # プロジェクトルート（.git あり）とサブディレクトリターゲットを構成
+        project_root = tmp_path / "myproject"
+        project_root.mkdir()
+        (project_root / ".git").mkdir()
+
+        subdir_target = project_root / ".claude" / "hooks"
+        subdir_target.mkdir(parents=True)
+
+        # detect_scale の外部依存を決定化
+        monkeypatch.setattr(scale_detector, "count_lines", lambda root, exclude: 1_000)
+        monkeypatch.setattr(scale_detector.shutil, "which", lambda tool: f"/x/{tool}")
+        monkeypatch.setattr("importlib.util.find_spec", lambda name: object())
+
+        # __main__ と同じ経路: ターゲット（サブディレクトリ）で detect_scale → _persist_result
+        detection_result = detect_scale(subdir_target)
+        resolved_root = _find_project_root(subdir_target)
+        out = _persist_result(resolved_root, detection_result)
+
+        # ジャンクパス（<subdir>/.claude/review-state/）ではなく
+        # プロジェクトルートに書き込まれること
+        expected = project_root / ".claude" / "review-state" / "scale-detection.json"
+        assert out == expected, (
+            f"期待: {expected}\n実際: {out}\n"
+            "サブディレクトリをターゲットにしたとき、永続化先がプロジェクトルート基準でなかった"
+        )
+
+        # ジャンクディレクトリが生成されていないこと
+        junk_dir = subdir_target / ".claude" / "review-state"
+        assert not junk_dir.exists(), f"ジャンクディレクトリが生成された: {junk_dir}"

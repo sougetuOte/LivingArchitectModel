@@ -120,7 +120,7 @@ def run_detect(
     if config_path is not None:
         cmd.extend(["--config", str(config_path)])
 
-    return _run_gitleaks(cmd, timeout=120)
+    return _run_gitleaks(cmd, timeout=120, cwd=project_root)
 
 
 def run_protect_staged(
@@ -155,7 +155,7 @@ def run_protect_staged(
     if config_path is not None:
         cmd.extend(["--config", str(config_path)])
 
-    return _run_gitleaks(cmd, timeout=60)
+    return _run_gitleaks(cmd, timeout=60, cwd=project_root)
 
 
 def _resolve_config(
@@ -168,10 +168,13 @@ def _resolve_config(
     return candidate if candidate.exists() else None
 
 
-def _run_gitleaks(cmd: list[str], timeout: int) -> list[Issue]:
+def _run_gitleaks(
+    cmd: list[str], timeout: int, cwd: Path | None = None
+) -> list[Issue]:
     """gitleaks コマンドを実行し、結果を Issue リストに変換する共通ヘルパー。
 
     TimeoutExpired は scan-timeout、その他の例外は scan-failed として区別する。
+    cwd を指定することで、呼び出し元プロセスの cwd への暗黙依存を排除する。
     """
     report_path: Path | None = None
     try:
@@ -181,7 +184,7 @@ def _run_gitleaks(cmd: list[str], timeout: int) -> list[Issue]:
         cmd.extend(["--report-path", str(report_path)])
 
         # subprocess.run は TimeoutExpired 発生時に子プロセスを自動 kill する（Python 3.3+）
-        result = subprocess.run(cmd, capture_output=True, timeout=timeout)
+        result = subprocess.run(cmd, capture_output=True, timeout=timeout, cwd=cwd)
         logger.debug(
             "gitleaks: exit_code=%d stderr_len=%d",
             result.returncode,

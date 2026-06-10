@@ -246,6 +246,18 @@ def _result_to_dict(result: ScaleDetectionResult) -> dict:
     }
 
 
+def _find_project_root(target: Path) -> Path:
+    """target またはその祖先で .git ディレクトリを探してプロジェクトルートを返す。
+
+    .git が見つからない場合は target 自身をフォールバックとして返す。
+    """
+    current = target if target.is_dir() else target.parent
+    for directory in [current, *current.parents]:
+        if (directory / ".git").exists():
+            return directory
+    return current
+
+
 def _persist_result(project_root: Path, result: ScaleDetectionResult) -> Path:
     """判定結果を .claude/review-state/scale-detection.json に永続化する。"""
     state_dir = project_root / ".claude" / "review-state"
@@ -269,4 +281,5 @@ if __name__ == "__main__":
         sys.exit(1)
     detection_result = detect_scale(root)
     print(format_scale_detection(detection_result))
-    _persist_result(root, detection_result)
+    persist_root = _find_project_root(root)
+    _persist_result(persist_root, detection_result)

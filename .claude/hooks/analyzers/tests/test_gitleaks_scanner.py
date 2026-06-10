@@ -355,6 +355,57 @@ class TestIssueSeverity:
             assert issue.tool == "gitleaks"
 
 
+class TestRunGitleaksCwd:
+    """_run_gitleaks() が cwd=project_root で subprocess.run を呼ぶことを検証する。
+
+    W-12 補完修正: cwd= 指定なしだと呼び出し元プロセスの cwd に暗黙依存する。
+    run_detect / run_protect_staged が project_root を _run_gitleaks に渡し、
+    subprocess.run が cwd=project_root で実行されることを確認する。
+    """
+
+    def test_run_detect_passes_cwd_to_subprocess(self, tmp_path: Path) -> None:
+        """run_detect() が subprocess.run を cwd=project_root で呼ぶ。"""
+        captured: dict = {}
+
+        def mock_run(cmd, **kwargs):
+            captured["cwd"] = kwargs.get("cwd")
+            for i, arg in enumerate(cmd):
+                if arg == "--report-path" and i + 1 < len(cmd):
+                    Path(cmd[i + 1]).write_text("[]", encoding="utf-8")
+            return MagicMock(returncode=0)
+
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch("analyzers.gitleaks_scanner.subprocess.run", side_effect=mock_run),
+        ):
+            run_detect(tmp_path)
+
+        assert captured.get("cwd") == tmp_path, (
+            f"subprocess.run の cwd が project_root ではなかった: {captured.get('cwd')}"
+        )
+
+    def test_run_protect_staged_passes_cwd_to_subprocess(self, tmp_path: Path) -> None:
+        """run_protect_staged() が subprocess.run を cwd=project_root で呼ぶ。"""
+        captured: dict = {}
+
+        def mock_run(cmd, **kwargs):
+            captured["cwd"] = kwargs.get("cwd")
+            for i, arg in enumerate(cmd):
+                if arg == "--report-path" and i + 1 < len(cmd):
+                    Path(cmd[i + 1]).write_text("[]", encoding="utf-8")
+            return MagicMock(returncode=0)
+
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch("analyzers.gitleaks_scanner.subprocess.run", side_effect=mock_run),
+        ):
+            run_protect_staged(project_root=tmp_path)
+
+        assert captured.get("cwd") == tmp_path, (
+            f"subprocess.run の cwd が project_root ではなかった: {captured.get('cwd')}"
+        )
+
+
 class TestGetInstallGuide:
     """get_install_guide() のテスト。"""
 

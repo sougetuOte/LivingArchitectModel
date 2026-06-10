@@ -68,7 +68,7 @@
 - W2-4（`card_generator.py:1143` `_bfs_upstream` の `queue.pop(0)`→deque）・`_condense_sccs` O(N^2)（`card_generator.py:952`）→ `card-generator-split-deferred.md`（⑤分割時に一括解消）
 - W-9（通知B）→ `tdd-notification-b-deferred.md`
 - W-14/W-15（env継承・symlink）→ `hooks-security-hardening-ci.md`
-- W-12（state_dir パス不整合・`.claude/hooks/.claude/` junk 再生成）→ 別案件（恒久対策: scale_detector/run_phase0 を project_root 基準に統一 or `.gitignore` に `**/.claude/review-state/`）
+- W-12（state_dir パス不整合・`.claude/hooks/.claude/` junk 再生成）→ **CLOSED（2026-06-10 / D-1）**: `scale_detector.py` `__main__` に `_find_project_root()`（`.git` 上向き探索）を追加し永続化先を project_root 基準に統一。補完で `gitleaks_scanner._run_gitleaks()` に `cwd=project_root` を明示。テスト 6 件追加・707 passed
 
 ## 参照
 
