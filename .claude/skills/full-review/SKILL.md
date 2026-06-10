@@ -45,20 +45,15 @@ EOF
 
 **状態ファイルスキーマ** (`.claude/lam-loop-state.json`):
 
-| フィールド | 型 | 説明 |
-|-----------|---|------|
-| `active` | boolean | ループ有効フラグ |
-| `command` | string | 起動コマンド（常に `"full-review"`） |
-| `target` | string | 監査対象パス（引数から取得） |
-| `iteration` | number | 現在のイテレーション番号（0始まり） |
-| `max_iterations` | number | 最大イテレーション数（デフォルト: **5**） |
-| `started_at` | string | ループ開始時刻（ISO 8601） |
-| `log` | array | 各イテレーションの記録（下記参照） |
-
-**追加フィールド**:
-
 | フィールド | 型 | 説明 | 管理者 |
 |-----------|---|------|--------|
+| `active` | boolean | ループ有効フラグ | `/full-review` |
+| `command` | string | 起動コマンド（常に `"full-review"`） | `/full-review` |
+| `target` | string | 監査対象パス（引数から取得） | `/full-review` |
+| `iteration` | number | 現在のイテレーション番号（0始まり） | `/full-review` |
+| `max_iterations` | number | 最大イテレーション数（デフォルト: **5**） | `/full-review` |
+| `started_at` | string | ループ開始時刻（ISO 8601） | `/full-review` |
+| `log` | array | 各イテレーションの記録（下記参照） | `/full-review` |
 | `fullscan_pending` | boolean | フルスキャン待ちフラグ（Stage 5 でセット、Claude が参照） | `/full-review` |
 | `pm_pending` | boolean | PM級承認待ちフラグ（Stage 4 でセット、Claude/Stop hook が参照） | `/full-review` |
 | `tool_events` | array | ツール実行イベントの記録（PostToolUse hook が追記） | PostToolUse hook |
@@ -143,13 +138,16 @@ import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.run_pipeline import run_phase0
 from pathlib import Path
 
-result = run_phase0(Path('$TARGET').resolve())
+result = run_phase0(Path('.').resolve())
 print(f'Languages: {result.languages}')
 print(f'Issues: {len(result.issues)}')
 print(f'Lines: {result.line_count}')
 print(f'Summary: {result.summary_path}')
 "
 ```
+
+> **NOTE**: `run_phase0` には監査対象パスではなく**常にプロジェクトルート**を渡すこと。
+> サブパスを渡すと `<サブパス>/.claude/review-state/` という誤った場所に永続化される。
 
 実行結果:
 - `.claude/review-state/static-issues.json` に Issue リストを永続化
@@ -203,12 +201,12 @@ import_map = json.loads(import_map_path.read_text()) if import_map_path.exists()
 if import_map:
     result = build_topo_order(import_map)
     graph_data = {
-        'topo_order': result['topo_order'],
-        'sccs': result['sccs'],
-        'node_to_file': result['node_to_file'],
+        'topo_order': result.topo_order,
+        'sccs': result.sccs,
+        'node_to_file': result.node_to_file,
     }
     save_dependency_graph(state_dir, graph_data)
-    print(f'Dependency graph: {len(result[\"topo_order\"])} nodes, {len(result[\"sccs\"])} SCCs')
+    print(f'Dependency graph: {len(result.topo_order)} nodes, {len(result.sccs)} SCCs')
 else:
     print('No import map available; skipping dependency graph construction')
 "

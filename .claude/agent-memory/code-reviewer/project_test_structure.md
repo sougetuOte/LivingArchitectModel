@@ -15,12 +15,16 @@ conftest 衝突（`from conftest import write_state` が root 起動時に root 
 `conftest.py::write_state` fixture（`.claude/hooks/tests/conftest.py:110`）を使う（自前実装を増やさない）。
 hook 起動は同 conftest の `hook_runner` fixture（subprocess・クリーン環境・timeout=30）を使う。
 
-主要な課題（2026-06-02 Stage2-iter2 監査で確認）:
+主要な課題（2026-06-10 iter2 ゼロベース監査で更新）:
 - ✅ 解消: `_write_state()` の 3 ファイル重複 → `conftest.py::write_state` fixture に一元化
 - ✅ 解消: root `tests/test_lam_stop_hook.py` の独自 `_run_hook()`（二重メンテナンス）→ root 削除で消滅
 - ✅ 解消: `test_loop_integration.py` の `import datetime` ローカルスコープ重複 → モジュールトップに集約
 - ✅ 解消: `test_e2e_review.py` / `test_gitleaks_scanner.py` の F401 除去済み（iter1修正）
 - ⚠️ 残存 Warning: `DEFAULT_STATE` が `test_stop_hook.py:17` と `test_loop_integration.py:21` の 2 ファイルに重複（command フィールド値が微差: "test_command" vs "full-review"）
 - ⚠️ 残存 Warning: `test_e2e_review.py` の `pytest.mark.e2e_llm` / `e2e_convergence` がマーカー未登録（PM確認推奨）
+- ⚠️ **NEW iter2 Warning [TEST-A-2]**: `test_stop_hook_autonomous.py:13-16` でモジュールレベル `sys.path.insert` 直接操作（monkeypatch 未使用）。テスト独立性低下リスク。conftest の `hooks_on_syspath` fixture に統一すべき。
+- ⚠️ **NEW iter2 Warning [TEST-A-1]**: `test_tdd_notification_b.py:58-61` テスト名 `test_no_analyzed_marker_counts_all_entries` が W-22 後の仕様（遷移が前提）を反映せず。アサーション値（3）の根拠が名前から読めない。
 - ℹ️ 残存 Info: `test_hook_utils.py:188` テスト名と実動作のズレ（`test_atomic_write_json_creates_parent`）
 - ℹ️ 残存 Info: `combined_issues.py` の F401 は意図的（Issue 検出サンプル）— 修正しないこと
+- ℹ️ **NEW iter2 Info [TEST-A-3]**: `test_post_tool_use.py` の `TestPostToolUseFailure._failure_input` が `self` を使わないインスタンスメソッド（staticmethod 化が望ましい）
+- ℹ️ **NEW iter2 Info [TEST-A-5]**: `stop_hook` fixture が `test_lam_stop_hook_env_allowlist.py` と `test_tdd_notification_b.py` に重複（conftest.py 共通化の余地あり）
