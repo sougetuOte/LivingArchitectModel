@@ -39,6 +39,7 @@ if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 from _hook_utils import (  # noqa: E402
+    atomic_write_json,
     build_allowlisted_env,
     get_project_root,
     log_entry,
@@ -124,9 +125,15 @@ def _save_loop_log(
 
 
 def _count_unanalyzed_tdd_patterns(tdd_log: Path) -> int:
-    """tdd-patterns.log の最終 ANALYZED マーカー以降のエントリ行数を返す（通知B・W-9）。
+    """tdd-patterns.log の最終 ANALYZED マーカー以降に FAIL→PASS 遷移が1件以上あれば
+    エントリ行数を返す（通知B・W-9）。FAIL→PASS 遷移がなければ 0 を返す（W-22）。
 
-    エントリ行は PASS/FAIL 記録、マーカー行は field[1] == "ANALYZED"。
+    仕様 docs/specs/tdd-introspection-v2.md §5.1:
+      1. ファイルが存在し、FAIL→PASS 遷移が1件以上あるか確認
+      2. 最終 ANALYZED マーカー以降のエントリ数をカウント
+      3. 未分析エントリが1件以上あれば通知
+
+    PASS のみ蓄積（テストが常に緑の場合等）では通知しない。
     ファイル不在・読取失敗時はフェイルセーフに 0 を返す（提案機能のため）。
     """
     try:
@@ -144,7 +151,33 @@ def _count_unanalyzed_tdd_patterns(tdd_log: Path) -> int:
         fields = line.split("\t")
         if len(fields) >= 2 and fields[1] == "ANALYZED":
             last_marker = i
-    return len(lines) - (last_marker + 1)
+    unanalyzed = lines[last_marker + 1:]
+    # FAIL→PASS 遷移が1件以上あるか確認（spec §5.1 ステップ1）。
+    # PASS のみ蓄積ではレビュー対象パターンが存在しないため通知しない（W-22）。
+    has_transition = _has_fail_to_pass_transition(unanalyzed)
+    if not has_transition:
+        return 0
+    return len(unanalyzed)
+
+
+def _has_fail_to_pass_transition(lines: list[str]) -> bool:
+    """行リスト中に FAIL→PASS 遷移が1件以上あるか判定する。
+
+    タブ区切り2列目（field[1]）が "FAIL" の直後に "PASS" が現れれば True。
+    ANALYZED マーカー行は遷移チェックでは無視する。
+    """
+    prev_status = ""
+    for line in lines:
+        fields = line.split("\t")
+        if len(fields) < 2:
+            continue
+        status = fields[1]
+        if status == "ANALYZED":
+            continue
+        if prev_status == "FAIL" and status == "PASS":
+            return True
+        prev_status = status
+    return False
 
 
 def _notify_unanalyzed_patterns(project_root: Path, log_file: Path) -> None:
@@ -162,12 +195,12 @@ def _notify_unanalyzed_patterns(project_root: Path, log_file: Path) -> None:
         )
 
 
-def _cleanup_state_file(state_file: Path) -> None:
+def _cleanup_state_file(state_file: Path, log_file: Path) -> None:
     """状態ファイルを安全に削除する。"""
     try:
         state_file.unlink()
-    except Exception:
-        pass
+    except Exception as e:
+        sys.stderr.write(f"WARNING: stop-hook: failed to delete state file {state_file}: {e}\n")
 
 
 def _check_recursion_and_state(
@@ -212,7 +245,7 @@ def _check_max_iterations(
             f"max_iterations reached ({iteration}/{max_iterations}) → stop loop",
         )
         _save_loop_log(project_root, state, log_file, "max_iterations")
-        _cleanup_state_file(state_file)
+        _cleanup_state_file(state_file, log_file)
         _stop(log_file, "max_iterations reached → stopped")
 
     return iteration, max_iterations
@@ -236,7 +269,7 @@ def _check_context_pressure(
         elapsed = (now_dt - flag_dt).total_seconds()
         if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
             _save_loop_log(project_root, state, log_file, "context_exhaustion")
-            _cleanup_state_file(state_file)
+            _cleanup_state_file(state_file, log_file)
             _stop(
                 log_file,
                 f"PreCompact fired {elapsed:.0f}s ago → context pressure, stop loop",
@@ -247,7 +280,7 @@ def _check_context_pressure(
             elapsed = time.time() - flag_mtime
             if elapsed <= PRE_COMPACT_THRESHOLD_SECONDS:
                 _save_loop_log(project_root, state, log_file, "context_exhaustion")
-                _cleanup_state_file(state_file)
+                _cleanup_state_file(state_file, log_file)
                 _stop(
                     log_file,
                     f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop",
@@ -283,11 +316,13 @@ def _load_active_autonomous_state(
 
 
 def _write_autonomous_state(auto_state_file: Path, state: dict) -> None:
-    """autonomous-state.json を更新する（hook が書くためモデル改竄不能）。"""
+    """autonomous-state.json をアトミックに更新する（hook が書くためモデル改竄不能）。
+
+    atomic_write_json を使用することで、プロセス中断時の JSON 破損を防ぐ（C-1）。
+    破損した状態ファイルが残ると AUTONOMOUS ループが永続化するリスクがある。
+    """
     try:
-        auto_state_file.write_text(
-            json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        atomic_write_json(auto_state_file, state)
     except Exception as e:
         sys.stderr.write(f"autonomous-state write error: {e}\n")
 
@@ -318,7 +353,9 @@ def _run_g1_checker(project_root: Path, log_file: Path) -> int:
         _log(log_file, "ERROR", f"G1 checker error: {type(e).__name__}")
         return 2
     if proc.stderr:
-        _log(log_file, "INFO", f"G1 checker stderr: {proc.stderr.strip()[:500]}")
+        # 改行・タブを潰してログ1行に収める（ログ行構造の保全）
+        stderr_summary = proc.stderr.strip()[:500].replace("\n", " ").replace("\t", " ")
+        _log(log_file, "INFO", f"G1 checker stderr: {stderr_summary}")
     return proc.returncode
 
 
@@ -393,6 +430,36 @@ def _apply_g1_result(
         )
 
 
+def _check_context_and_block(
+    pre_compact_flag: Path,
+    state: dict,
+    state_file: Path,
+    project_root: Path,
+    log_file: Path,
+    iteration: int,
+) -> None:
+    """STEP 4-5: コンテキスト残量チェック → 安全ネット block。
+
+    STEP 4（PreCompact 発火検出）で停止条件に該当した場合は _stop() で終了する。
+    非該当なら STEP 5 で block JSON を出力してループを継続させる（安全ネット）。
+    ループ制御は /full-review（Claude 側）が行う。
+    stop_hook_active=true の再帰防止により、同一ターン内での再帰は防止される。
+    """
+    # STEP 4: コンテキスト残量チェック
+    _check_context_pressure(pre_compact_flag, state, state_file, project_root, log_file)
+
+    # STEP 5: 安全ネットとして block
+    _log(
+        log_file,
+        "INFO",
+        f"safety net: blocking to continue loop (iteration {iteration})",
+    )
+    _block(
+        log_file,
+        f"ループ継続中（イテレーション {iteration}）。Phase 2 に戻って再監査してください。",
+    )
+
+
 def main() -> None:
     project_root = get_project_root()
     state_file = project_root / ".claude" / "lam-loop-state.json"
@@ -426,23 +493,9 @@ def main() -> None:
         f"loop active: command={command}, iteration={iteration}/{max_iterations}",
     )
 
-    # STEP 4: コンテキスト残量チェック
-    _check_context_pressure(pre_compact_flag, state, state_file, project_root, log_file)
-
-    # STEP 5: 安全ネットとして block
-    #
-    # ループ制御は /full-review（Claude 側）が行う。
-    # Stop hook は「Claude が途中で止まろうとした場合に引き戻す」安全ネット。
-    # stop_hook_active=true の再帰防止により、同一ターン内での再帰は防止される。
-
-    _log(
-        log_file,
-        "INFO",
-        f"safety net: blocking to continue loop (iteration {iteration})",
-    )
-    _block(
-        log_file,
-        f"ループ継続中（イテレーション {iteration}）。Phase 2 に戻って再監査してください。",
+    # STEP 4-5: コンテキスト残量チェック → 安全ネット block
+    _check_context_and_block(
+        pre_compact_flag, state, state_file, project_root, log_file, iteration
     )
 
 

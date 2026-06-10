@@ -109,20 +109,6 @@ def get_tool_input(data: dict, key: str) -> str:
     return tool_input.get(key, "")
 
 
-def get_tool_response(data: dict, key: str, default: object):
-    """
-    PostToolUse 入力からツール実行結果の値を返す。
-    公式キー tool_result を優先し、旧キー tool_response にフォールバックする。
-    （V-1 裏取り 2026-05-28: 公式仕様の正キーは tool_result。tool_response は後方互換用）
-    どちらの container も dict でない / key を含まない場合は default を返す。
-    """
-    for container_key in ("tool_result", "tool_response"):
-        container = data.get(container_key)
-        if isinstance(container, dict) and key in container:
-            return container[key]
-    return default
-
-
 def _normalize_relative_segments(file_path: str) -> tuple[str, bool]:
     """相対パスを字句的に正規化する（W-16・cwd 非依存・FS 非アクセス）。
 

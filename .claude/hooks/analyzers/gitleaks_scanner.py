@@ -19,6 +19,7 @@ import tempfile
 from pathlib import Path
 
 from analyzers.base import Issue
+from _hook_utils import build_allowlisted_env
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,20 @@ def _resolve_config(
     return candidate if candidate.exists() else None
 
 
+def _make_scan_error_issue(rule_id: str, message: str, suggestion: str) -> Issue:
+    """gitleaks 実行エラー（timeout / failed）を表す Critical Issue を構築する。"""
+    return Issue(
+        file="",
+        line=0,
+        severity="critical",
+        category="security",
+        tool="gitleaks",
+        message=message,
+        rule_id=rule_id,
+        suggestion=suggestion,
+    )
+
+
 def _run_gitleaks(
     cmd: list[str], timeout: int, cwd: Path | None = None
 ) -> list[Issue]:
@@ -181,10 +196,14 @@ def _run_gitleaks(
         with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tmp:
             report_path = Path(tmp.name)
 
-        cmd.extend(["--report-path", str(report_path)])
+        # 引数リストを変異させない（呼び出し元の再利用で --report-path が累積しない）
+        exec_cmd = [*cmd, "--report-path", str(report_path)]
 
         # subprocess.run は TimeoutExpired 発生時に子プロセスを自動 kill する（Python 3.3+）
-        result = subprocess.run(cmd, capture_output=True, timeout=timeout, cwd=cwd)
+        result = subprocess.run(
+            exec_cmd, capture_output=True, timeout=timeout, cwd=cwd,
+            env=build_allowlisted_env(), shell=False,
+        )
         logger.debug(
             "gitleaks: exit_code=%d stderr_len=%d",
             result.returncode,
@@ -194,28 +213,18 @@ def _run_gitleaks(
     except subprocess.TimeoutExpired:
         logger.error("gitleaks timed out after %ds", timeout)
         return [
-            Issue(
-                file="",
-                line=0,
-                severity="critical",
-                category="security",
-                tool="gitleaks",
-                message=f"gitleaks がタイムアウトしました (limit={timeout}s)",
+            _make_scan_error_issue(
                 rule_id="gitleaks:scan-timeout",
+                message=f"gitleaks がタイムアウトしました (limit={timeout}s)",
                 suggestion="大規模リポジトリの場合はタイムアウト値の調整を検討してください。",
             )
         ]
-    except Exception as exc:
+    except (OSError, subprocess.SubprocessError) as exc:
         logger.error("gitleaks failed: %s: %s", type(exc).__name__, exc)
         return [
-            Issue(
-                file="",
-                line=0,
-                severity="critical",
-                category="security",
-                tool="gitleaks",
-                message="gitleaks の実行に失敗しました（詳細はログ参照）",
+            _make_scan_error_issue(
                 rule_id="gitleaks:scan-failed",
+                message="gitleaks の実行に失敗しました（詳細はログ参照）",
                 suggestion="gitleaks がインストール済みか、PATH が通っているか確認してください。",
             )
         ]
@@ -236,6 +245,14 @@ def _parse_gitleaks_json(json_path: Path) -> list[Issue]:
         data = json.loads(json_path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
         logger.error("gitleaks report parse failed: %s", exc)
+        return []
+
+    if not isinstance(data, list):
+        # gitleaks v8 は検出なしでも [] を書くが、異常終了時や将来バージョンの
+        # 非リスト出力（null / object）でパイプラインを落とさない（iter2 W2-1）
+        logger.warning(
+            "Unexpected gitleaks JSON format: %s", type(data).__name__,
+        )
         return []
 
     issues: list[Issue] = []

@@ -141,7 +141,10 @@ def _persist_results(
 
     summary_content = generate_summary(issues)
     summary_path = state_dir / "summary.md"
-    summary_path.write_text(summary_content, encoding="utf-8")
+    try:
+        summary_path.write_text(summary_content, encoding="utf-8")
+    except OSError as e:
+        logger.warning("Failed to save summary to %s: %s", summary_path, e)
     return summary_path
 
 

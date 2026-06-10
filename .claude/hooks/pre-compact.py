@@ -9,9 +9,11 @@ NOTE: PreCompact は公式の正式 hook イベント（ブロック可能）。
 LAM は状態保存のみが目的のため、エラー時も exit 0 を返し意図的に圧縮をブロックしない。
 """
 from __future__ import annotations
+import os
 import pathlib
 import shutil
 import sys
+import tempfile
 
 _HOOKS_DIR = pathlib.Path(__file__).resolve().parent
 if str(_HOOKS_DIR) not in sys.path:
@@ -19,10 +21,33 @@ if str(_HOOKS_DIR) not in sys.path:
 from _hook_utils import get_project_root, now_utc_iso8601, safe_exit  # noqa: E402
 
 
+def _atomic_write_text(path: pathlib.Path, content: str) -> None:
+    """テキストをアトミックに書き込む（tempfile + os.replace）。
+
+    部分書き込みによるファイル破損を防ぐ。
+    OSError は呼び出し元に伝播させる。
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            f.write(content)
+        os.replace(tmp_path, path)
+    except OSError:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
 def write_pre_compact_flag(project_root: pathlib.Path, timestamp: str) -> None:
-    """PreCompact 発火フラグファイルにタイムスタンプを書き込む。"""
+    """PreCompact 発火フラグファイルにタイムスタンプを書き込む。
+
+    update_session_state と同様にアトミック書込を用いる（iter2 SEC-2 対称化）。
+    """
     flag_path = project_root / ".claude" / "pre-compact-fired"
-    flag_path.write_text(timestamp + "\n", encoding="utf-8")
+    _atomic_write_text(flag_path, timestamp + "\n")
 
 
 def update_session_state(session_state: pathlib.Path, timestamp: str) -> None:
@@ -31,9 +56,15 @@ def update_session_state(session_state: pathlib.Path, timestamp: str) -> None:
 
     既存の「## PreCompact 発火」セクションがあれば時刻行を更新し、
     なければファイル末尾に新規追加する。
+    I/O 失敗時は sys.stderr にエラーを記録して正常復帰する。
     """
-    content = session_state.read_text(encoding="utf-8")
     section_header = "## PreCompact 発火"
+
+    try:
+        content = session_state.read_text(encoding="utf-8")
+    except OSError as e:
+        sys.stderr.write(f"pre-compact: failed to read {session_state}: {e}\n")
+        return
 
     if section_header in content:
         # PreCompact セクション内の時刻行のみを更新（セクション外の同パターンを誤置換しない）
@@ -49,15 +80,21 @@ def update_session_state(session_state: pathlib.Path, timestamp: str) -> None:
                 updated_lines.append(f"- 時刻: {timestamp}\n")
             else:
                 updated_lines.append(line)
-        session_state.write_text("".join(updated_lines), encoding="utf-8")
+        try:
+            _atomic_write_text(session_state, "".join(updated_lines))
+        except OSError as e:
+            sys.stderr.write(f"pre-compact: failed to write {session_state}: {e}\n")
     else:
         # セクションを末尾に追加
         suffix = (
             f"\n{section_header}\n"
             f"- 時刻: {timestamp}\n"
         )
-        with open(session_state, "a", encoding="utf-8", newline="\n") as f:
-            f.write(suffix)
+        try:
+            with open(session_state, "a", encoding="utf-8", newline="\n") as f:
+                f.write(suffix)
+        except OSError as e:
+            sys.stderr.write(f"pre-compact: failed to append {session_state}: {e}\n")
 
 
 def fallback_log(project_root: pathlib.Path, timestamp: str) -> None:

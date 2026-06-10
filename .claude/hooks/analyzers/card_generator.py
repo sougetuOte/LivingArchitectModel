@@ -231,14 +231,25 @@ def _card_filename(file_path: str) -> str:
     return file_path.replace("/", "-").replace("\\", "-").replace(".", "-") + ".json"
 
 
+def _write_card_file(path: Path, data: dict, *, label: str) -> None:
+    """カードデータを path に JSON で書き込む（save_* 共通）。
+
+    state_manager._write_json_file と同じ信頼性設計：書き込み失敗（OSError）でも
+    パイプライン全体を停止させず、warning ログに記録して継続する。
+    """
+    try:
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except OSError as e:
+        logger.warning("Failed to save %s to %s: %s", label, path, e)
+
+
 def save_file_card(state_dir: Path, card: FileCard) -> None:
     """概要カードを review-state/cards/file-cards/ に永続化する。"""
     cards_dir = state_dir / _CARDS_DIR / _FILE_CARDS_DIR
     cards_dir.mkdir(parents=True, exist_ok=True)
 
     filename = _card_filename(card.file_path)
-    data = asdict(card)
-    (cards_dir / filename).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_card_file(cards_dir / filename, asdict(card), label="file card")
 
 
 def load_file_card(state_dir: Path, file_path: str) -> FileCard | None:
@@ -478,8 +489,7 @@ def save_contract_card(state_dir: Path, card: ContractCard) -> None:
     contracts_dir.mkdir(parents=True, exist_ok=True)
 
     filename = _contract_card_filename(card.module_name)
-    data = asdict(card)
-    (contracts_dir / filename).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_card_file(contracts_dir / filename, asdict(card), label="contract card")
 
 
 def format_contract_cards_for_prompt(contracts: list[ContractCard]) -> str:
@@ -668,7 +678,15 @@ def check_unused_reexports(
     """__init__.py で re-export しているが使われていないシンボルのチェック。
 
     _ast_map は将来の __all__ 解析拡張用（C-2a では未使用）。
-    既知の制限: 深いパスでの import 検出は不完全（Phase 3 以降で精度向上予定）。
+
+    既知の制限:
+    - import_map のキーはファイルパス形式（例: "src/__init__.py"）、
+      値はドット区切りモジュール名（例: ["src.foo"]）。
+      init_module_candidates にはドット区切り形式とパス形式の両候補を生成しているが、
+      all_other_imports（import_map の値）はドット区切りのみのため、
+      パス形式の候補（例: "src/core"）は実際にはマッチしない（無効な余剰候補）。
+      ただしドット区切り形式の候補が正しくマッチするため、機能上の偽陰性は生じない。
+    - 深いパスや動的 import、条件付き import による検出漏れは Phase 3 以降で対応予定。
     """
     init_files = [f for f in module_files if f.endswith("__init__.py")]
     if not init_files:
@@ -788,8 +806,7 @@ def save_module_card(state_dir: Path, card: ModuleCard) -> None:
     cards_dir.mkdir(parents=True, exist_ok=True)
 
     filename = _module_card_filename(card.module_name)
-    data = asdict(card)
-    (cards_dir / filename).write_text(json.dumps(data, indent=2), encoding="utf-8")
+    _write_card_file(cards_dir / filename, asdict(card), label="module card")
 
 
 def load_module_card(state_dir: Path, module_name: str) -> ModuleCard | None:
@@ -905,7 +922,7 @@ def collect_spec_drift_context(
             try:
                 data = json.loads(card_file.read_text(encoding="utf-8"))
                 card = ModuleCard(**data)
-            except (json.JSONDecodeError, TypeError):
+            except (OSError, json.JSONDecodeError, TypeError):
                 logger.warning("Corrupted module card: %s", card_file)
                 card = None
             if card:
@@ -920,7 +937,13 @@ def collect_spec_drift_context(
     if specs_dir.exists():
         spec_files = sorted(specs_dir.rglob("*.md"))
         for spec_file in spec_files:
-            content = spec_file.read_text(encoding="utf-8", errors="ignore")
+            try:
+                content = spec_file.read_text(encoding="utf-8", errors="ignore")
+            except OSError as e:
+                # rglob は *.md 名のディレクトリにもマッチする。読取不能な
+                # エントリでパイプラインを停止させない（iter3 SRC-B-1）
+                logger.warning("Failed to read spec file %s: %s", spec_file, e)
+                continue
             # サブディレクトリの場合は specs_dir からの相対パスを表示
             display_name = spec_file.relative_to(specs_dir).as_posix()
             sections.append(f"### {display_name}\n")

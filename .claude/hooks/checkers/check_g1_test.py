@@ -29,7 +29,7 @@ _HOOKS_DIR = Path(__file__).resolve().parent.parent
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
-from _hook_utils import get_project_root  # noqa: E402
+from _hook_utils import build_allowlisted_env, get_project_root  # noqa: E402
 
 # green-state §3.1: 各テストコマンドの既定 timeout（hooks 全体 600s 内に収める）
 DEFAULT_TIMEOUT = 120
@@ -47,8 +47,13 @@ def detect_test_command(project_root: Path) -> list[str] | None:
     """
     pyproject = project_root / "pyproject.toml"
     if pyproject.is_file():
-        content = pyproject.read_text(encoding="utf-8")
-        if "[tool.pytest" in content or "pytest" in content:
+        try:
+            content = pyproject.read_text(encoding="utf-8")
+        except OSError:
+            content = ""
+        # "pytest" の broad match は意図的仕様:
+        # pytest への依存記述（dependencies = ["pytest>=7"]等）も検出対象とするため。
+        if content and ("[tool.pytest" in content or "pytest" in content):
             return ["pytest"]
 
     package_json = project_root / "package.json"
@@ -66,8 +71,11 @@ def detect_test_command(project_root: Path) -> list[str] | None:
 
     makefile = project_root / "Makefile"
     if makefile.is_file():
-        content = makefile.read_text(encoding="utf-8")
-        if re.search(r"^test:", content, re.MULTILINE):
+        try:
+            content = makefile.read_text(encoding="utf-8")
+        except OSError:
+            content = ""
+        if content and re.search(r"^test:", content, re.MULTILINE):
             return ["make", "test"]
 
     return None
@@ -103,6 +111,8 @@ def run_check(project_root: Path, timeout: int = DEFAULT_TIMEOUT) -> tuple[int, 
             capture_output=True,
             text=True,
             timeout=timeout,
+            shell=False,
+            env=build_allowlisted_env(),
         )
     except subprocess.TimeoutExpired:
         return 2, f"G1 test timeout after {timeout}s: {' '.join(cmd)}"

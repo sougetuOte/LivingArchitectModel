@@ -138,7 +138,7 @@ def _build_plan_status(
     if plan == "D":
         return _check_plan_d(project_root)
 
-    return PlanStatus(enabled=True, available=True, reason="available")
+    return PlanStatus(enabled=True, available=False, reason="unknown plan")
 
 
 def detect_scale(

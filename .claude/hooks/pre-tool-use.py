@@ -227,6 +227,47 @@ def _read_current_phase(phase_file: Path) -> str:
     return ""
 
 
+def _build_deny_reason(reason: str, target: str) -> str:
+    """DENY 応答の説明文言を構築する。
+
+    DENY は2系統: FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・成果物の
+    即時ハードストップ）。reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
+    """
+    if reason.startswith("FR-3.4"):
+        return (
+            f"FR-3.4 spec freeze: AUTONOMOUS モードでは仕様（docs/specs/）を変更できません"
+            f"（{reason}）。spec 書換は不可逆 C 操作として即時ハードストップに当たり、"
+            f"自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
+        )
+    return (
+        f"FR-9 自己統治の不可侵: AUTONOMOUS モードでは統治ファイルを変更できません"
+        f"（{reason}）。自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
+    )
+
+
+def _emit_permission_response(level: str, reason: str, target: str) -> None:
+    """判定結果に応じて hookSpecificOutput を stdout に出力する。
+
+    DENY → permissionDecision=deny / PM → ask / それ以外は出力なし（許可）。
+    """
+    if level == "DENY":
+        decision, decision_reason = "deny", _build_deny_reason(reason, target)
+    elif level == "PM":
+        decision, decision_reason = "ask", f"PM級変更です。承認してください: {target}"
+    else:
+        return
+    print(json.dumps(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": decision,
+                "permissionDecisionReason": decision_reason,
+            }
+        },
+        ensure_ascii=False,
+    ))
+
+
 def main() -> None:
     project_root = get_project_root()
     log_file = project_root / ".claude" / "logs" / "permission.log"
@@ -262,39 +303,7 @@ def main() -> None:
     # ログ記録（TSV 形式: timestamp\tlevel\ttool_name\ttarget\t"reason"）
     log_entry(log_file, level, tool_name, f"{target}\t\"{reason}\"")
 
-    # 応答
-    if level == "DENY":
-        # DENY は2系統: FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・成果物の
-        # 即時ハードストップ）。reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
-        if reason.startswith("FR-3.4"):
-            deny_reason = (
-                f"FR-3.4 spec freeze: AUTONOMOUS モードでは仕様（docs/specs/）を変更できません"
-                f"（{reason}）。spec 書換は不可逆 C 操作として即時ハードストップに当たり、"
-                f"自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
-            )
-        else:
-            deny_reason = (
-                f"FR-9 自己統治の不可侵: AUTONOMOUS モードでは統治ファイルを変更できません"
-                f"（{reason}）。自律ループ外の人間承認ゲートでのみ変更可。対象: {target}"
-            )
-        deny_output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "deny",
-                "permissionDecisionReason": deny_reason,
-            }
-        }
-        print(json.dumps(deny_output, ensure_ascii=False))
-    elif level == "PM":
-        ask_output = {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "ask",
-                "permissionDecisionReason": f"PM級変更です。承認してください: {target}",
-            }
-        }
-        print(json.dumps(ask_output, ensure_ascii=False))
-
+    _emit_permission_response(level, reason, target)
     sys.exit(0)
 
 

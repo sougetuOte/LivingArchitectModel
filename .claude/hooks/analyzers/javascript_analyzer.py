@@ -15,6 +15,7 @@ import subprocess
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
+from _hook_utils import build_allowlisted_env
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
                 text=True,
                 check=False,
                 timeout=_SUBPROCESS_TIMEOUT,
+                env=build_allowlisted_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("eslint timed out after %d seconds", _SUBPROCESS_TIMEOUT)
@@ -131,6 +133,7 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
                 check=False,
                 cwd=cwd,
                 timeout=_SUBPROCESS_TIMEOUT,
+                env=build_allowlisted_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("npm audit timed out after %d seconds", _SUBPROCESS_TIMEOUT)
@@ -184,7 +187,8 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
         - signature は空文字列
         - start_line=1, end_line=ファイル行数
         """
-        content = file_path.read_text(encoding="utf-8")
+        # PythonAnalyzer.parse_ast と同じく非 UTF-8 でも停止しない（iter3 SRC-B-2）
+        content = file_path.read_text(encoding="utf-8", errors="replace")
         line_count = len(content.splitlines())
 
         return ASTNode(

@@ -12,6 +12,7 @@ import subprocess
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
+from _hook_utils import build_allowlisted_env
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +69,7 @@ class PythonAnalyzer(LanguageAnalyzer):
                 text=True,
                 check=False,
                 timeout=_SUBPROCESS_TIMEOUT,
+                env=build_allowlisted_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("ruff timed out after %d seconds", _SUBPROCESS_TIMEOUT)
@@ -110,6 +112,7 @@ class PythonAnalyzer(LanguageAnalyzer):
                 text=True,
                 check=False,
                 timeout=_SUBPROCESS_TIMEOUT,
+                env=build_allowlisted_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("bandit timed out after %d seconds", _SUBPROCESS_TIMEOUT)

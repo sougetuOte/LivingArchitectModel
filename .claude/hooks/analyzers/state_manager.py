@@ -335,6 +335,16 @@ def load_dependency_graph(state_dir: Path) -> dict:
     except json.JSONDecodeError:
         logger.warning("Corrupted dependency graph file: %s", path)
         return _empty_dependency_graph()
+
+    required_keys = ("topo_order", "sccs", "node_to_file")
+    missing = [k for k in required_keys if k not in data]
+    if missing:
+        logger.warning(
+            "Incomplete dependency graph in %s: missing keys %s",
+            path,
+            missing,
+        )
+
     return {
         "topo_order": data.get("topo_order", []),
         "sccs": data.get("sccs", []),

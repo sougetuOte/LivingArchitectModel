@@ -13,6 +13,7 @@ import subprocess
 from pathlib import Path
 
 from analyzers.base import ASTNode, Issue, LanguageAnalyzer, ToolRequirement
+from _hook_utils import build_allowlisted_env
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ class RustAnalyzer(LanguageAnalyzer):
                 check=False,
                 cwd=target,
                 timeout=_SUBPROCESS_TIMEOUT,
+                env=build_allowlisted_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("cargo clippy timed out after %d seconds", _SUBPROCESS_TIMEOUT)
@@ -136,6 +138,7 @@ class RustAnalyzer(LanguageAnalyzer):
                 check=False,
                 cwd=target,
                 timeout=_SUBPROCESS_TIMEOUT,
+                env=build_allowlisted_env(),
             )
         except subprocess.TimeoutExpired:
             logger.warning("cargo audit timed out after %d seconds", _SUBPROCESS_TIMEOUT)
@@ -209,7 +212,8 @@ class RustAnalyzer(LanguageAnalyzer):
 
         children は空リスト。Phase 2 で tree-sitter による解析に置換する。
         """
-        content = file_path.read_text(encoding="utf-8")
+        # PythonAnalyzer.parse_ast と同じく非 UTF-8 でも停止しない（iter3 SRC-B-2）
+        content = file_path.read_text(encoding="utf-8", errors="replace")
         line_count = len(content.splitlines())
 
         return ASTNode(

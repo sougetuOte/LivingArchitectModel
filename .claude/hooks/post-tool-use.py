@@ -112,6 +112,9 @@ def _parse_junit_xml(xml_path: Path) -> dict | None:
         }
     except ET.ParseError:
         return None
+    except ValueError:
+        # 数値属性が非整数（tests="abc" 等）の場合も契約どおり None（iter2 W2-2）
+        return None
     except OSError:
         return None
 
