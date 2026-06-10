@@ -55,8 +55,14 @@ class TestCountUnanalyzedPatterns:
         tdd_log = _write_tdd_log(project_root, [])
         assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
 
-    def test_no_analyzed_marker_counts_all_entries(self, stop_hook, project_root):
-        """ANALYZED マーカーがなければ全エントリが未分析。"""
+    def test_no_analyzed_marker_with_transition_counts_all_entries(
+        self, stop_hook, project_root
+    ):
+        """ANALYZED マーカーがなく FAIL→PASS 遷移がある場合、全エントリが未分析。
+
+        W-22 仕様: 遷移がなければ 0 を返す（遷移なしケースは別テストで検証）。
+        本テストの入力 [_FAIL, _PASS, _FAIL] は遷移を含むため全 3 件が返る。
+        """
         tdd_log = _write_tdd_log(project_root, [_FAIL, _PASS, _FAIL])
         assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 3
 
@@ -73,11 +79,24 @@ class TestCountUnanalyzedPatterns:
         assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
 
     def test_multiple_markers_uses_last(self, stop_hook, project_root):
-        """複数 ANALYZED マーカーがある場合、最後のマーカー以降を数える。"""
+        """複数 ANALYZED マーカーがある場合、最後のマーカー以降を数える。
+
+        W-22 修正後: FAIL→PASS 遷移がない場合（FAIL のみ）は 0 を返す（spec §5.1）。
+        最後のマーカー以降が [FAIL] のみで遷移なし → 0。
+        """
         tdd_log = _write_tdd_log(
             project_root, [_FAIL, _ANALYZED, _PASS, _ANALYZED, _FAIL]
         )
-        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 1
+        # 最後の ANALYZED 以降は [_FAIL] のみ: FAIL→PASS 遷移なし → 0
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
+
+    def test_multiple_markers_with_transition(self, stop_hook, project_root):
+        """複数 ANALYZED マーカーで最後のマーカー以降に FAIL→PASS 遷移がある場合はカウントする。"""
+        tdd_log = _write_tdd_log(
+            project_root, [_FAIL, _ANALYZED, _FAIL, _ANALYZED, _FAIL, _PASS]
+        )
+        # 最後の ANALYZED 以降は [_FAIL, _PASS]: FAIL→PASS 遷移あり → 2
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 2
 
     def test_non_utf8_file_returns_zero(self, stop_hook, project_root):
         """非 UTF-8 バイト混入時もフェイルセーフに 0（例外を投げない）。
@@ -88,6 +107,36 @@ class TestCountUnanalyzedPatterns:
         tdd_log = project_root / ".claude" / "tdd-patterns.log"
         tdd_log.parent.mkdir(parents=True, exist_ok=True)
         tdd_log.write_bytes(b"\xff\xfe not valid utf-8\n")
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
+
+    def test_pass_only_no_fail_returns_zero(self, stop_hook, project_root):
+        """PASS のみで FAIL→PASS 遷移がない場合は 0 を返す（W-22: 仕様 §5.1）。
+
+        spec §5.1: "FAIL→PASS 遷移が1件以上あるか確認" してから通知。
+        PASS のみ蓄積（テストが常に緑の場合等）では通知しない。
+        """
+        tdd_log = _write_tdd_log(project_root, [_PASS, _PASS])
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
+
+    def test_fail_only_no_transition_returns_zero(self, stop_hook, project_root):
+        """FAIL のみで FAIL→PASS 遷移がない場合は 0 を返す（W-22: 仕様 §5.1）。"""
+        tdd_log = _write_tdd_log(project_root, [_FAIL, _FAIL])
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
+
+    def test_fail_pass_transition_counts_entries(self, stop_hook, project_root):
+        """FAIL→PASS 遷移が1件以上あれば ANALYZED マーカー以降の全エントリ数を返す（W-22）。
+
+        spec §5.1: FAIL→PASS 遷移確認後、エントリ数をカウントして通知に使用する。
+        """
+        tdd_log = _write_tdd_log(project_root, [_FAIL, _PASS, _FAIL])
+        # FAIL→PASS 遷移あり → 全3エントリをカウント
+        assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 3
+
+    def test_after_marker_pass_only_returns_zero(self, stop_hook, project_root):
+        """ANALYZED マーカー以降が PASS のみの場合は 0（W-22: FAIL→PASS 遷移なし）。"""
+        tdd_log = _write_tdd_log(
+            project_root, [_FAIL, _PASS, _ANALYZED, _PASS, _PASS]
+        )
         assert stop_hook._count_unanalyzed_tdd_patterns(tdd_log) == 0
 
 

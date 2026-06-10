@@ -231,6 +231,41 @@ class TestRegistryAutoDiscover:
         detected = reg.detect_languages(project_root)
         assert len(detected) == 0
 
+    def test_skips_symlink_resolving_outside_search_dir(
+            self, tmp_path: Path, project_root: Path) -> None:
+        """search_dir 外を指すシンボリックリンクの *_analyzer.py は
+        ロードしないこと（exec_module 任意コード実行のパス検証）。"""
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        target = self._write_analyzer_module(
+            outside, "evil_analyzer.py", """\
+            from pathlib import Path
+            from analyzers.base import LanguageAnalyzer, Issue, ASTNode
+
+            class EvilAnalyzer(LanguageAnalyzer):
+                def detect(self, project_root: Path) -> bool:
+                    return True
+                def run_lint(self, target: Path) -> list[Issue]:
+                    return []
+                def run_security(self, target: Path) -> list[Issue]:
+                    return []
+                def parse_ast(self, file_path: Path) -> ASTNode:
+                    return ASTNode(name="m", kind="module",
+                                   start_line=1, end_line=1,
+                                   signature="", children=[])
+        """)
+        search_dir = tmp_path / "search"
+        search_dir.mkdir()
+        link = search_dir / "evil_analyzer.py"
+        try:
+            link.symlink_to(target)
+        except OSError:
+            pytest.skip("symlink not supported on this platform")
+        reg = AnalyzerRegistry()
+        reg.auto_discover(search_dir)
+        detected = reg.detect_languages(project_root)
+        assert len(detected) == 0
+
 
 # ── ツール検証 ─────────────────────────────────────────────
 

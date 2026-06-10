@@ -77,51 +77,6 @@ class TestGetToolInput:
         assert hook_utils.get_tool_input({}, "file_path") == ""
 
 
-class TestGetToolResponse:
-    def test_get_tool_response_present(self, hook_utils):
-        """tool_response のキーが存在する場合"""
-        data = {"tool_response": {"exit_code": 0, "stdout": "ok"}}
-        assert hook_utils.get_tool_response(data, "exit_code", -1) == 0
-
-    def test_get_tool_response_missing_key(self, hook_utils):
-        """キーが存在しない場合は default を返す"""
-        data = {"tool_response": {}}
-        assert hook_utils.get_tool_response(data, "exit_code", -1) == -1
-
-    def test_get_tool_response_no_tool_response(self, hook_utils):
-        """tool_response 自体がない場合は default を返す"""
-        assert hook_utils.get_tool_response({}, "exit_code", -1) == -1
-
-    def test_get_tool_response_from_tool_result(self, hook_utils):
-        """公式キー tool_result から値を取得できる（V-1: 公式は tool_result）"""
-        data = {"tool_result": {"type": "text", "text": "ok"}}
-        assert hook_utils.get_tool_response(data, "text", None) == "ok"
-
-    def test_get_tool_response_prefers_tool_result_over_tool_response(self, hook_utils):
-        """両キー併存時は公式キー tool_result を優先する"""
-        data = {
-            "tool_result": {"text": "official"},
-            "tool_response": {"text": "legacy"},
-        }
-        assert hook_utils.get_tool_response(data, "text", None) == "official"
-
-    def test_get_tool_response_falls_back_to_tool_response(self, hook_utils):
-        """tool_result にキーがない場合は旧キー tool_response にフォールバック（後方互換）"""
-        data = {
-            "tool_result": {"other": 1},
-            "tool_response": {"text": "legacy"},
-        }
-        assert hook_utils.get_tool_response(data, "text", None) == "legacy"
-
-    def test_get_tool_response_tool_result_not_dict(self, hook_utils):
-        """tool_result が dict でない場合は tool_response にフォールバック"""
-        data = {
-            "tool_result": "not a dict",
-            "tool_response": {"text": "legacy"},
-        }
-        assert hook_utils.get_tool_response(data, "text", None) == "legacy"
-
-
 class TestNormalizePath:
     def test_normalize_path_absolute(self, hook_utils, tmp_path):
         """絶対パス -> 相対パスに変換"""
@@ -232,8 +187,10 @@ class TestAtomicWriteJson:
         assert loaded == {"new": True}
 
     def test_atomic_write_json_creates_parent(self, hook_utils, tmp_path):
-        """親ディレクトリが存在する場合は書き込める"""
-        target = tmp_path / "output.json"
+        """親ディレクトリが存在しない場合でも自動作成して書き込める"""
+        target = tmp_path / "subdir" / "output.json"
+        # subdir は意図的に未作成
+        assert not target.parent.exists(), "前提: subdir が存在しないこと"
         hook_utils.atomic_write_json(target, {"x": 1})
         assert target.exists()
 

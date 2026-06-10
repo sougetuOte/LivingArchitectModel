@@ -45,6 +45,7 @@ class TestCountTokens:
     def test_multiline_code(self) -> None:
         """複数行のコードのカウント。"""
         code = "def foo():\n    return 42\n"
+        # 空白区切り: ["def", "foo():", "return", "42"] = 4 ワード
         assert count_tokens(code) == 4
 
     def test_whitespace_only(self) -> None:

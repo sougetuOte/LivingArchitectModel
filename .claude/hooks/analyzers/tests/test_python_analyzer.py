@@ -200,6 +200,15 @@ class TestRunLint:
             issues = PythonAnalyzer().run_lint(tmp_path)
         assert issues == []
 
+    def test_run_lint_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """W-18: subprocess.run が env= キーワード付きで呼ばれること。"""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _make_mock_result("[]")
+            PythonAnalyzer().run_lint(tmp_path)
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("env") is not None, "subprocess.run に env= が渡されていない"
+        assert "PATH" in call_kwargs["env"]
+
 
 # ── run_security ────────────────────────────────────────────
 
@@ -334,6 +343,15 @@ class TestRunSecurity:
             mock_run.return_value = _make_mock_result('{"results": []}')
             issues = PythonAnalyzer().run_security(tmp_path)
         assert issues == []
+
+    def test_run_security_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """W-18: subprocess.run が env= キーワード付きで呼ばれること。"""
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = _make_mock_result('{"results": []}')
+            PythonAnalyzer().run_security(tmp_path)
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("env") is not None, "subprocess.run に env= が渡されていない"
+        assert "PATH" in call_kwargs["env"]
 
     def test_bandit_b105_detects_hardcoded_password(self, tmp_path: Path) -> None:
         """bandit B105 がハードコードパスワードを検出すること（FR-7e）。"""

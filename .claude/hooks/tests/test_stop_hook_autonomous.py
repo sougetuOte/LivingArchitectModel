@@ -7,8 +7,16 @@ T1-3: Stop hook に autonomous 検出 + checker(G1) 厳密実行
 from __future__ import annotations
 
 import json
-import os
+import sys
 from pathlib import Path
+
+# hooks ディレクトリを sys.path に追加して _hook_utils を参照可能にする（W-15）。
+_HOOKS_DIR = Path(__file__).resolve().parent.parent
+if str(_HOOKS_DIR) not in sys.path:
+    sys.path.insert(0, str(_HOOKS_DIR))
+
+from _hook_utils import build_allowlisted_env  # noqa: E402
+from conftest import write_state  # noqa: E402  # I-4: モジュールトップレベルへ移動
 
 HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 
@@ -30,10 +38,14 @@ def _read_auto_state(project_root: Path) -> dict:
 
 
 def _full_env() -> dict:
-    """実運用の Stop hook は full env で起動される。ネスト実行される checker→pytest が
-    Windows のシステム環境変数を要するため full env を渡す（LAM_PROJECT_ROOT は autouse
-    fixture 経由で tmp に維持され実プロジェクトは汚染しない）。"""
-    return dict(os.environ)
+    """Stop hook + ネスト実行される checker→pytest に必要な環境変数を渡す（W-15）。
+
+    CHECKER_ENV_ALLOWLIST ベースにすることで機密環境変数の漏出を防ぐ（W-14 整合）。
+    Windows のシステム変数（SYSTEMROOT, PATHEXT 等）は allowlist に含まれているため
+    checker→pytest の起動に支障はない。
+    LAM_PROJECT_ROOT は autouse fixture 経由で tmp に設定され実プロジェクトを汚染しない。
+    """
+    return build_allowlisted_env()
 
 
 class TestAutonomousStopHook:
@@ -98,8 +110,6 @@ class TestAutonomousStopHook:
         self, hook_runner, project_root, hooks_on_syspath
     ):
         """autonomous 非active時は既存 lam-loop-state.json フローが不変（回帰防止の要）。"""
-        from conftest import write_state
-
         _write_auto_state(project_root, active=False)
         write_state(project_root, {"active": True, "iteration": 0, "max_iterations": 5})
 
@@ -161,8 +171,6 @@ class TestAutonomousFailClose:
     ):
         """壊れた autonomous-state.json + active な lam-loop-state → 既存安全ネットへ
         決定的に fall-through し block する（autonomous フローへ誤って入らない）。"""
-        from conftest import write_state
-
         self._write_raw_auto_state(project_root, "not-json")
         write_state(project_root, {"active": True, "iteration": 0, "max_iterations": 5})
 
@@ -181,8 +189,6 @@ class TestAutonomousFailClose:
         strict な `is True` 判定により、改竄・型崩れ state では autonomous gate に
         入らず通常フローへ落ちる。active な lam-loop-state で fall-through を観測する。
         """
-        from conftest import write_state
-
         self._write_raw_auto_state(project_root, json.dumps({"active": "true"}))
         write_state(project_root, {"active": True, "iteration": 0, "max_iterations": 5})
 

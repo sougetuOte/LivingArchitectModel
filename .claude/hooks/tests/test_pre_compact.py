@@ -11,6 +11,7 @@ test_pre_compact.py - pre-compact.py のユニットテスト
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import sys
 from pathlib import Path
 
@@ -171,8 +172,94 @@ class TestMainIntegration:
     def test_main_exits_zero_on_exception(self, project_root: Path, pre_compact, monkeypatch):
         """例外発生時も exit 0 で正常終了すること（圧縮をブロックしない）。"""
         # .claude ディレクトリを削除して write_pre_compact_flag を失敗させる
-        import shutil
         shutil.rmtree(project_root / ".claude")
         with pytest.raises(SystemExit) as exc_info:
             pre_compact.main()
         assert exc_info.value.code == 0
+
+
+class TestUpdateSessionStateOSError:
+    """W-2a/W-2b: update_session_state の OSError 処理とアトミック書き込みのテスト。"""
+
+    def test_read_oserror_logged_to_stderr(
+        self, project_root: Path, pre_compact, monkeypatch, capsys
+    ):
+        """W-2a: 読み取り失敗（OSError）が stderr に記録されること。"""
+        ss = project_root / "SESSION_STATE.md"
+        ss.write_text("# SESSION_STATE\n", encoding="utf-8")
+
+        import pathlib
+
+        original_read_text = pathlib.Path.read_text
+
+        def patched_read_text(self, *args, **kwargs):
+            if self == ss:
+                raise OSError("simulated read failure")
+            return original_read_text(self, *args, **kwargs)
+
+        monkeypatch.setattr(pathlib.Path, "read_text", patched_read_text)
+        pre_compact.update_session_state(ss, "2026-03-12T10:00:00Z")
+        captured = capsys.readouterr()
+        assert "simulated read failure" in captured.err
+
+    def test_write_oserror_logged_to_stderr(
+        self, project_root: Path, pre_compact, monkeypatch, capsys
+    ):
+        """W-2a: 書き込み失敗（OSError）が stderr に記録されること（既存セクションあり）。"""
+        ss = project_root / "SESSION_STATE.md"
+        ss.write_text(
+            "# SESSION_STATE\n\n## PreCompact 発火\n- 時刻: 2026-03-12T09:00:00Z\n",
+            encoding="utf-8",
+        )
+
+        import os
+
+        def patched_os_replace(src, dst):
+            raise OSError("simulated write failure")
+
+        monkeypatch.setattr(os, "replace", patched_os_replace)
+        pre_compact.update_session_state(ss, "2026-03-12T10:00:00Z")
+        captured = capsys.readouterr()
+        assert "simulated write failure" in captured.err
+
+    def test_atomic_write_preserves_file_on_write_failure(
+        self, project_root: Path, pre_compact, monkeypatch
+    ):
+        """W-2b: 書き込み失敗時に元ファイルが保持されること（アトミック書き込み）。"""
+        ss = project_root / "SESSION_STATE.md"
+        original_content = (
+            "# SESSION_STATE\n\n"
+            "## PreCompact 発火\n- 時刻: 2026-03-12T09:00:00Z\n"
+        )
+        ss.write_text(original_content, encoding="utf-8")
+
+        import os
+
+        def patched_os_replace(src, dst):
+            raise OSError("simulated os.replace failure")
+
+        monkeypatch.setattr(os, "replace", patched_os_replace)
+        pre_compact.update_session_state(ss, "2026-03-12T10:00:00Z")
+        # 元ファイルが破損していないこと
+        assert ss.read_text(encoding="utf-8") == original_content
+
+    def test_append_oserror_logged_to_stderr(
+        self, project_root: Path, pre_compact, monkeypatch, capsys
+    ):
+        """W-2a: 追記（open append）失敗時に stderr に記録されること（セクションなし）。"""
+        ss = project_root / "SESSION_STATE.md"
+        ss.write_text("# SESSION_STATE\n", encoding="utf-8")
+
+        import builtins
+
+        original_open = builtins.open
+
+        def patched_open(file, mode="r", *args, **kwargs):
+            if str(file) == str(ss) and "a" in str(mode):
+                raise OSError("simulated append failure")
+            return original_open(file, mode, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "open", patched_open)
+        pre_compact.update_session_state(ss, "2026-03-12T10:00:00Z")
+        captured = capsys.readouterr()
+        assert "simulated append failure" in captured.err

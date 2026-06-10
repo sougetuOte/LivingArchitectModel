@@ -267,6 +267,40 @@ class TestRunPhase0GitleaksIntegration:
         assert len(not_installed_issues) == 1
 
 
+class TestPersistResultsOsError:
+    """_persist_results の OSError 時の信頼性テスト（W-4）。"""
+
+    _GITLEAKS_MOCK = patch("analyzers.run_pipeline.gitleaks_run_detect", return_value=[])
+
+    def test_summary_write_oserror_logs_warning(
+        self, project_root: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """summary.md の write_text が OSError を起こしても warning ログを残して継続すること。"""
+        import logging
+
+        (project_root / "app.py").write_text("x = 1\n")
+        (project_root / "pyproject.toml").write_text("[project]\n")
+
+        state_dir = project_root / ".claude" / "review-state"
+        state_dir.mkdir(parents=True, exist_ok=True)
+        # summary.md と同名のディレクトリを作成して write_text を阻害
+        blocker = state_dir / "summary.md"
+        blocker.mkdir(exist_ok=True)
+
+        with (
+            patch("subprocess.run", side_effect=_subprocess_side_effect()),
+            self._GITLEAKS_MOCK,
+            caplog.at_level(logging.WARNING, logger="analyzers.run_pipeline"),
+        ):
+            result = run_phase0(project_root)  # 例外が上がらないこと
+
+        assert any("summary" in r.message.lower() for r in caplog.records), (
+            "summary.md の書き込み失敗時に warning ログが出力されること"
+        )
+        # summary_path は失敗しても返る（パスオブジェクトを返すのが契約）
+        assert result.summary_path is not None
+
+
 # ── ヘルパー ───────────────────────────────────────────────
 
 

@@ -106,6 +106,28 @@ class TestTDDPatternDetection:
         assert "systemMessage" in data
         assert "/retro" in data["systemMessage"]
 
+    def test_non_integer_xml_attribute_returns_none(self, tmp_path):
+        """数値属性が非整数（tests="abc"）でも raise せず None を返す（iter2 W2-2）。
+
+        _parse_junit_xml の docstring 契約は「パース失敗時 None」。
+        非整数属性は ValueError で main() の広域 except に吸収されていたが、
+        契約どおり関数自身が None を返すべき。
+        """
+        import importlib.util
+
+        xml_path = tmp_path / "test-results.xml"
+        xml_path.write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            '<testsuite name="pytest" tests="abc" failures="0" errors="0">\n'
+            '  <testcase name="test_a"/>\n'
+            "</testsuite>\n",
+            encoding="utf-8",
+        )
+        spec = importlib.util.spec_from_file_location("post_tool_use", HOOK_PATH)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert module._parse_junit_xml(xml_path) is None
+
     def test_no_junit_xml_warns(self, hook_runner, project_root):
         """JUnit XML なし → WARN ログのみ、tdd-patterns.log には FAIL/PASS 記録なし"""
         input_json = {

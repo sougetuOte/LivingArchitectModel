@@ -88,6 +88,19 @@ class TestParseGitleaksJson:
         issues = _parse_gitleaks_json(tmp_path / "nonexistent.json")
         assert issues == []
 
+    def test_parse_non_list_json_returns_empty(self, tmp_path: Path) -> None:
+        """JSON が list でない（null / object）場合、raise せず空リストを返す（iter2 W2-1）。
+
+        gitleaks v8 は検出なし時に [] を書くが、異常終了時や将来バージョンの
+        非リスト出力でパイプラインがクラッシュしないことを保証する。
+        """
+        from analyzers.gitleaks_scanner import _parse_gitleaks_json
+
+        for content in ("null", '{"Description": "x"}'):
+            json_path = tmp_path / "report.json"
+            json_path.write_text(content, encoding="utf-8")
+            assert _parse_gitleaks_json(json_path) == []
+
 
 class TestRunDetect:
     """run_detect() のテスト。"""
@@ -355,6 +368,54 @@ class TestIssueSeverity:
             assert issue.tool == "gitleaks"
 
 
+class TestRunGitleaksEnvAllowlist:
+    """W-17: _run_gitleaks が allowlisted env を subprocess.run に渡すことを検証する。"""
+
+    def test_run_detect_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """run_detect() が subprocess.run を env= キーワード付きで呼ぶ。"""
+        captured: dict = {}
+
+        def mock_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            for i, arg in enumerate(cmd):
+                if arg == "--report-path" and i + 1 < len(cmd):
+                    Path(cmd[i + 1]).write_text("[]", encoding="utf-8")
+            return MagicMock(returncode=0)
+
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch("analyzers.gitleaks_scanner.subprocess.run", side_effect=mock_run),
+        ):
+            run_detect(tmp_path)
+
+        assert captured.get("env") is not None, "subprocess.run に env= が渡されていない"
+        env = captured["env"]
+        assert "PATH" in env, "env に PATH が含まれていない"
+
+    def test_run_detect_env_does_not_contain_secrets(self, tmp_path: Path) -> None:
+        """subprocess.run の env に機密キーが含まれないこと。"""
+        import os
+        captured: dict = {}
+
+        def mock_run(cmd, **kwargs):
+            captured["env"] = kwargs.get("env")
+            for i, arg in enumerate(cmd):
+                if arg == "--report-path" and i + 1 < len(cmd):
+                    Path(cmd[i + 1]).write_text("[]", encoding="utf-8")
+            return MagicMock(returncode=0)
+
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch("analyzers.gitleaks_scanner.subprocess.run", side_effect=mock_run),
+            patch.dict(os.environ, {"AWS_SECRET_ACCESS_KEY": "super_secret", "GITHUB_TOKEN": "ghp_xxx"}),
+        ):
+            run_detect(tmp_path)
+
+        env = captured.get("env", {})
+        assert "AWS_SECRET_ACCESS_KEY" not in env
+        assert "GITHUB_TOKEN" not in env
+
+
 class TestRunGitleaksCwd:
     """_run_gitleaks() が cwd=project_root で subprocess.run を呼ぶことを検証する。
 
@@ -404,6 +465,48 @@ class TestRunGitleaksCwd:
         assert captured.get("cwd") == tmp_path, (
             f"subprocess.run の cwd が project_root ではなかった: {captured.get('cwd')}"
         )
+
+
+class TestRunGitleaksExceptNarrowing:
+    """W-5: _run_gitleaks の例外ハンドリング縮小テスト。"""
+
+    def test_oserror_returns_scan_failed(self, tmp_path: Path) -> None:
+        """OSError は scan-failed Issue を返す（変更なし）。"""
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch(
+                "analyzers.gitleaks_scanner.subprocess.run",
+                side_effect=OSError("file not found"),
+            ),
+        ):
+            issues = run_detect(tmp_path)
+        assert len(issues) == 1
+        assert issues[0].rule_id == "gitleaks:scan-failed"
+
+    def test_subprocess_error_returns_scan_failed(self, tmp_path: Path) -> None:
+        """subprocess.SubprocessError は scan-failed Issue を返す。"""
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch(
+                "analyzers.gitleaks_scanner.subprocess.run",
+                side_effect=subprocess.SubprocessError("sub error"),
+            ),
+        ):
+            issues = run_detect(tmp_path)
+        assert len(issues) == 1
+        assert issues[0].rule_id == "gitleaks:scan-failed"
+
+    def test_unexpected_exception_is_reraised(self, tmp_path: Path) -> None:
+        """OSError/SubprocessError 以外の予期しない例外は re-raise される。"""
+        with (
+            patch("analyzers.gitleaks_scanner.is_available", return_value=True),
+            patch(
+                "analyzers.gitleaks_scanner.subprocess.run",
+                side_effect=ValueError("unexpected"),
+            ),
+        ):
+            with pytest.raises(ValueError, match="unexpected"):
+                run_detect(tmp_path)
 
 
 class TestGetInstallGuide:

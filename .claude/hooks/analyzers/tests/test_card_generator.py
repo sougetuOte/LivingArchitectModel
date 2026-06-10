@@ -396,6 +396,36 @@ def test_save_file_card_creates_directory(tmp_path: Path) -> None:
     assert cards_dir.exists()
 
 
+def test_save_file_card_oserror_logs_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """save_file_card が OSError 時に warning ログを残して継続すること（W-4）。"""
+    import logging
+
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir(parents=True)
+    # cards/file-cards/ ディレクトリを先に作成しておき、
+    # ファイル名と同名のディレクトリを置くことで write_text を失敗させる
+    cards_dir = state_dir / "cards" / "file-cards"
+    cards_dir.mkdir(parents=True)
+    card = FileCard(
+        file_path="src/foo.py",
+        public_api=[],
+        dependencies=[],
+        dependents=[],
+        issue_counts={"critical": 0, "warning": 0, "info": 0},
+        responsibility="",
+    )
+    # 書き込み先と同名のディレクトリを作成してファイル書き込みを阻害する
+    blocker = cards_dir / "src-foo-py.json"
+    blocker.mkdir()
+
+    with caplog.at_level(logging.WARNING, logger="analyzers.card_generator"):
+        save_file_card(state_dir, card)  # OSError が発生しても例外が上がらないこと
+
+    assert any("src-foo-py" in r.message for r in caplog.records), (
+        "OSError 発生時に warning ログが出力されること"
+    )
+
+
 def test_load_file_card_returns_none_when_missing(tmp_path: Path) -> None:
     """存在しないカードを読み込んだ場合 None が返ること。"""
     state_dir = tmp_path / "review-state"
@@ -901,6 +931,31 @@ def test_generate_module_cards_aggregates_issues() -> None:
     assert card.total_issue_counts["info"] == 1
 
 
+def test_save_module_card_oserror_logs_warning(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """save_module_card が OSError 時に warning ログを残して継続すること（W-4）。"""
+    import logging
+
+    state_dir = tmp_path / "review-state"
+    cards_dir = state_dir / "cards" / "module-cards"
+    cards_dir.mkdir(parents=True)
+    card = ModuleCard(
+        module_name="src/analyzers",
+        file_cards=[],
+        total_issue_counts={"critical": 0, "warning": 0, "info": 0},
+        boundary_issues=[],
+    )
+    # ファイル書き込みを阻害するため同名ディレクトリを作成
+    blocker = cards_dir / "src-analyzers.json"
+    blocker.mkdir()
+
+    with caplog.at_level(logging.WARNING, logger="analyzers.card_generator"):
+        save_module_card(state_dir, card)  # 例外が上がらないこと
+
+    assert any("src-analyzers.json" in r.message or "analyzers" in r.message for r in caplog.records), (
+        "OSError 発生時に warning ログが出力されること"
+    )
+
+
 def test_save_and_load_module_card(tmp_path: Path) -> None:
     """ModuleCard の保存と読み込みのラウンドトリップ。"""
     state_dir = tmp_path / "review-state"
@@ -1044,13 +1099,18 @@ class TestDetectModuleNamingViolations:
         assert issues == []
 
     def test_mixed_naming_detected(self) -> None:
-        """snake_case と camelCase の混在を検出する。"""
+        """snake_case と camelCase の混在を検出する。
+
+        入力: snake_case 関数 1 件 + camelCase 関数 1 件 = 混在が 1 箇所。
+        detect_module_naming_violations は「プロジェクト全体の命名不一致」を
+        1 件の Issue にまとめて返すため、期待件数は == 1。
+        """
         ast_map: dict[str, ASTNode] = {
             "a.py": _make_module_node([_make_function_node("my_func")]),
             "b.py": _make_module_node([_make_function_node("myFunc")]),
         }
         issues = detect_module_naming_violations(ast_map)
-        assert len(issues) >= 1
+        assert len(issues) == 1
         assert issues[0].severity == "warning"
         assert issues[0].category == "naming-violation"
 
@@ -1147,6 +1207,28 @@ class TestCollectSpecDriftContext:
 
         assert "TOP_CONTENT_MARKER" in context
         assert "NESTED_CONTENT_MARKER" in context
+
+    def test_unreadable_spec_file_is_skipped(self, tmp_path: Path) -> None:
+        """読取不能な仕様書ファイルは raise せずスキップする（iter3 SRC-B-1）。
+
+        rglob("*.md") は *.md という名前のディレクトリにもマッチする。
+        ディレクトリへの read_text は OSError（IsADirectoryError /
+        PermissionError）を起こすが、パイプラインを停止させず、
+        読み取れた仕様書だけで継続すること。
+        """
+        state_dir = tmp_path / "review-state"
+        specs_dir = tmp_path / "docs" / "specs"
+        specs_dir.mkdir(parents=True)
+
+        (specs_dir / "good-spec.md").write_text(
+            "# Good Spec\nGOOD_CONTENT_MARKER", encoding="utf-8"
+        )
+        # read_text が OSError になる「.md という名前のディレクトリ」
+        (specs_dir / "broken.md").mkdir()
+
+        context = collect_spec_drift_context(state_dir, specs_dir)
+
+        assert "GOOD_CONTENT_MARKER" in context
 
 
 # ===================================================================
@@ -1385,6 +1467,33 @@ class TestMergeContracts:
 
 class TestSaveLoadContractCard:
     """save_contract_card / load_contract_card のテスト（D-2: FR-7c）。"""
+
+    def test_save_oserror_logs_warning(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+        """save_contract_card が OSError 時に warning ログを残して継続すること（W-4）。"""
+        import logging
+
+        state_dir = tmp_path / "review-state"
+        contracts_dir = state_dir / "contracts"
+        contracts_dir.mkdir(parents=True)
+        card = ContractCard(
+            module_name="src/mod",
+            public_api=[],
+            signatures=[],
+            preconditions=[],
+            postconditions=[],
+            side_effects=[],
+            invariants=[],
+        )
+        # ファイル書き込みを阻害するため同名ディレクトリを作成
+        blocker = contracts_dir / "src-mod.json"
+        blocker.mkdir()
+
+        with caplog.at_level(logging.WARNING, logger="analyzers.card_generator"):
+            save_contract_card(state_dir, card)  # 例外が上がらないこと
+
+        assert any("src-mod.json" in r.message or "mod" in r.message for r in caplog.records), (
+            "OSError 発生時に warning ログが出力されること"
+        )
 
     def test_save_load_roundtrip(self, tmp_path: Path) -> None:
         """ContractCard が正しく永続化・復元されること。"""
@@ -1762,8 +1871,8 @@ class TestSccDetectionSkippedPropagation:
     """`_find_sccs` の SccDetectionSkippedError が 3 公開関数で
     catch されず伝播することを保証する。
 
-    現状実装は `try/except RecursionError → return []/sccs=[]` で握り潰しているため、
-    Green 実装（try/except 削除）まで本テストは Red。
+    実装済み（現在 3 passed）: detect_circular_dependencies / build_topo_order /
+    analyze_impact はいずれも SccDetectionSkippedError を catch せず呼び出し元へ伝播する。
     """
 
     @staticmethod

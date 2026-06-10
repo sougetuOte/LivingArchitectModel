@@ -21,7 +21,7 @@ from analyzers.orchestrator import (
 )
 
 
-def _make_chunk(name: str, idx: int) -> Chunk:
+def _make_chunk(name: str) -> Chunk:
     """テスト用の Chunk を生成するヘルパー。"""
     return Chunk(
         file_path=f"src/{name}.py",
@@ -41,7 +41,7 @@ class TestBatchChunks:
 
     def test_exact_division(self) -> None:
         """チャンク数がバッチサイズで割り切れる場合。"""
-        chunks = [_make_chunk(f"f{i}", i) for i in range(8)]
+        chunks = [_make_chunk(f"f{i}") for i in range(8)]
         batches = batch_chunks(chunks, batch_size=4)
         assert len(batches) == 2
         assert len(batches[0]) == 4
@@ -49,7 +49,7 @@ class TestBatchChunks:
 
     def test_remainder(self) -> None:
         """チャンク数がバッチサイズで割り切れない場合。"""
-        chunks = [_make_chunk(f"f{i}", i) for i in range(10)]
+        chunks = [_make_chunk(f"f{i}") for i in range(10)]
         batches = batch_chunks(chunks, batch_size=4)
         assert len(batches) == 3
         assert len(batches[0]) == 4
@@ -58,7 +58,7 @@ class TestBatchChunks:
 
     def test_single_chunk(self) -> None:
         """チャンク 1 つ → バッチ 1 つ。"""
-        chunks = [_make_chunk("single", 0)]
+        chunks = [_make_chunk("single")]
         batches = batch_chunks(chunks, batch_size=4)
         assert len(batches) == 1
         assert len(batches[0]) == 1
@@ -70,21 +70,21 @@ class TestBatchChunks:
 
     def test_batch_size_larger_than_chunks(self) -> None:
         """バッチサイズがチャンク数より大きい場合 → バッチ 1 つ。"""
-        chunks = [_make_chunk(f"f{i}", i) for i in range(3)]
+        chunks = [_make_chunk(f"f{i}") for i in range(3)]
         batches = batch_chunks(chunks, batch_size=10)
         assert len(batches) == 1
         assert len(batches[0]) == 3
 
     def test_preserves_order(self) -> None:
         """チャンクの順序が保持されること。"""
-        chunks = [_make_chunk(f"f{i}", i) for i in range(7)]
+        chunks = [_make_chunk(f"f{i}") for i in range(7)]
         batches = batch_chunks(chunks, batch_size=3)
         flattened = [c for batch in batches for c in batch]
         assert [c.node_name for c in flattened] == [c.node_name for c in chunks]
 
     def test_50_chunks_4_parallel(self) -> None:
         """設計書 Section 3.8: 50 チャンク × 4 並列 → 13 バッチ。"""
-        chunks = [_make_chunk(f"f{i}", i) for i in range(50)]
+        chunks = [_make_chunk(f"f{i}") for i in range(50)]
         batches = batch_chunks(chunks, batch_size=4)
         assert len(batches) == 13
         # 最後のバッチは 2 チャンク
@@ -96,25 +96,25 @@ class TestBuildReviewPrompt:
 
     def test_contains_file_path(self) -> None:
         """プロンプトにファイルパスが含まれること。"""
-        chunk = _make_chunk("greet", 0)
+        chunk = _make_chunk("greet")
         prompt = build_review_prompt(chunk)
         assert "src/greet.py" in prompt
 
     def test_contains_content(self) -> None:
         """プロンプトにチャンク内容が含まれること。"""
-        chunk = _make_chunk("greet", 0)
+        chunk = _make_chunk("greet")
         prompt = build_review_prompt(chunk)
         assert "def greet" in prompt
 
     def test_contains_overlap_header(self) -> None:
         """プロンプトにのりしろヘッダーが含まれること。"""
-        chunk = _make_chunk("greet", 0)
+        chunk = _make_chunk("greet")
         prompt = build_review_prompt(chunk)
         assert "import os" in prompt
 
     def test_contains_review_instruction(self) -> None:
         """プロンプトにレビュー指示が含まれること。"""
-        chunk = _make_chunk("greet", 0)
+        chunk = _make_chunk("greet")
         prompt = build_review_prompt(chunk)
         # レビュー指示のキーワードが含まれること
         assert "review" in prompt.lower() or "レビュー" in prompt
@@ -232,7 +232,7 @@ class TestParseLlmIssues:
             "- suggestion: Remove the variable\n"
         )
         issues = parse_llm_issues(raw, "test.py")
-        assert len(issues) >= 1
+        assert len(issues) == 1
         assert issues[0].severity == "warning"
         assert issues[0].line == 42
 
@@ -354,14 +354,14 @@ class TestBuildReviewPromptWithContracts:
 
     def test_build_review_prompt_with_contracts_empty(self) -> None:
         """空の契約リストでは通常の build_review_prompt と同一出力。"""
-        chunk = _make_chunk("greet", 0)
+        chunk = _make_chunk("greet")
         prompt_normal = build_review_prompt(chunk)
         prompt_with_contracts = build_review_prompt_with_contracts(chunk, [])
         assert prompt_normal == prompt_with_contracts
 
     def test_build_review_prompt_with_contracts_includes_upstream(self) -> None:
         """上流契約カードがプロンプトに含まれる。"""
-        chunk = _make_chunk("process", 0)
+        chunk = _make_chunk("process")
         contract = _make_contract_card("src.upstream")
 
         prompt = build_review_prompt_with_contracts(chunk, [contract])
@@ -374,7 +374,7 @@ class TestBuildReviewPromptWithContracts:
 
     def test_blame_guide_included_when_contracts_present(self) -> None:
         """契約カードがある場合、帰責判断ガイドがプロンプトに含まれる (AC-2)。"""
-        chunk = _make_chunk("handler", 0)
+        chunk = _make_chunk("handler")
         contract = _make_contract_card("src.upstream")
 
         prompt = build_review_prompt_with_contracts(chunk, [contract])
@@ -385,7 +385,7 @@ class TestBuildReviewPromptWithContracts:
 
     def test_no_blame_guide_when_contracts_empty(self) -> None:
         """契約カードがない場合、帰責指示は含まれない (AC-10)。"""
-        chunk = _make_chunk("simple", 0)
+        chunk = _make_chunk("simple")
 
         prompt = build_review_prompt_with_contracts(chunk, [])
 
@@ -394,7 +394,7 @@ class TestBuildReviewPromptWithContracts:
 
     def test_blame_guide_token_count(self) -> None:
         """帰責ガイド追加分のトークン数が 200 以下 (AC-9)。"""
-        chunk = _make_chunk("check", 0)
+        chunk = _make_chunk("check")
         contract = _make_contract_card("src.upstream")
 
         prompt_with = build_review_prompt_with_contracts(chunk, [contract])

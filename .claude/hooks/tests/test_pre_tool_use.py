@@ -20,6 +20,13 @@ def _write_input(tool_name: str, file_path: str) -> dict:
     return {"file_path": file_path, "old_string": "old", "new_string": "new"}
 
 
+def write_phase(project_root: Path, phase: str) -> None:
+    """current-phase.md を作成して指定フェーズに設定する。"""
+    phase_file = project_root / ".claude" / "current-phase.md"
+    phase_file.parent.mkdir(parents=True, exist_ok=True)
+    phase_file.write_text(f"**{phase}**\n", encoding="utf-8")
+
+
 class TestPreToolUse:
     """pre-tool-use.py の権限等級判定テスト"""
 
@@ -231,12 +238,6 @@ class TestFR9SelfGovernance:
     層1（permissions.deny 決定的層）は T1-5 後に autonomous 専用 settings で別途実装する。
     """
 
-    @staticmethod
-    def _write_phase(project_root: Path, phase: str) -> None:
-        phase_file = project_root / ".claude" / "current-phase.md"
-        phase_file.parent.mkdir(parents=True, exist_ok=True)
-        phase_file.write_text(f"**{phase}**\n", encoding="utf-8")
-
     @pytest.mark.parametrize("tool_name,file_path", [
         ("Edit", ".claude/rules/core-identity.md"),
         ("Write", ".claude/rules/auto-generated/draft-001.md"),
@@ -249,7 +250,7 @@ class TestFR9SelfGovernance:
     ])
     def test_autonomous_denies_governance_files(self, hook_runner, project_root, tool_name, file_path):
         """AUTONOMOUS フェーズでは FR9_PATTERNS への書込が deny される（自己破壊的再帰防止）"""
-        self._write_phase(project_root, "AUTONOMOUS")
+        write_phase(project_root, "AUTONOMOUS")
         input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0
@@ -272,7 +273,7 @@ class TestFR9SelfGovernance:
         注: docs/specs/ は FR-9 統治ファイルではないが FR-3.4 spec freeze で別途 deny される
         （TestFR34SpecFreeze 参照）。本テストは FR-9/FR-3.4 いずれの対象でもない src 等を検証する。
         """
-        self._write_phase(project_root, "AUTONOMOUS")
+        write_phase(project_root, "AUTONOMOUS")
         input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0
@@ -290,7 +291,7 @@ class TestFR9SelfGovernance:
     ])
     def test_non_autonomous_does_not_deny_governance(self, hook_runner, project_root, tool_name, file_path):
         """非 AUTONOMOUS（BUILDING）では FR9_PATTERNS への書込が deny されない（回帰防止）"""
-        self._write_phase(project_root, "BUILDING")
+        write_phase(project_root, "BUILDING")
         input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0
@@ -313,12 +314,6 @@ class TestFR34SpecFreeze:
     test_settings_autonomous.py が検証する（二重防御）。
     """
 
-    @staticmethod
-    def _write_phase(project_root: Path, phase: str) -> None:
-        phase_file = project_root / ".claude" / "current-phase.md"
-        phase_file.parent.mkdir(parents=True, exist_ok=True)
-        phase_file.write_text(f"**{phase}**\n", encoding="utf-8")
-
     @pytest.mark.parametrize("tool_name,file_path", [
         ("Edit", "docs/specs/autonomous-mode/requirements.md"),
         ("Write", "docs/specs/autonomous-mode/design.md"),
@@ -327,7 +322,7 @@ class TestFR34SpecFreeze:
     ])
     def test_autonomous_denies_spec_files(self, hook_runner, project_root, tool_name, file_path):
         """AUTONOMOUS フェーズでは docs/specs/ への書込が deny される（FR-3.4 spec freeze）"""
-        self._write_phase(project_root, "AUTONOMOUS")
+        write_phase(project_root, "AUTONOMOUS")
         input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0
@@ -347,7 +342,7 @@ class TestFR34SpecFreeze:
     ])
     def test_non_autonomous_does_not_deny_spec(self, hook_runner, project_root, tool_name, file_path):
         """非 AUTONOMOUS（BUILDING）では docs/specs/ は deny されない（PM ask のまま・回帰防止）"""
-        self._write_phase(project_root, "BUILDING")
+        write_phase(project_root, "BUILDING")
         input_json = {"tool_name": tool_name, "tool_input": _write_input(tool_name, file_path)}
         result = hook_runner(HOOK_PATH, input_json)
         assert result.returncode == 0

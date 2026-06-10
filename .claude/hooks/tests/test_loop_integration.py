@@ -49,14 +49,6 @@ def _make_input(project_root: Path, message: str = "done", **overrides) -> dict:
     return data
 
 
-def _create_makefile(project_root: Path, test_exit: int = 0, lint_exit: int = 0) -> None:
-    """Makefile を project_root に作成する。"""
-    lines = [f"test:\n\t@exit {test_exit}\n"]
-    if lint_exit is not None:
-        lines.append(f"lint:\n\t@exit {lint_exit}\n")
-    (project_root / "Makefile").write_text("".join(lines), encoding="utf-8")
-
-
 class TestNormalConvergence:
     """S-1: 安全ネット動作シミュレーション
 
@@ -89,8 +81,13 @@ class TestNormalConvergence:
 class TestLoopStateVariations:
     """S-2: ループ状態バリエーション（block / active=false）"""
 
-    def test_test_failure_blocks(self, hook_runner, project_root):
-        """S-2-1: テスト失敗 → block で継続（PM級検出は Claude の責務）"""
+    def test_pm_escalation_message_still_blocks(self, hook_runner, project_root):
+        """S-2-1: PM級検出を訴えるメッセージでも block で継続（PM級判断は Claude の責務）。
+
+        Stop hook はメッセージ内容やテスト結果を解釈せず、アクティブな
+        ループ中は安全ネットとして block のみを返す（iter3 TEST-A-1:
+        旧 Makefile セットアップは hook が読まないため除去）。
+        """
         state = {
             **DEFAULT_STATE,
             "iteration": 1,
@@ -99,7 +96,6 @@ class TestLoopStateVariations:
             ],
         }
         _write_state(project_root, state)
-        _create_makefile(project_root, test_exit=1)
 
         input_data = _make_input(
             project_root,
@@ -109,7 +105,7 @@ class TestLoopStateVariations:
 
         assert result.returncode == 0
         stdout = result.stdout.strip()
-        assert stdout, f"テスト失敗時は block JSON が出力されるべき。got: {stdout!r}"
+        assert stdout, f"アクティブループ中は block JSON が出力されるべき。got: {stdout!r}"
         data = json.loads(stdout)
         assert data.get("decision") == "block"
 
@@ -143,7 +139,6 @@ class TestMaxIterationsLifecycle:
             ],
         }
         _write_state(project_root, state)
-        _create_makefile(project_root, test_exit=1)
 
         input_data = _make_input(project_root, "Green State 未達。残 Issue: 1件")
         result = hook_runner(STOP_HOOK_PATH, input_data)
@@ -226,19 +221,18 @@ class TestFullLifecycle:
         state_file = self._init_state_file(project_root)
         assert state_file.exists(), "Phase 0: 状態ファイルが生成されるべき"
 
-    def test_cycle1_test_failure_blocks_and_preserves_iteration(
+    def test_cycle1_unresolved_issues_blocks_and_preserves_iteration(
         self, hook_runner, project_root
     ):
-        """S-5-1b: サイクル1（テスト失敗）→ block 継続・iteration 不変・状態保持。"""
+        """S-5-1b: サイクル1（Issue 残あり）→ block 継続・iteration 不変・状態保持。"""
         state_file = self._init_state_file(project_root)
 
-        _create_makefile(project_root, test_exit=1)
         input_data = _make_input(project_root, "Green State 未達。残 Issue: 3件")
         result = hook_runner(STOP_HOOK_PATH, input_data)
 
         assert result.returncode == 0
         data = json.loads(result.stdout.strip())
-        assert data.get("decision") == "block", "サイクル1: テスト失敗時は block で継続"
+        assert data.get("decision") == "block", "サイクル1: ループ継続中は block"
         assert state_file.exists(), "サイクル1: 状態ファイルが残っているべき"
 
         # 安全ネットでは iteration をインクリメントしない（Claude 側の責務）

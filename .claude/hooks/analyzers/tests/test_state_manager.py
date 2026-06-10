@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import dataclasses
 import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -497,24 +498,32 @@ class TestChunksIndex:
 
 
 class TestDependencyGraphPersistence:
-    """dependency-graph.json の永続化テスト（D-1: FR-7a）。"""
+    """dependency-graph.json の永続化テスト（D-1: FR-7a）。
+
+    各テストメソッドの引数契約:
+        save_dependency_graph(state_dir, graph_data) — state_dir は review-state/ 相当の Path
+        load_dependency_graph(state_dir)             — 同上
+    tmp_path は pytest が提供する一時ディレクトリ。ここでは state_dir として直接使用する。
+    """
 
     def test_save_and_load_roundtrip(self, tmp_path: Path) -> None:
         """保存→読込のラウンドトリップで同一データが得られること。"""
+        state_dir = tmp_path
         graph_data = {
             "topo_order": ["c", "b", "a"],
             "sccs": [["a", "b"]],
             "node_to_file": {"a": "a.py", "b": "b.py", "c": "c.py"},
         }
-        save_dependency_graph(tmp_path, graph_data)
-        loaded = load_dependency_graph(tmp_path)
+        save_dependency_graph(state_dir, graph_data)
+        loaded = load_dependency_graph(state_dir)
         assert loaded["topo_order"] == ["c", "b", "a"]
         assert loaded["sccs"] == [["a", "b"]]
         assert loaded["node_to_file"] == {"a": "a.py", "b": "b.py", "c": "c.py"}
 
     def test_load_returns_empty_when_missing(self, tmp_path: Path) -> None:
         """ファイルが存在しない場合、空の構造を返すこと。"""
-        loaded = load_dependency_graph(tmp_path)
+        state_dir = tmp_path
+        loaded = load_dependency_graph(state_dir)
         assert loaded["topo_order"] == []
         assert loaded["sccs"] == []
         assert loaded["node_to_file"] == {}
@@ -522,7 +531,35 @@ class TestDependencyGraphPersistence:
     def test_load_handles_corrupted_file(self, tmp_path: Path) -> None:
         """壊れた JSON ファイルがあっても空の構造を返すこと。"""
         state_dir = tmp_path
-        state_dir.mkdir(exist_ok=True)
         (state_dir / "dependency-graph.json").write_text("not json", encoding="utf-8")
-        loaded = load_dependency_graph(tmp_path)
+        loaded = load_dependency_graph(state_dir)
         assert loaded["topo_order"] == []
+
+    def test_load_warns_on_incomplete_fields(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """ファイルが存在するが必須フィールドが欠落している場合 warning ログを出すこと（W-8）。
+
+        topo_order / sccs / node_to_file のいずれかが欠落している JSON は
+        「不完全なグラフ」であり、無言でフォールバックするのではなく
+        logger.warning で記録する必要がある。
+        """
+        import logging
+
+        # node_to_file が欠落した不完全なグラフ
+        incomplete = {"topo_order": ["a", "b"], "sccs": [["a"]]}
+        (tmp_path / "dependency-graph.json").write_text(
+            json.dumps(incomplete), encoding="utf-8"
+        )
+
+        with caplog.at_level(logging.WARNING, logger="analyzers.state_manager"):
+            loaded = load_dependency_graph(tmp_path)
+
+        # フォールバック値が返ること
+        assert loaded["topo_order"] == ["a", "b"]
+        assert loaded["sccs"] == [["a"]]
+        assert loaded["node_to_file"] == {}
+        # warning ログが出力されていること
+        assert any("Incomplete" in r.message or "incomplete" in r.message for r in caplog.records), (
+            "必須フィールド欠落時に warning ログが出力されること"
+        )

@@ -158,6 +158,12 @@ class TestBuildPlanStatus:
         assert status.available is True
         assert status.reason == "auto"
 
+    def test_unknown_plan_returns_available_false(self, tmp_path: Path) -> None:
+        """W-7: 未知 Plan は available=False, reason="unknown plan" を返す（silent fall-through 禁止）。"""
+        status = _build_plan_status("Z", recommended_plans=["Z"], project_root=tmp_path)
+        assert status.available is False
+        assert status.reason == "unknown plan"
+
 
 # ---------------------------------------------------------------------------
 # detect_scale: 統合（count_lines / ツール有無を決定化）

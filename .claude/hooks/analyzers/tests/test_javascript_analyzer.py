@@ -230,6 +230,14 @@ class TestRunLint:
 
         assert issues == []
 
+    def test_run_lint_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """W-18: subprocess.run が env= キーワード付きで呼ばれること。"""
+        with patch("subprocess.run", return_value=_make_mock_result("[]")) as mock_run:
+            JavaScriptAnalyzer().run_lint(tmp_path)
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("env") is not None, "subprocess.run に env= が渡されていない"
+        assert "PATH" in call_kwargs["env"]
+
     def test_file_path_is_relative(self, tmp_path: Path) -> None:
         """file は target に対する相対パスに変換されること。"""
         stdout = json.dumps([
@@ -445,6 +453,15 @@ class TestRunSecurity:
 
         assert mock_run.call_args.kwargs.get("cwd") == tmp_path
 
+    def test_run_security_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """W-18: subprocess.run が env= キーワード付きで呼ばれること。"""
+        stdout = json.dumps({"vulnerabilities": {}})
+        with patch("subprocess.run", return_value=_make_mock_result(stdout, returncode=0)) as mock_run:
+            JavaScriptAnalyzer().run_security(tmp_path)
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("env") is not None, "subprocess.run に env= が渡されていない"
+        assert "PATH" in call_kwargs["env"]
+
     def test_all_issues_are_issue_instances(self, tmp_path: Path) -> None:
         """返り値の全要素が Issue のインスタンスであること。"""
         with patch("subprocess.run", return_value=_make_mock_result(NPM_AUDIT_OUTPUT, returncode=1)):
@@ -490,6 +507,21 @@ class TestParseAst:
         node = analyzer.parse_ast(js_file)
 
         assert node.name == "my_module"
+
+    def test_non_utf8_file_returns_node(self, tmp_path: Path) -> None:
+        """非 UTF-8 ファイルでも raise せず module ノードを返す（iter3 SRC-B-2）。
+
+        PythonAnalyzer.parse_ast は errors="replace" で読むが JS 版は
+        無指定だったため UnicodeDecodeError でパイプラインが停止していた。
+        """
+        js_file = tmp_path / "legacy.js"
+        js_file.write_bytes(b"\xff\xfe// Shift_JIS \x83R\x83\x81\x83\x93\x83g\n")
+
+        analyzer = JavaScriptAnalyzer()
+        node = analyzer.parse_ast(js_file)
+
+        assert node.kind == "module"
+        assert node.name == "legacy"
 
     def test_start_line_is_1(self, tmp_path: Path) -> None:
         """start_line は 1 であること。"""

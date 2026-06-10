@@ -316,6 +316,19 @@ class TestRunLint:
         call_kwargs = mock_run.call_args[1]
         assert call_kwargs.get("cwd") == tmp_path
 
+    def test_run_lint_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """W-18: subprocess.run が env= キーワード付きで呼ばれること。"""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = ""
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            RustAnalyzer().run_lint(tmp_path)
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("env") is not None, "subprocess.run に env= が渡されていない"
+        assert "PATH" in call_kwargs["env"]
+
 
 # ── run_security（cargo audit） ─────────────────────────────
 
@@ -575,6 +588,19 @@ class TestRunSecurity:
         call_kwargs = mock_run.call_args[1]
         assert call_kwargs.get("cwd") == tmp_path
 
+    def test_run_security_passes_env_to_subprocess(self, tmp_path: Path) -> None:
+        """W-18: subprocess.run が env= キーワード付きで呼ばれること。"""
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = json.dumps({"vulnerabilities": {"found": False, "count": 0, "list": []}})
+
+        with patch("subprocess.run", return_value=mock_result) as mock_run:
+            RustAnalyzer().run_security(tmp_path)
+
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs.get("env") is not None, "subprocess.run に env= が渡されていない"
+        assert "PATH" in call_kwargs["env"]
+
 
 # ── parse_ast（Phase 1 簡易実装） ───────────────────────────
 
@@ -603,6 +629,18 @@ class TestParseAst:
         rs_file.write_text("fn main() {}\n")
         node = RustAnalyzer().parse_ast(rs_file)
         assert node.children == []
+
+    def test_parse_ast_non_utf8_file_returns_node(self, tmp_path: Path) -> None:
+        """非 UTF-8 ファイルでも raise せず module ノードを返す（iter3 SRC-B-2）。
+
+        PythonAnalyzer.parse_ast は errors="replace" で読むが Rust 版は
+        無指定だったため UnicodeDecodeError でパイプラインが停止していた。
+        """
+        rs_file = tmp_path / "legacy.rs"
+        rs_file.write_bytes(b"\xff\xfe// EUC-JP \xa5\xb3\xa5\xe1\xa5\xf3\xa5\xc8\n")
+        node = RustAnalyzer().parse_ast(rs_file)
+        assert node.kind == "module"
+        assert node.name == "legacy"
 
     def test_parse_ast_start_line_is_one(self, tmp_path: Path) -> None:
         """start_line は 1 であること。"""

@@ -82,7 +82,7 @@ class TestCheckNamingConsistency:
         """snake_case と camelCase の混在 → Issue あり。"""
         names = ["get_user", "setName", "calculate_total"]
         issues = check_naming_consistency(names, "module.py")
-        assert len(issues) >= 1
+        assert len(issues) == 1
         assert any("naming" in i.message.lower() or "命名" in i.message for i in issues)
 
     def test_single_word_names_ignored(self) -> None:
