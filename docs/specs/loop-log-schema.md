@@ -192,6 +192,23 @@ Green State: test=PASS, lint=PASS
 | deferred_items | 記録なし | 理由付き保留の詳細記録 |
 | changed_files | 記録なし | サイクルごとの変更ファイル一覧 |
 
+#### MVP 実装フィールド名マッピング（2026-06-10 B-2 監査 PM-6 で追記）
+
+現行 MVP 実装はループ実行中の状態を `.claude/lam-loop-state.json` の `log[]` 配列に記録する
+（`lam-stop-hook.py` / full-review SKILL が読み書き）。そのフィールド名は §2 スキーマの
+`iterations[]` と以下のように対応する:
+
+| MVP `log[]` | 完全実装 §2 `iterations[]` | 備考 |
+|------|------|------|
+| `iteration`（0 始まり） | `number`（1 始まり） | +1 オフセット |
+| `issues_found` | `issues.critical` + `warning` + `info` の合計 | MVP は重要度別件数を保持しない |
+| `issues_fixed` | `actions.auto_fixed` 相当 | |
+| `pg` / `se` / `pm` | `classification.pg` / `se` / `pm` | |
+| `test_count` | （§2 に対応なし） | MVP 独自拡張（テスト数減少エスカレーション FR 用） |
+
+完全実装（JSON ログ移行）時に §2 のフィールド名へ正規化する。それまでの間、
+`lam-loop-state.json` の `log[]` フィールド名は上記 MVP 列が正であり、§2 との不一致は仕様内である。
+
 ---
 
 ## 4. 各フィールドの詳細定義

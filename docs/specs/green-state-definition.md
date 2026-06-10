@@ -110,8 +110,13 @@ MVP では G1 + G2 + G5 の3条件を自動判定する。G3, G4 は完全実装
 | チェック | ツール例 | 判定基準 |
 |:---|:---|:---|
 | 依存脆弱性 | `npm audit` / `pip audit` / `safety check` | Critical/High 脆弱性ゼロ |
-| シークレット漏洩 | `grep` パターンマッチ | API キー・パスワード等のハードコードなし |
+| シークレット漏洩 | `gitleaks`（Phase 0 統合・`analyzers/gitleaks_scanner.py`） | leak 検出ゼロ |
 | 危険パターン | OWASP Top 10 チェック | eval/exec、SQL文字列結合、pickle.load 等なし |
+
+> **シークレット検出の基盤改訂（2026-06-10 B-2 監査 PM-4）**: 旧版の `grep` パターンマッチは
+> gitleaks 統合（`docs/specs/gitleaks-integration-spec.md`）に置き換え済み。
+> bandit B105/B106 は Python 固有のハードコードパスワード検出として gitleaks と補完関係で残留する
+> （`scalable-code-review-spec.md` FR-7e）。
 
 **ツール未インストール時**: PASS（スキップ）扱いとし、ログに記録する。
 

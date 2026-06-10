@@ -292,7 +292,7 @@ Step 2.5: TDD パターン分析
 
 ### 7.3 v1 コードの扱い
 
-- `_extract_exit_code()`: 削除
+- `_extract_exit_code()`: 削除 — **移行完了**（削除済み。2026-06-10 B-2 監査 PM-8 で確認）
 - `_record_tdd_fail()` / `_record_tdd_pass()`: 改修（情報源を結果ファイルに変更）
 - `_is_test_command()` / `_get_test_cmd_label()`: 流用
 

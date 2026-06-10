@@ -49,7 +49,24 @@ core 採用を**見送る**（experimental・$100 Max 制約）。
 - Agent Teams が GA（一般提供）化し、$100 Max 枠で実用的になった場合。
 - MAGI（in-context）では不足する規模の相互チャレンジ（findings の相互 challenge）が必要になった場合。
 
+## 見送り候補3: FR-9.1 DENY の AUTONOMOUS 中 ask 緩和
+
+### 決定
+採用を**見送る**（2026-06-10 B-2 監査 PM-1 のユーザー判断。現状維持 = `.claude/hooks/` ツリー全体 DENY を堅持し、FR-9.1 補足に意図を明示）。
+
+### 概要
+AUTONOMOUS モード中の `.claude/hooks/`（tests/ 含む）書込を deny から ask（人間承認付き許可）へ緩和する案。
+自律監査ループ内でテスト修正イテレーションが完結しない問題（B-2 iter1 PM-1 指摘）への代替対処。
+
+### 見送り理由
+- 自律ループの無人前提と矛盾し、ループが承認待ちで停止する（ask は実質ループ中断）。
+- 現行運用（PM 提示で pm_pending 一時停止 → 人間判断 → 再開）で実害がなく、テスト改竄による Green State 偽装の防御（FR-9.1 の核心）を優先。
+
+### 採用再評価条件
+- 自律ループ中の hooks/tests/ 修正需要が頻発し、pm_pending 経由の往復がループ効率の主要ボトルネックと実測された場合。
+- 承認キュー（FR-2 系）が非同期 ask を吸収できる設計に進化し、「ask = ループ停止」でなくなった場合。
+
 ## 参照
-- [requirements.md](./requirements.md) FR-6.2 / FR-6.3 / RQ-5
+- [requirements.md](./requirements.md) FR-6.2 / FR-6.3 / RQ-5 / FR-9.1 補足
 - [ADR-0005](../../adr/0005-thin-harness-autonomous-governance.md) Non-Goals / 見直しトリガー / Reflection 追補
 - [design.md](./design.md) D6

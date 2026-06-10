@@ -169,6 +169,10 @@ SCC 検出が完遂できなかった場合に専用例外 `SccDetectionSkippedE
 - `detect_circular_dependencies(import_map) -> list[Issue]`: 同上。空 list は「循環依存なし」のみを意味する MUST。
 - `build_topo_order(import_map) -> TopoOrderResult`: 同上。返り値は dataclass（後述）。
 - `analyze_impact(modified_files, import_map) -> dict[str, list[str]]`: 同上。
+  正常時の返り値は `{"in_scope": list[str], "out_of_scope": list[str]}` の固定2キー辞書 MUST
+  （両キー常在・値はファイルパスのリスト）。`in_scope` は修正ファイル + SCC 展開 +
+  上流（被 import 側）推移閉包、`out_of_scope` は `import_map` 登載ファイルのうち
+  `in_scope` に含まれない残り全件（2026-06-10 B-2 監査 PM-5 で補記）。
 
 ##### TopoOrderResult dataclass
 
@@ -277,6 +281,8 @@ Stop hook の G5 チェックからシークレットスキャン部分を除去
 
 `ReviewResult.issues` を `list[str]` から `list[Issue]` に統一する。
 `Issue` dataclass（`base.py` 定義済み）を全パイプラインで一貫使用する。
+
+> **実装完了済み**（2026-06-10 B-2 監査 PM-7 で確認）: 全パイプラインが `list[Issue]` を一貫使用している。
 
 ### FR-8: ハイブリッドパイプライン（Plan E: 実装完了）
 
