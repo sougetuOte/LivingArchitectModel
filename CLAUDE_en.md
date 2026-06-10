@@ -50,8 +50,29 @@ See `.claude/rules/phase-rules.md` for details.
 
 ## Context Management
 
-When you judge that context remaining has **fallen below 20%**, suggest to the user at a natural breakpoint: "Context is running low. I recommend `/quick-save`."
-Do not wait for auto-compact to trigger. This is a safety net; the user is primarily responsible for monitoring the StatusLine.
+Judge thresholds by **absolute context usage, not remaining %**.
+Even with a 1M model selected, auto-compact is suspected to fire around 200K (see note below),
+so a remaining-% threshold tied to the model's window size does not work.
+
+- **Usage reaches 180K**: at a natural breakpoint of the current task, suggest
+  "I recommend `/quick-save`." Do not wait for auto-compact to trigger
+- **Usage exceeds 200K**: even mid-task, recommend "immediate `/quick-save` → new session"
+  (mitigation for the malformed/high-context correlation; upstream #65247)
+
+This is a safety net; the user is primarily responsible for monitoring the StatusLine.
+
+### Model Operation (during the Opus 4.8 trial)
+
+- For very large context input or heavy Extended Thinking work, choose 4.7 (1M)
+- If malformed occurs even once, immediately fall back to 4.7 (1M)
+- Details: `docs/artifacts/incident-2026-06-02-tool-malformed.md` §follow-up investigation
+
+> **Note (provisional — pending empirical confirmation)**: "auto-compact fires around 200K
+> even on 1M models" is a **hypothesis** based on a 2026-06-06 session observation
+> (400k→131.8k compression), not yet confirmed. Once confirmed by measurement (StatusLine
+> tracking, cross-model comparison, CC CHANGELOG scan), update this note to a definitive
+> statement. In contrast, #65247 (correlation between malformed and high context) is
+> confirmed information that exists as an upstream report.
 
 ### Save/Load Usage
 - `/quick-save`: SESSION_STATE.md + loop log + Daily record (no git operations)
