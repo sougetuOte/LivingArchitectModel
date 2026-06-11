@@ -3,12 +3,12 @@ name: release
 description: "リリース - CHANGELOG 版起こし → commit → tag → push"
 version: 1.0.0
 disable-model-invocation: true
-argument-hint: "<version> (例: v4.7.0)"
+argument-hint: "<version> (例: v4.8.0)"
 ---
 
 # /release - リリース
 
-引数: `<version>` — リリースするバージョン（例: `v4.7.0`）。`v` 接頭辞付き semver。
+引数: `<version>` — リリースするバージョン（例: `v4.8.0`）。`v` 接頭辞付き semver。
 引数がない場合は CHANGELOG の `[Unreleased]` 内容から semver 昇格案（major/minor/patch）を提示し、ユーザーに確定を求める。
 
 ## 前提条件チェック

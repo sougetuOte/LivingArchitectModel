@@ -4,6 +4,81 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v4.8.0] - 2026-06-11
+
+### 概要
+
+hooks コードベースの全面 full-review（B-2、7 巡）による真の Green State 達成と、
+autonomous-mode（自律エージェントガバナンス）の新規実装が柱となるリリース。
+B-2 full-review では累計 70+ 件の Issue（エラー黙殺解消・防御対称化・セキュリティ補完・
+Dead Code 削除等）を解消し、テスト数は 739 → 752 件に増加。7 巡で Before=0 を確認した。
+あわせて 3 層作業体制（Fable=判断／Sonnet=実行／Haiku=事実突合）の制度化、
+v4.0.0 残タスク 18 件の棚卸し決着、Context Management の絶対値閾値改訂を実施した。
+
+### Added
+
+- **feat(autonomous-mode)**: 自律エージェントガバナンス（FR-1〜FR-9）を新規実装
+  - ADR-0005「Thin Harness Autonomous Governance」策定・承認
+  - `autonomous-state.json` 最小スキーマ（T1-1）
+  - G1 test checker（T1-2）
+  - Stop hook autonomous フロー（T1-3）
+  - FR-9 層2 強制 — AUTONOMOUS セッションで統治ファイル書込を deny（T1-4 層2）
+  - FR-9 層1 — 専用 `settings.autonomous.json` で `permissions.deny` 決定的強制（T1-4 層1）
+  - AUTONOMOUS モード値を `current-phase.md` に登録（T1-6）
+  - `FR-3.4 spec freeze` の強制点欠落を補完（監査 CP-C 判断1）
+  - `/autonomous` スキル最小版（T1-5）
+- **feat(hooks)**: Stop hook 通知B — 未分析 TDD パターンの `/retro` 推奨（W-9 / A-2）
+  - `_count_unanalyzed_tdd_patterns` / `_notify_unanalyzed_patterns` を追加
+  - 仕様書 `tdd-introspection-v2.md §5.1` の spec drift を解消
+- **feat(hooks)**: `normalize_path` の symlink 境界判定を `resolve()` 化（W-15）
+- **feat(hooks)**: `normalize_path` 相対 traversal の字句正規化（W-16）
+- **feat(hooks)**: G1 checker サブプロセスの env allowlist 化（W-14）
+- **feat(hooks)**: `card_generator` 2モジュール分割 + SCC 契約 fail-fast 化
+
+### Fixed
+
+- **fix(hooks)**: B-2 full-review 7巡（iter1-7）— hooks 全体の堅牢性・契約・セキュリティ修正
+  - iter1: `atomic_write_json` 化・`OSError` 処理対称化・env allowlist 一掃
+  - iter2: gitleaks 非リスト JSON 防御 / `_parse_junit_xml` の ValueError 契約遵守 /
+    Dead Code `get_tool_response` 削除 / `pre-compact` フラグ atomic 化
+  - iter3: `pre-tool-use main()` 分割 / `collect_spec_drift_context` OSError 防御 /
+    js・rust `parse_ast` の `errors=replace` / `shell=False` 明示 / stderr ログ sanitize
+  - iter4-6: `lam-stop-hook` の例外黙殺を WARN ログ化・`_hook_utils` の Dead Code 削除・
+    `state_manager` の KeyError 防御・`javascript_analyzer` ログ対称化・
+    `check_g1_test` except 狭域化
+  - iter7: B-2 PM 決着 12 件（PM-3〜PM-4 等）の仕様同期。真の Green State（Before=0）確認
+  - 7巡合計: Critical=0 / Warning=0（Info のみ）
+- **fix(autonomous-mode)**: Stop hook の状態二度読みを廃止し fail-open 経路を除去（監査 B1）
+- **fix(analyzers)**: `Silent Failure` に観測性を追加（監査 B2）
+- **fix(analyzers)**: `state_manager` の `save_*` に書込失敗の観測性を追加（監査 B3）
+- **fix(analyzers)**: `run_phase0` で `line_count` を常時カウント（監査 S2a）
+- **fix(analyzers)**: W-12 `state_dir` パス不整合の恒久対策（D-1）
+- **fix(hooks)**: 通知B の文字コード破損フェイルセーフ完全化（B-1 Info）
+
+### Changed
+
+- **docs(CLAUDE.md)**: 3層作業体制を明文化（A-7 / B-2 retro 由来）
+  - Fable=判断のみ・Sonnet=実行・Haiku=事実突合。本体直接作業はレート制限枯渇の教訓
+- **docs(CLAUDE.md)**: `Execution Environment` 節を追加（Bash=Git Bash の規約）
+  - パスはフォワードスラッシュ・cmd/PowerShell 専用構文禁止をサブエージェント含め明文化
+- **docs(CLAUDE.md)**: Context Management を絶対値閾値（180K/200K）へ改訂（C-2）
+  - 残量 % ではなく使用量絶対値で auto-compact タイミングを判断
+- **refactor(analyzers)**: `_file_path_to_module_name` を `base.py` に集約（A-3）
+  - `card_generator` / `graph.scc` のバイト一致重複を削除し `analyzers/base.py` へ統合
+- **refactor(test)**: env allowlist 重複を `CHECKER_ENV_ALLOWLIST` へ DRY 統合（A-1）
+- **refactor(hooks)**: 権限判定・Stop hook の責務分離 + 制御文字サニタイズ
+- **test**: B-2 対応テスト網羅補完（iter4-6）— 739 → 752 件（+13）
+- **docs(tasks)**: v4.0.0 残タスク 18 件の棚卸し決着（バンドル A-D の PM 判断）
+- **docs(tasks)**: gitleaks / v4.0.0 タスクファイルの完了項目棚卸しマーキング（C-3）
+- **docs(specs)**: B-2 PM 決着（PM-3/PM-4 等）の仕様同期
+
+### Retrospective
+
+- **retro(B-2)**: `retro-b2-full-review.md` 作成（Keep 7 / Problem 7 / Try 7）
+  - A-1〜A-9 のアクションを full-review SKILL.md へ反映
+    （untracked 警告 / 縮小構成トリガー / 査定記録注入 / 横展開 grep / 回帰委譲注記 / `max_iterations` 延長運用）
+  - A-9: `PostToolUseFailure` 混入は意図的動作と判明 — `/retro` 側で集計除外を採用
+
 ## [v4.7.0] - 2026-05-29
 
 ### 概要
