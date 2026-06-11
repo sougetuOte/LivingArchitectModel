@@ -5,7 +5,7 @@ metadata:
   type: project
 ---
 
-2026-06-10 イテレーション2 SEC横断監査で更新（ゼロベース監査、全対象ファイル再読込）。
+2026-06-11 イテレーション6 SEC ゼロベース再スキャンで更新（全対象ファイル再読込）。
 
 **Why:** フックスクリプトは Claude Code の権限制御レイヤーであり、迂回・誤動作は直接的なセキュリティリスクになる。
 
@@ -13,21 +13,17 @@ metadata:
 
 ## 要注意箇所（優先度順）
 
-### 残存オープン（2026-06-10 イテレーション2 確認）
+### 残存オープン（2026-06-11 イテレーション6 最終確認）
 
-1. [Low/SE] `analyzers/gitleaks_scanner.py:241` — `_parse_gitleaks_json` で `data` が
-   list でない場合（dict/None）に `for finding in data:` が AttributeError を送出して
-   `run_phase0` までクラッシュ伝播する。gitleaks v8 は通常 `[]` を返すが、異常終了時に
-   JSON object を返すバージョンや将来の形式変更で露出する。
-   修正: `if not isinstance(data, list): return []` を json.loads 直後に追加。
-   （iter1 で Critical と報告されたが、gitleaks v8 の通常動作では非発生。Low に降格）
+なし。iter6 全域ゼロベース再スキャン（全12本番ファイル再読込）で新規 Issue なし。Issues: 0。
 
-2. [Low/SE] `pre-compact.py:46` — `write_pre_compact_flag` が `path.write_text()` で
-   非アトミック書込み。中断時に空/部分書込みになる。
-   lam-stop-hook の fromisoformat 失敗時は mtime フォールバックがあるため
-   セキュリティ影響はなく Low。`_atomic_write_text()` に置き換えが望ましい。
+追加確認事項（iter6）:
+- `python/javascript/rust_analyzer.py` の全 subprocess: `shell=` 未指定（Python デフォルト False）だが、リスト引数渡しのため実害なし
+- `run_command()` — 削除済み（grep で0件再確認）
+- `eval`/`exec`/`pickle`/`yaml.load` — 本番コードに不使用（grep 再確認）
+- ハードコード認証情報 — 全ファイル再スキャンで不在確認
 
-### 解消済み（2026-06-10 イテレーション1→2 で修正確認）
+### 解消済み（iter1〜4 累積確認）
 
 - `check_g1_test.py run_check`: `env=build_allowlisted_env()` 適用済み（iter1 item 3）
 - `gitleaks_scanner.py _run_gitleaks`: `env=build_allowlisted_env()` 適用済み（iter1 item 4）
@@ -36,7 +32,7 @@ metadata:
 - `normalize_path`: W-15 symlink resolve + W-16 `..` 字句畳み込み済み
 - `lam-stop-hook.py _run_g1_checker`: `build_allowlisted_env()` 適用済み
 
-### iter2 新規確認（指摘なし相当）
+### iter2〜4 新規確認（指摘なし相当）
 
 - `_PG_BLACKLISTED_ARGS` `\$` パターン: Python 3 `\s` は Unicode 空白を含むためマッチ漏れなし
 - `--config` が文字列末尾で終わる場合のバイパス: ruff が「値なし」でエラー終了するため実害なし（理論上のみ）
@@ -44,6 +40,10 @@ metadata:
 - ET.parse Billion Laughs: expat 組込み増幅係数制限が 6 レベル以上で発火 — 安全
 - gitleaks tempfile TOCTOU: gitleaks が上書きするため読取側の整合性は維持される — 影響なし
 - tdd-patterns.log 改行注入: tab 置換済み + 不正行は splitlines 後に `len(fields) < 2` でスキップ
+- `run_command()` `env` 未指定: iter5 で完全削除を grep 確認（0件）。解消済み
+- `eval`/`exec`/`pickle`/`yaml.load`: iter4 全域再確認で不使用を確認
+- 全 subprocess `shell=False`: iter4 全域再確認済み
+- ハードコード認証情報: iter4 全域再確認で不在を確認
 
 ## 良好な点（参照用）
 
