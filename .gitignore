@@ -53,3 +53,6 @@ docs/daily/
 # Reference materials
 _reference/
 last-test-result
+# 依頼書原本（実名・課金内幕・第三者記事のスクショを含むためローカル限定。
+# 公開用の仕様は同ディレクトリ直下に自己完結したサニタイズ版として導出する）
+docs/specs/goal-driven-orchestration/request/

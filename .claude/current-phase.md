@@ -1,8 +1,8 @@
 # Current Phase
 
-**AUDITING**
+**PLANNING**
 
-_B-1: 本セッション変更分（A-1 env allowlist DRY / A-2 通知B W-9 / A-3 `file_path_to_module_name` の base 集約）＋ card_generator 分割モジュール（graph.scc / analysis.impact）の Green State 確定再確認。B-2（LAM 全体 full-review）とは切り分け、対象を限定。モデル: Opus 4.8 (1M context)._
+_B-3: ゴール駆動オーケストレーション・スキルの要件定義。原本依頼書 `docs/specs/goal-driven-orchestration/request/LAM-orchestration-request-v3.md`（gitignore・ローカル限定）から、実名・課金内幕を除去した自己完結のサニタイズ版 requirements.md を導出する。体制: Fable=判断のみ / Sonnet=起草 / Opus=批判レビュー。_
 
 ---
 
