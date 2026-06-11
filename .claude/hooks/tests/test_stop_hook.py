@@ -112,6 +112,29 @@ class TestStopHook:
         # 状態ファイルが削除されていること
         assert not state_file.exists(), "PreCompact 発火時は状態ファイルが削除されるべき"
 
+    def test_precompact_stale_flag_continues_loop(self, hook_runner, project_root):
+        """PreCompact フラグが閾値（600秒）超過の古い残留物なら、
+        コンテキスト圧迫とは見なさずループを継続（block）する（iter4 W4-8）。"""
+        state_file = _write_state(project_root, DEFAULT_STATE)
+
+        # 閾値超過（1時間前）のタイムスタンプでフラグを作成
+        old_dt = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            seconds=3600
+        )
+        pre_compact_flag = project_root / ".claude" / "pre-compact-fired"
+        pre_compact_flag.write_text(
+            old_dt.strftime("%Y-%m-%dT%H:%M:%SZ"), encoding="utf-8"
+        )
+
+        result = hook_runner(HOOK_PATH, {"session_id": "test-session"})
+
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "古いフラグでは安全ネット block が出力されるべき"
+        data = json.loads(stdout)
+        assert data.get("decision") == "block"
+        assert state_file.exists(), "古いフラグでは状態ファイルが残るべき"
+
     def test_state_schema_valid(self, project_root):
         """lam-loop-state.json の必須フィールドが正しく書き込み・読み込みできる"""
         state = {

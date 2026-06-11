@@ -9,6 +9,8 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from analyzers.base import ASTNode, Issue, ToolRequirement
 from analyzers.javascript_analyzer import JavaScriptAnalyzer
 
@@ -470,6 +472,29 @@ class TestRunSecurity:
 
         for issue in issues:
             assert isinstance(issue, Issue)
+
+    def test_non_json_stdout_returns_empty_and_logs_warning(
+        self, tmp_path: Path, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """npm audit が非 JSON を返した場合、空リストを返し logger.warning を出力する（W6-1）。
+
+        rust_analyzer.run_security の同種テストと同型。
+        caplog で WARNING レベルのログが出力されることを検証する。
+        """
+        import logging
+
+        with caplog.at_level(logging.WARNING, logger="analyzers.javascript_analyzer"):
+            with patch(
+                "subprocess.run",
+                return_value=_make_mock_result("not valid json at all", returncode=1),
+            ):
+                analyzer = JavaScriptAnalyzer()
+                issues = analyzer.run_security(tmp_path)
+
+        assert issues == []
+        assert any("WARNING" in r.levelname or r.levelno >= logging.WARNING for r in caplog.records), (
+            "非 JSON 出力時に logger.warning が呼ばれるべき"
+        )
 
 
 # ── parse_ast ──────────────────────────────────────────────

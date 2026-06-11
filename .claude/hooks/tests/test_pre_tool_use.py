@@ -145,6 +145,36 @@ class TestPreToolUse:
         # trunc 後は 100 文字以内
         assert len(target) <= 100, f"target が 100 文字を超えている: {len(target)}"
 
+    def test_log_sanitizes_control_and_bidi_chars(self, hook_runner, project_root):
+        """ログ target の Unicode 双方向制御文字（Cf）と C0 制御文字（Cc）が
+        半角スペースへ置換される（Trojan Source 型パス偽装対策・iter4 W4-6）"""
+        # U+202E = RIGHT-TO-LEFT OVERRIDE（Cf）、\x01 = C0 制御文字（Cc）
+        # ソースに生の双方向制御文字を埋め込まない（Trojan Source 対策）
+        rlo = chr(0x202E)
+        tricky_path = f"src/evil{rlo}py.cod\x01e.py"
+        input_json = {
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": tricky_path,
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        log_file = project_root / ".claude" / "logs" / "permission.log"
+        assert log_file.exists(), "ログファイルが作成されるべき"
+        lines = [
+            line
+            for line in log_file.read_text(encoding="utf-8").strip().split("\n")
+            if "evil" in line
+        ]
+        assert lines, "Edit のログが記録されるべき"
+        target = lines[-1].split("\t")[3]
+        assert rlo not in target, "U+202E (RLO) はスペースに置換されるべき"
+        assert "\x01" not in target, "C0 制御文字はスペースに置換されるべき"
+        assert "src/evil py.cod e.py" == target, f"制御文字のみが置換されるべき。got: {target!r}"
+
     def test_glob_tool_pg_allow(self, hook_runner):
         """Glob ツールは PG 級として許可される（exit 0、stdout 空）"""
         input_json = {

@@ -8,6 +8,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -150,6 +151,40 @@ def test_load_ast_map_returns_empty_when_file_missing(tmp_path: Path) -> None:
     state_dir.mkdir()
 
     result = load_ast_map(state_dir)
+
+    assert result == {}
+
+
+def test_load_ast_map_returns_empty_on_missing_node_fields(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """JSON 自体は正しいがノードの必須フィールドが欠損している場合、
+    JSONDecodeError 経路と対称に {} へフォールバックし警告を残す（iter4 W4-3）。"""
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    (state_dir / "ast-map.json").write_text(
+        json.dumps({"src/a.py": {"name": "a"}}), encoding="utf-8"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="analyzers.state_manager"):
+        result = load_ast_map(state_dir)
+
+    assert result == {}
+    assert any("ast map" in r.message.lower() for r in caplog.records)
+
+
+def test_load_ast_map_returns_empty_on_non_dict_node(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """ノード値が dict でない場合も未捕捉例外を伝播させず {} を返す（iter4 W4-3）。"""
+    state_dir = tmp_path / "review-state"
+    state_dir.mkdir()
+    (state_dir / "ast-map.json").write_text(
+        json.dumps({"src/a.py": "not-a-node"}), encoding="utf-8"
+    )
+
+    with caplog.at_level(logging.WARNING, logger="analyzers.state_manager"):
+        result = load_ast_map(state_dir)
 
     assert result == {}
 

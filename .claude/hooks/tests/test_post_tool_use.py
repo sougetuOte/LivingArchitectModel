@@ -128,6 +128,37 @@ class TestTDDPatternDetection:
         spec.loader.exec_module(module)
         assert module._parse_junit_xml(xml_path) is None
 
+    def test_testsuites_root_aggregates_multiple_suites(self, tmp_path):
+        """<testsuites> ルート（Jest/Maven 等の複数スイート形式）で
+        tests/failures/errors が全スイート合算される（iter4 W4-7）。"""
+        import importlib.util
+
+        xml_path = tmp_path / "test-results.xml"
+        xml_path.write_text(
+            '<?xml version="1.0" encoding="utf-8"?>\n'
+            "<testsuites>\n"
+            '  <testsuite name="suite1" tests="3" failures="1" errors="0">\n'
+            '    <testcase name="test_a"><failure message="boom"/></testcase>\n'
+            '    <testcase name="test_b"/>\n'
+            '    <testcase name="test_c"/>\n'
+            "  </testsuite>\n"
+            '  <testsuite name="suite2" tests="2" failures="0" errors="1">\n'
+            '    <testcase name="test_d"/>\n'
+            '    <testcase name="test_e"><error message="crash"/></testcase>\n'
+            "  </testsuite>\n"
+            "</testsuites>\n",
+            encoding="utf-8",
+        )
+        spec = importlib.util.spec_from_file_location("post_tool_use", HOOK_PATH)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        result = module._parse_junit_xml(xml_path)
+
+        assert result is not None
+        assert result["tests"] == 5, "全スイートの tests が合算されるべき"
+        assert result["failures"] == 2, "failures + errors が全スイート合算されるべき"
+        assert result["failed_names"] == ["test_a", "test_e"]
+
     def test_no_junit_xml_warns(self, hook_runner, project_root):
         """JUnit XML なし → WARN ログのみ、tdd-patterns.log には FAIL/PASS 記録なし"""
         input_json = {
@@ -367,3 +398,55 @@ class TestAtomicWriteSafety:
         data = json.loads(content)
         assert "tool_events" in data
         assert len(data["tool_events"]) == 3
+
+    def test_max_tool_events_truncation(self, tmp_path):
+        """tool_events が _MAX_TOOL_EVENTS(500) 件超過時、古いイベントを切り捨てる（W6-2）。
+
+        ちょうど _MAX_TOOL_EVENTS(500) 件のイベントを持つ lam-loop-state.json を作成し
+        _handle_loop_log を1回呼ぶと、append→切り捨てにより 501件→500件になる。
+        つまり最古の1件（cmd_0）が消え、末尾に新イベントが追記されて計 500 件のまま。
+        importlib 方式で直接呼び出す（test_non_integer_xml_attribute_returns_none と同型）。
+        """
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("post_tool_use", HOOK_PATH)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        max_events = module._MAX_TOOL_EVENTS  # 500
+
+        # ちょうど max_events 件のイベントを持つ loop state を作成
+        # 追加後 max_events + 1 件 → 切り捨てで後ろ max_events 件を保持
+        initial_events = [
+            {"timestamp": "2026-01-01T00:00:00Z", "tool_name": "Bash",
+             "command": f"cmd_{i}", "file_path": "", "exit_code": ""}
+            for i in range(max_events)
+        ]
+        loop_state_path = tmp_path / "lam-loop-state.json"
+        loop_state_path.write_text(
+            json.dumps({"iteration": 1, "tool_events": initial_events}),
+            encoding="utf-8",
+        )
+        log_file = tmp_path / "post-tool-use.log"
+
+        # 1 件追加呼び出し（501件 → 切り捨て後 500件）
+        module._handle_loop_log(
+            "Edit", "new_cmd", "src/new.py", "", loop_state_path, "2026-06-11T00:00:00Z", log_file
+        )
+
+        updated = json.loads(loop_state_path.read_text(encoding="utf-8"))
+        events = updated["tool_events"]
+
+        # 件数は max_events のまま（切り捨てで上限を維持）
+        assert len(events) == max_events, (
+            f"切り捨て後は {max_events} 件のままのはず、実際: {len(events)}"
+        )
+        # 最古の1件（cmd_0）が消えていること
+        assert events[0]["command"] == "cmd_1", (
+            f"最古イベントが切り捨てられるべき、実際の先頭: {events[0]['command']}"
+        )
+        # 末尾に新イベントが追記されていること
+        assert events[-1]["command"] == "new_cmd", (
+            f"新イベントが末尾に追記されるべき、実際の末尾: {events[-1]}"
+        )
+        assert events[-1]["tool_name"] == "Edit"

@@ -5,8 +5,33 @@
 """
 from __future__ import annotations
 
+import pytest
+
 from analyzers.base import Issue
-from analyzers.reducer import deduplicate_issues, check_naming_consistency
+from analyzers.reducer import classify_name, deduplicate_issues, check_naming_consistency
+
+
+class TestClassifyName:
+    """classify_name の直接テスト（W6-3）。
+
+    未到達分岐（PascalCase）を含む全分岐をカバーする。
+    """
+
+    @pytest.mark.parametrize(
+        "name,expected",
+        [
+            ("my_func", "snake_case"),        # 基本 snake_case
+            ("myVar", "camelCase"),            # 基本 camelCase
+            ("MyClass", "PascalCase"),         # PascalCase（既存テストで未到達の分岐）
+            ("__init__", None),                # ダンダー → 対象外
+            ("_", None),                       # strip 後空 → 対象外
+            ("word", None),                    # 単一ワード → 判定不能
+            ("My_func", "snake_case"),         # アンダースコア優先の境界（snake_case）
+        ],
+    )
+    def test_classify_name(self, name: str, expected: str | None) -> None:
+        """classify_name が各命名規則を正しく判定すること。"""
+        assert classify_name(name) == expected
 
 
 class TestDeduplicateIssues:
