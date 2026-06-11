@@ -165,6 +165,14 @@ Makefile の `test` ターゲット内で上記コマンドを呼び出す。
 {timestamp}\t{PASS|FAIL}\t{framework}\ttests={N} failures={N}\t"{失敗テスト名 要約}"
 ```
 
+第5フィールドの値は結果種別で異なる:
+
+- **FAIL 時**: 失敗テスト名の要約
+- **PASS 時**（FAIL→PASS 遷移時のみ記録）: `"{test_cmd} (previously failed)"`。
+  PASS 行に失敗テスト名は存在しないため、遷移元を示す固定書式とする。
+  読み手（/retro Step 2.5）はパターン照合に第2フィールド（PASS/FAIL）と
+  FAIL 行の第5フィールドのみを使用し、PASS 行の第5フィールドは参照しない
+
 PostToolUseFailure イベント（テストコマンドが非ゼロ exit で失敗）の場合、
 JUnit XML は古い結果が残っている可能性があるため読み取らず、直接 FAIL を記録する:
 
