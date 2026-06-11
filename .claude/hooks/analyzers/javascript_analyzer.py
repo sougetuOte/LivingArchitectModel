@@ -142,6 +142,9 @@ class JavaScriptAnalyzer(LanguageAnalyzer):
         try:
             data = json.loads(result.stdout)
         except (json.JSONDecodeError, ValueError):
+            logger.warning(
+                "npm audit が非JSON出力 (rc=%d); スキップ", result.returncode
+            )
             return []
 
         vulnerabilities = data.get("vulnerabilities", {})

@@ -12,8 +12,6 @@ import datetime
 import json
 import os
 import pathlib
-import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -240,39 +238,6 @@ def atomic_write_json(path: pathlib.Path, data: dict):
             raise
 
     raise last_error if last_error else RuntimeError("atomic_write_json: all retries exhausted")
-
-
-def run_command(args: list[str], cwd: str, timeout: int) -> tuple[int, str, str]:
-    """
-    subprocess.run のラッパー。
-
-    - shutil.which() でコマンドを解決する
-    - shell=False 固定
-    - timeout は subprocess パラメータで制御
-    - 戻り値: (exit_code, stdout, stderr)
-    """
-    if not args:
-        return (1, "", "no command specified")
-
-    resolved = shutil.which(args[0])
-    if resolved is None:
-        return (1, "", f"command not found: {args[0]}")
-
-    cmd = [resolved] + list(args[1:])
-    try:
-        result = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            shell=False,
-        )
-        return (result.returncode, result.stdout, result.stderr)
-    except subprocess.TimeoutExpired:
-        return (1, "", f"command timed out after {timeout}s: {args[0]}")
-    except Exception as e:
-        return (1, "", str(e))
 
 
 def safe_exit(code: int = 0):

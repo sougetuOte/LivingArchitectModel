@@ -129,7 +129,13 @@ def load_ast_map(state_dir: Path) -> dict[str, ASTNode]:
     except json.JSONDecodeError:
         logger.warning("Corrupted ast map file: %s", path)
         return {}
-    return {key: _dict_to_ast_node(node) for key, node in data.items()}
+    try:
+        return {key: _dict_to_ast_node(node) for key, node in data.items()}
+    except (KeyError, TypeError, AttributeError):
+        # JSON としては正しいがノードのフィールド欠損・型不正がある場合も
+        # JSONDecodeError 経路と対称に {} へフォールバックする（iter4 W4-3）
+        logger.warning("Malformed ast map entries: %s", path)
+        return {}
 
 
 def _format_issues(issue_list: list[Issue]) -> str:

@@ -119,13 +119,18 @@ def _parse_junit_xml(xml_path: Path) -> dict | None:
         return None
 
 
-def _read_prev_result(last_result_file: Path) -> bool:
-    """前回のテスト結果を読み取り、失敗だったか返す。"""
+def _read_prev_result(last_result_file: Path, log_file: Path) -> bool:
+    """前回のテスト結果を読み取り、失敗だったか返す。
+
+    読取失敗時は False（前回成功扱い・FAIL→PASS 通知を出さない保守的方向）に
+    縮退するが、失敗自体は操作ログに残す（iter4 SRC-A-4）。
+    """
     if last_result_file.exists():
         try:
             return last_result_file.read_text(encoding="utf-8").splitlines()[0].startswith("fail")
-        except Exception:
-            pass
+        except Exception as e:
+            log_entry(log_file, "WARN", "post-tool-use",
+                      f"last-test-result unreadable (treated as pass): {e}")
     return False
 
 
@@ -207,7 +212,7 @@ def _handle_test_result(
     failures = result["failures"]
     failed_names = result["failed_names"]
 
-    prev_was_fail = _read_prev_result(last_result_file)
+    prev_was_fail = _read_prev_result(last_result_file, log_file)
 
     if failures > 0:
         return _record_fail(tdd_log, last_result_file, timestamp, test_cmd, tests, failures, failed_names)
@@ -219,6 +224,7 @@ def _handle_doc_sync_flag(
     file_path: str,
     project_root: Path,
     doc_sync_flag: Path,
+    log_file: Path,
 ) -> None:
     """Edit/Write + src/ 配下のファイルを doc-sync-flag に追記する。"""
     if tool_name not in ("Edit", "Write"):
@@ -241,8 +247,11 @@ def _handle_doc_sync_flag(
                 for line in doc_sync_flag.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             )
-        except Exception:
-            pass
+        except Exception as e:
+            # 読取失敗時は重複チェックなしで追記継続（同一パスの重複記録は許容）。
+            # 失敗自体は操作ログに残す（iter4 W4-2）
+            log_entry(log_file, "WARN", "post-tool-use",
+                      f"doc-sync-flag unreadable (dedup skipped): {e}")
 
     if normalized not in existing_paths:
         doc_sync_flag.parent.mkdir(parents=True, exist_ok=True)
@@ -257,6 +266,7 @@ def _handle_loop_log(
     exit_code: str,
     loop_state_path: Path,
     timestamp: str,
+    log_file: Path,
 ) -> None:
     """lam-loop-state.json が存在する場合、tool_events に追記する。"""
     if not loop_state_path.exists():
@@ -264,8 +274,12 @@ def _handle_loop_log(
 
     try:
         loop_json = json.loads(loop_state_path.read_text(encoding="utf-8"))
-    except Exception:
-        return  # read/parse 失敗時はループ状態を破壊しないよう書き込みを行わない
+    except Exception as e:
+        # read/parse 失敗時はループ状態を破壊しないよう書き込みを行わない。
+        # 記録欠落の事実は操作ログに残す（iter5 W5-1・iter4 W4-2 と同型）
+        log_entry(log_file, "WARN", "post-tool-use",
+                  f"lam-loop-state.json unreadable (tool_event not recorded): {e}")
+        return
 
     event = {
         "timestamp": timestamp,
@@ -320,11 +334,13 @@ def main() -> None:
         )
 
     # 2. doc-sync-flag の設定
-    _handle_doc_sync_flag(tool_name, file_path, project_root, doc_sync_flag)
+    _handle_doc_sync_flag(tool_name, file_path, project_root, doc_sync_flag, log_file)
 
     # 3. ループログ記録
     # exit_code は空文字: PostToolUse/PostToolUseFailure の入力データに exit code が含まれないため
-    _handle_loop_log(tool_name, command, file_path, "", loop_state_path, timestamp)
+    _handle_loop_log(
+        tool_name, command, file_path, "", loop_state_path, timestamp, log_file
+    )
 
     # 4. 通知A: FAIL→PASS 遷移時に systemMessage を出力
     if system_message:

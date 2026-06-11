@@ -285,8 +285,14 @@ def _check_context_pressure(
                     log_file,
                     f"PreCompact fired {elapsed:.0f}s ago (mtime) → context pressure, stop loop",
                 )
-        except Exception:
-            pass
+        except Exception as e:
+            # mtime フォールバックも失敗 → コンテキスト圧迫を検知できないまま
+            # ループ継続（block）に進む。黙殺せず観測可能にする（iter4 W4-1）
+            _log(
+                log_file,
+                "WARN",
+                f"pre-compact flag unreadable (mtime fallback failed): {e}",
+            )
 
 
 def _load_active_autonomous_state(
@@ -405,6 +411,12 @@ def _apply_g1_result(
 
     exit code は checker_results に記録（モデル改竄不能）。PASS(0) なら active=false で
     _stop()、FAIL なら iteration++ で building へ _block()。いずれも SystemExit を送出する。
+
+    NOTE（Wave 2 スコープ・green-state-definition.md §2.2）: AUTONOMOUS の完了判定は
+    Wave 2 まで G1 のみ。design D3 の G2/G5 実行（checker_results.g2_exit/g5_exit）は
+    tasks.md T2-1 で追加予定であり、現状 None のままなのは意図的な段階実装。
+    また stop_hook_active による再帰ガードは持たず、反復は _handle_autonomous の
+    iteration 上限を主 bound とする（stop_hook_active はログ記録のみ）。
     """
     g1_exit = _run_g1_checker(project_root, log_file)
     results = state.setdefault("checker_results", {})

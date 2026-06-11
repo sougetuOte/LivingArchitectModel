@@ -60,7 +60,9 @@ def detect_test_command(project_root: Path) -> list[str] | None:
     if package_json.is_file():
         try:
             pkg = json.loads(package_json.read_text(encoding="utf-8"))
-        except Exception:
+        except (OSError, ValueError):
+            # 読取失敗・不正 JSON（JSONDecodeError/UnicodeDecodeError は ValueError 系）は
+            # pyproject 側の OSError 縮退と対称に空 dict で次の検出候補へ（iter4 W4-4）
             pkg = {}
         scripts = pkg.get("scripts")
         if isinstance(scripts, dict) and "test" in scripts:
