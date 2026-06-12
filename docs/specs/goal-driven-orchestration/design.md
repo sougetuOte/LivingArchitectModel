@@ -1,9 +1,9 @@
 # 設計書: ゴール駆動オーケストレーション・スキル
 
-- バージョン: 0.3.1
+- バージョン: 0.3.2
 - 作成日: 2026-06-11
-- 改訂日: 2026-06-12（W0-T1 実測結果の反映: §8 Plan B 確定・§18 D1 解決。設計判断の変更なし。PM 承認済み）
-- 改訂履歴: 2026-06-12 v0.3.0（2巡目レビュー R2-C-1〜4 / R2-W-1〜5 / R2-I-1〜2 ほか対応・リファクタリング）/ 2026-06-11 v0.2.0（spec-critic レビュー C-1〜C-4 / W-1〜W-7 / I-1〜I-4 / P-1〜P-4 対応）
+- 改訂日: 2026-06-13（§10 スキーマに fallback フィールド追加・§10 status 値域を明示化。PM 承認済み）
+- 改訂履歴: 2026-06-13 v0.3.2（§10 スキーマに fallback フィールド追加（§11b との矛盾解消）・status 値域を明示化（PM 承認））/ 2026-06-12 v0.3.1（W0-T1 実測結果の反映: §8 Plan B 確定・§18 D1 解決。設計判断の変更なし。PM 承認済み）/ 2026-06-12 v0.3.0（2巡目レビュー R2-C-1〜4 / R2-W-1〜5 / R2-I-1〜2 ほか対応・リファクタリング）/ 2026-06-11 v0.2.0（spec-critic レビュー C-1〜C-4 / W-1〜W-7 / I-1〜I-4 / P-1〜P-4 対応）
 - ステータス: Draft（PM 承認待ち）
 - 参照要件: `docs/specs/goal-driven-orchestration/requirements.md` v1.2.0
 - 参照ファクト: `docs/specs/goal-driven-orchestration/research/platform-facts-2026-06-11.md`
@@ -446,9 +446,17 @@ bound 超過を二段で検知する。第一防衛線がメインであり、St
   "loop_count": 0,
   "max_loop_count": 3,
   "start_time": 1718064000.0,
-  "status": "running"
+  "status": "running",
+  "fallback": null
 }
 ```
+
+**フィールド補足**:
+
+| フィールド | 型 | 初期値 | 取りうる値 | 説明 |
+|-----------|-----|--------|-----------|------|
+| `status` | string | `"running"` | `"running"` / `"escalated"` / `"completed"` | セッション状態。`"escalated"`: bound 超過またはループ上限到達時。`"completed"`: grader 合格による正常完了時 |
+| `fallback` | string \| null | `null` | `null` / `"two_layer"` | §11b の二層フォールバック発動時に `"two_layer"` が設定される。通常時は `null` |
 
 ### Stop hook B-3 節の設計（C-1 修正・PM級）
 
