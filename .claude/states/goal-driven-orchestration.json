@@ -1,0 +1,45 @@
+{
+  "feature": "goal-driven-orchestration",
+  "milestone": "B-3",
+  "phase": "BUILDING",
+  "planning": {
+    "requirements": {
+      "status": "approved",
+      "version": "1.2.0",
+      "approved_at": "2026-06-12",
+      "note": "2巡目レビュー完了後、ユーザーが /building 起動により承認（User Intent）"
+    },
+    "design": {
+      "status": "approved",
+      "version": "0.3.0",
+      "approved_at": "2026-06-12",
+      "note": "同上"
+    },
+    "tasks": {
+      "status": "approved",
+      "version": "1.1.0",
+      "approved_at": "2026-06-12",
+      "note": "同上"
+    }
+  },
+  "current_task": null,
+  "completed_tasks": ["W0-T1", "W0-T2", "W1-T1", "W1-T2", "W2-T1"],
+  "task_notes": {
+    "W0-T1": "Plan B 確定（2026-06-12 実測）。design v0.3.1 反映済み。W3-T1（Plan A）は不実施確定",
+    "W0-T2": "検討完了: Plan B 維持・DW 置き換え見送り。research/dw-replacement-analysis.md に記録。tasks.md v1.2.0 反映済み（PM 承認済み）",
+    "W1-T1": "完了（Sonnet 実装 + Haiku 突合検証 PASS）。SKILL.md 骨格 + gd_guard.py + テスト14件。AC-7 は Plan B 読み替え（max_loop_count 担保）",
+    "W1-T2": "完了（Sonnet 起草 + Haiku 突合検証 PASS）。config.md 新規。発見: design §10 スキーマに fallback フィールド欠落（§11b と矛盾・PM 判断待ち）",
+    "W2-T1": "完了（Sonnet 実装 + Haiku 突合検証 PASS）。エージェント定義3件 + テスト22件（全体218 passed）。スモークテストは静的 pytest 採用（DW プローブはレジストリキャッシュにより不成立と判明→tasks.md 該当行の修正が PM 承認待ち）",
+    "PM-G1": "提示資料準備完了（挿入位置・既存テスト影響評価・リスク6件）。PM 承認待ち",
+    "W1-T3": "未着手・6/22 期限。スタブエージェントは新セッション冒頭での作成→同セッション実機実行が必要（レジストリ制約）"
+  },
+  "deadline_notes": {
+    "2026-06-22": "クリティカルパス W0-T1 → W1-T1 → W1-T3（L1 スモークテスト）を無償期間内に完了必須"
+  },
+  "spec_refs": [
+    "docs/specs/goal-driven-orchestration/requirements.md",
+    "docs/specs/goal-driven-orchestration/design.md",
+    "docs/specs/goal-driven-orchestration/tasks.md"
+  ],
+  "updated_at": "2026-06-12"
+}
