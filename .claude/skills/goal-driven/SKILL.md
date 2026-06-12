@@ -135,7 +135,7 @@ L1 指揮者がタスクを分析し、三段階ルートを決定する。
 - これは Plan B 確定によるやむを得ない仕様変更である（design v0.3.1 §8 に記録済み）
 
 ```
-自前制御ループ骨格（W3-T2 で完全実装）:
+自前制御ループ骨格（W3-T2 実装済み・.claude/scripts/gd_loop.py）:
 
 while loop_count < max_loop_count AND total_tokens < global_token_bound:
 
@@ -171,6 +171,24 @@ loop_count >= max_loop_count → エスカレーション（bound 超過）
 - Agent(goal-driven-l2-foreman) を介して l3-executor を分配する
 - ネスト失敗時は `gd-session-state.json` に `fallback: "two_layer"` をセットし
   L1 が l3-executor を直接制御する（三層→二層退避・design §11b）
+
+**W3-T2 実装（`.claude/scripts/gd_loop.py`）の主要 API**:
+```python
+from gd_loop import (
+    run_plan_b_loop,          # Plan B 制御ループ本体
+    parse_grader_output,      # grader 判定 JSON パース
+    run_grader_with_retry,    # grader エラー時 1 回再試行
+    is_nest_failure,          # §11b ネスト失敗検知
+    activate_two_layer_fallback,  # §11b 三層→二層退避
+    save_grader_log,          # NFR-3: grader ログ保存
+    build_l3_executor_prompt, # l3-executor プロンプト生成
+    build_grader_prompt,      # grader プロンプト生成
+)
+```
+
+`run_plan_b_loop()` の `invoke_executor_fn` / `invoke_grader_fn` には
+それぞれ Agent(goal-driven-l3-executor) / Agent(goal-driven-grader) の
+呼び出しを渡すこと（AC-5: 独立した Agent 呼び出し・FR-2: 別コンテキスト）。
 
 ### [5] grader 呼び出し（FR-2）
 
@@ -320,7 +338,7 @@ full-review（納品前検収）
 | エージェント定義 3 件 | 未実装 | W2-T1 |
 | bound スクリプト（gd-state.py） | 未実装 | W2-T2 |
 | Stop hook B-3 節 | 未実装（PM-G1 必要） | W2-T3 |
-| 実行ループ本体（Plan B） | 未実装 | W3-T2 |
+| 実行ループ本体（Plan B） | **完了** | W3-T2 |
 | distill-lessons.py | 未実装 | W4-T1 |
 
 ---
