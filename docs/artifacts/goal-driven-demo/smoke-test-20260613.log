@@ -1,0 +1,126 @@
+# W1-T3 スモークテスト実行ログ
+
+- task_id: gd-smoke-20260613-001
+- 実施日: 2026-06-13
+- 実行終了時刻: 2026-06-13 07:06:56（後処理完了時点）
+- L1: Fable 5（claude-fable-5[1m]）
+- ルート: 小タスク（small）
+- 結果: **合格**（フロー [1]→[2]→[4]→[5] 完走）
+
+## 前提チェック
+
+- NFR-0 ハードキャップ: PM 確認済み（AskUserQuestion で「確認済み・実行開始」回答）
+- 排他ガード（--check-exclusion）: 競合なし
+- 残留リカバリ（--check-residual）: 残留なし
+
+## フロー [1] 難易度判定
+
+- タスク: docs/artifacts/goal-driven-demo/smoke-hello.txt に固定文字列 "smoke-test-ok" を書く
+- 条件 A: rubric 項目数 = 1 ≤ 3 / 条件 B: 未解決質問 = 0 / 条件 C: 工程数 = 1 ≤ 2
+- 判定: **小タスク（small）**
+
+## フロー [2] rubric 生成
+
+- 配置先: .claude/rubric-tmp.md（小タスクルート・design §6）
+- 項目: 1 件（smoke-hello.txt の内容が "smoke-test-ok" と一致すること）
+- 後処理で gd_guard.py --cleanup-rubric-tmp により削除済み
+
+## フロー [3] bound 設定
+
+- gd_state.py --init --task-id gd-smoke-20260613-001 --task-slug smoke-hello --route small
+- global_token_bound: 50000 / global_time_bound: 3600 / max_loop_count: 3
+- spawn 前残予算チェック（--check-spawn-budget）: ok
+
+## フロー [4] L3 スタブ実行（gd-smoke-l3-stub）
+
+- agentId: a9bcf52409bab5dc3 / 実測 subagent_tokens: 26305 / tool_uses: 5 / duration: 58987ms
+- 構造化報告 JSON（design §7 準拠・スタブ応答）:
+
+```json
+{
+  "$schema": "goal-driven-report/v1",
+  "task_id": "gd-smoke-20260613-001",
+  "rubric_version": "2026-06-13",
+  "changes": [
+    {
+      "file": "docs/artifacts/goal-driven-demo/smoke-hello.txt",
+      "summary": "write fixed string for smoke test"
+    }
+  ],
+  "test_results": {
+    "command": "echo smoke-test-stub",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "exit_code": 0
+  },
+  "unresolved": [],
+  "next_suggestion": "",
+  "tokens_used": 100
+}
+```
+
+- tokens_used (100) を gd_state.py --accumulate で累積 → total_tokens: 100
+
+## フロー [5] grader スタブ実行（gd-smoke-grader-stub・独立 Agent 呼び出し）
+
+- agentId: a9eb05723b70988f0 / 実測 subagent_tokens: 22722 / tool_uses: 2 / duration: 10102ms
+- grader 判定 JSON（design §11 準拠・スタブ応答）:
+
+```json
+{
+  "rubric_version": "2026-06-13",
+  "overall": "pass",
+  "items": [
+    {
+      "id": 1,
+      "result": "pass",
+      "reason": "docs/artifacts/goal-driven-demo/smoke-hello.txt ファイルが存在し、内容が固定文字列 'smoke-test-ok' と一致"
+    }
+  ],
+  "escalate": false,
+  "escalate_reason": ""
+}
+```
+
+- grader ログ保存先: .claude/logs/gd/gd-smoke-20260613-001-loop1-grader.json（NFR-3）
+
+## フロー [9] 後処理
+
+- rubric-tmp.md 削除: 完了（gd_guard.py --cleanup-rubric-tmp）
+- gd-session-state.json status: "completed"
+- 小タスクルートのため L1 最終検収はスキップ（design §9.1 MUST）
+
+## トークン記録
+
+- total_tokens（state 管理・report.tokens_used 累積）: 100（スタブ固定値）
+- 実測 subagent 消費: L3 = 26,305 / grader = 22,722（合計 49,027）
+- **l1_tokens**: 約 30,000（PM 実測 2026-06-13: quick-load 時 60k → 終了時 90k の差分）。
+  gd-session-state.json に 30000 として記録（runbook ステップ 6）
+
+## gd-session-state.json 最終スナップショット（削除前保全・PM 指示 2026-06-13）
+
+```json
+{
+  "task_id": "gd-smoke-20260613-001",
+  "task_slug": "smoke-hello",
+  "route": "small",
+  "nest_depth_limit": 5,
+  "global_token_bound": 50000,
+  "global_time_bound": 3600,
+  "total_tokens": 100,
+  "loop_count": 0,
+  "max_loop_count": 3,
+  "start_time": 1781301801.226195,
+  "status": "completed",
+  "fallback": null,
+  "l1_tokens": 30000
+}
+```
+
+state ファイル本体は l1_tokens 追記後、PM の明示指示により削除済み。
+
+## 備考
+
+- L3 / grader はスタブ（固定応答）。目的は L1 フロー完走確認と l1_tokens 記録機構の確認。
+- スタブ 2 定義（gd-smoke-l3-stub / gd-smoke-grader-stub）はテスト完了につき PM の手で削除可。

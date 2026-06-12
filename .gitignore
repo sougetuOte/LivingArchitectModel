@@ -2,6 +2,8 @@
 .DS_Store
 Thumbs.db
 *.log
+# goal-driven デモ・スモークテストの実行ログは成果物としてリポジトリに保存する（W1-T3/W7-T2 完了条件）
+!docs/artifacts/goal-driven-demo/*.log
 
 # Editors
 .vscode/
