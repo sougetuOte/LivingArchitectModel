@@ -491,6 +491,36 @@ def main() -> None:
         )
         return
 
+    # B-3: goal-driven グローバル bound バックストップ（第二防衛線）
+    # 競合排除: auto_state is None（AUTONOMOUS 非稼働）かつ lam-loop-state.json 未存在の場合のみ評価。
+    # 第一防衛線（スキルスクリプト）が失敗した場合のみここが発動する。
+    if not state_file.exists():
+        gd_state_path = project_root / ".claude" / "gd-session-state.json"
+        if gd_state_path.exists():
+            try:
+                gd_state = json.loads(gd_state_path.read_text(encoding="utf-8"))
+                if gd_state.get("status") == "running":
+                    total_tokens = gd_state.get("total_tokens", 0)
+                    global_token_bound = gd_state.get("global_token_bound", 200000)
+                    elapsed_s = time.time() - gd_state.get("start_time", time.time())
+                    global_time_bound = gd_state.get("global_time_bound", 3600)
+                    if total_tokens >= global_token_bound or elapsed_s >= global_time_bound:
+                        # C-1修正: bound 超過 = 停止（exit 0）+ エスカレーション通知
+                        # block（継続強制）ではない
+                        reason = (
+                            f"[goal-driven] global bound exceeded: "
+                            f"tokens={total_tokens}/{global_token_bound}, "
+                            f"time={elapsed_s:.0f}s/{global_time_bound}s. "
+                            "Escalating to PM. Please check gd-session-state.json."
+                        )
+                        print(json.dumps({
+                            "hookSpecificOutput": {"additionalContext": reason}
+                        }), flush=True)
+                        sys.exit(0)  # 通常停止（セッション終了を許可しエスカレーション）
+            except Exception as e:
+                _log(log_file, "WARN", f"gd bound check error: {e}")
+                # バックストップ障害時はフェイルセーフで通過（Claude を止めない）
+
     # STEP 1-2: 再帰防止・状態ファイル確認
     state = _check_recursion_and_state(input_data, state_file, log_file)
 
