@@ -230,7 +230,7 @@ bound 超過・grader 繰り返し不合格・grader エラー等でエスカレ
 中タスク・大タスクでは grader 合格後に L1 最終検収（LLM 呼び出し）を実施する。
 小タスクルートではこのステップをスキップする（design §9.1 MUST）。
 
-### [8] メモリ蒸留（W4-T1 の範囲）
+### [8] メモリ蒸留（W4-T1 実装済み）
 
 ```bash
 python .claude/scripts/distill-lessons.py \
@@ -238,9 +238,38 @@ python .claude/scripts/distill-lessons.py \
   --grader-log .claude/logs/gd/<task_id>-loop*-grader.json
 ```
 
+小タスクルート（grader ログのみ・design §9.1）:
+```bash
+python .claude/scripts/distill-lessons.py \
+  --task-id <task_id> \
+  --grader-log .claude/logs/gd/<task_id>-loop01-grader.json \
+  --small-task
+```
+
 - 小タスクルートでは grader 判定 JSON のみを入力とする（design §9.1）
 - 検証済み教訓は `.claude/agent-memory/goal-driven-l3-executor/lessons.md` に書き込む
 - `docs/artifacts/knowledge/` への自動書き込みは禁止（W-5 制約・design §13）
+
+**W4-T1 実装（`.claude/scripts/distill_lessons.py`）の主要 API**:
+```python
+from distill_lessons import (
+    distill,               # grader ログ分析・lessons.md 追記（重複スキップ）
+    build_lesson_entry,    # grader ログから lessons.md エントリを構築
+    get_project_root,      # プロジェクトルート解決（P-3 対応）
+    build_arg_parser,      # CLI argparse パーサ（--task-id / --grader-log / --small-task）
+)
+```
+
+`distill()` の呼び出しパターン:
+```python
+distill(
+    task_id="gd-20260613-001",
+    grader_log_paths=["path/to/loop01-grader.json", "path/to/loop02-grader.json"],
+    lessons_path=None,     # None でデフォルトパス（.claude/agent-memory/.../lessons.md）を使用
+    verified=None,         # None で fail→pass 遷移から自動判定
+    is_small_task=False,   # 小タスクルート時は True
+)
+```
 
 ### [9] 後処理・完了報告
 
@@ -339,7 +368,7 @@ full-review（納品前検収）
 | bound スクリプト（gd-state.py） | 未実装 | W2-T2 |
 | Stop hook B-3 節 | 未実装（PM-G1 必要） | W2-T3 |
 | 実行ループ本体（Plan B） | **完了** | W3-T2 |
-| distill-lessons.py | 未実装 | W4-T1 |
+| distill-lessons.py | **完了** | W4-T1 |
 
 ---
 
