@@ -24,8 +24,11 @@
       "Bash(npx eslint --fix *)",
       "Bash(ruff check --fix *)",
       "Bash(ruff format *)",
-      "Bash(python3 -c *)",
-      "Bash(python -c *)"
+      "Bash(ruff check *)",
+      "Bash(python -m ruff check *)",
+      "Bash(gitleaks protect *)",
+      "Bash(gitleaks detect *)",
+      "Bash(gitleaks version)"
     ],
     "deny": [
       "Bash(rm *)",
