@@ -5,3 +5,4 @@
 - [B-3 W2-T2 gd_state.py 実装](project_gd_state_w2t2.md) — spawn-time enforcement・スキーマ・AC-8/AC-9・並列起動チェック・distill hook 点
 - [B-3 W3-T2 gd_loop.py 実装](project_gd_loop_w3t2.md) — Plan B 制御ループ・grader retry・§11b fallback・ログ命名・DI テストパターン
 - [B-3 W1-T3 スモークテスト準備](project_gd_smoke_w1t3.md) — スタブ 2 定義 + 静的 pytest + runbook（実機実行は次セッション）
+- [B-3 W4-T1 distill-lessons.py 実装](project_gd_distill_w4t1.md) — FR-5 メモリ蒸留・design §13 スキーマ準拠テスト 21 件・verified 自動判定・W-5 制約・SKILL.md フロー[8] 配線
