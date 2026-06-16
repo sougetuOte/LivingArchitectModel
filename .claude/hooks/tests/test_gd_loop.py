@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+from typing import Optional
 
 import pytest
 
@@ -122,6 +123,26 @@ def _mock_executor_report(tokens_used: int = 5000) -> dict:
         "next_suggestion": "",
         "tokens_used": tokens_used,
     }
+
+
+def _make_executor_fn(tokens_used: int = 5000, subagent_tokens: Optional[int] = None):
+    """invoke_executor_fn のモックを生成する。
+
+    新シグネチャ: Callable[[str], tuple[str, Optional[int]]]
+    第2要素が None なら P-2 フォールバック（自己申告値を使用）。
+    """
+    from typing import Optional as _Opt
+    report_json = json.dumps(_mock_executor_report(tokens_used=tokens_used))
+    return lambda prompt: (report_json, subagent_tokens)
+
+
+def _make_grader_fn(grader_dict: dict, subagent_tokens: Optional[int] = None):
+    """invoke_grader_fn のモックを生成する。
+
+    新シグネチャ: Callable[[str], tuple[str, Optional[int]]]
+    """
+    grader_json = json.dumps(grader_dict)
+    return lambda prompt: (grader_json, subagent_tokens)
 
 
 # ---------------------------------------------------------------------------
@@ -243,19 +264,21 @@ class TestGraderRetryLogic:
         """1 回目エラー → 2 回目成功 → 'pass' を返す。
 
         再試行が成功した場合は合格として扱う（正常ケース）。
+        新シグネチャ: invoke_grader_fn は tuple[str, Optional[int]] を返す。
+        run_grader_with_retry も (dict, Optional[int]) を返す。
         """
         import gd_loop
 
         call_count = 0
 
-        def mock_invoke_grader(prompt: str) -> str:
+        def mock_invoke_grader(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                return "{ invalid json }"
-            return json.dumps(_valid_grader_pass())
+                return ("{ invalid json }", None)
+            return (json.dumps(_valid_grader_pass()), 500)
 
-        result = gd_loop.run_grader_with_retry(
+        result, subagent_tokens = gd_loop.run_grader_with_retry(
             invoke_grader_fn=mock_invoke_grader,
             prompt="test prompt",
         )
@@ -271,13 +294,14 @@ class TestGraderRetryLogic:
 
         design §8 MUST: 再試行も失敗した場合はエスカレーション。
         MUST NOT: grader 失敗を合格として扱ってはならない。
+        新シグネチャ: invoke_grader_fn は tuple[str, Optional[int]] を返す。
         """
         import gd_loop
 
-        def mock_invoke_grader_always_fails(prompt: str) -> str:
-            return "{ always invalid json }"
+        def mock_invoke_grader_always_fails(prompt: str) -> tuple:
+            return ("{ always invalid json }", None)
 
-        result = gd_loop.run_grader_with_retry(
+        result, _ = gd_loop.run_grader_with_retry(
             invoke_grader_fn=mock_invoke_grader_always_fails,
             prompt="test prompt",
         )
@@ -290,15 +314,16 @@ class TestGraderRetryLogic:
         """エラー時の再試行は 1 回のみ（3 回目を呼ばない）。
 
         design §8: 1 回のみ再試行してよい（MAY）。
+        新シグネチャ: invoke_grader_fn は tuple[str, Optional[int]] を返す。
         """
         import gd_loop
 
         call_count = 0
 
-        def mock_invoke_grader_always_fails(prompt: str) -> str:
+        def mock_invoke_grader_always_fails(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
-            return "{ always invalid }"
+            return ("{ always invalid }", None)
 
         gd_loop.run_grader_with_retry(
             invoke_grader_fn=mock_invoke_grader_always_fails,
@@ -309,17 +334,21 @@ class TestGraderRetryLogic:
         )
 
     def test_run_grader_with_retry_no_retry_on_pass(self, tmp_path: Path):
-        """1 回目が成功 → 再試行なしで 'pass' を返す。"""
+        """1 回目が成功 → 再試行なしで 'pass' を返す。
+
+        新シグネチャ: invoke_grader_fn は tuple[str, Optional[int]] を返す。
+        run_grader_with_retry も (dict, Optional[int]) を返す。
+        """
         import gd_loop
 
         call_count = 0
 
-        def mock_invoke_grader_success(prompt: str) -> str:
+        def mock_invoke_grader_success(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
-            return json.dumps(_valid_grader_pass())
+            return (json.dumps(_valid_grader_pass()), 400)
 
-        result = gd_loop.run_grader_with_retry(
+        result, subagent_tokens = gd_loop.run_grader_with_retry(
             invoke_grader_fn=mock_invoke_grader_success,
             prompt="test prompt",
         )
@@ -333,17 +362,18 @@ class TestGraderRetryLogic:
 
         エラー（不正 JSON）と不合格（valid JSON で overall='fail'）は別物。
         不合格は再試行せずにそのまま返す。
+        新シグネチャ: invoke_grader_fn は tuple[str, Optional[int]] を返す。
         """
         import gd_loop
 
         call_count = 0
 
-        def mock_invoke_grader_fail(prompt: str) -> str:
+        def mock_invoke_grader_fail(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
-            return json.dumps(_valid_grader_fail())
+            return (json.dumps(_valid_grader_fail()), 300)
 
-        result = gd_loop.run_grader_with_retry(
+        result, _ = gd_loop.run_grader_with_retry(
             invoke_grader_fn=mock_invoke_grader_fail,
             prompt="test prompt",
         )
@@ -374,6 +404,7 @@ class TestLoopControlFlow:
         """1 回目の grader 判定で合格 → 'completed' でループ終了。
 
         design §8 Plan B [5]: 合格 → ループ終了。
+        invoke_executor_fn / invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
 
@@ -381,15 +412,12 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report(tokens_used=5000))
-        grader_response = json.dumps(_valid_grader_pass())
-
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
-            invoke_grader_fn=lambda prompt: grader_response,
+            invoke_executor_fn=_make_executor_fn(tokens_used=5000, subagent_tokens=5200),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass(), subagent_tokens=800),
         )
 
         assert result["outcome"] == "completed", (
@@ -397,28 +425,30 @@ class TestLoopControlFlow:
         )
 
     def test_run_plan_b_loop_fail_then_pass(self, tmp_path: Path):
-        """1 回目不合格 → 2 回目合格 → 'completed' でループ終了。"""
+        """1 回目不合格 → 2 回目合格 → 'completed' でループ終了。
+
+        invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
+        """
         import gd_loop
 
         _make_state(tmp_path, max_loop_count=3)
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report(tokens_used=3000))
         call_count = 0
 
-        def mock_grader(prompt: str) -> str:
+        def mock_grader(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                return json.dumps(_valid_grader_fail())
-            return json.dumps(_valid_grader_pass())
+                return (json.dumps(_valid_grader_fail()), 600)
+            return (json.dumps(_valid_grader_pass()), 600)
 
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
+            invoke_executor_fn=_make_executor_fn(tokens_used=3000, subagent_tokens=3100),
             invoke_grader_fn=mock_grader,
         )
 
@@ -430,6 +460,7 @@ class TestLoopControlFlow:
         """max_loop_count 到達 → 'escalated' でループ終了。
 
         design §8: loop_count >= max_loop_count → エスカレーション。
+        invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
 
@@ -437,16 +468,14 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report(tokens_used=1000))
-
-        def mock_grader_always_fail(prompt: str) -> str:
-            return json.dumps(_valid_grader_fail())
+        def mock_grader_always_fail(prompt: str) -> tuple:
+            return (json.dumps(_valid_grader_fail()), 500)
 
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
+            invoke_executor_fn=_make_executor_fn(tokens_used=1000, subagent_tokens=1000),
             invoke_grader_fn=mock_grader_always_fail,
         )
 
@@ -458,6 +487,7 @@ class TestLoopControlFlow:
         """grader が escalate=True → 'escalated' でループ終了。
 
         design §11: 判定不能時は escalate=True を設定 → スクリプトがエスカレーション。
+        invoke_executor_fn / invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
 
@@ -465,15 +495,12 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report(tokens_used=2000))
-        grader_response = json.dumps(_valid_grader_escalate())
-
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
-            invoke_grader_fn=lambda prompt: grader_response,
+            invoke_executor_fn=_make_executor_fn(tokens_used=2000, subagent_tokens=2000),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_escalate(), subagent_tokens=700),
         )
 
         assert result["outcome"] == "escalated", (
@@ -486,6 +513,7 @@ class TestLoopControlFlow:
         """ループ前の spawn-time チェックで token bound 超過 → 'escalated'。
 
         design §8 Plan B [1]: bound 残量チェック → 残量不足ならエスカレーション。
+        invoke_executor_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
 
@@ -496,17 +524,17 @@ class TestLoopControlFlow:
 
         call_count = 0
 
-        def mock_executor(prompt: str) -> str:
+        def mock_executor(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
-            return json.dumps(_mock_executor_report(tokens_used=1000))
+            return (json.dumps(_mock_executor_report(tokens_used=1000)), 1000)
 
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
             invoke_executor_fn=mock_executor,
-            invoke_grader_fn=lambda prompt: json.dumps(_valid_grader_pass()),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass()),
         )
 
         assert result["outcome"] == "escalated", (
@@ -518,9 +546,10 @@ class TestLoopControlFlow:
         )
 
     def test_run_plan_b_loop_accumulates_tokens(self, tmp_path: Path):
-        """ループ内で tokens_used が total_tokens に累積される。
+        """実測 subagent_tokens がトップレベル total_tokens を加算する（P-2 経由でなく）。
 
-        design §8 Plan B [3]: tokens_used を gd-session-state.json に累積。
+        新シグネチャ: invoke_executor_fn は (json_str, subagent_tokens) を返す。
+        実測値（第2要素）が total_tokens に累積されること。
         """
         import gd_loop
         import gd_state
@@ -529,26 +558,28 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report(tokens_used=8000))
-        grader_response = json.dumps(_valid_grader_pass())
-
+        # 実測 subagent_tokens=9000、自己申告 tokens_used=8000
+        # → 実測値 9000 が total_tokens に累積されるべき
         gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
-            invoke_grader_fn=lambda prompt: grader_response,
+            invoke_executor_fn=_make_executor_fn(tokens_used=8000, subagent_tokens=9000),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass(), subagent_tokens=500),
         )
 
         state = gd_state.read_state(tmp_path)
-        assert state["total_tokens"] >= 8000, (
-            f"tokens_used=8000 が累積されるべき。got total_tokens={state['total_tokens']}"
+        # executor 実測 9000 + grader 実測 500 = 9500 が累積される
+        assert state["total_tokens"] >= 9000, (
+            f"実測 subagent_tokens=9000 が total_tokens に累積されるべき。"
+            f"got total_tokens={state['total_tokens']}"
         )
 
     def test_run_plan_b_loop_sets_status_completed_on_pass(self, tmp_path: Path):
         """合格時に gd-session-state.json の status が 'completed' になる。
 
         design §10: grader 合格 → status = 'completed'。
+        invoke_executor_fn / invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
         import gd_state
@@ -557,15 +588,12 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report())
-        grader_response = json.dumps(_valid_grader_pass())
-
         gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
-            invoke_grader_fn=lambda prompt: grader_response,
+            invoke_executor_fn=_make_executor_fn(),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass()),
         )
 
         state = gd_state.read_state(tmp_path)
@@ -574,7 +602,10 @@ class TestLoopControlFlow:
         )
 
     def test_run_plan_b_loop_sets_status_escalated_on_max_loop(self, tmp_path: Path):
-        """max_loop_count 到達時に gd-session-state.json の status が 'escalated' になる。"""
+        """max_loop_count 到達時に gd-session-state.json の status が 'escalated' になる。
+
+        invoke_executor_fn / invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
+        """
         import gd_loop
         import gd_state
 
@@ -582,14 +613,12 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report())
-
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
-            invoke_grader_fn=lambda prompt: json.dumps(_valid_grader_fail()),
+            invoke_executor_fn=_make_executor_fn(),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_fail()),
         )
 
         state = gd_state.read_state(tmp_path)
@@ -601,6 +630,7 @@ class TestLoopControlFlow:
         """不合格時に loop_count が増加する。
 
         design §8 Plan B: 不合格 → loop_count++
+        invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
         import gd_state
@@ -609,21 +639,20 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report())
         call_count = 0
 
-        def mock_grader(prompt: str) -> str:
+        def mock_grader(prompt: str) -> tuple:
             nonlocal call_count
             call_count += 1
             if call_count <= 2:
-                return json.dumps(_valid_grader_fail())
-            return json.dumps(_valid_grader_pass())
+                return (json.dumps(_valid_grader_fail()), 400)
+            return (json.dumps(_valid_grader_pass()), 400)
 
         gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
+            invoke_executor_fn=_make_executor_fn(),
             invoke_grader_fn=mock_grader,
         )
 
@@ -637,6 +666,7 @@ class TestLoopControlFlow:
         """grader が両回エラー → 'escalated'（MUST NOT: 合格扱い禁止）。
 
         design §8 MUST NOT: grader 失敗を合格として扱ってはならない。
+        invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
 
@@ -644,16 +674,14 @@ class TestLoopControlFlow:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report())
-
-        def mock_grader_always_error(prompt: str) -> str:
-            return "{ broken json always }"
+        def mock_grader_always_error(prompt: str) -> tuple:
+            return ("{ broken json always }", None)
 
         result = gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-test-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
+            invoke_executor_fn=_make_executor_fn(),
             invoke_grader_fn=mock_grader_always_error,
         )
 
@@ -854,6 +882,7 @@ class TestGraderLogPersistence:
         """run_plan_b_loop() 実行後に grader ログが .claude/logs/gd/ に保存される。
 
         design §11 NFR-3: grader の判定結果を .claude/logs/gd/ に保存する。
+        invoke_executor_fn / invoke_grader_fn は新シグネチャ: tuple[str, Optional[int]]。
         """
         import gd_loop
 
@@ -861,15 +890,12 @@ class TestGraderLogPersistence:
         logs_dir = tmp_path / ".claude" / "logs" / "gd"
         logs_dir.mkdir(parents=True, exist_ok=True)
 
-        executor_report = json.dumps(_mock_executor_report())
-        grader_response = json.dumps(_valid_grader_pass())
-
         gd_loop.run_plan_b_loop(
             project_root=tmp_path,
             task_id="gd-20260613-001",
             rubric_path=tmp_path / "rubric.md",
-            invoke_executor_fn=lambda prompt: executor_report,
-            invoke_grader_fn=lambda prompt: grader_response,
+            invoke_executor_fn=_make_executor_fn(),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass()),
         )
 
         log_files = list(logs_dir.glob("gd-20260613-001-loop*-grader.json"))
@@ -1008,4 +1034,111 @@ class TestBuildGraderPrompt:
         prompt_lower = prompt.lower()
         assert "json" in prompt_lower, (
             f"grader prompt は JSON 出力を要求すべき。got prompt:\n{prompt}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# TestSubagentTokenAccumulation: subagent_tokens 実測値による累積（W4-T2 Phase 2）
+# ---------------------------------------------------------------------------
+
+
+class TestSubagentTokenAccumulation:
+    """W4-T2 Phase 2: 実測 subagent_tokens による累積ロジックのテスト。
+
+    新シグネチャ: invoke_executor_fn / invoke_grader_fn が
+    tuple[str, Optional[int]] を返す。
+    第2要素（subagent_tokens）が None の場合、P-2 フォールバックで自己申告値を使用する。
+    """
+
+    def test_measured_subagent_tokens_accumulated_as_total(self, tmp_path: Path):
+        """実測 subagent_tokens が total_tokens に累積される（P-2 経由ではない）。
+
+        invoke_executor_fn が (json_str, 9000) を返す場合、
+        自己申告 tokens_used=8000 ではなく実測 9000 が累積されるべき。
+        """
+        import gd_loop
+        import gd_state
+
+        _make_state(tmp_path)
+        logs_dir = tmp_path / ".claude" / "logs" / "gd"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # 実測=9000、自己申告=8000 → 実測値が優先されること
+        gd_loop.run_plan_b_loop(
+            project_root=tmp_path,
+            task_id="gd-test-001",
+            rubric_path=tmp_path / "rubric.md",
+            invoke_executor_fn=_make_executor_fn(tokens_used=8000, subagent_tokens=9000),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass(), subagent_tokens=0),
+        )
+
+        state = gd_state.read_state(tmp_path)
+        # executor 実測 9000 が累積される
+        assert state["total_tokens"] >= 9000, (
+            f"実測 subagent_tokens=9000 が累積されるべき。got: {state['total_tokens']}"
+        )
+
+    def test_none_subagent_tokens_falls_back_to_self_reported(self, tmp_path: Path, capsys):
+        """subagent_tokens=None → P-2 フォールバックで自己申告値が累積される。
+
+        invoke_executor_fn が (json_str, None) を返す場合:
+        - [gd-warn] ログで P-2 フォールバックを通知
+        - 自己申告 tokens_used が total_tokens に累積される
+        """
+        import gd_loop
+        import gd_state
+
+        _make_state(tmp_path)
+        logs_dir = tmp_path / ".claude" / "logs" / "gd"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        # subagent_tokens=None → フォールバック
+        gd_loop.run_plan_b_loop(
+            project_root=tmp_path,
+            task_id="gd-test-001",
+            rubric_path=tmp_path / "rubric.md",
+            invoke_executor_fn=_make_executor_fn(tokens_used=7000, subagent_tokens=None),
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass(), subagent_tokens=0),
+        )
+
+        state = gd_state.read_state(tmp_path)
+        # 自己申告 7000 が累積される
+        assert state["total_tokens"] >= 7000, (
+            f"P-2 フォールバック: 自己申告 tokens_used=7000 が累積されるべき。"
+            f"got: {state['total_tokens']}"
+        )
+
+        captured = capsys.readouterr()
+        assert "[gd-warn]" in captured.out, (
+            "P-2 フォールバック時に [gd-warn] ログが出力されるべき"
+        )
+
+    def test_grader_subagent_tokens_accumulated(self, tmp_path: Path):
+        """grader 側の subagent_tokens も total_tokens に累積される。
+
+        grader の invoke_grader_fn が (json_str, 800) を返す場合、
+        grader の実測 800 が total_tokens に加算されるべき。
+        """
+        import gd_loop
+        import gd_state
+
+        _make_state(tmp_path)
+        logs_dir = tmp_path / ".claude" / "logs" / "gd"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+
+        gd_loop.run_plan_b_loop(
+            project_root=tmp_path,
+            task_id="gd-test-001",
+            rubric_path=tmp_path / "rubric.md",
+            # executor 実測 5000
+            invoke_executor_fn=_make_executor_fn(tokens_used=5000, subagent_tokens=5000),
+            # grader 実測 800
+            invoke_grader_fn=_make_grader_fn(_valid_grader_pass(), subagent_tokens=800),
+        )
+
+        state = gd_state.read_state(tmp_path)
+        # executor 5000 + grader 800 = 5800 以上
+        assert state["total_tokens"] >= 5800, (
+            f"executor(5000) + grader(800) = 5800 以上が累積されるべき。"
+            f"got: {state['total_tokens']}"
         )

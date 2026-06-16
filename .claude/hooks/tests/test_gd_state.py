@@ -859,3 +859,302 @@ class TestSchemaFields:
         assert "total_tokens" not in cost_log, (
             "cost_log に total_tokens を重複保持してはならない（design §14 MUST NOT）"
         )
+
+
+# ---------------------------------------------------------------------------
+# TestAccumulateSubagentTokens: 層別トークン累積（W4-T2 Phase 1+2）
+# ---------------------------------------------------------------------------
+
+
+class TestAccumulateSubagentTokens:
+    """accumulate_subagent_tokens() の層別正常系テスト（W4-T2 Phase 1）。
+
+    design §14: cost_log は層別内訳のみ保持。
+    total_tokens は cost_log と二重保持せず、トップレベルで正規ソースとして管理。
+    """
+
+    def test_accumulate_subagent_tokens_l1(self, tmp_path: Path):
+        """layer='l1' のトークンが cost_log['l1_tokens'] に加算される。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        _write_state(tmp_path, _make_running_state(total_tokens=0))
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="l1", tokens=3000, project_root=tmp_path)
+
+        state = gd_state.read_state(tmp_path)
+        assert state["cost_log"]["l1_tokens"] == 3000, (
+            f"l1 tokens=3000 が cost_log['l1_tokens'] に加算されるべき。got: {state['cost_log']['l1_tokens']}"
+        )
+
+    def test_accumulate_subagent_tokens_l2(self, tmp_path: Path):
+        """layer='l2' のトークンが cost_log['l2_tokens'] に加算される。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        _write_state(tmp_path, _make_running_state(total_tokens=0))
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="l2", tokens=1500, project_root=tmp_path)
+
+        state = gd_state.read_state(tmp_path)
+        assert state["cost_log"]["l2_tokens"] == 1500, (
+            f"l2 tokens=1500 が cost_log['l2_tokens'] に加算されるべき。got: {state['cost_log']['l2_tokens']}"
+        )
+
+    def test_accumulate_subagent_tokens_l3(self, tmp_path: Path):
+        """layer='l3' のトークンが cost_log['l3_tokens'] に加算される。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        _write_state(tmp_path, _make_running_state(total_tokens=0))
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="l3", tokens=8000, project_root=tmp_path)
+
+        state = gd_state.read_state(tmp_path)
+        assert state["cost_log"]["l3_tokens"] == 8000, (
+            f"l3 tokens=8000 が cost_log['l3_tokens'] に加算されるべき。got: {state['cost_log']['l3_tokens']}"
+        )
+
+    def test_accumulate_subagent_tokens_grader(self, tmp_path: Path):
+        """layer='grader' のトークンが cost_log['grader_tokens'] に加算される。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        _write_state(tmp_path, _make_running_state(total_tokens=0))
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="grader", tokens=2000, project_root=tmp_path)
+
+        state = gd_state.read_state(tmp_path)
+        assert state["cost_log"]["grader_tokens"] == 2000, (
+            f"grader tokens=2000 が cost_log['grader_tokens'] に加算されるべき。"
+            f"got: {state['cost_log']['grader_tokens']}"
+        )
+
+    def test_accumulate_subagent_tokens_also_adds_to_total_tokens(self, tmp_path: Path):
+        """accumulate_subagent_tokens() が同時に total_tokens も加算する。
+
+        design §14 L764: total_tokens は §10 で正規ソース。
+        cost_log は層別内訳のみ（二重保持禁止）。
+        """
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        _write_state(tmp_path, _make_running_state(total_tokens=10_000))
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="l3", tokens=5000, project_root=tmp_path)
+
+        state = gd_state.read_state(tmp_path)
+        assert state["total_tokens"] == 15_000, (
+            f"total_tokens: 10000 + 5000 = 15000 になるべき。got: {state['total_tokens']}"
+        )
+
+    def test_accumulate_subagent_tokens_initializes_cost_log_if_missing(self, tmp_path: Path):
+        """cost_log が存在しない場合、初期化してから加算する。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        state = _make_running_state(total_tokens=0)
+        # cost_log なしで書き込む
+        assert "cost_log" not in state
+        _write_state(tmp_path, state)
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="l1", tokens=1000, project_root=tmp_path)
+
+        updated = gd_state.read_state(tmp_path)
+        assert "cost_log" in updated, "cost_log が初期化されるべき"
+        assert updated["cost_log"]["l1_tokens"] == 1000
+
+    def test_accumulate_subagent_tokens_cost_log_not_duplicated(self, tmp_path: Path):
+        """累積後も cost_log に total_tokens が含まれない（二重保持禁止）。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        _write_state(tmp_path, _make_running_state(total_tokens=0))
+
+        import gd_state
+
+        gd_state.accumulate_subagent_tokens(layer="l3", tokens=5000, project_root=tmp_path)
+
+        state = gd_state.read_state(tmp_path)
+        assert "total_tokens" not in state["cost_log"], (
+            "cost_log に total_tokens を保持してはならない（design §14 MUST NOT）"
+        )
+
+
+# ---------------------------------------------------------------------------
+# TestBuildCostSummary: コスト集計文字列生成（W4-T2 Phase 1）
+# ---------------------------------------------------------------------------
+
+
+class TestBuildCostSummary:
+    """build_cost_summary() と compute_l1_ratio() のテスト。
+
+    design §14 L767-778: 層別 tokens / l1_ratio / 合計を含む文字列を生成。
+    """
+
+    def _setup_with_cost_log(
+        self,
+        tmp_path: Path,
+        l1: int = 12_000,
+        l2: int = 5_000,
+        l3: int = 45_000,
+        grader: int = 8_000,
+    ) -> "gd_state":
+        """cost_log を持つ state を作成して gd_state モジュールを返す。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        total = l1 + l2 + l3 + grader
+        state = _make_running_state(total_tokens=total)
+        state["cost_log"] = {
+            "l1_tokens": l1,
+            "l2_tokens": l2,
+            "l3_tokens": l3,
+            "grader_tokens": grader,
+        }
+        _write_state(tmp_path, state)
+        import gd_state
+        return gd_state
+
+    def test_build_cost_summary_contains_layer_fields(self, tmp_path: Path):
+        """build_cost_summary() が層別 tokens フィールドを含む文字列を返す。"""
+        gd_state = self._setup_with_cost_log(tmp_path)
+
+        summary = gd_state.build_cost_summary(project_root=tmp_path)
+
+        assert isinstance(summary, str), "build_cost_summary() は str を返すべき"
+        assert "l1" in summary.lower() or "l1_tokens" in summary, "l1 情報が含まれるべき"
+        assert "l3" in summary.lower() or "l3_tokens" in summary, "l3 情報が含まれるべき"
+        assert "grader" in summary.lower(), "grader 情報が含まれるべき"
+
+    def test_build_cost_summary_contains_total(self, tmp_path: Path):
+        """build_cost_summary() が合計トークンを含む。"""
+        gd_state = self._setup_with_cost_log(
+            tmp_path, l1=12_000, l2=5_000, l3=45_000, grader=8_000
+        )
+
+        summary = gd_state.build_cost_summary(project_root=tmp_path)
+
+        # 合計 70000 が含まれること
+        assert "70000" in summary or "70,000" in summary, (
+            f"合計 tokens=70000 が summary に含まれるべき。got: {summary!r}"
+        )
+
+    def test_build_cost_summary_contains_l1_ratio(self, tmp_path: Path):
+        """build_cost_summary() が l1_ratio を含む。"""
+        gd_state = self._setup_with_cost_log(tmp_path)
+
+        summary = gd_state.build_cost_summary(project_root=tmp_path)
+
+        assert "l1_ratio" in summary or "ratio" in summary.lower(), (
+            f"l1_ratio が summary に含まれるべき。got: {summary!r}"
+        )
+
+    def test_compute_l1_ratio_nonzero_total(self, tmp_path: Path):
+        """compute_l1_ratio() が l1_tokens / total_tokens を正確に返す。"""
+        gd_state = self._setup_with_cost_log(
+            tmp_path, l1=20_000, l2=0, l3=60_000, grader=20_000
+        )
+
+        ratio = gd_state.compute_l1_ratio(project_root=tmp_path)
+
+        # l1=20000, total=100000 → ratio=0.2
+        assert abs(ratio - 0.2) < 1e-9, (
+            f"l1_tokens=20000, total=100000 → ratio=0.2 であるべき。got: {ratio}"
+        )
+
+    def test_compute_l1_ratio_zero_total(self, tmp_path: Path):
+        """compute_l1_ratio() が total=0 のとき 0.0 を返す（ゼロ除算回避）。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        state = _make_running_state(total_tokens=0)
+        state["cost_log"] = {
+            "l1_tokens": 0,
+            "l2_tokens": 0,
+            "l3_tokens": 0,
+            "grader_tokens": 0,
+        }
+        _write_state(tmp_path, state)
+
+        import gd_state
+
+        ratio = gd_state.compute_l1_ratio(project_root=tmp_path)
+
+        assert ratio == 0.0, f"total=0 のとき ratio=0.0 であるべき。got: {ratio}"
+
+
+# ---------------------------------------------------------------------------
+# TestRecordTokenDivergence: トークン乖離記録（W4-T2 Phase 1）
+# ---------------------------------------------------------------------------
+
+
+class TestRecordTokenDivergence:
+    """record_token_divergence() のテスト。
+
+    ±20% 超で WARN ログ出力 + cost_log['_divergences'] に記録。
+    ±20% 以内では WARN なし。
+    """
+
+    def test_divergence_over_20pct_emits_warn(self, tmp_path: Path, capsys):
+        """乖離率 > 20% で WARN ログが stdout に出力される。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        state = _make_running_state(total_tokens=0)
+        state["cost_log"] = {
+            "l1_tokens": 0, "l2_tokens": 0, "l3_tokens": 0, "grader_tokens": 0
+        }
+        _write_state(tmp_path, state)
+
+        import gd_state
+
+        # self_reported=1000, measured=1300 → ratio=(300/1300)≒23% > 20%
+        gd_state.record_token_divergence(
+            layer="l3", self_reported=1000, measured=1300, project_root=tmp_path
+        )
+
+        captured = capsys.readouterr()
+        assert "[gd-warn]" in captured.out, (
+            f"乖離率 23% > 20% → [gd-warn] が出力されるべき。got: {captured.out!r}"
+        )
+        assert "token divergence" in captured.out.lower(), (
+            "WARN メッセージに 'token divergence' が含まれるべき"
+        )
+
+    def test_divergence_over_20pct_records_to_divergences(self, tmp_path: Path):
+        """乖離率 > 20% で cost_log['_divergences'] に記録される。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        state = _make_running_state(total_tokens=0)
+        state["cost_log"] = {
+            "l1_tokens": 0, "l2_tokens": 0, "l3_tokens": 0, "grader_tokens": 0
+        }
+        _write_state(tmp_path, state)
+
+        import gd_state
+
+        gd_state.record_token_divergence(
+            layer="l3", self_reported=1000, measured=1300, project_root=tmp_path
+        )
+
+        updated = gd_state.read_state(tmp_path)
+        divergences = updated["cost_log"].get("_divergences", [])
+        assert len(divergences) == 1, (
+            f"乖離記録が 1 件 _divergences に追加されるべき。got: {divergences}"
+        )
+        assert divergences[0]["layer"] == "l3"
+        assert divergences[0]["self_reported"] == 1000
+        assert divergences[0]["measured"] == 1300
+
+    def test_divergence_within_20pct_no_warn(self, tmp_path: Path, capsys):
+        """乖離率 <= 20% では WARN ログを出力しない。"""
+        (tmp_path / ".claude").mkdir(exist_ok=True)
+        state = _make_running_state(total_tokens=0)
+        state["cost_log"] = {
+            "l1_tokens": 0, "l2_tokens": 0, "l3_tokens": 0, "grader_tokens": 0
+        }
+        _write_state(tmp_path, state)
+
+        import gd_state
+
+        # self_reported=1000, measured=1100 → ratio=(100/1100)≒9.1% <= 20%
+        gd_state.record_token_divergence(
+            layer="l3", self_reported=1000, measured=1100, project_root=tmp_path
+        )
+
+        captured = capsys.readouterr()
+        assert "[gd-warn]" not in captured.out, (
+            f"乖離率 9.1% <= 20% → [gd-warn] は出力されないべき。got: {captured.out!r}"
+        )

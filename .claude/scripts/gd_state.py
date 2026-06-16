@@ -419,6 +419,160 @@ def check_parallel_spawn_budget(
 
 
 # ---------------------------------------------------------------------------
+# コスト集計・層別累積（W4-T2 Phase 1）
+# ---------------------------------------------------------------------------
+
+_COST_LOG_INITIAL: dict = {
+    "l1_tokens": 0,
+    "l2_tokens": 0,
+    "l3_tokens": 0,
+    "grader_tokens": 0,
+}
+
+_LAYER_FIELD_MAP: dict[str, str] = {
+    "l1": "l1_tokens",
+    "l2": "l2_tokens",
+    "l3": "l3_tokens",
+    "grader": "grader_tokens",
+}
+
+_TOKEN_DIVERGENCE_THRESHOLD: float = 0.20
+
+
+def accumulate_subagent_tokens(
+    layer: str,
+    tokens: int,
+    project_root: Optional[Path] = None,
+) -> None:
+    """層別 subagent トークンを cost_log に累積し、total_tokens も連動加算する。
+
+    design §14 L764: cost_log は層別内訳のみ保持。
+    total_tokens は §10 で正規ソースとして管理（二重保持禁止）。
+
+    Args:
+        layer: 累積対象の層。"l1" | "l2" | "l3" | "grader" のいずれか。
+        tokens: 今回累積するトークン数。
+        project_root: プロジェクトルートのパス。None の場合は get_project_root() を使用。
+
+    Raises:
+        ValueError: layer が未知の値の場合。
+    """
+    if layer not in _LAYER_FIELD_MAP:
+        raise ValueError(
+            f"未知の layer: {layer!r}。"
+            f"有効値: {set(_LAYER_FIELD_MAP.keys())}"
+        )
+
+    state = read_state(project_root)
+
+    # cost_log が存在しない場合は初期化
+    if "cost_log" not in state:
+        state["cost_log"] = dict(_COST_LOG_INITIAL)
+
+    field = _LAYER_FIELD_MAP[layer]
+    state["cost_log"][field] = state["cost_log"].get(field, 0) + tokens
+
+    # total_tokens も連動加算（§10 正規ソース維持）
+    state["total_tokens"] = state.get("total_tokens", 0) + tokens
+
+    write_state(project_root, state)
+
+
+def compute_l1_ratio(project_root: Optional[Path] = None) -> float:
+    """L1 トークン比率（l1_tokens / total_tokens）を計算して返す。
+
+    total_tokens が 0 の場合は 0.0 を返す（ゼロ除算回避）。
+
+    Args:
+        project_root: プロジェクトルートのパス。None の場合は get_project_root() を使用。
+
+    Returns:
+        l1_tokens / total_tokens の float 値。total=0 のとき 0.0。
+    """
+    state = read_state(project_root)
+    total = state.get("total_tokens", 0)
+    if total == 0:
+        return 0.0
+    l1 = state.get("cost_log", {}).get("l1_tokens", 0)
+    return l1 / total
+
+
+def build_cost_summary(project_root: Optional[Path] = None) -> str:
+    """design §14 L767-778 形式のコスト集計文字列を生成する。
+
+    含む情報: 層別 tokens, l1_ratio（total_tokens=0 のとき 0.0）, 合計
+
+    Args:
+        project_root: プロジェクトルートのパス。None の場合は get_project_root() を使用。
+
+    Returns:
+        コスト集計を記述した文字列。
+    """
+    state = read_state(project_root)
+    cost_log = state.get("cost_log", dict(_COST_LOG_INITIAL))
+    total = state.get("total_tokens", 0)
+    l1_tokens = cost_log.get("l1_tokens", 0)
+    l2_tokens = cost_log.get("l2_tokens", 0)
+    l3_tokens = cost_log.get("l3_tokens", 0)
+    grader_tokens = cost_log.get("grader_tokens", 0)
+    l1_ratio = l1_tokens / total if total > 0 else 0.0
+
+    lines = [
+        "[goal-driven] コスト集計",
+        f"  l1_tokens    : {l1_tokens}",
+        f"  l2_tokens    : {l2_tokens}",
+        f"  l3_tokens    : {l3_tokens}",
+        f"  grader_tokens: {grader_tokens}",
+        f"  l1_ratio     : {l1_ratio:.4f}",
+        f"  total_tokens : {total}",
+    ]
+    return "\n".join(lines)
+
+
+def record_token_divergence(
+    layer: str,
+    self_reported: int,
+    measured: int,
+    project_root: Optional[Path] = None,
+) -> None:
+    """自己申告 tokens と実測 tokens の乖離を記録し、±20% 超で WARN ログを出力する。
+
+    乖離率 = abs(measured - self_reported) / max(measured, 1)
+    閾値 20% 超のとき:
+      - stdout に [gd-warn] token divergence メッセージを出力
+      - cost_log['_divergences'] リストに乖離情報を append
+
+    Args:
+        layer: 対象の層識別子（例: "l3"）。
+        self_reported: executor / grader の自己申告 tokens_used。
+        measured: Agent ツール結果から取得した実測トークン数。
+        project_root: プロジェクトルートのパス。None の場合は get_project_root() を使用。
+    """
+    ratio = abs(measured - self_reported) / max(measured, 1)
+
+    state = read_state(project_root)
+
+    if "cost_log" not in state:
+        state["cost_log"] = dict(_COST_LOG_INITIAL)
+
+    if ratio > _TOKEN_DIVERGENCE_THRESHOLD:
+        print(
+            f"[gd-warn] token divergence {layer}: "
+            f"self_reported={self_reported} measured={measured} ratio={ratio:.2%}"
+        )
+        divergence_entry = {
+            "layer": layer,
+            "self_reported": self_reported,
+            "measured": measured,
+            "ratio": ratio,
+        }
+        divergences = state["cost_log"].get("_divergences", [])
+        divergences.append(divergence_entry)
+        state["cost_log"]["_divergences"] = divergences
+        write_state(project_root, state)
+
+
+# ---------------------------------------------------------------------------
 # distill-lessons.py 向け hook 点（完了条件 8）
 # ---------------------------------------------------------------------------
 

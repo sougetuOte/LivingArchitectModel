@@ -22,8 +22,9 @@ W3-T2: 実行ループ実装（Plan B: 自前ループ）
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, Tuple
 
 import gd_state
 
@@ -109,9 +110,9 @@ def parse_grader_output(raw_output: str) -> dict:
 
 
 def run_grader_with_retry(
-    invoke_grader_fn: Callable[[str], str],
+    invoke_grader_fn: Callable[[str], Tuple[str, Optional[int]]],
     prompt: str,
-) -> dict:
+) -> Tuple[dict, Optional[int]]:
     """grader を呼び出し、エラー時は 1 回のみ再試行する。
 
     design §8 Plan B MUST:
@@ -120,30 +121,31 @@ def run_grader_with_retry(
       grader 失敗を合格として扱ってはならない（MUST NOT）。
 
     Args:
-        invoke_grader_fn: grader を呼び出す関数（prompt: str → raw_output: str）。
+        invoke_grader_fn: grader を呼び出す関数
+            (prompt: str → (raw_output: str, subagent_tokens: Optional[int]))。
         prompt: grader に渡すプロンプト。
 
     Returns:
-        parse_grader_output() と同じ構造の dict。
+        (parse_grader_output() と同じ構造の dict, subagent_tokens または None)。
         verdict は "pass" / "fail" / "escalate" / "error" のいずれか。
         両回失敗時は verdict="escalate" を返す（MUST NOT 合格扱い）。
     """
-    raw_first = invoke_grader_fn(prompt)
+    raw_first, subagent_tokens_first = invoke_grader_fn(prompt)
     result_first = parse_grader_output(raw_first)
 
     if result_first["verdict"] != "error":
-        return result_first
+        return result_first, subagent_tokens_first
 
     # 1 回のみ再試行（MAY）
-    raw_retry = invoke_grader_fn(prompt)
+    raw_retry, subagent_tokens_retry = invoke_grader_fn(prompt)
     result_retry = parse_grader_output(raw_retry)
 
     if result_retry["verdict"] != "error":
-        return result_retry
+        return result_retry, subagent_tokens_retry
 
     # 再試行も失敗 → エスカレーション（MUST）
     # grader 失敗を合格として扱ってはならない（MUST NOT）
-    return {
+    escalate_result = {
         "verdict": "escalate",
         "overall": None,
         "items": [],
@@ -156,6 +158,7 @@ def run_grader_with_retry(
         "raw": raw_retry,
         "parse_error": result_retry.get("parse_error"),
     }
+    return escalate_result, None
 
 
 # ---------------------------------------------------------------------------
@@ -421,12 +424,53 @@ def _check_bounds(project_root: Path) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 
 
+def _accumulate_agent_tokens(
+    layer: str,
+    self_reported: int,
+    subagent_tokens: Optional[int],
+    project_root: Path,
+) -> None:
+    """実測 subagent_tokens を優先して累積し、None の場合は P-2 フォールバックを行う。
+
+    P-2 フォールバック: subagent_tokens が None の場合、自己申告値を累積し WARN を出力。
+    silent failure 禁止: フォールバック時も WARN ログで通知する（Critical 回避）。
+
+    Args:
+        layer: 累積対象の層（"l3" / "grader" 等）。
+        self_reported: executor / grader の自己申告 tokens_used。
+        subagent_tokens: Agent ツール結果から取得した実測値。None なら P-2 フォールバック。
+        project_root: プロジェクトルートのパス。
+    """
+    if subagent_tokens is not None:
+        gd_state.accumulate_subagent_tokens(
+            layer=layer, tokens=subagent_tokens, project_root=project_root
+        )
+        if self_reported > 0:
+            gd_state.record_token_divergence(
+                layer=layer,
+                self_reported=self_reported,
+                measured=subagent_tokens,
+                project_root=project_root,
+            )
+    else:
+        # P-2 フォールバック: 自己申告値を採用
+        print(
+            f"[gd-warn] subagent_tokens unavailable, "
+            f"falling back to self-reported tokens_used ({self_reported})",
+            file=sys.stdout,
+        )
+        if self_reported > 0:
+            gd_state.accumulate_subagent_tokens(
+                layer=layer, tokens=self_reported, project_root=project_root
+            )
+
+
 def run_plan_b_loop(
     project_root: Path,
     task_id: str,
     rubric_path: Path,
-    invoke_executor_fn: Callable[[str], str],
-    invoke_grader_fn: Callable[[str], str],
+    invoke_executor_fn: Callable[[str], Tuple[str, Optional[int]]],
+    invoke_grader_fn: Callable[[str], Tuple[str, Optional[int]]],
     task_description: str = "",
 ) -> dict:
     """Plan B 制御ループを実行する。
@@ -435,7 +479,7 @@ def run_plan_b_loop(
     while loop_count < max_loop_count AND total_tokens < global_token_bound:
       [1] bound 残量チェック → 超過ならエスカレーション（spawn-time enforcement）
       [2] Agent(l3-executor) 起動 → 構造化報告 JSON（AC-5: 独立呼び出し）
-      [3] tokens_used を gd-session-state.json に累積
+      [3] subagent_tokens 実測値を累積（None の場合は P-2 フォールバックで自己申告値）
       [4] Agent(grader) 起動 → grader 判定 JSON（AC-5: 独立呼び出し・別コンテキスト FR-2）
       [5] grader 判定処理（合格/不合格/エスカレーション）
 
@@ -446,8 +490,10 @@ def run_plan_b_loop(
         project_root: プロジェクトルートのパス。
         task_id: タスク識別子（grader ログ命名に使用）。
         rubric_path: rubric.md の絶対パス。
-        invoke_executor_fn: l3-executor を呼び出す関数（prompt → raw JSON 文字列）。
-        invoke_grader_fn: grader を呼び出す関数（prompt → raw JSON 文字列）。
+        invoke_executor_fn: l3-executor を呼び出す関数
+            (prompt → (raw JSON 文字列, subagent_tokens または None))。
+        invoke_grader_fn: grader を呼び出す関数
+            (prompt → (raw JSON 文字列, subagent_tokens または None))。
         task_description: タスクの説明文（l3-executor プロンプトに埋め込む）。
 
     Returns:
@@ -472,14 +518,19 @@ def run_plan_b_loop(
             rubric_path=rubric_path,
             previous_feedback=previous_feedback,
         )
-        executor_report = _parse_executor_report(invoke_executor_fn(executor_prompt))
+        executor_raw, executor_subagent_tokens = invoke_executor_fn(executor_prompt)
+        executor_report = _parse_executor_report(executor_raw)
 
-        # [3] tokens_used を累積
-        tokens_used = executor_report.get("tokens_used", 0)
-        if isinstance(tokens_used, int) and tokens_used > 0:
-            gd_state.accumulate_tokens(
-                tokens_used=tokens_used, project_root=project_root
-            )
+        # [3] subagent_tokens 実測値を優先して累積（None なら P-2 フォールバック）
+        executor_self_reported = executor_report.get("tokens_used", 0)
+        if not isinstance(executor_self_reported, int):
+            executor_self_reported = 0
+        _accumulate_agent_tokens(
+            layer="l3",
+            self_reported=executor_self_reported,
+            subagent_tokens=executor_subagent_tokens,
+            project_root=project_root,
+        )
 
         # [4] grader 起動（AC-5: 独立した Agent 呼び出し・別コンテキスト FR-2）
         grader_prompt = build_grader_prompt(
@@ -490,9 +541,17 @@ def run_plan_b_loop(
         current_loop = state.get("loop_count", 0) + 1  # ログ番号（1 始まり）
 
         # [5] grader 判定処理（エラー時 1 回のみ再試行・MUST NOT 合格扱い）
-        grader_result = run_grader_with_retry(
+        grader_result, grader_subagent_tokens = run_grader_with_retry(
             invoke_grader_fn=invoke_grader_fn,
             prompt=grader_prompt,
+        )
+
+        # grader トークン累積（実測優先・None なら P-2 フォールバック）
+        _accumulate_agent_tokens(
+            layer="grader",
+            self_reported=0,  # grader は tokens_used を自己申告しない設計
+            subagent_tokens=grader_subagent_tokens,
+            project_root=project_root,
         )
 
         # grader ログ保存（NFR-3）
