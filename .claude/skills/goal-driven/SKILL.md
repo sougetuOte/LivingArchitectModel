@@ -146,8 +146,10 @@ while loop_count < max_loop_count AND total_tokens < global_token_bound:
       prompt: タスク内容 + rubric.md パス + 前回の差し戻し情報
       → 構造化報告 JSON を受け取る（design §7 スキーマ）
 
-  [3] tokens_used を gd-session-state.json に累積
-      total_tokens += report.tokens_used
+  [3] Agent ツール結果の実測 subagent_tokens を gd-session-state.json に累積
+      （cost_log の l1/l2/l3/grader 層別 + total_tokens 連動加算）
+      実測取得失敗時のみ報告 JSON の tokens_used（自己申告）を P-2 フォールバックとして採用
+      （WARN ログ出力・乖離率 >0.20 の場合は cost_log._divergences に記録）
 
   [4] Agent(goal-driven-grader) 起動（別コンテキスト・FR-2）
       prompt: 構造化報告 JSON + rubric.md
@@ -177,7 +179,7 @@ loop_count >= max_loop_count → エスカレーション（bound 超過）
 from gd_loop import (
     run_plan_b_loop,          # Plan B 制御ループ本体
     parse_grader_output,      # grader 判定 JSON パース
-    run_grader_with_retry,    # grader エラー時 1 回再試行
+    run_grader_with_retry,    # grader エラー時 1 回再試行（戻り型: tuple[dict, Optional[int]]）
     is_nest_failure,          # §11b ネスト失敗検知
     activate_two_layer_fallback,  # §11b 三層→二層退避
     save_grader_log,          # NFR-3: grader ログ保存
@@ -186,9 +188,29 @@ from gd_loop import (
 )
 ```
 
-`run_plan_b_loop()` の `invoke_executor_fn` / `invoke_grader_fn` には
+`run_plan_b_loop()` の `invoke_executor_fn` / `invoke_grader_fn` の型:
+```python
+Callable[[str], tuple[str, Optional[int]]]
+# 引数: prompt: str
+# 戻り値: (raw_output: str, subagent_tokens: Optional[int])
+#   subagent_tokens は Agent ツール結果から取得した実測値。取得不可時は None。
+```
+
 それぞれ Agent(goal-driven-l3-executor) / Agent(goal-driven-grader) の
 呼び出しを渡すこと（AC-5: 独立した Agent 呼び出し・FR-2: 別コンテキスト）。
+
+**W4-T2 実装（`.claude/scripts/gd_state.py`）の追加 API（コスト集計）**:
+```python
+from gd_state import (
+    accumulate_subagent_tokens,  # 層別 subagent_tokens を cost_log に累積 + total_tokens 連動加算
+    compute_l1_ratio,            # l1_tokens / total_tokens を計算（total=0 時は 0.0）
+    build_cost_summary,          # design §14 形式のコスト集計文字列を生成
+    record_token_divergence,     # 自己申告 vs 実測の乖離を記録（±20% 超で WARN ログ出力）
+)
+```
+
+`accumulate_subagent_tokens(layer, tokens, project_root)` の `layer` 引数有効値:
+`"l1"` / `"l2"` / `"l3"` / `"grader"`
 
 ### [5] grader 呼び出し（FR-2）
 
@@ -369,13 +391,14 @@ full-review（納品前検収）
 | Stop hook B-3 節 | 未実装（PM-G1 必要） | W2-T3 |
 | 実行ループ本体（Plan B） | **完了** | W3-T2 |
 | distill-lessons.py | **完了** | W4-T1 |
+| コスト集計・実測トークン累積（gd_state.py W4-T2 追加 API） | **完了** | W4-T2 |
 
 ---
 
 ## 参照
 
 - 仕様: `docs/specs/goal-driven-orchestration/requirements.md` v1.2.0
-- 設計: `docs/specs/goal-driven-orchestration/design.md` v0.3.1
+- 設計: `docs/specs/goal-driven-orchestration/design.md` v0.3.3
 - タスク: `docs/specs/goal-driven-orchestration/tasks.md` v1.2.0
 - Plan B 確定根拠: `docs/specs/goal-driven-orchestration/research/oq1-goal-subagent-test.md`
 - 設定: `docs/specs/goal-driven-orchestration/config.md`（W1-T2 で作成）
