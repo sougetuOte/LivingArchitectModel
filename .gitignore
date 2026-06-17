@@ -46,6 +46,7 @@ docs/daily/
 .claude/logs/
 .claude/lam-loop-state.json
 .claude/autonomous-state.json
+.claude/gd-session-state.json
 .claude/review-state/
 .claude/doc-sync-flag
 .claude/pre-compact-fired
