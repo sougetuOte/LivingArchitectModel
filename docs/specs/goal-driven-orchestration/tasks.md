@@ -1,9 +1,9 @@
 # タスク定義: ゴール駆動オーケストレーション・スキル（B-3）
 
-- バージョン: 1.4.2
+- バージョン: 1.4.3
 - 作成日: 2026-06-11
-- 改訂日: 2026-06-16（W4-T2 完了チェック記入（Phase 1+2/3/4 完了・pytest 348 passed・design v0.3.3 同期）。SE 実装後差分報告）
-- 改訂履歴: 2026-06-16 v1.4.2（W4-T2 完了チェック記入（Phase 1+2/3/4 完了・pytest 348 passed・design v0.3.3 同期））/ 2026-06-13 v1.4.1（W4-T1 完了チェック・フロー[7]→[8] 誤記修正。PM 承認済み）/ 2026-06-13 v1.4.0（W4-T3 / W7-T2b 起票・W4-T2 実測正規化追記。PM 承認済み）/ 2026-06-13 v1.3.0（PM-G1 承認記録・W2-T1 スモーク行修正（DW プローブ撤回））/ 2026-06-12 v1.2.0（W0 結果反映: W0-T2 起票・W2-T1 検証手段追記・DW 置き換え見送り記録・Plan B 確定反映。PM 承認済み）/ 2026-06-12 v1.1.0（design v0.3.0 / requirements v1.2.0 整合対応）
+- 改訂日: 2026-06-17（W6-T1 / W6-T2 完了チェック記入。参照: handoff-format.md (FR-10 / AC-15), W6-T2-dw-exclusion-report.md (FR-8 / AC-10)）
+- 改訂履歴: 2026-06-17 v1.4.3（W6-T1 / W6-T2 完了チェック記入。参照: handoff-format.md (FR-10 / AC-15), W6-T2-dw-exclusion-report.md (FR-8 / AC-10)）/ 2026-06-16 v1.4.2（W4-T2 完了チェック記入（Phase 1+2/3/4 完了・pytest 348 passed・design v0.3.3 同期））/ 2026-06-13 v1.4.1（W4-T1 完了チェック・フロー[7]→[8] 誤記修正。PM 承認済み）/ 2026-06-13 v1.4.0（W4-T3 / W7-T2b 起票・W4-T2 実測正規化追記。PM 承認済み）/ 2026-06-13 v1.3.0（PM-G1 承認記録・W2-T1 スモーク行修正（DW プローブ撤回））/ 2026-06-12 v1.2.0（W0 結果反映: W0-T2 起票・W2-T1 検証手段追記・DW 置き換え見送り記録・Plan B 確定反映。PM 承認済み）/ 2026-06-12 v1.1.0（design v0.3.0 / requirements v1.2.0 整合対応）
 - ステータス: Draft（PM 承認待ち）
 - 参照要件: `requirements.md` v1.2.0
 - 参照設計: `design.md` v0.3.3
@@ -602,11 +602,13 @@ A-1（`invocation_id` なし最小変更）+ A-4（`auto_approve` 引数）+ A-5
 **対応要件**: FR-10 / AC-15 / design §16
 
 **完了条件**:
-- [ ] `docs/specs/goal-driven-orchestration/handoff-format.md` が存在する
-- [ ] `docs/tasks/<task-slug>/` に配置すべきファイル一覧（design.md、rubric-draft.md、task-list.md）が定義されている
-- [ ] `rubric-draft.md` のスキーマが design §16 の形式に準拠している
-- [ ] goal-driven スキル フロー[2] での `rubric-draft.md` 処理方法（有無に応じた分岐）が記載されている
-- [ ] AC-15 の要件（「受け渡し形式が定義されている」）を満たしている
+- [x] `docs/specs/goal-driven-orchestration/handoff-format.md` が存在する
+- [x] `docs/tasks/<task-slug>/` に配置すべきファイル一覧（design.md、rubric-draft.md、task-list.md）が定義されている
+- [x] `rubric-draft.md` のスキーマが design §16 の形式に準拠している
+- [x] goal-driven スキル フロー[2] での `rubric-draft.md` 処理方法（有無に応じた分岐）が記載されている
+- [x] AC-15 の要件（「受け渡し形式が定義されている」）を満たしている
+
+**2026-06-17 完了**（独立採点 Pass。成果物: `docs/specs/goal-driven-orchestration/handoff-format.md`（FR-10 / AC-15））
 
 **依存**: W4-T1/T2 と並列実行可
 
@@ -625,11 +627,13 @@ A-1（`invocation_id` なし最小変更）+ A-4（`auto_approve` 引数）+ A-5
 **対応要件**: FR-8 / AC-10 / design §12（要件充足確認）
 
 **完了条件**:
-- [ ] W1-T2 の `config.md` に `disableWorkflows: true` および `CLAUDE_CODE_DISABLE_WORKFLOWS=1` が記載されている
-- [ ] W1-T1 の SKILL.md 冒頭の注意事項に DW 禁止宣言が含まれている
-- [ ] W2-T1 の l3-executor フロントマターに `effort: default` が明記されている
-- [ ] design §12 の 3 段構え（§1冒頭 / §2設定 / §3effort）がすべて存在確認される
-- [ ] AC-10（「DW がデフォルト経路で起動しないことが確認できる」）の確認チェックリスト表を提示
+- [x] W1-T2 の `config.md` に `disableWorkflows: true` および `CLAUDE_CODE_DISABLE_WORKFLOWS=1` が記載されている
+- [x] W1-T1 の SKILL.md 冒頭の注意事項に DW 禁止宣言が含まれている
+- [x] W2-T1 の l3-executor フロントマターに `effort: default` が明記されている
+- [x] design §12 の 3 段構え（§1冒頭 / §2設定 / §3effort）がすべて存在確認される
+- [x] AC-10（「DW がデフォルト経路で起動しないことが確認できる」）の確認チェックリスト表を提示
+
+**2026-06-17 完了**（独立採点 Pass。成果物: `docs/artifacts/goal-driven-demo/W6-T2-dw-exclusion-report.md`（FR-8 / AC-10））
 
 **依存**: W1-T2 完了（記述確認のため並列実行不可）
 
@@ -848,4 +852,4 @@ W0 後の早期段階で提示可能）。
 
 ---
 
-*tasks.md ここまで。バージョン 1.4.2 / 2026-06-16 / doc-writer サブエージェント（W4-T2 完了チェック記入）*
+*tasks.md ここまで。バージョン 1.4.3 / 2026-06-17 / doc-writer サブエージェント（W6-T1 / W6-T2 完了チェック記入）*
