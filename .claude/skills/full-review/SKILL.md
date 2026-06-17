@@ -1,9 +1,9 @@
 ---
 name: full-review
-description: "並列監査 + 全修正 + 検証の一気通貫レビュー"
-version: 1.0.0
+description: "並列監査 + 全修正 + 検証の一気通貫レビュー。--rubric-path=<rubric.md> でゴール条件を注入可能"
+version: 1.1.0
 disable-model-invocation: true
-argument-hint: "<対象ファイル or ディレクトリ>"
+argument-hint: "<対象ファイル or ディレクトリ> [--rubric-path=<rubric.md>]"
 ---
 
 # /full-review - 並列監査 + 全修正 + 自動ループ
@@ -28,8 +28,27 @@ argument-hint: "<対象ファイル or ディレクトリ>"
 `.claude/lam-loop-state.json` を生成し、自動ループを開始する。
 
 ```bash
+# 引数から --rubric-path=<value> を抽出（省略時は空文字）
+# 例: /full-review src/ --rubric-path=rubric.md → RUBRIC_PATH=rubric.md
+RUBRIC_PATH=""
+for arg in $ARGUMENTS; do
+  case "$arg" in
+    --rubric-path=*) RUBRIC_PATH="${arg#--rubric-path=}" ;;
+  esac
+done
+
+# TARGET は ARGUMENTS の最初の非オプション引数
+TARGET=""
+for arg in $ARGUMENTS; do
+  case "$arg" in
+    --*) ;;
+    *) if [ -z "$TARGET" ]; then TARGET="$arg"; fi ;;
+  esac
+done
+
 # 状態ファイルを生成（Bash で実行）
-# 注: $TARGET と $TIMESTAMP はシェル変数。heredoc 内で展開される
+# 注: $TARGET / $TIMESTAMP / $RUBRIC_PATH はシェル変数。heredoc 内で展開される
+# rubric_path は省略時に空文字で格納（後方互換: フィールド追加のみ・既存フィールド変更なし）
 cat > .claude/lam-loop-state.json << EOF
 {
   "active": true,
@@ -38,6 +57,7 @@ cat > .claude/lam-loop-state.json << EOF
   "iteration": 0,
   "max_iterations": 5,
   "started_at": "$TIMESTAMP",
+  "rubric_path": "$RUBRIC_PATH",
   "log": []
 }
 EOF
@@ -57,6 +77,7 @@ EOF
 | `fullscan_pending` | boolean | フルスキャン待ちフラグ（Stage 5 でセット、Claude が参照） | `/full-review` |
 | `pm_pending` | boolean | PM級承認待ちフラグ（Stage 4 でセット、Claude/Stop hook が参照） | `/full-review` |
 | `tool_events` | array | ツール実行イベントの記録（PostToolUse hook が追記） | PostToolUse hook |
+| `rubric_path` | string | ゴール条件 rubric ファイルのパス（省略時は空文字 `""`） | `/full-review` |
 
 **log エントリ**:
 
@@ -345,6 +366,27 @@ Agent 出力から:
 - `parse_contract()` で契約フィールドを抽出し、`merge_contracts()` でモジュール単位に集約
 - `parse_blame_hint()` で帰責ヒントを抽出し、Issue ID と紐付けてレポート統合（Stage 3）に渡す
 - マーカーがない場合は空文字/空辞書/空リストにフォールバック（Agent が出力し忘れた場合のロバスト性確保）
+
+#### rubric 要約注入（B-4）
+
+`lam-loop-state.json` の `rubric_path` が空でない場合、Agent プロンプト構築前に以下の手順で rubric 内容を読み込み、各 Agent プロンプトの末尾に注入する。`rubric_path` が空文字または未設定の場合はこの手順をスキップし、Agent プロンプトは従来通り（後方互換）。
+
+```bash
+# rubric_path を lam-loop-state.json から取得（1行 python3 -c を使用）
+RUBRIC_PATH=$(python3 -c "import json,sys; d=json.load(open('.claude/lam-loop-state.json')); print(d.get('rubric_path',''))")
+```
+
+`RUBRIC_PATH` が非空の場合、rubric ファイルの先頭 200 行を読み込んで `RUBRIC_CONTENT` に格納し、各 Agent プロンプトの末尾に以下のセクションを追記する（既存プロンプト本文は破壊しない・追記のみ）:
+
+```
+---RUBRIC-CONTEXT---
+以下はゴール条件 rubric です。レビュー時にこれらの条件を観点に加えてください。
+rubric への合否判定（G6）は別の grader が担当するため、本 Agent は rubric 観点でのコメントを
+Issue リストに含めれば十分です（rubric 不適合は Warning 相当として扱う）。
+
+[RUBRIC_CONTENT の内容をここに挿入]
+---END-RUBRIC-CONTEXT---
+```
 
 ### Step 4: 概要カード + 契約カード生成
 
