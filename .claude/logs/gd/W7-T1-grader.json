@@ -1,0 +1,41 @@
+{
+  "rubric_version": "1.0.0",
+  "rubric_path": "docs/tasks/goal-driven/rubric-acceptance.md",
+  "task": "W7-T1",
+  "overall": "pass",
+  "items": [
+    {"id": 1, "category": "AC-1", "result": "pass", "reason": "ls 確認: .claude/skills/goal-driven/SKILL.md 存在（16,671 bytes）"},
+    {"id": 2, "category": "AC-2", "result": "pass", "reason": "#16〜#25 (FR-1〜FR-10) すべて Pass。統合判定: 全 FR 実装"},
+    {"id": 3, "category": "AC-3", "result": "pass", "reason": "docs/artifacts/goal-driven-demo/W4-T3-rehearsal-results.md 存在。フロー[1]〜[9] 完走テーブル（L12-26）: 全 9 ステップ OK 記載。完走判定: 全ステップ正常完了"},
+    {"id": 4, "category": "AC-4", "result": "pass", "reason": "W4-T3 リハーサル結果 L16: route=medium 判定 OK。design.md §9 (L333-389): 三段階ルート判定フロー図・条件 A/B/C 分岐存在"},
+    {"id": 5, "category": "AC-5", "result": "pass", "reason": ".claude/logs/gd/gd-20260617-001-loop01-grader.json 存在（1,358 bytes）。goal-driven-grader.md L4-5: 別コンテキスト実行記述あり"},
+    {"id": 6, "category": "AC-6", "result": "pass", "reason": "goal-driven-l3-executor.md L9 tools: Read, Glob, Grep, Write, Edit, Bash（Agent 不在）。goal-driven-grader.md L9 tools: Read, Glob, Grep, Bash（Agent 不在）"},
+    {"id": 7, "category": "AC-7", "result": "pass", "reason": "SKILL.md L133-135: Plan B 採用確定。「/goal を使用しないため or stop after N turns は使用しない」明記。Plan B 制御ループ（L137-166）と bound 設定（max_loop_count + max_turns）確認。rubric §59-60: Plan B 対応確認"},
+    {"id": 8, "category": "AC-8", "result": "pass", "reason": "W4-T3 リハーサル結果 §4 L79-94: bound チェック記述。実測 75,342 tok（150k 内）。design §10 (L433-451): gd-session-state.json スキーマに global_token_bound / global_time_bound フィールド定義"},
+    {"id": 9, "category": "AC-9", "result": "pass", "reason": "design.md §4 L116-117: AC-9 対応欄に「エスカレーション E2E テスト（I-1）」記載。§10 (L446): max_loop_count フィールド定義。§10 L502-515: エスカレーション経路設計記述"},
+    {"id": 10, "category": "AC-10", "result": "pass", "reason": "W6-T2 レポート: 検証 1〜5 結果「明示 Pass 4 件 / Partial Pass 1 件 / Fail 0 件」。l3-executor フロントマターに effort: default 明記（L9）"},
+    {"id": 11, "category": "AC-11", "result": "pass", "reason": "design.md §14 に層別（L1/L2/L3/grader）コスト集計形式定義。SKILL.md L207 build_cost_summary 関数記載。W4-T3 リハーサル L49: コストサマリ出力 Pass"},
+    {"id": 12, "category": "AC-12", "result": "pass", "reason": "design.md §8 L329: 確定: Plan B（2026-06-12 実測）記載。docs/specs/.../research/oq1-goal-subagent-test.md 存在（7,428 bytes）"},
+    {"id": 13, "category": "AC-13", "result": "pass", "reason": "design.md §3 (L69-100): OQ-2 決定的骨格 3 案比較表（保存済みワークフロー / hooks / スキル+自前スクリプト）+ 選定理由 4 項目（L85-95: 保存済み制約・hooks 統合・スキル適合・補完的役割）"},
+    {"id": 14, "category": "AC-14", "result": "pass", "reason": "docs/specs/.../research/full-review-analysis.md 存在（20,869 bytes、更新 2026-06-17）。git log: コミット f47ffa5, 8578213 確認。design.md §18 D5 (L943): Draft 完成済み・PM 承認待ち記載"},
+    {"id": 15, "category": "AC-15", "result": "pass", "reason": "ls 確認: docs/specs/goal-driven-orchestration/handoff-format.md 存在（v0.1.0、15,487 bytes）"},
+    {"id": 16, "category": "FR-1", "result": "pass", "reason": "SKILL.md フロー[2] (L80-93): rubric 生成手順（rubric-draft.md 有無分岐・ゼロから生成・design.md 参照）記述あり"},
+    {"id": 17, "category": "FR-2", "result": "pass", "reason": "goal-driven-grader.md フロントマター: model: haiku。description L4-5: 別コンテキスト実行記述（FR-2）"},
+    {"id": 18, "category": "FR-3", "result": "pass", "reason": "design.md §7 (L234-260) JSON スキーマに 4 フィールド: changes (L243) / test_results (L246) / unresolved (L253) / next_suggestion (L256) すべて存在"},
+    {"id": 19, "category": "FR-4", "result": "pass", "reason": "design.md §10 層別 bound テーブル (L405-411): max_turns / /goal 打ち切り句 / グローバル bound（tokens OR time）3 要素。gd-session-state.json スキーマ (L437-451): max_loop_count フィールド定義"},
+    {"id": 20, "category": "FR-5", "result": "pass", "reason": ".claude/scripts/distill-lessons.py 存在（962 bytes）。.claude/agent-memory/goal-driven-l3-executor/lessons.md 存在（395 bytes、W4-T3 蒸留済み）"},
+    {"id": 21, "category": "FR-6", "result": "pass", "reason": "design.md §9 (L333-352): 三段階ルート判定フロー図（条件 A/B/C YES/NO 分岐）存在。SKILL.md フロー[1] (L70-78): 小/中/大ルート分岐ロジック記述"},
+    {"id": 22, "category": "FR-7", "result": "pass", "reason": "goal-driven-l3-executor.md L9 / goal-driven-grader.md L9 tools フィールド：両定義とも Agent 不含。FR-7 MUST 充足"},
+    {"id": 23, "category": "FR-8", "result": "pass", "reason": "l3-executor フロントマター L9: effort: default 明記。W6-T2 レポート L19: AC-10 検証 Fail 0 件。SKILL.md L10-15: Dynamic Workflows 禁止宣言"},
+    {"id": 24, "category": "FR-9", "result": "pass", "reason": "full-review-analysis.md 存在。design.md §15 (L846-855): 改造の承認ゲート記述。§18 D5: Draft 完成・PM 承認待ち"},
+    {"id": 25, "category": "FR-10", "result": "pass", "reason": "handoff-format.md 存在。design.md §16 (L857-867): lam-orchestrate（PLANNING）→ goal-driven スキル（BUILDING）→ full-review（検収）の直列パイプライン記述"}
+  ],
+  "summary": {
+    "pass": 25,
+    "fail": 0,
+    "escalate": 0,
+    "critical_count": 0
+  },
+  "escalate": false,
+  "escalate_reason": ""
+}
