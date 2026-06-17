@@ -26,3 +26,6 @@
 | `smoke-test-runbook.md` | W1-T3 実行手順書（PM 向け） |
 | `smoke-test-20260613.log` | W1-T3 実行ログ |
 | `smoke-hello.txt` | スモークタスク成果物（固定文字列 `smoke-test-ok`） |
+| `README.md` | ディレクトリ概要・ファイル一覧テーブル（本ファイル） |
+| `W4-T3-rehearsal-package.md` | W4-T3 実機リハーサル用パッケージ（中タスク経路検証） |
+| `W6-T2-dw-exclusion-report.md` | W6-T2 Dynamic Workflows 除外判断レポート |
