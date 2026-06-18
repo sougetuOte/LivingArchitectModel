@@ -1,0 +1,106 @@
+{
+  "name": "lam-demo-app",
+  "description": "LAM 大タスク経路検証用デモ",
+  "version": "0.1.0",
+  "readme_url": "https://github.com/example/lam-demo-app/blob/main/README.md",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/lam-demo-app.git"
+  },
+  "authors": [
+    {
+      "name": "LAM Project Team",
+      "email": "team@example.com",
+      "role": "maintainer"
+    }
+  ],
+  "tags": [
+    "living-architect",
+    "goal-driven",
+    "large-route",
+    "demo",
+    "orchestration",
+    "l3-executor"
+  ],
+  "keywords": [
+    "lam",
+    "goal-driven-orchestration",
+    "demo-app",
+    "task-routing"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "python": ">=3.10"
+  },
+  "homepage": "https://github.com/example/lam-demo-app",
+  "bugs": {
+    "url": "https://github.com/example/lam-demo-app/issues",
+    "email": "bugs@example.com"
+  },
+  "created_at": "2026-06-18",
+  "updated_at": "2026-06-18",
+  "status": "experimental",
+  "maturity": "alpha",
+  "language": "ja",
+  "encoding": "UTF-8",
+  "task_slug": "w7-t2b-large-route-demo",
+  "task_id": "gd-20260618-001",
+  "route": "large",
+  "pipeline": {
+    "layers": 3,
+    "stages": [
+      "L1-orchestrator",
+      "l2-foreman",
+      "l3-executor"
+    ],
+    "parallel_degree": 2,
+    "total_phases": 3
+  },
+  "phases": [
+    {
+      "id": 1,
+      "name": "metadata-json-generation",
+      "description": "プロジェクトメタデータ JSON ファイルの生成"
+    },
+    {
+      "id": 2,
+      "name": "readme-draft-generation",
+      "description": "README ドラフト Markdown ファイルの生成"
+    },
+    {
+      "id": 3,
+      "name": "changelog-draft-generation",
+      "description": "CHANGELOG ドラフト Markdown ファイルの生成"
+    }
+  ],
+  "acceptance_criteria": {
+    "total": 7,
+    "run_type": 3,
+    "grader_type": 4,
+    "items": [
+      "AC-1",
+      "AC-2",
+      "AC-3",
+      "AC-4",
+      "AC-5",
+      "AC-6",
+      "AC-7"
+    ]
+  },
+  "constraints": {
+    "output_directory": "docs/artifacts/goal-driven-demo/w7-t2b/output/",
+    "no_subdirectories": true,
+    "min_lines_per_file": 50,
+    "encoding": "UTF-8"
+  },
+  "dependencies": [],
+  "dev_dependencies": [],
+  "scripts": {
+    "test": "pytest",
+    "lint": "ruff check .",
+    "format": "ruff format ."
+  },
+  "private": false,
+  "publishable": false
+}

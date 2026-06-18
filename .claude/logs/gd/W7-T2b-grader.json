@@ -1,0 +1,43 @@
+{
+  "rubric_version": "2026-06-18",
+  "overall": "pass",
+  "items": [
+    {
+      "id": 1,
+      "result": "pass",
+      "reason": "metadata.json confirmed at docs/artifacts/goal-driven-demo/w7-t2b/output/metadata.json (exit code 0)"
+    },
+    {
+      "id": 2,
+      "result": "pass",
+      "reason": "metadata.json contains all 3 required top-level keys: name='lam-demo-app', description='LAM 大タスク経路検証用デモ', version='0.1.0' (all non-empty)"
+    },
+    {
+      "id": 3,
+      "result": "pass",
+      "reason": "README-draft.md confirmed at docs/artifacts/goal-driven-demo/w7-t2b/output/README-draft.md (exit code 0)"
+    },
+    {
+      "id": 4,
+      "result": "pass",
+      "reason": "README-draft.md contains both required sections: '## Overview' at line 7, '## Setup' at line 36 (each appears exactly once)"
+    },
+    {
+      "id": 5,
+      "result": "pass",
+      "reason": "CHANGELOG-draft.md confirmed at docs/artifacts/goal-driven-demo/w7-t2b/output/CHANGELOG-draft.md (exit code 0)"
+    },
+    {
+      "id": 6,
+      "result": "pass",
+      "reason": "CHANGELOG-draft.md line 1 is exactly '# Changelog' (strict match after whitespace trim)"
+    },
+    {
+      "id": 7,
+      "result": "pass",
+      "reason": "All 3 files meet constraints: metadata.json=106 lines, README-draft.md=152 lines, CHANGELOG-draft.md=96 lines (all ≥50). All files decode as valid UTF-8."
+    }
+  ],
+  "escalate": false,
+  "escalate_reason": ""
+}
