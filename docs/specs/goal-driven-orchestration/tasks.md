@@ -1,9 +1,9 @@
 # タスク定義: ゴール駆動オーケストレーション・スキル（B-3）
 
-- バージョン: 1.4.4
+- バージョン: 1.4.5
 - 作成日: 2026-06-11
-- 改訂日: 2026-06-17（W4-T3 中タスク実機リハーサル 7 項目完了チェック記入。参照: rehearsal-results.md / retro-w4-t3.md）
-- 改訂履歴: 2026-06-17 v1.4.4（W4-T3 中タスク実機リハーサル 7 項目完了チェック記入。参照: rehearsal-results.md / retro-w4-t3.md）/ 2026-06-17 v1.4.3（W6-T1 / W6-T2 完了チェック記入。参照: handoff-format.md (FR-10 / AC-15), W6-T2-dw-exclusion-report.md (FR-8 / AC-10)）/ 2026-06-16 v1.4.2（W4-T2 完了チェック記入（Phase 1+2/3/4 完了・pytest 348 passed・design v0.3.3 同期））/ 2026-06-13 v1.4.1（W4-T1 完了チェック・フロー[7]→[8] 誤記修正。PM 承認済み）/ 2026-06-13 v1.4.0（W4-T3 / W7-T2b 起票・W4-T2 実測正規化追記。PM 承認済み）/ 2026-06-13 v1.3.0（PM-G1 承認記録・W2-T1 スモーク行修正（DW プローブ撤回））/ 2026-06-12 v1.2.0（W0 結果反映: W0-T2 起票・W2-T1 検証手段追記・DW 置き換え見送り記録・Plan B 確定反映。PM 承認済み）/ 2026-06-12 v1.1.0（design v0.3.0 / requirements v1.2.0 整合対応）
+- 改訂日: 2026-06-18（W5-T1 / W5-T2 / W7-T1 / W7-T2 完了チェック記入。参照: 5a7f856 / ccbf6ea / ed75140 + 3380d74 / W7-T2-acceptance-evidence.md）
+- 改訂履歴: 2026-06-18 v1.4.5（W5-T1 / W5-T2 / W7-T1 / W7-T2 完了チェック記入。根拠: 5a7f856（W5-T1）/ ccbf6ea（W5-T2）/ ed75140 + 3380d74（W7-T1 / rubric + grader 25/25 Pass）/ 新規 docs/artifacts/goal-driven-demo/W7-T2-acceptance-evidence.md（W7-T2 / AC-3/4/5/11 全 Pass））/ 2026-06-17 v1.4.4（W4-T3 中タスク実機リハーサル 7 項目完了チェック記入。参照: rehearsal-results.md / retro-w4-t3.md）/ 2026-06-17 v1.4.3（W6-T1 / W6-T2 完了チェック記入。参照: handoff-format.md (FR-10 / AC-15), W6-T2-dw-exclusion-report.md (FR-8 / AC-10)）/ 2026-06-16 v1.4.2（W4-T2 完了チェック記入（Phase 1+2/3/4 完了・pytest 348 passed・design v0.3.3 同期））/ 2026-06-13 v1.4.1（W4-T1 完了チェック・フロー[7]→[8] 誤記修正。PM 承認済み）/ 2026-06-13 v1.4.0（W4-T3 / W7-T2b 起票・W4-T2 実測正規化追記。PM 承認済み）/ 2026-06-13 v1.3.0（PM-G1 承認記録・W2-T1 スモーク行修正（DW プローブ撤回））/ 2026-06-12 v1.2.0（W0 結果反映: W0-T2 起票・W2-T1 検証手段追記・DW 置き換え見送り記録・Plan B 確定反映。PM 承認済み）/ 2026-06-12 v1.1.0（design v0.3.0 / requirements v1.2.0 整合対応）
 - ステータス: Draft（PM 承認待ち）
 - 参照要件: `requirements.md` v1.2.0
 - 参照設計: `design.md` v0.3.3
@@ -559,12 +559,14 @@ G6 チェックは実装しない（rubric 照合は grader 側に委譲）。
 **対応要件**: FR-9 / AC-14 / design §15 暫定 IF / full-review-analysis §4.3 フェーズ 1
 
 **完了条件**:
-- [ ] `full-review` SKILL.md のフロントマターに `rubric_path` 引数が追加されている
-- [ ] Stage 0 で `rubric_path` を読み込み、状態ファイル（`lam-loop-state.json`）に格納する処理が追加されている
-- [ ] Stage 2 Agent プロンプトに rubric 要約が注入される処理が追加されている（B-4）
-- [ ] `rubric_path` を省略した場合、従来と同一の動作になる（後方互換維持）
-- [ ] 複数行 `python3 -c` は使用していない（full-review-analysis §5.2 非推奨）
-- [ ] 既存の full-review テスト群がすべてパスする（リグレッションなし）
+- [x] `full-review` SKILL.md のフロントマターに `rubric_path` 引数が追加されている
+- [x] Stage 0 で `rubric_path` を読み込み、状態ファイル（`lam-loop-state.json`）に格納する処理が追加されている
+- [x] Stage 2 Agent プロンプトに rubric 要約が注入される処理が追加されている（B-4）
+- [x] `rubric_path` を省略した場合、従来と同一の動作になる（後方互換維持）
+- [x] 複数行 `python3 -c` は使用していない（full-review-analysis §5.2 非推奨）
+- [x] 既存の full-review テスト群がすべてパスする（リグレッションなし）
+
+**2026-06-17 完了**（フェーズ 1 実装完了 B-1/B-2/B-4・Haiku 独立突合 7/7 Pass。コミット: 5a7f856）
 
 **依存**: PM-G2 承認
 
@@ -585,12 +587,14 @@ A-1（`invocation_id` なし最小変更）+ A-4（`auto_approve` 引数）+ A-5
 **対応要件**: FR-9 / AC-14 / design §15 / full-review-analysis §4.3 フェーズ 2
 
 **完了条件**:
-- [ ] `auto_approve` 引数が追加され、デフォルト `false` で従来通り人間問い合わせが継続する
-- [ ] `subagent_mode=true` 時に Stage 3 の対話をスキップし構造化報告に変換する
-- [ ] PM 級 Issue が `subagent_mode=true` 時に構造化レポートとして返される（A-5）
-- [ ] フロントマターの `argument-hint` が更新されている（A-7）
-- [ ] 既存の全テストがパスする（リグレッションなし）
-- [ ] `run_phase0()` への `project_root` 渡しが全箇所で実施されている（A-6、R-3 防止）
+- [x] `auto_approve` 引数が追加され、デフォルト `false` で従来通り人間問い合わせが継続する
+- [x] `subagent_mode=true` 時に Stage 3 の対話をスキップし構造化報告に変換する
+- [x] PM 級 Issue が `subagent_mode=true` 時に構造化レポートとして返される（A-5）
+- [x] フロントマターの `argument-hint` が更新されている（A-7）
+- [x] 既存の全テストがパスする（リグレッションなし）
+- [x] `run_phase0()` への `project_root` 渡しが全箇所で実施されている（A-6、R-3 防止）
+
+**2026-06-17 完了**（フェーズ 2 実装完了 auto_approve / A-6 / A-7 / A-4 / A-5 / 直列警告・pytest 913 passed・Haiku 独立突合 8/8 Pass。コミット: ccbf6ea）
 
 **依存**: W5-T1 完了
 
@@ -668,11 +672,13 @@ design §20 の検収手順に従う。
 4. W7-T3 PM-G3 へ検収結果を提示
 
 **完了条件**:
-- [ ] `docs/tasks/goal-driven/rubric-acceptance.md` が存在し、AC-1〜15 と FR-1〜10 の 25 行を個別チェック項目として列挙している
-- [ ] grader による照合結果 JSON が `.claude/logs/gd/` に保存されている
-- [ ] Critical 判定の項目がゼロである
-- [ ] AC-1〜AC-15、FR-1〜FR-10 の全項目（25 行）に合否理由が記録されている
-- [ ] AC-13 の「実装方式比較検討記載」がチェックされている（検証方法: design.md §3 確認）
+- [x] `docs/tasks/goal-driven/rubric-acceptance.md` が存在し、AC-1〜15 と FR-1〜10 の 25 行を個別チェック項目として列挙している
+- [x] grader による照合結果 JSON が `.claude/logs/gd/` に保存されている
+- [x] Critical 判定の項目がゼロである
+- [x] AC-1〜AC-15、FR-1〜FR-10 の全項目（25 行）に合否理由が記録されている
+- [x] AC-13 の「実装方式比較検討記載」がチェックされている（検証方法: design.md §3 確認）
+
+**2026-06-17 完了**（rubric-acceptance.md v1.0.0 作成・goal-driven-grader 独立採点 25/25 Pass・Critical=0。コミット: ed75140（rubric 起草）/ 3380d74（grader JSON 保存））
 
 **依存**: W2〜W6 の全タスク完了
 
@@ -690,11 +696,13 @@ design §20 の検収手順に従う。
 **対応要件**: AC-3 / AC-4 / AC-5 / AC-11 / NFR-1
 
 **完了条件**:
-- [ ] `docs/artifacts/goal-driven-demo/` に実行ログが保存されている
-- [ ] ログ内にフロー [1]〜[9] の各ステップの実行記録が含まれている
-- [ ] 三段階ルート判定（小/中/大の分岐）がログで確認できる（AC-4）
-- [ ] grader が作業者と別コンテキストで動作していることがログで確認できる（AC-5）
-- [ ] **コストサマリ（モデル別・層別）がログに出力され、L1 消費比率が計測・記録されている**（参考記録・初期目標値）（AC-11 / NFR-1）
+- [x] `docs/artifacts/goal-driven-demo/` に実行ログが保存されている
+- [x] ログ内にフロー [1]〜[9] の各ステップの実行記録が含まれている
+- [x] 三段階ルート判定（小/中/大の分岐）がログで確認できる（AC-4）
+- [x] grader が作業者と別コンテキストで動作していることがログで確認できる（AC-5）
+- [x] **コストサマリ（モデル別・層別）がログに出力され、L1 消費比率が計測・記録されている**（参考記録・初期目標値）（AC-11 / NFR-1）
+
+**2026-06-18 完了**（acceptance-evidence.md 作成・AC-3/4/5/11 全 Pass・Haiku 整合性 Critical=0。成果物: docs/artifacts/goal-driven-demo/W7-T2-acceptance-evidence.md）
 
 **依存**: W7-T1 完了（検収合格後）
 
@@ -858,4 +866,4 @@ W0 後の早期段階で提示可能）。
 
 ---
 
-*tasks.md ここまで。バージョン 1.4.4 / 2026-06-17 / doc-writer サブエージェント（W4-T3 完了チェック記入）*
+*tasks.md ここまで。バージョン 1.4.5 / 2026-06-18 / doc-writer サブエージェント（W5-T1 / W5-T2 / W7-T1 / W7-T2 完了チェック記入）*
