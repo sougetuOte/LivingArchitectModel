@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**AUDITING**
 
-_B-3: ゴール駆動オーケストレーション・スキルの TDD 実装。仕様: `docs/specs/goal-driven-orchestration/{requirements(v1.2.0),design(v0.3.0),tasks(v1.1.0)}.md`（2026-06-12 ユーザー承認済）。W0-T1（Spike: OQ-1 /goal サブエージェント内動作の実測）から着手。クリティカルパス W0-T1 → W1-T1 → W1-T3 を 6/22 までに完走（無償期間内 L1 実機テスト必須）。体制: Fable=判断・査定のみ / Sonnet=実行 / Haiku=事実突合。_
+_B-4: v5 統一階層フレームワーク構想の入り口として、骨子 ④「fat 化監査 + 削減リファクタ」の監査フェーズに着手。MAGI 合議結論（2026-06-19）に基づき以下の順序・形式で監査する: ④KPI ログ項目仕分け → ②distill-lessons skip 機構 → ③/full-review Phase 数削減 → ①MAGI Reflection 廃止 or 統合。各候補は Standard 深度（分類 + 数値根拠 + 削減プラン）で監査し、`docs/artifacts/v5-fat-audit-2026-06-19.md` に集約。削減基準マトリクスは「使用頻度 × 失敗時影響」（v5 構想 ④）。AUDITING は監査・PG/SE 修正のみで PM 級は指摘止め。承認後に PLANNING へ切替えて削減 spec を起草する。体制: Fable=判断・査定・PM 整理のみ / Sonnet=実機監査・grep / Haiku=事実突合・集計。_
 
 ---
 
