@@ -1,8 +1,8 @@
 # Current Phase
 
-**AUDITING**
+**PLANNING**
 
-_B-4: v5 統一階層フレームワーク構想の入り口として、骨子 ④「fat 化監査 + 削減リファクタ」の監査フェーズに着手。MAGI 合議結論（2026-06-19）に基づき以下の順序・形式で監査する: ④KPI ログ項目仕分け → ②distill-lessons skip 機構 → ③/full-review Phase 数削減 → ①MAGI Reflection 廃止 or 統合。各候補は Standard 深度（分類 + 数値根拠 + 削減プラン）で監査し、`docs/artifacts/v5-fat-audit-2026-06-19.md` に集約。削減基準マトリクスは「使用頻度 × 失敗時影響」（v5 構想 ④）。AUDITING は監査・PG/SE 修正のみで PM 級は指摘止め。承認後に PLANNING へ切替えて削減 spec を起草する。体制: Fable=判断・査定・PM 整理のみ / Sonnet=実機監査・grep / Haiku=事実突合・集計。_
+_B-4: v5 fat 削減 spec 起草。MAGI 合議（2026-06-20）で確定したスコープに基づき `docs/specs/v5-fat-reduction/` を単一群として起草する（requirements.md / design.md / tasks.md / future-candidates.md）。連動して `v4.0.0-immune-system-requirements.md` を直接編集し NFR-6/7/8/17 削除 + NFR-14a 再起票（削除箇所 HTML コメント残し）。**スコープ境界**: gabriel 設計・ADR 新設・magi スキル全面改訂は v5 ② 別マイルストーン送り（future-candidates.md で引き継ぎ）。B-4 内では Reflection 警告ラベル温存のみ。承認後 BUILDING へ。体制: Opus=判断・PM 整理 / Sonnet=起草・編集 / Haiku=合否判定・突合。_
 
 ---
 
