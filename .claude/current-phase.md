@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING**
+**BUILDING**
 
-_B-4: v5 fat 削減 spec 起草。MAGI 合議（2026-06-20）で確定したスコープに基づき `docs/specs/v5-fat-reduction/` を単一群として起草する（requirements.md / design.md / tasks.md / future-candidates.md）。連動して `v4.0.0-immune-system-requirements.md` を直接編集し NFR-6/7/8/17 削除 + NFR-14a 再起票（削除箇所 HTML コメント残し）。**スコープ境界**: gabriel 設計・ADR 新設・magi スキル全面改訂は v5 ② 別マイルストーン送り（future-candidates.md で引き継ぎ）。B-4 内では Reflection 警告ラベル温存のみ。承認後 BUILDING へ。体制: Opus=判断・PM 整理 / Sonnet=起草・編集 / Haiku=合否判定・突合。_
+_B-4 Wave 1: v5 fat 削減リファクタ実装フェーズ。PLANNING spec（`docs/specs/v5-fat-reduction/`）承認済み・WBS 100% / Green State 確認済み（2026-06-20）。Wave 1 スコープ: §1 NFR cleanup（`v4.0.0-immune-system-requirements.md` の NFR-6/7/8/17 削除 + NFR-14a 再起票）、§2 distill-lessons（lessons-learned 抽出・docs 整理）、§4 MAGI 警告ラベル温存（Reflection セクションへの no-op マーカー追記確認）。**スコープ境界**: gabriel 設計・ADR 新設・magi スキル全面改訂は v5 ② 別マイルストーン（future-candidates.md で引き継ぎ）。体制: Opus=判断・PM 整理 / Sonnet=実装・編集 / Haiku=突合。_
 
 ---
 
