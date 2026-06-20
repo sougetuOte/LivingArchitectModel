@@ -16,6 +16,7 @@
 2. **Debate**: 対立ポイントについて解決策を検討
 3. **Convergence**: CASPAR が最終決定を下す
 4. **Reflection（新規追加）**: 全員で結論を検証（1回限り）。致命的な見落としがあれば修正
+   > [WARNING] B-4 監査（2026-06-19）実機計測: 初回変更率 0% / v5 ② gabriel 統合予定
 
 ## AoT（Atom of Thought）
 
