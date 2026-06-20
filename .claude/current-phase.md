@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**PLANNING**
 
-_B-4 Wave 1: v5 fat 削減リファクタ実装フェーズ。PLANNING spec（`docs/specs/v5-fat-reduction/`）承認済み・WBS 100% / Green State 確認済み（2026-06-20）。Wave 1 スコープ: §1 NFR cleanup（`v4.0.0-immune-system-requirements.md` の NFR-6/7/8/17 削除 + NFR-14a 再起票）、§2 distill-lessons（lessons-learned 抽出・docs 整理）、§4 MAGI 警告ラベル温存（Reflection セクションへの no-op マーカー追記確認）。**スコープ境界**: gabriel 設計・ADR 新設・magi スキル全面改訂は v5 ② 別マイルストーン（future-candidates.md で引き継ぎ）。体制: Opus=判断・PM 整理 / Sonnet=実装・編集 / Haiku=突合。_
+_B-5: b4-dashboard（可視化レイヤー）の要件定義準備フェーズ。前マイルストーン B-4 Wave 1+1.5 完了（2026-06-20）を受けて、次マイルストーン骨子の着手順序が MAGI 合議で確定（⑤[今回]→⑥→①→②→③）。サブフェーズ: requirements 起草準備（着手日 2026-06-20）。Wave 1 では PLANNING 標準ガードレール（コード生成禁止 / `src/` 変更禁止 / 設定ファイル変更禁止 / 未承認での次サブフェーズ開始禁止）を継承し、`docs/specs/` `docs/adr/` `docs/tasks/` `docs/artifacts/` への出力と既存コード読取のみ許可する。承認ゲート: requirements → [承認] → design → [承認] → tasks → [承認] → BUILDING。体制: Opus=判断・PM 整理 / Sonnet=起草・編集 / Haiku=突合。_
 
 ---
 
