@@ -48,6 +48,18 @@
 | クイックリファレンス | `CHEATSHEET.md` |
 | 概念説明スライド | `docs/slides/index.html` |
 
+## Terminology（ミニ辞書）
+
+| 用語 | 定義 |
+|------|------|
+| **Project** | 最上位の識別子（例: LAM） |
+| **Milestone** | Project 内の大きな区切り（例: B-4, B-5） |
+| **Step** | Milestone 内の段階（例: PLANNING, BUILDING, AUDITING） |
+| **Wave** | Step 内の実装の波（例: Wave 1, Wave 1.5） |
+| **Task** | Wave 内の個別作業（例: PR-A, PR-B） |
+
+詳細・正例誤例・命名規則: `.claude/rules/terminology.md`（2026-06-20 以後の新規記述に適用）
+
 ## Execution Environment
 
 実行環境は **Windows 11 Pro**。Bash ツールの実体は **Git Bash（MSYS / MINGW64）** であり、
