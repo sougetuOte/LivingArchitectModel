@@ -68,9 +68,11 @@ docs/adr/                  # アーキテクチャ決定記録
 
 全判定結果は `.claude/logs/permission.log` に記録。
 
-### フック分類の誤判定率計測
+### フック分類の誤判定率計測（NFR-14a）
 
-Wave 1 完了後に `.claude/logs/permission.log` を分析し、誤判定のベースラインを確立する:
+NFR-14a の計測スクリプトは v5 Phase 1 で実装予定。Wave 1 段階では未実施。
+
+計測実施時は `.claude/logs/permission.log` を分析し、誤判定のベースラインを確立する:
 1. `permission.log` からランダムに N 件サンプリング
 2. 各判定の正否を人間がレビュー
 3. 誤判定率 = 誤判定数 / サンプル数
