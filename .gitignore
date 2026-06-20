@@ -62,3 +62,6 @@ docs/specs/goal-driven-orchestration/request/
 
 # B-4 以降の影響波及監査・中間検証レポート（ローカル保持・履歴非追跡）
 docs/artifacts/tmp/
+# B-4 Wave 1.5 影響波及監査のワンショットスクリプト・grep 中間出力（ローカル保持）
+.claude/scripts/scan_nfr_refs*.py
+.claude/grep_*.txt
