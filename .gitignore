@@ -65,3 +65,6 @@ docs/artifacts/tmp/
 # B-4 Wave 1.5 影響波及監査のワンショットスクリプト・grep 中間出力（ローカル保持）
 .claude/scripts/scan_nfr_refs*.py
 .claude/grep_*.txt
+
+# B-5 b4-dashboard runtime 生成物（build_dashboard.py の出力・履歴非追跡）
+docs/artifacts/dashboard/*.html
