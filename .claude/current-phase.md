@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING**
+**BUILDING**
 
-_B-5: b4-dashboard（可視化レイヤー）の要件定義準備フェーズ。前マイルストーン B-4 Wave 1+1.5 完了（2026-06-20）を受けて、次マイルストーン骨子の着手順序が MAGI 合議で確定（⑤[今回]→⑥→①→②→③）。サブフェーズ: requirements 起草準備（着手日 2026-06-20）。Wave 1 では PLANNING 標準ガードレール（コード生成禁止 / `src/` 変更禁止 / 設定ファイル変更禁止 / 未承認での次サブフェーズ開始禁止）を継承し、`docs/specs/` `docs/adr/` `docs/tasks/` `docs/artifacts/` への出力と既存コード読取のみ許可する。承認ゲート: requirements → [承認] → design → [承認] → tasks → [承認] → BUILDING。体制: Opus=判断・PM 整理 / Sonnet=起草・編集 / Haiku=突合。_
+_B-5: b4-dashboard（可視化レイヤー）BUILDING Step Wave 1。前 PLANNING Step 完了（commit `e39afd2`、PLANNING 4 本セット: requirements / design / tasks / adr）を受けて、Wave 1 実装（W1-T1〜T5: ビルド骨格 + 最小 HTML + V-1 スケルトン）に着手する。基準文書: `docs/specs/b4-dashboard/` 配下 5 ファイル（不可変）。BUILDING 標準ガードレール継承: 仕様確認必須 / TDD サイクル厳守（Red → Green → Refactor）/ コード変更時ドキュメント同期 / テスト追加必須。承認ゲート: Wave 1 完了 → [承認] → Wave 2。体制: Fable=判断・PM 整理 / Sonnet=実装・編集 / Haiku=突合・採点。_
 
 ---
 
