@@ -29,10 +29,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from datetime import date
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -200,6 +203,60 @@ def _load_grader_logs(grader_log_paths: list[str]) -> list[dict]:
     return grader_logs
 
 
+def _is_grader_log_empty(grader_logs: list[dict]) -> bool:
+    """grader ログが全条件を満たす「情報ゼロ」状態かどうかを返す（FR-2.1 C-1〜C-4）。
+
+    全条件が True の場合のみ True を返す（AND 条件）。
+    1 条件でも False になればスキップしない（MUST NOT）。
+
+    C-1: ループ回数（grader_logs の長さ） == 0
+    C-2: 全 grader_log の fail 原因フィールドが空文字列/null/未設定
+    C-3: 全 grader_log の修正内容フィールドが空文字列/null/未設定
+    C-4: 全 grader_log の一般則フィールドが空/定型文のみ
+
+    注意:
+    - C-1 が True（len==0）の場合、C-2〜C-4 は grader_log が存在しないため自動的に True
+    - 定型文（C-4）は build_lesson_entry() L175 が生成する固定文字列と照合する
+    """
+    # C-1: ループ回数が 0 件
+    if len(grader_logs) == 0:
+        return True
+
+    # C-1 が False の場合（grader_logs が 1 件以上）は C-2〜C-4 を評価する
+    # C-2: 全 grader_log の fail 原因が空/未設定
+    has_fail_reason = False
+    for log in grader_logs:
+        overall = log.get("overall") or log.get("verdict", "")
+        if overall != "fail":
+            continue
+        for item in log.get("items", []):
+            if item.get("result") == "fail" and item.get("reason", ""):
+                has_fail_reason = True
+                break
+        if has_fail_reason:
+            break
+    if has_fail_reason:
+        return False
+
+    # C-3: 修正内容フィールドが空（最後の pass ログに pass 項目の reason がない）
+    has_fix_content = False
+    for log in reversed(grader_logs):
+        overall = log.get("overall") or log.get("verdict", "")
+        if overall == "pass":
+            for item in log.get("items", []):
+                if item.get("result") == "pass" and item.get("reason", ""):
+                    has_fix_content = True
+                    break
+            break
+    if has_fix_content:
+        return False
+
+    # C-4: 一般則は grader ログに存在しない（build_lesson_entry で定型文が生成される）
+    # grader ログのスキーマに一般則フィールドは存在しないため、
+    # C-1〜C-3 が全て False（情報なし）の場合は C-4 も True と判定する
+    return True
+
+
 def _append_to_lessons(target_path: Path, entry: str) -> None:
     """lessons.md にエントリを追記する（新規の場合はヘッダ付きで作成）。"""
     target_path.parent.mkdir(parents=True, exist_ok=True)
@@ -237,6 +294,11 @@ def distill(
     """
     target_path = lessons_path if lessons_path is not None else _default_lessons_path()
     grader_logs = _load_grader_logs(grader_log_paths)
+
+    # FR-2.1: grader ログ空スキップ判定（重複チェックより先に評価する）
+    if _is_grader_log_empty(grader_logs):
+        logger.info("distill-lessons: skipped (empty grader log)")
+        return
 
     # 重複チェック: 同一 task_id のエントリは追記しない
     if target_path.exists():

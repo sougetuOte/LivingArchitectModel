@@ -532,3 +532,88 @@ class TestIdempotency:
         # 同一タスク ID のエントリは 1 つのみ
         count = content.count("gd-dup-001")
         assert count == 1, f"重複エントリが検出された（出現回数: {count}）"
+
+
+# ---------------------------------------------------------------------------
+# TestGraderLogEmptySkip - FR-2.1〜FR-2.3 grader ログ空スキップ（B-4 Wave 1 PR-B）
+# ---------------------------------------------------------------------------
+
+
+class TestGraderLogEmptySkip:
+    """grader ログが空の場合、distill() がエントリ追記をスキップする（FR-2.1）。
+
+    C-1: ループ回数 == 0（grader_logs が空リスト）
+    C-2: fail 原因フィールドが空文字列/null/未設定
+    C-3: 修正内容フィールドが空文字列/null/未設定
+    C-4: 一般則フィールドが空/定型文のみ
+
+    C-1〜C-4 の AND 条件が全成立した場合のみスキップする（FR-2.1 MUST）。
+    """
+
+    def test_empty_grader_log_skips_entry(self, tmp_path: Path) -> None:
+        """grader ログが空リストのとき distill() がスキップし lessons.md を作成しない。
+
+        grader_log_paths に有効ファイルが存在しない → _load_grader_logs が [] を返す
+        → C-1 が True → 全 AND 条件成立 → スキップ（lessons.md 作成なし）。
+        """
+        lessons_dir = _make_lessons_dir(tmp_path)
+        lessons_file = lessons_dir / "lessons.md"
+
+        # 存在しないファイルパスを渡す → _load_grader_logs が [] を返す
+        distill_lessons.distill(
+            task_id="gd-empty-001",
+            grader_log_paths=[str(tmp_path / "nonexistent-grader.json")],
+            lessons_path=lessons_file,
+            verified=None,
+        )
+
+        # lessons.md が作成されていない（スキップされた）
+        assert not lessons_file.exists(), "grader ログが空のとき lessons.md を作成してはならない"
+
+    def test_partial_fields_not_skipped(self, tmp_path: Path) -> None:
+        """C-1 が False（ループ回数 1 件以上）の場合はスキップしない。
+
+        grader_logs に pass/fail エントリが 1 件以上あれば、
+        C-2〜C-4 が True でも AND 条件が成立しないためスキップしない（FR-2.1 MUST NOT）。
+        """
+        lessons_dir = _make_lessons_dir(tmp_path)
+        lessons_file = lessons_dir / "lessons.md"
+
+        # pass ログを 1 件書き込む（C-1 が False になる）
+        log_path = _write_grader_log(tmp_path, task_id="gd-partial-001", overall="pass")
+
+        distill_lessons.distill(
+            task_id="gd-partial-001",
+            grader_log_paths=[str(log_path)],
+            lessons_path=lessons_file,
+            verified=None,
+        )
+
+        # lessons.md が作成されている（スキップされなかった）
+        assert lessons_file.exists(), "ループ回数 1 件以上の場合はスキップしてはならない"
+        content = lessons_file.read_text(encoding="utf-8")
+        assert "gd-partial-001" in content
+
+    def test_skip_log_output(self, tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+        """スキップ時に 'distill-lessons: skipped (empty grader log)' が INFO ログ出力される。
+
+        caplog フィクスチャで logging.INFO レベルのメッセージを捕捉する（FR-2.1 / design §2.4）。
+        """
+        import logging
+        lessons_dir = _make_lessons_dir(tmp_path)
+        lessons_file = lessons_dir / "lessons.md"
+
+        # 空の grader_log_paths でスキップを発生させる
+        with caplog.at_level(logging.INFO, logger="distill_lessons"):
+            distill_lessons.distill(
+                task_id="gd-skip-log-001",
+                grader_log_paths=[str(tmp_path / "nonexistent.json")],
+                lessons_path=lessons_file,
+                verified=None,
+            )
+
+        # ログに指定メッセージが含まれる
+        assert any(
+            "distill-lessons: skipped (empty grader log)" in record.message
+            for record in caplog.records
+        ), f"期待するログが出力されなかった。実際のログ: {[r.message for r in caplog.records]}"
