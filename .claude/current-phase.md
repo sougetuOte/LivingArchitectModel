@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**PLANNING**
 
-_B-5: b4-dashboard（可視化レイヤー）BUILDING Step Wave 1。前 PLANNING Step 完了（commit `e39afd2`、PLANNING 4 本セット: requirements / design / tasks / adr）を受けて、Wave 1 実装（W1-T1〜T5: ビルド骨格 + 最小 HTML + V-1 スケルトン）に着手する。基準文書: `docs/specs/b4-dashboard/` 配下 5 ファイル（不可変）。BUILDING 標準ガードレール継承: 仕様確認必須 / TDD サイクル厳守（Red → Green → Refactor）/ コード変更時ドキュメント同期 / テスト追加必須。承認ゲート: Wave 1 完了 → [承認] → Wave 2。体制: Fable=判断・PM 整理 / Sonnet=実装・編集 / Haiku=突合・採点。_
+_B-5: b4-dashboard BUILDING Step Wave 1 完了（commit `daa50e1`）直後の一時 PLANNING 切替。目的: ADR-XXXX「Loop Engineering 観点からの LAM 構成再評価」起票。切替元の BUILDING Wave 1 成果（commit `daa50e1`）は確定済み。起票完了後、BUILDING Step（Wave 2 以降）へ復帰予定。PLANNING ガードレール継承: コード生成禁止 / `src/` 変更禁止 / 設定ファイル変更禁止。承認ゲート: ADR 起票完了 → [承認] → BUILDING 復帰。体制: Fable=判断 / Sonnet=起票・編集 / Haiku=（本タスクでは不使用）。_
 
 ---
 
