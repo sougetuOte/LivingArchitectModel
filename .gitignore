@@ -68,3 +68,5 @@ docs/artifacts/tmp/
 
 # B-5 b4-dashboard runtime 生成物（build_dashboard.py の出力・履歴非追跡）
 docs/artifacts/dashboard/*.html
+# B-5 Wave 2 BUILDING で L2 Sonnet が試行錯誤に使った regex 確認スクリプト（ローカル保持）
+.claude/tests/dashboard/debug_*.py

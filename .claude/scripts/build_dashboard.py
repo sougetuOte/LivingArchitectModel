@@ -144,12 +144,17 @@ def build(project_root: Path, output_path: Path) -> int:
     _setup_import_path(project_root)
 
     from dashboard.models import DashboardData
+    from dashboard.parsers.session_state import SessionStateParser
+    from dashboard.parsers.current_phase import CurrentPhaseParser
 
     data = DashboardData(generated_at=datetime.now().isoformat())
 
-    # Wave 1 段階ではパーサ実装が存在しないため空リスト。
-    # T7, T8, T12, T13 で各パーサを追加する。
-    parsers: list[tuple[str, object]] = []
+    # Wave 2 で SessionStateParser / CurrentPhaseParser を追加（W2-B5-T11）。
+    # Wave 3 で TasksParser / GitHistoryParser を追加する（T12, T13）。
+    parsers: list[tuple[str, object]] = [
+        ("SessionState", SessionStateParser(project_root)),
+        ("CurrentPhase", CurrentPhaseParser(project_root)),
+    ]
 
     _run_parsers(data, parsers)
 
