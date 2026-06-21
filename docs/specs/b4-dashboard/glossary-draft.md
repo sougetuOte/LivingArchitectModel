@@ -104,16 +104,18 @@ b4-dashboard の成果物（単一 HTML ファイル）で使用する UI 要素
 
 ---
 
-## §5 スキル名（暫定）
+## §5 スキル名
 
-b4-dashboard 実装に伴い追加予定のスキル（仮称。設計フェーズで確定）。
+b4-dashboard 実装に伴い追加されたスキル。
 
-| 仮称 | 役割 |
-|------|------|
-| `/visualize` | ダッシュボード HTML を生成するスキル（`requirements.md` FR-10 に対応）|
+| 確定名 | 役割 |
+|--------|------|
+| `/build-dashboard` | ダッシュボード HTML を生成するスキル（`requirements.md` FR-10 に対応）|
 
-> スキル名・フロントマター書式は `.claude/skills/` 内の既存スキルに合わせて設計フェーズで確定する。
-> `/visualize` はあくまで仮称であり、確定前に実装で使用してはならない（MUST NOT）。
+> スキル名は **`/build-dashboard`** に確定（B-5 Wave 1 BUILDING / 2026-06-21 / UQ-3 解決 / commit `1ce48ea`）。
+> 旧仮称 `/visualize` から動詞+名詞ケバブケースに変更し、既存スキル（`/quick-save`, `/project-status`, `/lam-orchestrate`, `/ship`）と命名規則を統一。
+> フロントマター書式（`disable-model-invocation: true`）も既存スキルに統一。
+> 実装: `.claude/skills/build-dashboard/SKILL.md`
 
 ---
 

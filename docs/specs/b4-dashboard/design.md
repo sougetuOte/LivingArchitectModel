@@ -68,7 +68,7 @@ git log（コマンド出力）──→  GitHistoryParser  ─┘
                                                ↑
                           build_dashboard.py（オーケストレータ）
                                                ↑
-                     `/visualize` スキル  または  `/quick-save` スキル（Step 追加）
+                     `/build-dashboard` スキル  または  `/quick-save` スキル（Step 追加）
 ```
 
 ### データフロー
@@ -259,10 +259,16 @@ class BaseParser:
 | 項目 | 内容 |
 |------|------|
 | 入力 | `.claude/current-phase.md` |
-| 責務 | 現在の Phase 文字列（"PLANNING" / "BUILDING" / "AUDITING"）を 1 行目から読む |
+| 責務 | 現在の Phase 文字列（"PLANNING" / "BUILDING" / "AUDITING" / "AUTONOMOUS"）を全文 regex で抽出 |
 | 戻り値キー | `phase: str` |
-| パース方針 | 1 行目を strip() して返す。空ファイルの場合は `phase: "UNKNOWN"` を返す |
+| パース方針 | 全文を読み regex `\*\*(PLANNING\|BUILDING\|AUDITING\|AUTONOMOUS)\*\*` で抽出。最初にマッチした Phase 名を返す。マッチしない場合・空ファイルの場合は `phase: "UNKNOWN"` を返す |
 | 失敗条件 | ファイル不在 / 読み込みエラー |
+
+> **実装との整合（2026-06-21 BUILDING で確定）**: 当初設計案は「1 行目を strip()」だったが、
+> 実 `.claude/current-phase.md` は 1 行目が `# Current Phase` の見出しで Phase 名ではない。
+> Phase 名は本文中に `**BUILDING**` の bold 記法で記載される構造のため、
+> W2-B5-T8（commit `db878bc`）で regex 全文抽出方式を採用した。
+> 本表記は実装に合わせて AUDITING フェーズ（次セッション）で正式更新（2026-06-21 反映）。
 
 #### TasksParser
 
@@ -379,12 +385,13 @@ python .claude/scripts/build_dashboard.py [--output PATH] [--project-root PATH]
 | `--output` | `docs/artifacts/dashboard/dashboard.html` | 出力ファイルパス |
 | `--project-root` | 自動推定（`LAM_PROJECT_ROOT` or `__file__` 祖先）| プロジェクトルート |
 
-### `/visualize` スキル（FR-10 SHOULD）
+### `/build-dashboard` スキル（FR-10 SHOULD）
 
-スキル名の確定は BUILDING フェーズ（仮称: `/visualize`）。
-フロントマター書式は `.claude/skills/` 内の既存スキルに準拠する（FR-10 MUST、スキル実装時）。
+スキル名は **`/build-dashboard`** に確定（B-5 Wave 1 BUILDING / 2026-06-21 / UQ-3 解決）。
+フロントマター書式は `.claude/skills/` 内の既存スキル（`quick-save` / `project-status` / `lam-orchestrate` / `ship`）に準拠する（FR-10 MUST、スキル実装時）。
+実装: `.claude/skills/build-dashboard/SKILL.md`（W1-B5-T5 で新設・commit `1ce48ea`）。
 
-**スキルの最小フロー（案）:**
+**スキルの最小フロー:**
 
 ```
 1. build_dashboard.py を subprocess.run で呼び出す
@@ -393,7 +400,7 @@ python .claude/scripts/build_dashboard.py [--output PATH] [--project-root PATH]
 4. 失敗: エラーメッセージを表示（スキル自体は非ゼロ終了しない）
 ```
 
-`disable-model-invocation: true` を設定し、モデル呼び出しなしで実行できるようにすることを推奨する（MAY）。
+`disable-model-invocation: true` を設定し、モデル呼び出しなしで実行できるようにする（既存スキル統一書式）。
 
 ---
 
@@ -678,7 +685,7 @@ requirements.md §7 AC との対応表:
 |----|------|--------|---------|
 | UQ-1 | SESSION_STATE.md のパース方針の堅牢性 | 高 | BUILDING フェーズで実データ（SESSION_STATE.md 数件）を使ってパーサ実装を試験し、セクション見出しパターンのばらつきに対応する |
 | UQ-2 | tasks.md が存在しない Milestone の扱い | 中 | `tasks.md` 不在 Milestone は V-4 に「タスク情報なし」表示。TasksParser は `ok=True, data=[]` を返す |
-| UQ-3 | `/visualize` スキル名の確定 / `disable-model-invocation` 書式の裏取り | 中 | BUILDING フェーズでスキル命名規則を確認し確定する（`/visualize` はあくまで仮称）。あわせて §6 で採用予定の `disable-model-invocation: true` について、BUILDING 着手前に context7 経由で Claude Code 公式ドキュメントから書式と挙動を再確認すること（`.claude/rules/upstream-first.md` 第5節「設計フェーズへの適用」準拠）|
+| UQ-3 | ~~`/visualize` スキル名の確定 / `disable-model-invocation` 書式の裏取り~~ | ~~中~~ | **解決済み（2026-06-21 / B-5 Wave 1 BUILDING / commit `1ce48ea`）**: スキル名は `/build-dashboard` に確定（動詞+名詞ケバブケース・既存スキル統一）。context7 MCP 利用不可のため `.claude/rules/upstream-first.md §3` フォールバック適用 → 既存スキル 4 件（`quick-save` / `project-status` / `lam-orchestrate` / `ship`）の `disable-model-invocation: true` 書式を権威的参照として採用。本セッション（AUDITING・2026-06-21）で requirements.md FR-10 / design.md §6 / §13 に反映完了 |
 | UQ-4 | git log のパース regex の定義 | 中 | BUILDING フェーズで実 git log を参照し、Wave/Task のコミットメッセージパターンを特定する（terminology.md §4 コミットメッセージ規約を参照）|
 | UQ-5 | `.gitignore` 変更の権限等級 | 低 | `.gitignore` 変更は SE 級扱い（permission-levels.md 参照）。BUILDING フェーズで追記する |
 | UQ-6 | DashboardBuilder の HTML テンプレート管理方法 | 中 | Python の `string.Template` または f-string 展開で実装（外部テンプレートエンジン依存を避ける）|
@@ -693,7 +700,7 @@ requirements.md §7 AC との対応表:
 | 本ファイル（design.md）の変更 | PM 級（仕様変更）|
 | `build_dashboard.py` および `.claude/scripts/dashboard/` の実装 | SE 級（新規コード追加）|
 | `/quick-save` SKILL.md への Step 5 追加 | SE 級（スキル内部変更・公開 API 不変）|
-| `/visualize` スキルの新規作成 | SE 級（スキル追加）|
+| `/build-dashboard` スキルの新規作成 | SE 級（スキル追加）|
 | `.gitignore` への `docs/artifacts/dashboard/` 追記 | SE 級（permission-levels.md 参照）|
 | `docs/specs/b4-dashboard/future-candidates.md` 新規作成 | SE 級（ドキュメント追加）|
 
