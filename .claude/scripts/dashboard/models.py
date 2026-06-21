@@ -79,3 +79,7 @@ class DashboardData:
     current_phase: str = "UNKNOWN"
     generated_at: str = ""
     parser_errors: list[str] = field(default_factory=list)
+    # SessionStateParser 由来の補完データ（V-4 Task 状態決定ロジックで使用）
+    in_progress: list[str] = field(default_factory=list)   # 進行中タスクのテキスト行
+    blocked: list[str] = field(default_factory=list)       # ブロック中タスクのテキスト行
+    completed: list[str] = field(default_factory=list)     # 完了タスクのテキスト行

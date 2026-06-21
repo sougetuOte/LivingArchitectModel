@@ -73,11 +73,17 @@ def _merge_into(data: object, parser_name: str, result_data: dict) -> None:
     if result_data is None:
         return
 
-    # SessionStateParser: milestones, waves
+    # SessionStateParser: milestones, waves, in_progress, blocked, completed
     if "milestones" in result_data:
         data.milestones.extend(result_data["milestones"])
     if "waves" in result_data:
         data.waves.extend(result_data["waves"])
+    if "in_progress" in result_data:
+        data.in_progress.extend(result_data["in_progress"])
+    if "blocked" in result_data:
+        data.blocked.extend(result_data["blocked"])
+    if "completed" in result_data:
+        data.completed.extend(result_data["completed"])
 
     # CurrentPhaseParser: phase
     if "phase" in result_data:
@@ -88,7 +94,8 @@ def _merge_into(data: object, parser_name: str, result_data: dict) -> None:
         data.tasks.extend(result_data["tasks"])
 
     # GitHistoryParser: completed_waves, completed_tasks（将来の補完用）
-    # Wave 1 段階ではビュー未実装のため、データを受け取るのみ（マージは Wave 3 で実装）
+    # Wave 3 段階では V-4 Task 状態決定に SessionState の completed リストを使用するため
+    # GitHistoryParser の completed_tasks は将来フェーズで統合する
 
 
 # ---------------------------------------------------------------------------
@@ -146,14 +153,18 @@ def build(project_root: Path, output_path: Path) -> int:
     from dashboard.models import DashboardData
     from dashboard.parsers.session_state import SessionStateParser
     from dashboard.parsers.current_phase import CurrentPhaseParser
+    from dashboard.parsers.tasks import TasksParser
+    from dashboard.parsers.git_history import GitHistoryParser
 
     data = DashboardData(generated_at=datetime.now().isoformat())
 
-    # Wave 2 で SessionStateParser / CurrentPhaseParser を追加（W2-B5-T11）。
-    # Wave 3 で TasksParser / GitHistoryParser を追加する（T12, T13）。
+    # Wave 2: SessionStateParser / CurrentPhaseParser（W2-B5-T11）
+    # Wave 3: TasksParser / GitHistoryParser 追加（W3-B5-T17）
     parsers: list[tuple[str, object]] = [
         ("SessionState", SessionStateParser(project_root)),
         ("CurrentPhase", CurrentPhaseParser(project_root)),
+        ("Tasks",        TasksParser(project_root)),
+        ("GitHistory",   GitHistoryParser(project_root)),
     ]
 
     _run_parsers(data, parsers)

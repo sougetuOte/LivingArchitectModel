@@ -1,14 +1,17 @@
-"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9）
+"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15）
 
 対応仕様: docs/specs/b4-dashboard/design.md §6「ビルドコマンド設計」
          docs/specs/b4-dashboard/design.md §8「出力形式」
          docs/specs/b4-dashboard/design.md §4「V-1: Project サマリービュー」
          docs/specs/b4-dashboard/design.md §4「V-2: Milestone 一覧ビュー」
+         docs/specs/b4-dashboard/design.md §4「V-3: Wave 一覧ビュー」
+         docs/specs/b4-dashboard/design.md §4「V-4: Task 一覧ビュー」
 
 Wave 1: V-1 Project サマリービュー実装（W1-B5-T3 完了）
 Wave 2: V-2 Milestone 一覧ビュー実装（W2-B5-T9 完了）
+Wave 3: V-3 Wave 一覧ビュー実装（W3-B5-T14 完了）
+Wave 3: V-4 Task 一覧ビュー実装（W3-B5-T15 完了）
 <head> 内の inline CSS は W1-B5-T4 で追加済み（外部 CDN 参照なし・500KB 未満）。
-V-3〜V-4 は Wave 3 で実装する（<body> 内の TODO コメントを参照）。
 """
 
 from __future__ import annotations
@@ -34,10 +37,9 @@ class DashboardBuilder:
         <head> 内の <style> タグに design.md §8 の badge CSS を埋め込み済み（W1-B5-T4）。
         外部 CDN 参照なし・500KB 未満を担保している。
 
-    V-3〜V-4 用注記:
-        <body> 内の ``<!-- TODO: V-3〜V-4 -->`` コメント箇所に
-        各ビューの _render_v3_*() / _render_v4_*() を追加すること
-        （Wave 3 担当）。
+    Wave 3 完了:
+        V-3 Wave 一覧は _render_v3_waves() / _render_v3_milestone_section() で実装済み（W3-B5-T14）。
+        V-4 Task 一覧は _render_v4_tasks() / _resolve_task_status() で実装済み（W3-B5-T15）。
     """
 
     def __init__(self, data: DashboardData) -> None:
@@ -51,6 +53,8 @@ class DashboardBuilder:
         """
         v1_html = self._render_v1_project_summary()
         v2_html = self._render_v2_milestones()
+        v3_html = self._render_v3_waves()
+        v4_html = self._render_v4_tasks()
         parser_errors_html = self._render_parser_errors()
 
         return f"""<!DOCTYPE html>
@@ -74,7 +78,9 @@ class DashboardBuilder:
 
   {v2_html}
 
-  <!-- TODO: V-3〜V-4（Wave 3 で実装）-->
+  {v3_html}
+
+  {v4_html}
 
   {parser_errors_html}
 </body>
@@ -155,6 +161,154 @@ class DashboardBuilder:
             "  <table>\n"
             "    <thead>\n"
             "      <tr><th>Milestone</th><th>現在の Step</th><th>状態</th></tr>\n"
+            "    </thead>\n"
+            "    <tbody>\n"
+            f"{tbody_rows}\n"
+            "    </tbody>\n"
+            "  </table>\n"
+            "</section>"
+        )
+
+    def _render_v3_waves(self) -> str:
+        """V-3 Wave 一覧ビューの HTML を返す。
+
+        design.md §4「V-3: Wave 一覧ビュー」DOM 構成案に準拠。
+
+        - Wave が 0 件: 空文字列（セクション自体を生成しない）
+        - 1 件以上: Milestone ごとにセクションを生成
+          - <section id="v3-waves-{milestone}">
+          - <h2>Wave 一覧（{milestone}）</h2>
+          - テーブル: Wave 番号 / Task 数 / 状態 の 3 列
+          - <a href="#v4-tasks"> ナビゲーションリンク（design.md §4 V-3→V-4）
+        - 各行: <tr data-wave="{wave_number}">
+        - 状態: _render_status_badge() で共通バッジ生成
+        """
+        if not self.data.waves:
+            return ""
+
+        # Milestone ごとに Wave をグループ化（出現順を維持）
+        milestone_order: list[str] = []
+        waves_by_milestone: dict[str, list] = {}
+        for wave in self.data.waves:
+            ms = wave.milestone
+            if ms not in waves_by_milestone:
+                milestone_order.append(ms)
+                waves_by_milestone[ms] = []
+            waves_by_milestone[ms].append(wave)
+
+        sections: list[str] = []
+        for milestone_name in milestone_order:
+            milestone_waves = waves_by_milestone[milestone_name]
+            section_html = self._render_v3_milestone_section(milestone_name, milestone_waves)
+            sections.append(section_html)
+
+        return "\n\n  ".join(sections)
+
+    def _render_v3_milestone_section(self, milestone_name: str, waves: list) -> str:
+        """1 つの Milestone 分の V-3 セクション HTML を返す。
+
+        design.md §4 V-3 DOM 構成案:
+          <section id="v3-waves-{milestone}">
+            <h2>Wave 一覧（{milestone}）</h2>
+            <table>...</table>
+            <p><a href="#v4-tasks">Task 一覧を見る</a></p>
+          </section>
+        """
+        escaped_ms = html.escape(milestone_name)
+        rows = []
+        for wave in waves:
+            badge_html = self._render_status_badge(wave.status)
+            rows.append(
+                f'      <tr data-wave="{html.escape(wave.wave_number)}">\n'
+                f"        <td>Wave {html.escape(wave.wave_number)}</td>\n"
+                f"        <td>{wave.task_count}</td>\n"
+                f"        <td>{badge_html}</td>\n"
+                "      </tr>"
+            )
+
+        tbody_rows = "\n".join(rows)
+        return (
+            f'<section id="v3-waves-{escaped_ms}">\n'
+            f"  <h2>Wave 一覧（{escaped_ms}）</h2>\n"
+            "  <table>\n"
+            "    <thead>\n"
+            "      <tr><th>Wave</th><th>Task 数</th><th>状態</th></tr>\n"
+            "    </thead>\n"
+            "    <tbody>\n"
+            f"{tbody_rows}\n"
+            "    </tbody>\n"
+            "  </table>\n"
+            '  <p><a href="#v4-tasks">Task 一覧を見る</a></p>\n'
+            "</section>"
+        )
+
+    def _resolve_task_status(self, task_id: str, base_status: str) -> str:
+        """design.md §5 Task 状態決定ロジックに従い、最終的な状態を返す。
+
+        優先順位:
+          1. DashboardData.completed の行に task_id が含まれる → "completed"
+          2. DashboardData.in_progress の行に task_id が含まれる → "in-progress"
+          3. DashboardData.blocked の行に task_id が含まれる → "blocked"
+          4. base_status（TasksParser の [x]/[ ] チェックから決定済み）を使用
+          5. 上記いずれにも該当しない場合は "not-started"
+
+        Args:
+            task_id: Task の識別子。例: "W1-B5-T1"
+            base_status: TasksParser が返した初期状態。"completed" または "not-started"。
+
+        Returns:
+            最終的な状態値（4 値のいずれか）。
+        """
+        for line in self.data.completed:
+            if task_id in line:
+                return "completed"
+        for line in self.data.in_progress:
+            if task_id in line:
+                return "in-progress"
+        for line in self.data.blocked:
+            if task_id in line:
+                return "blocked"
+        return base_status
+
+    def _render_v4_tasks(self) -> str:
+        """V-4 Task 一覧ビューの HTML を返す。
+
+        design.md §4「V-4: Task 一覧ビュー」DOM 構成案に準拠。
+
+        - Task が 0 件: empty state（「Task 情報なし」表示）
+        - 1 件以上: テーブル（thead 3 列 + tbody 各行）
+        - 各行の状態は _resolve_task_status() で決定（design.md §5 優先順位）
+        - アンカー: <section id="v4-tasks">
+        """
+        if not self.data.tasks:
+            return (
+                '<section id="v4-tasks">\n'
+                "  <h2>Task 一覧</h2>\n"
+                "  <p>Task 情報なし</p>\n"
+                "</section>"
+            )
+
+        rows = []
+        for task in self.data.tasks:
+            status = self._resolve_task_status(task.id, task.status)
+            badge_html = self._render_status_badge(status)
+            escaped_id = html.escape(task.id)
+            escaped_assignee = html.escape(task.assignee)
+            rows.append(
+                f'      <tr data-task-id="{escaped_id}">\n'
+                f"        <td>{escaped_id}</td>\n"
+                f"        <td>{escaped_assignee}</td>\n"
+                f"        <td>{badge_html}</td>\n"
+                "      </tr>"
+            )
+
+        tbody_rows = "\n".join(rows)
+        return (
+            '<section id="v4-tasks">\n'
+            "  <h2>Task 一覧</h2>\n"
+            "  <table>\n"
+            "    <thead>\n"
+            "      <tr><th>Task ID</th><th>担当</th><th>状態</th></tr>\n"
             "    </thead>\n"
             "    <tbody>\n"
             f"{tbody_rows}\n"
