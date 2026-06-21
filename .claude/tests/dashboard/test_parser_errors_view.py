@@ -244,13 +244,11 @@ def test_no_errors_no_parser_errors_section_in_full_render():
 
 
 def test_special_characters_in_error_message_xss_check():
-    """特殊文字（<, >, &）を含むエラーメッセージのテストケース。
+    """特殊文字（<, >, &）を含むエラーメッセージが HTML エスケープされること。
 
-    T10 完了条件「HTML エスケープが必要か検証（特殊文字 <, >, & を含むエラーメッセージ）」
+    T10 Info 修正「html.escape() 適用による防御的プログラミング」
 
-    注意: 既実装（builder.py _render_parser_errors）は HTML エスケープを行っていない。
-    本テストは「エラーメッセージが HTML に出力される」ことを確認するが、
-    エスケープ処理の有無も記録する。
+    エスケープあり: &lt;script&gt; が含まれ、生の <script> タグは含まれない。
     """
     error_msg = "SessionState: <script>alert('xss')</script> & 不正入力"
     html = _make_builder(parser_errors=[error_msg]).render()
@@ -258,22 +256,27 @@ def test_special_characters_in_error_message_xss_check():
     assert '<section id="parser-errors">' in html, (
         "特殊文字を含むエラーでも parser-errors セクションが生成されるべきです。"
     )
-    # 実装が HTML エスケープを行うかどうかを確認（現状記録）
-    # エスケープあり: &lt;script&gt; が含まれ、<script> は含まれない
-    # エスケープなし: <script> がそのまま含まれる
-    is_escaped = "&lt;script&gt;" in html
-    is_raw = "<script>alert" in html
-    # どちらか一方が真であることを確認（実装パスが存在すること）
-    assert is_escaped or is_raw, (
-        "エラーメッセージが HTML に出力されていません（エスケープ有無に関わらず）。"
+    # エスケープされた文字列が含まれること
+    assert "&lt;script&gt;" in html, (
+        "<script> タグが &lt;script&gt; にエスケープされていません。"
+        "html.escape() が適用されていない可能性があります。"
+    )
+    # 生の <script> タグが <li> 内に含まれないこと（XSS 防止）
+    assert "<li>SessionState: <script>" not in html, (
+        "生の <script> タグが <li> 内に含まれています。XSS 脆弱性の可能性があります。"
     )
 
 
 def test_ampersand_in_error_message():
-    """& を含むエラーメッセージが出力されること（エスケープ有無を記録）。"""
+    """& を含むエラーメッセージが &amp; にエスケープされること。"""
     error_msg = "Tasks: docs/specs/b4-dashboard/tasks.md & 読み込みエラー"
     html = _make_builder(parser_errors=[error_msg]).render()
-    # エラーメッセージの一部（& 前後）が何らかの形で含まれること
+    # & がエスケープされた &amp; として含まれること
+    assert "&amp;" in html, (
+        "& が &amp; にエスケープされていません。"
+        "html.escape() が適用されていない可能性があります。"
+    )
+    # エスケープ前後の文字列が含まれること
     assert "Tasks: docs/specs" in html, (
         "& を含むエラーメッセージの一部が HTML に含まれていません。"
     )

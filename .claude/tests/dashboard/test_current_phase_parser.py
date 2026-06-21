@@ -243,13 +243,21 @@ def test_parse_does_not_raise_on_missing_file(tmp_path):
 # ─────────────────────────────────────────────
 
 
-def test_parse_with_real_current_phase_file():
-    """実際の .claude/current-phase.md を読み込み "BUILDING" を返すこと。"""
+def test_parse_with_controlled_current_phase_file(tmp_path):
+    """制御済みの tmp current-phase.md を読み込み "BUILDING" を返すこと。
+
+    実 .claude/current-phase.md の内容（BUILDING/AUDITING 等）に依存せず、
+    tmp ディレクトリ内の制御済みファイルで動作を検証する。
+    """
     from dashboard.parsers.current_phase import CurrentPhaseParser
 
-    parser = CurrentPhaseParser(project_root=_PROJECT_ROOT)
+    phase_file = tmp_path / ".claude" / "current-phase.md"
+    phase_file.parent.mkdir(parents=True)
+    phase_file.write_text("# Current Phase\n\n**BUILDING**\n", encoding="utf-8")
+
+    parser = CurrentPhaseParser(project_root=tmp_path)
     result = parser.parse()
 
-    assert result["ok"] is True, f"実データ読み込み失敗: {result.get('error')}"
+    assert result["ok"] is True, f"tmp ファイル読み込み失敗: {result.get('error')}"
     assert result["data"] is not None
     assert result["data"]["phase"] == "BUILDING"

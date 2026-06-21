@@ -102,14 +102,18 @@ class TestGeneratedHtmlStructure:
             "SessionStateParser should extract B-5 from SESSION_STATE.md."
         )
 
-    def test_html_contains_building_phase(self):
-        """生成 HTML に "BUILDING" が含まれること（current-phase.md から抽出）。
+    def test_html_contains_current_phase(self):
+        """生成 HTML に現在の Phase 文字列が含まれること（current-phase.md から抽出）。
 
-        CurrentPhaseParser が現在の Phase を正しく抽出していることを確認する。
+        CurrentPhaseParser が current-phase.md から Phase を正しく抽出し
+        HTML に反映していることを確認する。実ファイルの Phase 値（BUILDING/AUDITING 等）
+        に依存せず、いずれか有効な Phase が含まれることを検証する。
         """
-        assert "BUILDING" in self._html, (
-            "Expected 'BUILDING' in generated HTML. "
-            "CurrentPhaseParser should extract BUILDING from .claude/current-phase.md."
+        valid_phases = ("PLANNING", "BUILDING", "AUDITING", "AUTONOMOUS")
+        found = any(phase in self._html for phase in valid_phases)
+        assert found, (
+            "Expected one of PLANNING/BUILDING/AUDITING/AUTONOMOUS in generated HTML. "
+            "CurrentPhaseParser should extract a valid Phase from .claude/current-phase.md."
         )
 
 
@@ -150,7 +154,8 @@ class TestBuildFunctionWithParsers:
         """build() 関数実行後、SessionStateParser と CurrentPhaseParser が動作し
         生成 HTML に B-5 と BUILDING が含まれること。
 
-        これが parsers リストへの登録の間接的な検証となる。
+        制御済みの tmp プロジェクト（current-phase.md=BUILDING / SESSION_STATE.md に B-5 記述）
+        を project_root として渡すことで、実ファイルの内容に依存せず検証する。
         """
         sys.path.insert(0, str(_PROJECT_ROOT / ".claude" / "scripts"))
         import importlib.util
@@ -160,8 +165,21 @@ class TestBuildFunctionWithParsers:
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
 
+        # 制御済みプロジェクト環境を tmp_path に構築
+        controlled_root = tmp_path / "project"
+        controlled_root.mkdir()
+        dotclaude = controlled_root / ".claude"
+        dotclaude.mkdir()
+        (dotclaude / "current-phase.md").write_text(
+            "# Current Phase\n\n**BUILDING**\n", encoding="utf-8"
+        )
+        (controlled_root / "SESSION_STATE.md").write_text(
+            "# SESSION_STATE\n\n## 完了タスク\n\n- W1-B5-T1: テスト実装完了\n",
+            encoding="utf-8",
+        )
+
         output = tmp_path / "dashboard.html"
-        mod.build(project_root=_PROJECT_ROOT, output_path=output)
+        mod.build(project_root=controlled_root, output_path=output)
 
         html = output.read_text(encoding="utf-8")
         assert "B-5" in html
