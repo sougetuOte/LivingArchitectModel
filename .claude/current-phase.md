@@ -1,8 +1,8 @@
 # Current Phase
 
-**AUDITING**
+**BUILDING**
 
-_B-5: b4-dashboard BUILDING Step Wave 2 完了（commit `db878bc`・テスト 144/144 PASS）。AUDITING 一時切替で 3 件の docs 同期 + fix を実施: (1) UQ-3 解決反映（`/visualize` → `/build-dashboard`）、(2) design.md §5 CurrentPhaseParser を実装に整合（regex 抽出方式へ）、(3) `_render_parser_errors()` の HTML エスケープ追加（XSS 対策・PG 級）。AUDITING ガードレール: PG/SE 級修正可・PM 級指摘のみ（本セッションは事前承認済み UQ-3 反映を PM 級扱いで実施）。完了後は BUILDING 復帰 or 次セッション送り。_
+_B-5: b4-dashboard BUILDING Step Wave 2 完了 + AUDITING 一時切替で docs 同期 + HTML エスケープ fix 完遂後、BUILDING に復帰（commits `db878bc` / `2f29cc3` / `9a395b6` / `fc6fc94`）。テスト 144/144 PASS 維持。次の選択肢: Wave 3 着手（パーサ層 2: TasksParser + GitHistoryParser + V-3/V-4 ビュー / W3-B5-T12〜T17）/ retro 実施 / 別 Milestone 起案。BUILDING ガードレール継承: 仕様確認必須 / TDD サイクル厳守（Red→Green→Refactor）/ ドキュメント同期。体制: Fable=判断 / Sonnet=実装・編集 / Haiku=突合・採点。_
 
 ---
 
