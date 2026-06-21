@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**AUDITING**
 
-_B-5: b4-dashboard BUILDING Step Wave 1 完了状態を維持（Wave 2 着手判断待ち）。ADR-0006「Loop Engineering 観点からの LAM 構成再評価と統一語彙」起票完了（commit `5e95a9e`）。BUILDING ガードレール継承: 仕様確認必須 / TDD サイクル厳守（Red→Green→Refactor）/ ドキュメント同期。次の選択肢: Wave 2 着手 / docs 同期（UQ-3 反映）/ AUDITING 切替 / 別 Milestone 起案。体制: Fable=判断 / Sonnet=実装・編集 / Haiku=突合・採点。_
+_B-5: b4-dashboard BUILDING Step Wave 2 完了（commit `db878bc`・テスト 144/144 PASS）。AUDITING 一時切替で 3 件の docs 同期 + fix を実施: (1) UQ-3 解決反映（`/visualize` → `/build-dashboard`）、(2) design.md §5 CurrentPhaseParser を実装に整合（regex 抽出方式へ）、(3) `_render_parser_errors()` の HTML エスケープ追加（XSS 対策・PG 級）。AUDITING ガードレール: PG/SE 級修正可・PM 級指摘のみ（本セッションは事前承認済み UQ-3 反映を PM 級扱いで実施）。完了後は BUILDING 復帰 or 次セッション送り。_
 
 ---
 
