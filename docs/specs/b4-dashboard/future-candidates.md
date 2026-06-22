@@ -158,23 +158,6 @@
 
 ---
 
-## FC-11: upstream 裏取り必須項目リスト（BUILDING フェーズ着手前）
-
-- **起源**: planning-quality-guideline.md §7（新機能・外部依存の採用評価「二段構え」）・CLAUDE.md upstream-first 原則
-- **内容**: BUILDING フェーズ着手前に以下の項目について公式ドキュメントの裏取りを実施すること。本候補は「将来フェーズで採用を検討する機能」ではなく「BUILDING フェーズ直前に確認が必要な事項」として記録する
-
-  | 裏取り対象 | 確認先 | 理由 |
-  |-----------|--------|------|
-  | `/quick-save` SKILL.md のフロントマター書式・Step 追加方法 | `.claude/skills/quick-save/SKILL.md` を読んで確認 | FR-11 SHOULD 実装時に Step 5 を追加するため |
-  | `disable-model-invocation: true` の有効なフロントマターキー | context7 / 公式ドキュメント | design.md §6 で推奨記述したキーが現行書式と一致するか確認 |
-  | MCP サーバー設定の `settings.json` キー書式 | context7 / 公式ドキュメント | FC-4 実装時の前提確認（現スコープ外だが書式は変化する可能性あり）|
-  | `subprocess.run` での `git log` 実行時の Windows / Git Bash パス解決 | 既存スクリプト実装例（`.claude/scripts/distill_lessons.py`）| GitHistoryParser の実装時に環境依存エラーを防ぐ |
-
-- **実施タイミング**: BUILDING フェーズ Wave 1 着手時（設計書レビュー・BUILDING フェーズ移行承認直後）
-- **権限等級**: PG 級（調査・確認のみ。変更を伴う場合は対象ファイルの等級に従う）
-
----
-
 ## 参照
 
 - `docs/specs/b4-dashboard/requirements.md`（§2 Non-Goals / §8 解決済み質問 / §9 将来候補）

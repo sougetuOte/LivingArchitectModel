@@ -689,7 +689,7 @@ requirements.md §7 AC との対応表:
 | UQ-4 | git log のパース regex の定義 | 中 | BUILDING フェーズで実 git log を参照し、Wave/Task のコミットメッセージパターンを特定する（terminology.md §4 コミットメッセージ規約を参照）|
 | UQ-5 | `.gitignore` 変更の権限等級 | 低 | `.gitignore` 変更は SE 級扱い（permission-levels.md 参照）。BUILDING フェーズで追記する |
 | UQ-6 | DashboardBuilder の HTML テンプレート管理方法 | 中 | Python の `string.Template` または f-string 展開で実装（外部テンプレートエンジン依存を避ける）|
-| UQ-7 | 複数 Milestone 時の Step 表示方針 | 低 | 現状 LAM 単一 Milestone のため Q3=B（単一 Project 固定）に整合し、§4 V-2 では「全 Milestone に同じ Step を表示」設計を採用する。将来複数 Milestone が同時進行する場合、(a) 全 Milestone に同じ Step を表示 / (b) Milestone ごとに Step を独立管理 / (c) 全体 Step + 個別 Step の併記 のいずれを採るかは BUILDING フェーズで再評価する |
+| UQ-7 | ~~複数 Milestone 時の Step 表示方針~~ | ~~低~~ | **将来候補へ移管（2026-06-22 / 採点軽微指摘 #3 対応）**: 同一トピックが `docs/specs/b4-dashboard/future-candidates.md` FC-7 で追跡されており、UQ-7 は実質クローズ。LAM が単一 Milestone である限り発生しないため、FC-7 を一次管理とし本表からは将来削除候補とする |
 
 ---
 
