@@ -81,3 +81,17 @@ Daily: docs/daily/YYYY-MM-DD.md
 git commit が必要なら: /ship
 ---
 ```
+
+## 5. ダッシュボード更新（SHOULD）
+
+build_dashboard.py を呼び出してダッシュボードを更新する。
+
+実行:
+
+```
+python .claude/scripts/build_dashboard.py
+```
+
+成功時: 完了報告に「Dashboard: docs/artifacts/dashboard/dashboard.html 更新済み」を追記する。
+
+失敗時: 警告を表示し、quick-save 全体の成否には影響させない（エラー終了しない）。
