@@ -1,4 +1,4 @@
-"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15）
+"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15, W6-B5-T34, W6-B5-T33）
 
 対応仕様: docs/specs/b4-dashboard/design.md §6「ビルドコマンド設計」
          docs/specs/b4-dashboard/design.md §8「出力形式」
@@ -6,18 +6,24 @@
          docs/specs/b4-dashboard/design.md §4「V-2: Milestone 一覧ビュー」
          docs/specs/b4-dashboard/design.md §4「V-3: Wave 一覧ビュー」
          docs/specs/b4-dashboard/design.md §4「V-4: Task 一覧ビュー」
+         docs/specs/b4-dashboard/wave6/design.md §5「全体アーキテクチャ」
+         docs/specs/b4-dashboard/wave6/design.md §6「Radix Colors 適用設計」
+         docs/specs/b4-dashboard/wave6/design.md §7「CSS 構造設計」
+         docs/specs/b4-dashboard/wave6/design.md §8「アクセシビリティ実装設計」
 
 Wave 1: V-1 Project サマリービュー実装（W1-B5-T3 完了）
 Wave 2: V-2 Milestone 一覧ビュー実装（W2-B5-T9 完了）
 Wave 3: V-3 Wave 一覧ビュー実装（W3-B5-T14 完了）
 Wave 3: V-4 Task 一覧ビュー実装（W3-B5-T15 完了）
-<head> 内の inline CSS は W1-B5-T4 で追加済み（外部 CDN 参照なし・500KB 未満）。
+Wave 6: セマンティック HTML + <main> / <nav> ランドマーク追加（W6-B5-T34 完了）
+Wave 6: CSS スタイリング基盤（Radix Colors Layer 1/2 + フルスタック）（W6-B5-T33 完了）
 """
 
 from __future__ import annotations
 
 import html
 
+from ._radix_colors import RADIX_DARK, RADIX_LIGHT
 from .models import DashboardData
 
 
@@ -45,12 +51,180 @@ class DashboardBuilder:
     def __init__(self, data: DashboardData) -> None:
         self.data = data
 
+    def _render_style(self) -> str:
+        """CSS スタイルブロックを返す。
+
+        Wave 6 新設（W6-B5-T33）。design.md wave6 §6/§7/§8 に準拠。
+
+        出力セクション（design.md §7 番号体系）:
+          1. Reset / base
+          2. Layer 1: Radix Colors スケール転記（ライト / :root）
+          3. Layer 1: Radix Colors スケール転記（ダーク / @media）
+          4. Layer 2: 意味ベースエイリアス（ライト / :root 末尾）
+          5. Layer 2: 意味ベースエイリアス（ダーク / @media 末尾）— no-op プレースホルダー
+          6. レイアウト（body / main / nav）
+          7. タイポグラフィ（h1-h3 / .task-id 等幅フォント）
+          8. テーブル共通（table / th / td / hover）
+          9. 状態バッジ（.badge / 4 種 data-status）
+         10. フォーカス可視化（:focus-visible）
+         13. nav / スキップリンク
+         14. パーサエラー
+         （11: ソート UI / 12: フィルタ UI は Stage 2/3 で追加予定）
+
+        Returns:
+            str: <style>...</style> を含む CSS ブロック文字列。
+        """
+        # ── Section 2: Layer 1 ライト変数を生成 ──────────────────────────
+        light_vars = []
+        for color in ("gray", "blue", "green", "amber"):
+            for step in range(1, 13):
+                light_vars.append(f"  --{color}-{step}: {RADIX_LIGHT[color][step]};")
+        light_vars_css = "\n".join(light_vars)
+
+        # ── Section 3: Layer 1 ダーク変数を生成 ──────────────────────────
+        dark_vars = []
+        for color in ("gray", "blue", "green", "amber"):
+            for step in range(1, 13):
+                dark_vars.append(f"    --{color}-{step}: {RADIX_DARK[color][step]};")
+        dark_vars_css = "\n".join(dark_vars)
+
+        return f"""<style>
+/* ─── 1. Reset / base ─────────────────────────────────────────── */
+*, *::before, *::after {{ box-sizing: border-box; }}
+body {{ margin: 0; }}
+
+/* ─── 2. Layer 1: Radix Colors スケール転記（ライト）─────────── */
+:root {{
+{light_vars_css}
+
+/* ─── 4. Layer 2: 意味ベースエイリアス（ライト）─────────────── */
+  --color-bg-page:        var(--gray-1);
+  --color-bg-surface:     var(--gray-2);
+  --color-bg-header:      var(--blue-3);
+  --color-text-primary:   var(--gray-12);
+  --color-text-secondary: var(--gray-11);
+  --color-text-muted:     var(--gray-9);
+  --color-border:         var(--gray-6);
+  --color-border-table:   var(--gray-5);
+  --color-focus-ring:     var(--blue-8);
+  --color-status-completed-bg:   var(--green-4);
+  --color-status-completed-text: var(--green-11);
+  --color-status-progress-bg:    var(--blue-4);
+  --color-status-progress-text:  var(--blue-11);
+  --color-status-blocked-bg:     var(--amber-4);
+  --color-status-blocked-text:   var(--amber-11);
+  --color-status-notstarted-bg:  var(--gray-3);
+  --color-status-notstarted-text:var(--gray-11);
+}}
+
+/* ─── 3. Layer 1: Radix Colors スケール転記（ダーク）──────────── */
+@media (prefers-color-scheme: dark) {{
+  :root {{
+{dark_vars_css}
+  }}
+}}
+
+/* ─── 5. Layer 2: 意味ベースエイリアス（ダーク）──────────────── */
+@media (prefers-color-scheme: dark) {{
+  :root {{
+    --color-bg-page:        var(--gray-1);
+    --color-bg-surface:     var(--gray-2);
+    --color-bg-header:      var(--blue-3);
+    --color-text-primary:   var(--gray-12);
+    --color-text-secondary: var(--gray-11);
+    --color-text-muted:     var(--gray-9);
+    --color-border:         var(--gray-6);
+    --color-border-table:   var(--gray-5);
+    --color-focus-ring:     var(--blue-8);
+    --color-status-completed-bg:   var(--green-4);
+    --color-status-completed-text: var(--green-11);
+    --color-status-progress-bg:    var(--blue-4);
+    --color-status-progress-text:  var(--blue-11);
+    --color-status-blocked-bg:     var(--amber-4);
+    --color-status-blocked-text:   var(--amber-11);
+    --color-status-notstarted-bg:  var(--gray-3);
+    --color-status-notstarted-text:var(--gray-11);
+  }}
+}}
+
+/* ─── 6. レイアウト ───────────────────────────────────────────── */
+body {{
+  font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Sans",
+               "Noto Sans JP", sans-serif;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+}}
+main {{ max-width: 1200px; margin: 0 auto; padding: 1rem 2rem; }}
+nav {{ position: sticky; top: 0; background: var(--color-bg-surface); padding: 0.5rem 1rem; }}
+
+/* ─── 7. タイポグラフィ ──────────────────────────────────────── */
+h1 {{ font-size: 1.75rem; font-weight: 700; line-height: 1.3; }}
+h2 {{ font-size: 1.375rem; font-weight: 600; line-height: 1.4; }}
+h3 {{ font-size: 1.125rem; font-weight: 600; line-height: 1.4; }}
+td.task-id, th.col-task-id {{
+  font-family: ui-monospace, "SF Mono", Consolas, monospace;
+}}
+
+/* ─── 8. テーブル共通 ────────────────────────────────────────── */
+table {{ width: 100%; border-collapse: collapse; }}
+th, td {{ padding: 0.5rem 0.75rem; border: 1px solid var(--color-border-table); text-align: left; }}
+th {{ background-color: var(--color-bg-header); }}
+tbody tr:hover {{ background-color: var(--color-bg-surface); }}
+
+/* ─── 9. 状態バッジ ──────────────────────────────────────────── */
+.badge {{ padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }}
+.badge[data-status="completed"]   {{ background: var(--color-status-completed-bg); color: var(--color-status-completed-text); }}
+.badge[data-status="in-progress"] {{ background: var(--color-status-progress-bg);  color: var(--color-status-progress-text);  }}
+.badge[data-status="blocked"]     {{ background: var(--color-status-blocked-bg);    color: var(--color-status-blocked-text);    }}
+.badge[data-status="not-started"] {{ background: var(--color-status-notstarted-bg); color: var(--color-status-notstarted-text); }}
+
+/* ─── 10. フォーカス可視化 ───────────────────────────────────── */
+:focus-visible {{
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: 2px;
+}}
+
+/* ─── 13. nav / スキップリンク ──────────────────────────────── */
+nav ul {{ list-style: none; margin: 0; padding: 0; display: flex; gap: 1rem; flex-wrap: wrap; }}
+nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
+.skip-link {{
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}}
+.skip-link:focus {{
+  position: static;
+  width: auto;
+  height: auto;
+}}
+
+/* ─── 14. パーサエラー ───────────────────────────────────────── */
+#parser-errors {{
+  border-left: 3px solid var(--amber-9);
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-surface);
+}}
+</style>"""
+
     def render(self) -> str:
         """DashboardData を HTML 文字列に変換する。
+
+        Wave 6 改修（W6-B5-T34）: セマンティック HTML 構造に改修済み。
+        Wave 6 改修（W6-B5-T33）: _render_style() で CSS スタイリング基盤を注入。
+        - <nav id="nav-landmarks"> ランドマークナビを <body> 直下に追加
+        - <main id="main-content"> で V-1〜V-4 セクションを包含
+        - <section id="parser-errors"> は <main> の外側に配置（既存位置維持）
+        design.md wave6 §5 構造図 / §7 CSS 構造設計 / §8 セマンティック HTML 実装 に準拠。
 
         Returns:
             str: 完全な HTML ドキュメント文字列。
         """
+        style_html = self._render_style()
+        nav_html = self._render_nav()
         v1_html = self._render_v1_project_summary()
         v2_html = self._render_v2_milestones()
         v3_html = self._render_v3_waves()
@@ -63,24 +237,19 @@ class DashboardBuilder:
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LAM Dashboard</title>
-  <style>
-    /* --- inline CSS（最小限）--- */
-    /* 配色・レイアウト詳細は PoC 後の UI フェーズで決める（design.md §8 非スコープ） */
-    .badge[data-status="completed"]   {{ background: #28a745; color: #fff; }}
-    .badge[data-status="in-progress"] {{ background: #007bff; color: #fff; }}
-    .badge[data-status="blocked"]     {{ background: #dc3545; color: #fff; }}
-    .badge[data-status="not-started"] {{ background: #6c757d; color: #fff; }}
-    .badge {{ padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }}
-  </style>
+  {style_html}
 </head>
 <body>
-  {v1_html}
+  {nav_html}
+  <main id="main-content">
+    {v1_html}
 
-  {v2_html}
+    {v2_html}
 
-  {v3_html}
+    {v3_html}
 
-  {v4_html}
+    {v4_html}
+  </main>
 
   {parser_errors_html}
 </body>
@@ -315,6 +484,46 @@ class DashboardBuilder:
             "    </tbody>\n"
             "  </table>\n"
             "</section>"
+        )
+
+    def _render_nav(self) -> str:
+        """ページ内ナビゲーション <nav> ランドマークの HTML を返す。
+
+        Wave 6 新設（W6-B5-T34）。design.md wave6 §5 構造図 / §8 セマンティック HTML に準拠。
+
+        出力構造:
+          <nav id="nav-landmarks">
+            <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>
+            <ul>
+              <li><a href="#v1-project-summary">Project サマリー</a></li>
+              <li><a href="#v2-milestones">Milestone 一覧</a></li>
+              {V-3 リンク（Milestone 数だけ動的生成）}
+              <li><a href="#v4-tasks">Task 一覧</a></li>
+            </ul>
+          </nav>
+
+        V-3 リンクは self.data.milestones を反復して動的生成する。
+        milestones が空の場合は V-3 リンクなし（空文字列を join）。
+        html.escape() で XSS 対策（既存パターン継承）。
+
+        Returns:
+            str: <nav> ランドマーク HTML 文字列。
+        """
+        v3_links = "\n".join(
+            f'      <li><a href="#v3-waves-{html.escape(ms.name)}">Wave 一覧（{html.escape(ms.name)}）</a></li>'
+            for ms in self.data.milestones
+        )
+        v3_block = f"\n{v3_links}" if v3_links else ""
+        return (
+            '<nav id="nav-landmarks">\n'
+            '  <a href="#main-content" class="skip-link">メインコンテンツへスキップ</a>\n'
+            "  <ul>\n"
+            '    <li><a href="#v1-project-summary">Project サマリー</a></li>\n'
+            '    <li><a href="#v2-milestones">Milestone 一覧</a></li>'
+            f"{v3_block}\n"
+            '    <li><a href="#v4-tasks">Task 一覧</a></li>\n'
+            "  </ul>\n"
+            "</nav>"
         )
 
     def _render_parser_errors(self) -> str:

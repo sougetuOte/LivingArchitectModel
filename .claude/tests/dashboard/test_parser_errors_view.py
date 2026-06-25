@@ -291,16 +291,28 @@ def test_ampersand_in_error_message():
 
 
 def test_exactly_one_error_one_li():
-    """エラーが 1 件のとき、<li> が 1 個だけ生成されること。"""
+    """エラーが 1 件のとき、parser-errors セクション内の <li> が 1 個だけ生成されること。
+
+    Wave 6 緩和（W6-B5-T34）: <nav id="nav-landmarks"> 追加により HTML 全体の <li>
+    数が増加したため、parser-errors セクションスコープ限定のカウントに変更。
+    """
     html = _make_builder(parser_errors=["唯一のエラー"]).render()
-    li_count = html.count("<li>")
+    start = html.find('<section id="parser-errors">')
+    assert start != -1, "parser-errors セクションが見つかりません"
+    end = html.find("</section>", start) + len("</section>")
+    errors_section = html[start:end]
+    li_count = errors_section.count("<li>")
     assert li_count == 1, (
-        f"エラー 1 件のとき <li> が 1 個であるべきです。実際: {li_count} 個"
+        f"エラー 1 件のとき parser-errors セクション内の <li> が 1 個であるべきです。実際: {li_count} 個"
     )
 
 
 def test_four_errors_four_li():
-    """エラーが 4 件のとき、<li> が 4 個生成されること。"""
+    """エラーが 4 件のとき、parser-errors セクション内の <li> が 4 個生成されること。
+
+    Wave 6 緩和（W6-B5-T34）: <nav id="nav-landmarks"> 追加により HTML 全体の <li>
+    数が増加したため、parser-errors セクションスコープ限定のカウントに変更。
+    """
     errors = [
         "SessionState: エラー 1",
         "CurrentPhase: エラー 2",
@@ -308,9 +320,13 @@ def test_four_errors_four_li():
         "GitHistory: エラー 4",
     ]
     html = _make_builder(parser_errors=errors).render()
-    li_count = html.count("<li>")
+    start = html.find('<section id="parser-errors">')
+    assert start != -1, "parser-errors セクションが見つかりません"
+    end = html.find("</section>", start) + len("</section>")
+    errors_section = html[start:end]
+    li_count = errors_section.count("<li>")
     assert li_count == 4, (
-        f"エラー 4 件のとき <li> が 4 個であるべきです。実際: {li_count} 個"
+        f"エラー 4 件のとき parser-errors セクション内の <li> が 4 個であるべきです。実際: {li_count} 個"
     )
 
 
