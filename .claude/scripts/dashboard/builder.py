@@ -1,4 +1,4 @@
-"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15, W6-B5-T34, W6-B5-T33, W6-B5-T37, W6-B5-T38）
+"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15, W6-B5-T34, W6-B5-T33, W6-B5-T37, W6-B5-T38, W6-B5-T40, W6-B5-T41）
 
 対応仕様: docs/specs/b4-dashboard/design.md §6「ビルドコマンド設計」
          docs/specs/b4-dashboard/design.md §8「出力形式」
@@ -11,6 +11,8 @@
          docs/specs/b4-dashboard/wave6/design.md §7「CSS 構造設計」
          docs/specs/b4-dashboard/wave6/design.md §8「アクセシビリティ実装設計」
          docs/specs/b4-dashboard/wave6/design.md §9「ソート機能設計」
+         docs/specs/b4-dashboard/wave6/design.md §10「フィルタ機能設計」
+         docs/specs/b4-dashboard/wave6/design.md §11「JS 行数管理」
          docs/specs/b4-dashboard/wave6/design.md §13「builder.py 改修方針」
 
 Wave 1: V-1 Project サマリービュー実装（W1-B5-T3 完了）
@@ -21,6 +23,8 @@ Wave 6: セマンティック HTML + <main> / <nav> ランドマーク追加（W
 Wave 6: CSS スタイリング基盤（Radix Colors Layer 1/2 + フルスタック）（W6-B5-T33 完了）
 Wave 6: ソート JS 実装（_render_script() 新設）（W6-B5-T37 完了）
 Wave 6: V-4 テーブルヘッダ改修（ソート UI / data-milestone 追加）（W6-B5-T38 完了）
+Wave 6: フィルタ UI HTML + _render_filter_controls() 新設（W6-B5-T40 完了）
+Wave 6: フィルタ JS 実装 + DOMContentLoaded 統合（W6-B5-T41 完了）
 """
 
 from __future__ import annotations
@@ -71,9 +75,10 @@ class DashboardBuilder:
           8. テーブル共通（table / th / td / hover）
           9. 状態バッジ（.badge / 4 種 data-status）
          10. フォーカス可視化（:focus-visible）
+         11. ソート UI（th button.sort-btn / sorted-asc / sorted-desc）
+         12. フィルタ UI（#filter-controls / .filter-control / #filter-result-count）
          13. nav / スキップリンク
          14. パーサエラー
-         （11: ソート UI / 12: フィルタ UI は Stage 2/3 で追加予定）
 
         Returns:
             str: <style>...</style> を含む CSS ブロック文字列。
@@ -119,6 +124,14 @@ body {{ margin: 0; }}
   --color-status-blocked-text:   var(--amber-11);
   --color-status-notstarted-bg:  var(--gray-3);
   --color-status-notstarted-text:var(--gray-11);
+
+  /* ソート UI */
+  --color-sort-indicator:        var(--blue-9);
+  --color-sort-hover:            var(--blue-2);
+
+  /* フィルタ UI */
+  --color-filter-bg:             var(--gray-2);
+  --color-filter-border:         var(--gray-6);
 }}
 
 /* ─── 3. Layer 1: Radix Colors スケール転記（ダーク）──────────── */
@@ -148,6 +161,10 @@ body {{ margin: 0; }}
     --color-status-blocked-text:   var(--amber-11);
     --color-status-notstarted-bg:  var(--gray-3);
     --color-status-notstarted-text:var(--gray-11);
+    --color-sort-indicator:        var(--blue-9);
+    --color-sort-hover:            var(--blue-2);
+    --color-filter-bg:             var(--gray-2);
+    --color-filter-border:         var(--gray-6);
   }}
 }}
 
@@ -189,6 +206,71 @@ tbody tr:hover {{ background-color: var(--color-bg-surface); }}
   border-radius: 2px;
 }}
 
+/* ─── 11. ソート UI ──────────────────────────────────────────── */
+th button.sort-btn {{
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  color: var(--color-text-primary);
+  width: 100%;
+  text-align: left;
+}}
+th button.sort-btn:hover {{
+  background-color: var(--color-sort-hover);
+}}
+
+/* ─── 12. フィルタ UI ────────────────────────────────────────── */
+#filter-controls {{
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: var(--color-filter-bg);
+  border: 1px solid var(--color-filter-border);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}}
+.filter-control {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}}
+.filter-control label {{
+  font-size: 0.85em;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}}
+.filter-control select,
+.filter-control input {{
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--color-filter-border);
+  border-radius: 3px;
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.9em;
+}}
+.filter-reset-btn {{
+  align-self: flex-end;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--color-filter-border);
+  border-radius: 3px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: 0.9em;
+  cursor: pointer;
+}}
+#filter-result-count {{
+  font-size: 0.9em;
+  color: var(--color-text-secondary);
+  margin: 0 0 0.5rem 0;
+}}
+
 /* ─── 13. nav / スキップリンク ──────────────────────────────── */
 nav ul {{ list-style: none; margin: 0; padding: 0; display: flex; gap: 1rem; flex-wrap: wrap; }}
 nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
@@ -215,16 +297,21 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
 </style>"""
 
     def _render_script(self) -> str:
-        """JavaScript ブロックを返す（ソート機能 / Stage 2）。
+        """JavaScript ブロックを返す（ソート機能 + フィルタ機能 / Stage 2 + Stage 3）。
 
-        Wave 6 新設（W6-B5-T37）。design.md wave6 §9 に準拠。
+        Wave 6 新設（W6-B5-T37）。Stage 3 拡張（W6-B5-T41）。
+        design.md wave6 §9 / §10 / §11 に準拠。
 
         含まれる関数:
           - sortTable(tableId, columnIndex): テーブルソート（DOM 再挿入方式）
           - initSortButtons(): .sort-btn 全件に click listener を追加
+          - applyFilters(): 状態/Milestone/テキスト AND 結合フィルタ + aria-live 件数更新
+          - resetFilters(): 3 フィルタを初期値にリセットして applyFilters() を呼ぶ
+          - initFilters(): フィルタ要素に input/change listener + リセットボタン listener を登録
 
-        DOMContentLoaded では現時点で initSortButtons() のみ実行。
-        Stage 3（T41）で initFilters() / applyFilters() を追加予定。
+        単一 DOMContentLoaded（C-NEW-2 対応）:
+          initSortButtons() → initFilters() → applyFilters() の順序で実行。
+          initFilters() 登録後に applyFilters() を呼ぶことで初期件数が確実に表示される。
 
         ソート状態保持:
           data-sort-col / data-sort-dir を <table> 要素自身に保持（design.md §9）。
@@ -232,6 +319,11 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
 
         STATUS_ORDER: 状態列の固定優先順位（not-started=0, in-progress=1, blocked=2, completed=3）。
           未知 status 値は 99 にフォールバックして末尾に集約（design.md §9 W-NEW-5 対応）。
+
+        フィルタロジック（design.md §10）:
+          row.style.display = match ? '' : 'none' 方式（A3-4 CASPAR 採用）。
+          件数表示: display !== 'none' の行数を filter-result-count に "{n} 件表示" で更新。
+          ソート×フィルタ併用: display 切替のみでソート順序を維持（design.md §10）。
 
         Returns:
             str: <script>...</script> タグ全体の文字列。
@@ -306,8 +398,62 @@ function initSortButtons() {
   });
 }
 
+function applyFilters() {
+  const statusFilter = document.getElementById('filter-status').value;
+  const msFilter = document.getElementById('filter-milestone').value;
+  const textFilter = document.getElementById('filter-text').value.trim().toLowerCase();
+
+  const table = document.getElementById('tasks-table');
+  if (!table) return;
+  const rows = Array.from(table.tBodies[0].rows);
+
+  rows.forEach(row => {
+    const badge = row.cells[COL_STATUS].querySelector('.badge');
+    const status = badge ? badge.dataset.status : '';
+    const ms = row.dataset.milestone || '';
+    const taskId = row.cells[COL_TASK_ID].textContent.toLowerCase();
+    const assignee = row.cells[COL_ASSIGNEE].textContent.toLowerCase();
+
+    const match = (statusFilter === '' || status === statusFilter)
+               && (msFilter === '' || ms === msFilter)
+               && (textFilter === '' || taskId.includes(textFilter) || assignee.includes(textFilter));
+
+    row.style.display = match ? '' : 'none';
+  });
+
+  const count = rows.filter(r => r.style.display !== 'none').length;
+  const countEl = document.getElementById('filter-result-count');
+  if (countEl) {
+    countEl.textContent = count + ' 件表示';
+  }
+}
+
+function resetFilters() {
+  const statusEl = document.getElementById('filter-status');
+  const msEl = document.getElementById('filter-milestone');
+  const textEl = document.getElementById('filter-text');
+  if (statusEl) statusEl.value = '';
+  if (msEl) msEl.value = '';
+  if (textEl) textEl.value = '';
+  applyFilters();
+}
+
+function initFilters() {
+  const statusEl = document.getElementById('filter-status');
+  const msEl = document.getElementById('filter-milestone');
+  const textEl = document.getElementById('filter-text');
+  const resetBtn = document.getElementById('filter-reset');
+
+  if (statusEl) statusEl.addEventListener('change', applyFilters);
+  if (msEl) msEl.addEventListener('change', applyFilters);
+  if (textEl) textEl.addEventListener('input', applyFilters);
+  if (resetBtn) resetBtn.addEventListener('click', resetFilters);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initSortButtons();
+  initFilters();
+  applyFilters();
 });
 </script>"""
 
@@ -549,18 +695,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         design.md §4「V-4: Task 一覧ビュー」DOM 構成案に準拠。
         Wave 6 改修（W6-B5-T38）: ソート UI 追加・data-milestone 属性追加。
+        Wave 6 改修（W6-B5-T40）: フィルタ UI を section 先頭に内部呼び出し（W-NEW-6 責務集約）。
+                                   filter-result-count 要素を追加（T40 完了条件）。
 
         - Task が 0 件: empty state（「Task 情報なし」表示）
-        - 1 件以上: テーブル（id="tasks-table" / thead 3 列 + tbody 各行）
+        - 1 件以上: フィルタ UI + 件数表示 + テーブル（id="tasks-table" / thead 3 列 + tbody 各行）
         - 各列ヘッダ: aria-sort="none" + <button class="sort-btn" data-col="N"> を内包
         - 各行: data-task-id に加え data-milestone="{task.milestone}" を追加（Stage 3 フィルタ用）
         - 各行の状態は _resolve_task_status() で決定（design.md §5 優先順位）
         - アンカー: <section id="v4-tasks">
+
+        フィルタ UI は _render_filter_controls() を呼び出して section 先頭に挿入。
+        filter-result-count はフィルタ UI の直後に配置。applyFilters() が件数更新を担当。
         """
+        filter_controls_html = self._render_filter_controls()
+
         if not self.data.tasks:
             return (
                 '<section id="v4-tasks">\n'
                 "  <h2>Task 一覧</h2>\n"
+                f"  {filter_controls_html}\n"
+                '  <p id="filter-result-count" aria-live="polite"></p>\n'
                 "  <p>Task 情報なし</p>\n"
                 "</section>"
             )
@@ -584,6 +739,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return (
             '<section id="v4-tasks">\n'
             "  <h2>Task 一覧</h2>\n"
+            f"  {filter_controls_html}\n"
+            '  <p id="filter-result-count" aria-live="polite"></p>\n'
             '  <table id="tasks-table">\n'
             "    <thead>\n"
             "      <tr>\n"
@@ -603,6 +760,84 @@ document.addEventListener('DOMContentLoaded', () => {
             "    </tbody>\n"
             "  </table>\n"
             "</section>"
+        )
+
+    def _render_filter_controls(self) -> str:
+        """フィルタ UI コンテナ HTML を返す（W6-B5-T40）。
+
+        design.md wave6 §10「フィルタ機能設計」DOM 構造に準拠。
+        _render_v4_tasks() から内部呼び出しされる（W-NEW-6 責務集約）。
+
+        出力構造:
+          <div id="filter-controls" role="search" aria-label="タスクフィルタ">
+            <div class="filter-control">
+              <label for="filter-status">状態</label>
+              <select id="filter-status" aria-controls="tasks-table">
+                <option value="">すべて</option>
+                <option value="not-started">未着手</option>
+                <option value="in-progress">進行中</option>
+                <option value="blocked">ブロック中</option>
+                <option value="completed">完了</option>
+              </select>
+            </div>
+            <div class="filter-control">
+              <label for="filter-milestone">Milestone</label>
+              <select id="filter-milestone" aria-controls="tasks-table">
+                <option value="">すべて</option>
+                {DashboardData.milestones から動的生成}
+              </select>
+            </div>
+            <div class="filter-control">
+              <label for="filter-text">テキスト検索</label>
+              <input type="search" id="filter-text" ...>
+            </div>
+            <button type="button" id="filter-reset" class="filter-reset-btn">
+              フィルタをクリア
+            </button>
+          </div>
+
+        Milestone select 動的生成（design.md §10）:
+          self.data.milestones が空リストの場合は「すべて」のみ（実質無効化）。
+          各 MilestoneInfo の name フィールドを <option value="{name}">{name}</option> に変換。
+          html.escape() で XSS 対策（既存パターン継承）。
+
+        Returns:
+            str: <div id="filter-controls"> HTML 文字列。
+        """
+        milestone_options = "\n".join(
+            f'      <option value="{html.escape(ms.name)}">{html.escape(ms.name)}</option>'
+            for ms in self.data.milestones
+        )
+        milestone_options_block = f"\n{milestone_options}" if milestone_options else ""
+
+        return (
+            '<div id="filter-controls" role="search" aria-label="タスクフィルタ">\n'
+            '  <div class="filter-control">\n'
+            '    <label for="filter-status">状態</label>\n'
+            '    <select id="filter-status" aria-controls="tasks-table">\n'
+            '      <option value="">すべて</option>\n'
+            '      <option value="not-started">未着手</option>\n'
+            '      <option value="in-progress">進行中</option>\n'
+            '      <option value="blocked">ブロック中</option>\n'
+            '      <option value="completed">完了</option>\n'
+            "    </select>\n"
+            "  </div>\n"
+            '  <div class="filter-control">\n'
+            '    <label for="filter-milestone">Milestone</label>\n'
+            '    <select id="filter-milestone" aria-controls="tasks-table">\n'
+            '      <option value="">すべて</option>'
+            f"{milestone_options_block}\n"
+            "    </select>\n"
+            "  </div>\n"
+            '  <div class="filter-control">\n'
+            '    <label for="filter-text">テキスト検索</label>\n'
+            '    <input type="search" id="filter-text" placeholder="Task ID / 担当..."\n'
+            '           aria-controls="tasks-table" aria-label="Task IDまたは担当で検索">\n'
+            "  </div>\n"
+            '  <button type="button" id="filter-reset" class="filter-reset-btn">\n'
+            "    フィルタをクリア\n"
+            "  </button>\n"
+            "</div>"
         )
 
     def _render_nav(self) -> str:
