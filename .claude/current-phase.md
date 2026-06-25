@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**PLANNING**
 
-_B-5: b4-dashboard BUILDING Step Wave 2 完了 + AUDITING 一時切替で docs 同期 + HTML エスケープ fix 完遂後、BUILDING に復帰（commits `db878bc` / `2f29cc3` / `9a395b6` / `fc6fc94`）。テスト 144/144 PASS 維持。次の選択肢: Wave 3 着手（パーサ層 2: TasksParser + GitHistoryParser + V-3/V-4 ビュー / W3-B5-T12〜T17）/ retro 実施 / 別 Milestone 起案。BUILDING ガードレール継承: 仕様確認必須 / TDD サイクル厳守（Red→Green→Refactor）/ ドキュメント同期。体制: Fable=判断 / Sonnet=実装・編集 / Haiku=突合・採点。_
+_B-5: b4-dashboard BUILDING Step Wave 1〜5 完遂（PoC GREEN: AC-1〜AC-8 全 PASS / NFR-2/3/5 + AC-7 検証完了 / UQ-1〜UQ-7 全対応 / pytest 324 件 PASS / commits `bef2b1c` + `6ebf375` push 済）。T29 PoC レビューでユーザー要望「CSS / ソート / フィルタ / ジャンル分け / Wave-Milestone-Task 階層表示」収集 → **Wave 6 PLANNING 開始**（design-mode 起動 2026-06-24）。当面のスコープ案: Wave 6=CSS スタイリング基盤（FC-5 着手）。Wave 7+ 以降は使いやすさが許容水準に達するまで反復、各 Wave 末でユーザーゲート必須。FC-7（複数 Milestone Step 表示）は Wave 9 想定。ガードレール: 実装コード生成禁止 / `src/` 配下変更禁止 / 設定ファイル変更禁止。承認ゲート: requirements → design → tasks → 「承認」明示で BUILDING 復帰。体制: Fable=判断・要件整理 / Sonnet=設計起草・図作成 / Haiku=突合・採点。_
 
 ---
 
