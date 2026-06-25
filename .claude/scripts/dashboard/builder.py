@@ -1,4 +1,4 @@
-"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15, W6-B5-T34, W6-B5-T33）
+"""builder.py - DashboardBuilder HTML テンプレート展開（W1-B5-T2/T3, W2-B5-T9, W3-B5-T14, W3-B5-T15, W6-B5-T34, W6-B5-T33, W6-B5-T37, W6-B5-T38）
 
 対応仕様: docs/specs/b4-dashboard/design.md §6「ビルドコマンド設計」
          docs/specs/b4-dashboard/design.md §8「出力形式」
@@ -10,6 +10,8 @@
          docs/specs/b4-dashboard/wave6/design.md §6「Radix Colors 適用設計」
          docs/specs/b4-dashboard/wave6/design.md §7「CSS 構造設計」
          docs/specs/b4-dashboard/wave6/design.md §8「アクセシビリティ実装設計」
+         docs/specs/b4-dashboard/wave6/design.md §9「ソート機能設計」
+         docs/specs/b4-dashboard/wave6/design.md §13「builder.py 改修方針」
 
 Wave 1: V-1 Project サマリービュー実装（W1-B5-T3 完了）
 Wave 2: V-2 Milestone 一覧ビュー実装（W2-B5-T9 完了）
@@ -17,6 +19,8 @@ Wave 3: V-3 Wave 一覧ビュー実装（W3-B5-T14 完了）
 Wave 3: V-4 Task 一覧ビュー実装（W3-B5-T15 完了）
 Wave 6: セマンティック HTML + <main> / <nav> ランドマーク追加（W6-B5-T34 完了）
 Wave 6: CSS スタイリング基盤（Radix Colors Layer 1/2 + フルスタック）（W6-B5-T33 完了）
+Wave 6: ソート JS 実装（_render_script() 新設）（W6-B5-T37 完了）
+Wave 6: V-4 テーブルヘッダ改修（ソート UI / data-milestone 追加）（W6-B5-T38 完了）
 """
 
 from __future__ import annotations
@@ -210,20 +214,120 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
 }}
 </style>"""
 
+    def _render_script(self) -> str:
+        """JavaScript ブロックを返す（ソート機能 / Stage 2）。
+
+        Wave 6 新設（W6-B5-T37）。design.md wave6 §9 に準拠。
+
+        含まれる関数:
+          - sortTable(tableId, columnIndex): テーブルソート（DOM 再挿入方式）
+          - initSortButtons(): .sort-btn 全件に click listener を追加
+
+        DOMContentLoaded では現時点で initSortButtons() のみ実行。
+        Stage 3（T41）で initFilters() / applyFilters() を追加予定。
+
+        ソート状態保持:
+          data-sort-col / data-sort-dir を <table> 要素自身に保持（design.md §9）。
+          初回クリック: null → asc、asc → desc、desc → asc（3 回目で asc に戻る）。
+
+        STATUS_ORDER: 状態列の固定優先順位（not-started=0, in-progress=1, blocked=2, completed=3）。
+          未知 status 値は 99 にフォールバックして末尾に集約（design.md §9 W-NEW-5 対応）。
+
+        Returns:
+            str: <script>...</script> タグ全体の文字列。
+        """
+        return """<script>
+const STATUS_ORDER = {'not-started': 0, 'in-progress': 1, 'blocked': 2, 'completed': 3};
+const COL_TASK_ID = 0;
+const COL_ASSIGNEE = 1;
+const COL_STATUS = 2;
+
+function sortTable(tableId, columnIndex) {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const tbody = table.tBodies[0];
+  const rows = Array.from(tbody.rows);
+
+  const prevCol = table.dataset.sortCol;
+  const prevDir = table.dataset.sortDir;
+
+  let dir;
+  if (prevCol === String(columnIndex)) {
+    dir = prevDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    dir = 'asc';
+  }
+
+  rows.sort((a, b) => {
+    if (columnIndex === COL_STATUS) {
+      const va = a.cells[COL_STATUS].querySelector('.badge').dataset.status;
+      const vb = b.cells[COL_STATUS].querySelector('.badge').dataset.status;
+      const oa = STATUS_ORDER[va] ?? 99;
+      const ob = STATUS_ORDER[vb] ?? 99;
+      const diff = oa - ob;
+      return dir === 'asc' ? diff : -diff;
+    }
+    const va = a.cells[columnIndex].textContent.trim();
+    const vb = b.cells[columnIndex].textContent.trim();
+    return dir === 'asc' ? va.localeCompare(vb, 'ja') : vb.localeCompare(va, 'ja');
+  });
+
+  tbody.append(...rows);
+
+  table.dataset.sortCol = String(columnIndex);
+  table.dataset.sortDir = dir;
+
+  const ths = table.querySelectorAll('th[aria-sort]');
+  const colNames = ['Task ID', '担当', '状態'];
+  ths.forEach((th, idx) => {
+    if (idx === columnIndex) {
+      th.setAttribute('aria-sort', dir === 'asc' ? 'ascending' : 'descending');
+      const btn = th.querySelector('.sort-btn');
+      if (btn) {
+        const opposite = dir === 'asc' ? '降順' : '昇順';
+        btn.setAttribute('aria-label', colNames[idx] + 'で' + opposite + 'にソート');
+      }
+    } else {
+      th.setAttribute('aria-sort', 'none');
+      const btn = th.querySelector('.sort-btn');
+      if (btn) {
+        btn.setAttribute('aria-label', colNames[idx] + 'で昇順にソート');
+      }
+    }
+  });
+}
+
+function initSortButtons() {
+  document.querySelectorAll('.sort-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const col = parseInt(btn.dataset.col, 10);
+      sortTable('tasks-table', col);
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initSortButtons();
+});
+</script>"""
+
     def render(self) -> str:
         """DashboardData を HTML 文字列に変換する。
 
         Wave 6 改修（W6-B5-T34）: セマンティック HTML 構造に改修済み。
         Wave 6 改修（W6-B5-T33）: _render_style() で CSS スタイリング基盤を注入。
+        Wave 6 改修（W6-B5-T37）: _render_script() で JS ブロックを </body> 直前に配置。
         - <nav id="nav-landmarks"> ランドマークナビを <body> 直下に追加
         - <main id="main-content"> で V-1〜V-4 セクションを包含
         - <section id="parser-errors"> は <main> の外側に配置（既存位置維持）
+        - <script> は </body> 直前（design.md wave6 §3 A3-5 確定）
         design.md wave6 §5 構造図 / §7 CSS 構造設計 / §8 セマンティック HTML 実装 に準拠。
 
         Returns:
             str: 完全な HTML ドキュメント文字列。
         """
         style_html = self._render_style()
+        script_html = self._render_script()
         nav_html = self._render_nav()
         v1_html = self._render_v1_project_summary()
         v2_html = self._render_v2_milestones()
@@ -252,6 +356,7 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
   </main>
 
   {parser_errors_html}
+  {script_html}
 </body>
 </html>"""
 
@@ -443,9 +548,12 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
         """V-4 Task 一覧ビューの HTML を返す。
 
         design.md §4「V-4: Task 一覧ビュー」DOM 構成案に準拠。
+        Wave 6 改修（W6-B5-T38）: ソート UI 追加・data-milestone 属性追加。
 
         - Task が 0 件: empty state（「Task 情報なし」表示）
-        - 1 件以上: テーブル（thead 3 列 + tbody 各行）
+        - 1 件以上: テーブル（id="tasks-table" / thead 3 列 + tbody 各行）
+        - 各列ヘッダ: aria-sort="none" + <button class="sort-btn" data-col="N"> を内包
+        - 各行: data-task-id に加え data-milestone="{task.milestone}" を追加（Stage 3 フィルタ用）
         - 各行の状態は _resolve_task_status() で決定（design.md §5 優先順位）
         - アンカー: <section id="v4-tasks">
         """
@@ -463,8 +571,9 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
             badge_html = self._render_status_badge(status)
             escaped_id = html.escape(task.id)
             escaped_assignee = html.escape(task.assignee)
+            escaped_milestone = html.escape(task.milestone)
             rows.append(
-                f'      <tr data-task-id="{escaped_id}">\n'
+                f'      <tr data-task-id="{escaped_id}" data-milestone="{escaped_milestone}">\n'
                 f"        <td>{escaped_id}</td>\n"
                 f"        <td>{escaped_assignee}</td>\n"
                 f"        <td>{badge_html}</td>\n"
@@ -475,9 +584,19 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
         return (
             '<section id="v4-tasks">\n'
             "  <h2>Task 一覧</h2>\n"
-            "  <table>\n"
+            '  <table id="tasks-table">\n'
             "    <thead>\n"
-            "      <tr><th>Task ID</th><th>担当</th><th>状態</th></tr>\n"
+            "      <tr>\n"
+            '        <th id="th-task-id" aria-sort="none">\n'
+            '          <button class="sort-btn" data-col="0" aria-label="Task IDで昇順にソート">Task ID</button>\n'
+            "        </th>\n"
+            '        <th id="th-assignee" aria-sort="none">\n'
+            '          <button class="sort-btn" data-col="1" aria-label="担当で昇順にソート">担当</button>\n'
+            "        </th>\n"
+            '        <th id="th-status" aria-sort="none">\n'
+            '          <button class="sort-btn" data-col="2" aria-label="状態で昇順にソート">状態</button>\n'
+            "        </th>\n"
+            "      </tr>\n"
             "    </thead>\n"
             "    <tbody>\n"
             f"{tbody_rows}\n"

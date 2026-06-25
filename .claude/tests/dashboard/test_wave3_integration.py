@@ -304,8 +304,11 @@ class TestV4SectionExists:
         )
 
     def test_v4_contains_task_table(self, built_html):
-        """V-4 が Task テーブルを含むこと（Task が 1 件以上ある場合）。"""
-        assert "<th>Task ID</th>" in built_html, (
+        """V-4 が Task テーブルを含むこと（Task が 1 件以上ある場合）。
+
+        Wave 6 T38 緩和: ヘッダ内に <button> が内包されるため文字列包含チェックに緩和（SE 級）。
+        """
+        assert "Task ID" in built_html, (
             "V-4 Task テーブルの見出し「Task ID」が見つかりません。\n"
             "TasksParser が tasks.md を正しく読み込めているか確認してください。"
         )

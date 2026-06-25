@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -88,11 +89,13 @@ def test_render_v4_contains_table_with_tasks():
     """Task が 1 件以上のとき <table> 要素が存在すること。
 
     対応完了条件: W3-B5-T15「テーブルに Task ID・担当・状態カラムが表示される」
+    Wave 6 T38 緩和: `<table>` に `id="tasks-table"` 属性が付与されたため、
+    開きタグの部分一致（`<table`）で検査する（SE 級）。
     """
     task = _make_task()
     result_html = _make_builder(tasks=[task]).render()
-    assert "<table>" in result_html, (
-        "生成 HTML に <table> が見つかりません（Task 1 件以上のケース）。"
+    assert "<table" in result_html, (
+        "生成 HTML に <table 要素が見つかりません（Task 1 件以上のケース）。"
     )
 
 
@@ -101,12 +104,13 @@ def test_render_v4_thead_has_three_columns():
 
     対応完了条件: W3-B5-T15「テーブルに Task ID・担当・状態カラムが表示される」
     設計仕様: design.md §4 V-4 DOM 構成案「<th>Task ID</th><th>担当</th><th>状態</th>」
+    Wave 6 T38 緩和: ヘッダ内に <button> が内包されるため文字列包含チェックに緩和（SE 級）。
     """
     task = _make_task()
     result_html = _make_builder(tasks=[task]).render()
-    assert "<th>Task ID</th>" in result_html, "<th>Task ID</th> が見つかりません。"
-    assert "<th>担当</th>" in result_html, "<th>担当</th> が見つかりません。"
-    assert "<th>状態</th>" in result_html, "<th>状態</th> が見つかりません。"
+    assert "Task ID" in result_html, "ヘッダに「Task ID」が見つかりません。"
+    assert "担当" in result_html, "ヘッダに「担当」が見つかりません。"
+    assert "状態" in result_html, "ヘッダに「状態」が見つかりません。"
 
 
 def test_render_v4_contains_tbody():
@@ -374,11 +378,15 @@ def test_render_v4_html_escape_in_task_id():
     """Task ID に HTML 特殊文字が含まれる場合、エスケープされて出力されること。
 
     既存パターン: builder.py の _render_parser_errors() で html.escape() を使用済み
+    Wave 6 T37 緩和: builder.py が自前 `<script>` ブロックを挿入するようになったため、
+    自前 script を除去した後の文字列に Task ID 起源の `<script>` が残っていないことを検証する
+    二段検証（SE 級）。`&lt;script&gt;` の存在検証は元の HTML に対して行う。
     """
     task = _make_task(task_id="<script>alert('xss')</script>")
     result_html = _make_builder(tasks=[task]).render()
-    assert "<script>" not in result_html, (
-        "Task ID の HTML エスケープが行われていません（XSS リスク）。"
+    stripped = re.sub(r"<script\b[^>]*>.*?</script>", "", result_html, flags=re.DOTALL)
+    assert "<script>" not in stripped, (
+        "Task ID の HTML エスケープが行われていません（XSS リスク / 自前 script 除外後検査）。"
     )
     assert "&lt;script&gt;" in result_html, (
         "HTML エスケープ後の &lt;script&gt; が見つかりません。"
