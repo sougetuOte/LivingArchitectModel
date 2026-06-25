@@ -74,5 +74,7 @@ docs/artifacts/dashboard/*.html
 .claude/tests/dashboard/_check_*.py
 # B-5 Wave 5 検証スクショの元 PNG（圧縮済 .webp を git 管理 / 元 PNG はローカル保持）
 docs/artifacts/dashboard-*.png
+# B-5 Wave 6 T36 ダーク手動確認スクショの元 PNG（圧縮済 .webp を git 管理 / 元 PNG はローカル保持）
+docs/artifacts/dashboard/t36-*.png
 # B-5 Wave 5 Lighthouse 出力（再実行で再生成可・約 720 KB / 結果サマリは .md に転記済）
 docs/artifacts/lighthouse-*/

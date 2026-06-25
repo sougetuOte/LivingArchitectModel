@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING**
+**BUILDING**
 
-_B-5: b4-dashboard BUILDING Step Wave 1〜5 完遂（PoC GREEN: AC-1〜AC-8 全 PASS / NFR-2/3/5 + AC-7 検証完了 / UQ-1〜UQ-7 全対応 / pytest 324 件 PASS / commits `bef2b1c` + `6ebf375` push 済）。T29 PoC レビューでユーザー要望「CSS / ソート / フィルタ / ジャンル分け / Wave-Milestone-Task 階層表示」収集 → **Wave 6 PLANNING 開始**（design-mode 起動 2026-06-24）。当面のスコープ案: Wave 6=CSS スタイリング基盤（FC-5 着手）。Wave 7+ 以降は使いやすさが許容水準に達するまで反復、各 Wave 末でユーザーゲート必須。FC-7（複数 Milestone Step 表示）は Wave 9 想定。ガードレール: 実装コード生成禁止 / `src/` 配下変更禁止 / 設定ファイル変更禁止。承認ゲート: requirements → design → tasks → 「承認」明示で BUILDING 復帰。体制: Fable=判断・要件整理 / Sonnet=設計起草・図作成 / Haiku=突合・採点。_
+_B-5: b4-dashboard Wave 6 PLANNING 完全クローズ（requirements v0.2.0 / design v0.3.0 / tasks v0.2.0 すべて Approved / commits `a6b8ebf` + `8f3d8d9` + `1dad74b` push 済 / 2026-06-25）→ **Wave 6 BUILDING 開始**（build-mode 起動 2026-06-25）。スコープ: CSS スタイリング基盤（FC-5 着手）+ セマンティック HTML + Lighthouse 95+ 達成。Stage 構成: Stage 1（CSS 基盤 / T31〜T36）→ Stage 2 → Stage 3 → Stage 4（13 タスク）。着手タスク: **W6-B5-T31**（既存テスト構造変更の事前影響分析 / S 規模）。ガードレール: TDD サイクル厳守（Red→Green→Refactor）/ 仕様書なし実装禁止 / テストなし実装は明示オプトアウト時のみ / 公開 API 変更時は doc 同期。承認ゲート: Stage 1〜4 各ゲート + 「承認」明示で AUDITING 復帰。体制: Fable=判断 / Sonnet=実装 / Haiku=採点・突合。_
 
 ---
 
