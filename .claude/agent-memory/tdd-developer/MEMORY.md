@@ -10,3 +10,5 @@
 - [B-5 W2-T7 SessionStateParser 実装](project_b5_session_state_parser.md) — タスクID regex（W1-B5-T1 は B5 形式・変換必要）・「なし（...）」前方一致除外・全文 regex でテーブル行も抽出
 - [B-5 W2-T9 V-2 Milestone 一覧ビュー実装](project_b5_v2_view_w2t9.md) — Step 列は current_phase 統一・_STATUS_LABELS dict・empty state 文言・24 テスト追加で計 113 件
 - [B-5 W3-T14 V-3 Wave 一覧ビュー実装](project_b5_v3_view_w3t14.md) — Milestone ごとセクション分割・グループ化は order+dict・状態決定は build_dashboard.py 側の責務・30 テスト追加で計 253 件
+- [B-5 W6-T32 _radix_colors.py 実装](project_b5_w6_t32_radix_colors.md) — 96 hex 値定数モジュール・int step キー・L2-B 並列作業で builder.py 変更混入に注意
+- [B-5 W6-T34 セマンティック HTML 実装](project_b5_w6_t34_semantic_html.md) — nav/main ランドマーク追加・T31 分析漏れ（html.count("<li>") 全体カウント系）・緩和方針案 A
