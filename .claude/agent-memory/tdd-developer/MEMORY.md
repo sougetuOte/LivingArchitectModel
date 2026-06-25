@@ -12,3 +12,4 @@
 - [B-5 W3-T14 V-3 Wave 一覧ビュー実装](project_b5_v3_view_w3t14.md) — Milestone ごとセクション分割・グループ化は order+dict・状態決定は build_dashboard.py 側の責務・30 テスト追加で計 253 件
 - [B-5 W6-T32 _radix_colors.py 実装](project_b5_w6_t32_radix_colors.md) — 96 hex 値定数モジュール・int step キー・L2-B 並列作業で builder.py 変更混入に注意
 - [B-5 W6-T34 セマンティック HTML 実装](project_b5_w6_t34_semantic_html.md) — nav/main ランドマーク追加・T31 分析漏れ（html.count("<li>") 全体カウント系）・緩和方針案 A
+- [B-5 W6 Stage 2 ソート機能実装](project_b5_w6_stage2_sort.md) — T37+T38+T39・<th>直書き assert 緩和 2 箇所・JS 41 行・STATUS_ORDER ??99・script 配置 </body> 直前・Bash 制限で静的検証→L1 リレー
