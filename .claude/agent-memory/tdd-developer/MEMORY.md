@@ -15,3 +15,4 @@
 - [B-5 W6 Stage 2 ソート機能実装](project_b5_w6_stage2_sort.md) — T37+T38+T39・<th>直書き assert 緩和 2 箇所・JS 41 行・STATUS_ORDER ??99・script 配置 </body> 直前・Bash 制限で静的検証→L1 リレー
 - [B-5 W6 Stage 3 フィルタ機能実装](project_b5_w6_stage3_filter.md) — T40+T41・_render_filter_controls() 新設・DOMContentLoaded 単一統合(C-NEW-2)・JS 行数 ~100 行・既存テスト破損なし
 - [B-5 W6 Stage 4 統合テスト実装](project_b5_w6_stage4_integration.md) — T42・MCP skip 5 件(疑似コード残置)・自動 4 件(HTML 500KB/CSS 10KB/外部参照 regex 3 種/ファイル数 20-35)・22 件ファイル PASS
+- [B-5 W7 Stage 1 影響分析](project_b5_w7_stage1_impact.md) — TasksParser regex 厳格化・実データ 378 件誤抽出確認・test_tasks_parser.py L306/L340/L387 破損リスク・test_v4_view.py は影響なし
