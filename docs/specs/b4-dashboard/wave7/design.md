@@ -400,20 +400,26 @@ V-2 ビューの構造を「単一エントリ表示」から「Milestone セク
 }
 ```
 
-### CSS 予算事前評価（NFR-W7-1 対応）
+### CSS 予算事前評価（NFR-W7-1 対応 / v0.2.4 改訂）
+
+**v0.2.4 改訂**: NFR-W7-1 が MUST → SHOULD 降格 + 上限 10,240 → **16,384 bytes (16 KiB)** に緩和。事前評価は以下のように更新する:
 
 | 項目 | 推定 bytes |
 |:-----|:----------|
 | `.milestones-container` ルール | ~80 |
 | `.milestone-card` ルール | ~140 |
 | `.milestone-card h3` ルール | ~80 |
-| **小計** | **~300 bytes** |
+| 新規セクションコメント (`/* ─── 15. ... ── */`) | ~70 |
+| f-string インデント + エスケープ等 | ~70 |
+| **小計** | **~440 bytes** |
 
-Wave 6 終端時点 9,922 bytes + 追加 300 bytes ≈ **10,222 bytes**（上限 10,240 / 残 18 bytes）
+Wave 6 終端時点 9,922 bytes + 追加 ~440 bytes ≈ **10,362 bytes**（新上限 16,384 / 残 ~6,022 bytes）
 
-→ ギリギリ収まる見込み。**Stage 3 実装時に L2 から実測値を都度報告させる**。
+→ 16 KiB 改定後は十分余裕あり。**Stage 3 実装時に L2 から実測値を都度報告させる**（運用継続 / 退行検知のため）。
 
-万一超過した場合の縮退オプション（#W-1 対応 / 各オプションの節約効果見積もり付き）:
+**現在のレベル帯（NFR-W7-1 v0.2.4 3 段階レベル制）**: 緑帯（< 70% = < 11,469 bytes / 現状 10,362 想定は緑帯維持）
+
+縮退オプション（参考保持 / v0.2.4 では実用上必要性は下がる）:
 
 | Opt | 内容 | 節約効果（推定） | 採用優先度 |
 |:---:|:----|:---------------|:----------|
@@ -422,9 +428,11 @@ Wave 6 終端時点 9,922 bytes + 追加 300 bytes ≈ **10,222 bytes**（上限
 | 3 | `.milestone-card h3` のスタイル（`margin: 0 0 0.25rem 0; font-size: 1.1rem;`）を既存 `h3` ベース共通スタイルに集約 | ~80 bytes | 高（最大効果） |
 | 4 | `<p>状態: <span class="status">{ms.status}</span></p>` を `<p class="milestone-status">状態: {ms.status}</p>` に変更し、`.status` 専用クラスをまったく設けない。スタイルは `.milestone-card p` の共通ルールに集約 | ~50 bytes（CSS 共通化分） | 低（HTML 構造変化リスク） |
 
-**3 件すべて適用時の節約**: ~30 + ~10 + ~80 = **~120 bytes**（残予算 18 + 120 = 138 bytes の余裕に拡大）
+**3 件すべて適用時の節約**: ~30 + ~10 + ~80 = **~120 bytes**
 
-**それでも超過する場合の最終判断（PM 級）**: Stage 3 のスコープから「`.milestone-card h3` の意匠カスタマイズ」を削除し、Wave 8+ へ送る。本判断は L1 から PM（ユーザー）にエスカレーション。
+**v0.2.4 注記**: 新上限 16,384 bytes 下では本縮退フロー発動の閾値は **赤帯 ≥ 14,746 bytes 到達時**となる。現実装の +440 bytes 想定では当面発動しない。
+
+**それでも赤帯到達 + さらに超過する場合の最終判断（PM 級）**: その Wave の retro で予算改定議題を必須化し、改定 or ミニマル化を選ぶ。本判断は L1 から PM（ユーザー）にエスカレーション。
 
 **縮退オプション適用の権限等級（v0.2.3 / spec-critic 4 回目 Warning 5 対応）**:
 
@@ -547,6 +555,7 @@ AC-W7-3 達成には以下の **全 4 条件** がすべて満たされる必要
 | **0.2.1** | 2026-06-27 | spec-critic 再々レビュー（v0.2.0+1 → B 維持）指摘の追加補記 + バージョン正式 bump — §6 regex を Wave 1.5 形式 `W\d+(?:\.\d+)?-[A-Z]\d+-T\d+` に拡張 + 既存実装との整合明記 + エッジケース表に Wave 1.5 / W10 追加（**継続懸念解消**）/ §3 A3-4 にソート方式（文字列辞書順）+ 将来 (B-10 以降の数値順) 切替方針明示 (#NW4) / §14 参照を requirements.md v0.2.1 に更新 |
 | **0.2.2** | 2026-06-27 | Wave 7 Stage 1 BUILDING 着手時の構造的乖離発覚に対する MAGI 合議結果反映 — §6 末尾に「実 tasks.md マッチ 0 件は Wave 7 仕様通り」補足追加 + T46 への影響明記 / §10.5（新規）tasks.md パイロット運用ルール追加 / §13 に v0.2.2 PM 補追承認記録 / 根拠議事録: `2026-06-27-magi-wave7-stage1-pivot.md` |
 | **0.2.3** | 2026-06-27 | spec-critic 4 回目レビュー指摘の反映 — §6 に「実装の追加要件」追加（T56 ディレクトリ再帰走査 / Critical 昇格対応）/ §10.5「Stage 2 AC-W7-3 達成の前提」を 4 条件依存チェーンに展開（Critical 1 解消）/ §8 CSS 縮退オプション権限等級明示（Warning 5）/ §13 に v0.2.3 PM 補追承認記録 / §14 参照を requirements.md v0.2.3 に更新 |
+| **0.2.4** | 2026-06-28 | NFR-W7-1 CSS 予算根本見直し連動補追 — §8 CSS 予算事前評価表更新（上限 10,240 → 16,384 bytes / 残予算 ~6,022 bytes / 現在レベル帯 緑帯）/ §8 縮退オプションを「参考保持」扱いに変更（赤帯到達時のみ発動）/ §13 に v0.2.4 PM 補追承認記録追加 / §14 参照を requirements.md v0.2.4 に更新 / 議事録: `2026-06-28-magi-nfr-w7-1-budget-revision.md` |
 
 ---
 
@@ -581,6 +590,19 @@ v0.2.2 補追を spec-critic 4 回目に独立レビューさせた結果、Crit
 
 ステータスを v0.2.3 Approved（PM 補追承認）に更新。requirements.md / tasks.md にも v0.2.3 で連動補追。
 
+### 2026-06-28: v0.2.4 PM 補追承認（NFR-W7-1 CSS 予算根本見直し）
+
+Wave 7 Stage 3 BUILDING 着手時の CSS 予算逼迫（残 18 bytes 想定）を契機として、L1 提起の AoT 5 Atom MAGI 合議で NFR-W7-1 を根本改定。本書への補追:
+
+- §8 CSS 予算事前評価表を新上限 16,384 bytes（16 KiB）反映に更新（残予算 ~6,022 bytes / 緑帯）
+- §8 縮退オプションを「参考保持」扱いに変更（赤帯到達時のみ発動）
+- §12 改訂履歴 v0.2.4 行追加
+- §14 参照を requirements.md v0.2.4 に更新
+
+requirements.md / tasks.md / execution-plan.md にも v0.2.4 で連動補追。
+詳細議事録: `docs/artifacts/2026-06-28-magi-nfr-w7-1-budget-revision.md`
+関連 knowledge: `docs/artifacts/knowledge/nfr-lifecycle-management.md`（NFR 寿命管理ルール新設）
+
 ### 2026-06-27: 3 文書セット v0.2.1 PM 最終承認
 
 ユーザー（PM）が requirements.md v0.2.1 + design.md v0.2.1 + tasks.md v0.2.1 の 3 文書セットを一括承認。
@@ -609,7 +631,7 @@ tasks.md にも v0.2.0 改訂で連動。3 文書セットでの PM 最終承認
 
 ## §14 参照
 
-- [Wave 7 requirements.md](requirements.md) v0.2.3 Approved
+- [Wave 7 requirements.md](requirements.md) v0.2.4 Approved
 - [元 design.md §5 Assignee タグ規約](../design.md#assignee-タグ規約wave-7-追加--rfc-2119-should)
 - [MAGI 議事録 2026-06-27](../../../artifacts/2026-06-27-magi-wave7-planning.md)
 - [retro Wave 6](../../../artifacts/retro-W6-B5-2026-06-27.md)
