@@ -186,7 +186,7 @@ git log（コマンド出力）──→  GitHistoryParser  ─┘
 | 要素 | データソース | 表示ロジック |
 |------|------------|------------|
 | Task ID | TasksParser | `docs/specs/<milestone>/tasks.md` から抽出 |
-| 担当（AI 種別）| TasksParser | tasks.md の担当列（存在する場合）または「-」 |
+| 担当（AI 種別）| TasksParser | tasks.md チェック行末の `@<assignee>` タグ（§5「Assignee タグ規約」）。未記入時は `-` |
 | 状態 | TasksParser | チェックボックス状態（`[x]` = `completed` / `[ ]` = `not-started`） + SessionStateParser で `in-progress` / `blocked` を補完 |
 | 完了判定 | TasksParser | `[x]` チェック |
 
@@ -277,9 +277,58 @@ class BaseParser:
 | 入力 | `docs/specs/<milestone>/tasks.md`（存在するすべての Milestone 分）|
 | 責務 | チェックボックス行（`- [ ]` / `- [x]`）をスキャンし Task エントリを構築 |
 | 戻り値キー | `tasks: list[TaskInfo]`（各 Task に `id`, `status`, `assignee`, `milestone`）|
-| パース方針 | regex `^-\s\[( |x)\]\s(.+)$` でチェックボックス行を抽出。`[x]` → `completed`, `[ ]` → `not-started` |
+| パース方針 | regex `^-\s\[( |x)\]\s(.+)$` でチェックボックス行を抽出。`[x]` → `completed`, `[ ]` → `not-started`。description 末尾の `@<assignee>` タグを抽出し `TaskInfo.assignee` に格納（§5「Assignee タグ規約」）。タグ未記入時は `assignee="-"`（後方互換） |
 | 失敗条件 | Milestone ディレクトリが存在しない / tasks.md 不在。個別 Milestone 失敗は他 Milestone の処理を止めない |
 | Milestone 検出 | `docs/specs/` 配下のサブディレクトリを glob で走査し、`tasks.md` が存在するものを対象とする |
+
+##### Assignee タグ規約（Wave 7+ 追加 / RFC 2119 SHOULD）
+
+**目的**: V-4 担当列に意味のあるデータを供給する。SSOT は `tasks.md` 一本に保つ。
+
+**記法**:
+
+```
+- [<box>] <Task ID>: <description> @<assignee>
+```
+
+- `<assignee>` は半角英数とハイフン・アンダースコアのみで構成される単語（regex: `[A-Za-z0-9_-]+`）。例: `Sonnet`, `Haiku`, `Fable`, `Opus`, `human`
+- 推奨値は 3.5 層委譲モデル（`CLAUDE.md §作業体制`）の主担当層を示す単一値: `Sonnet`, `Haiku`, `Fable`, `Opus`, `human` 等。複合担当（L2/L3 同時記載）は本規約のスコープ外（将来拡張で複合タグを再検討）
+- タグは行末に **1 個まで**。複数記載時は最後の 1 個のみ採用する
+- `<description>` 内の `@` を含む通常テキスト（例: メールアドレス）と衝突しないよう、行末固定で抽出する
+
+**抽出規則（TasksParser）**:
+
+- 正規表現: `\s+@([A-Za-z0-9_-]+)\s*$`（description 末尾、空白区切り、改行直前）
+- マッチした場合: `TaskInfo.assignee = <抽出値>`、description 本文からタグ部分を除去
+- 未マッチの場合: `TaskInfo.assignee = "-"`（後方互換、既存挙動維持）
+
+**例**:
+
+| tasks.md 行 | 抽出結果 |
+|------------|---------|
+| `- [x] W1-B5-T1: BaseParser 実装完了` | id=`W1-B5-T1`, assignee=`-` |
+| `- [ ] W7-B5-T50: 担当列実装 @Sonnet` | id=`W7-B5-T50`, assignee=`Sonnet` |
+| `- [x] W7-B5-T51: 採点 @Haiku` | id=`W7-B5-T51`, assignee=`Haiku` |
+| `- [ ] T99: 連絡先 contact@example.com を更新` | id=`T99`（タグ判定対象外、`@example.com` は行末から空白区切り単語として切り出されない可能性あり。実装時にエッジケース確認）|
+
+**表示変換（DashboardBuilder）**:
+
+- HTML 出力時は `@` を除去した値をそのまま表示（例: tasks.md で `@Sonnet` → V-4 表示は `Sonnet`）
+- 未指定（`-`）は従来通り `-` を表示
+
+**遡及方針**:
+
+- 既存 tasks.md への遡及記入は **強制しない**（SHOULD ではなく MAY）
+- 新規 Task から自然蓄積させ、`-` 表示と意味あるラベルの混在を許容
+- 一括記入したい場合は別途 Milestone レベルで人間判断（PM 級）
+
+**スコープ外（Non-Goals）**:
+
+- 複合担当タグ（`@L2:Sonnet @L3:Haiku` 等）の対応
+- Wave→担当の自動推定
+- assignee 値の妥当性検証（任意文字列を受け入れる）
+
+**根拠**: B-5 Wave 6 PoC レビュー（2026-06-27）で V-4 担当列が全タスク `-` 表示となり情報無価値と判明。MAGI 合議（2026-06-27）で SSOT 一本化と後方互換を優先する本方針を採択。
 
 #### GitHistoryParser
 
