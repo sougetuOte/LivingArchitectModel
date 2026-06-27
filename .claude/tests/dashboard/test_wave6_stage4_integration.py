@@ -338,34 +338,30 @@ def test_t_s4_06_html_size_under_500kb() -> None:
 
 
 def test_t_s4_07_added_css_size_under_10kb() -> None:
-    """builder._render_style() の出力 CSS が 10,240 バイト（10 KB）以下であること。
+    """builder._render_style() の出力 CSS が 16,384 バイト（16 KiB）以下であること。
 
     種別: 自動
 
-    設計根拠（design.md §14 T-S4-7）:
-        requirements.md AC-W6-8 / NFR-W6-3
-        追加 CSS ≤ 10 KB（Radix Colors 手動転記分を含む）
+    Wave 6 NFR-W6-3「追加 CSS ≤ 10 KB」起源 → Wave 7 NFR-W7-1 v0.2.4 で
+    16,384 bytes（16 KiB）+ SHOULD に上書き継承された。
 
-    計測方法（G-5 準拠）:
-        len(builder._render_style().encode('utf-8')) — バイト数で計測
-        上限値: 10,240 バイト（= 10 KB = 10,240 bytes）
+    設計根拠（Wave 7 requirements.md §5 NFR-W7-1 v0.2.4）:
+        - 上限: 16,384 bytes（16 KiB / SHOULD）
+        - 3 段階レベル制: 緑帯 < 11,469 / 黄帯 11,469-14,745 / 赤帯 ≥ 14,746
 
-    現在の CSS サイズ推計:
-        Radix 96 hex 値 ≒ 4〜6 KB + レイアウト 2〜3 KB = 合計 ≦ 10 KB
-        Stage 1 時点の計測値 ≒ 9,907 バイト（margin 333 バイト）
-        Stage 4 では CSS を増やさないため通常 PASS する見込み。
+    計測方法:
+        len(builder._render_style().encode('utf-8'))
 
-    実装前 FAIL の根拠:
-        仮に _render_style() が 10 KB を超える CSS を返した場合 AssertionError で FAIL する。
-        design.md §7 「CSS 10 KB 超過時の対応フロー」に従い ① 空白・コメント圧縮から対応する。
+    Wave 7 Stage 3 時点の実測:
+        ~10,400 バイト（緑帯 / V-2 Milestone カード CSS 追加後）
     """
     builder = _make_builder_with_full_data()
     style_bytes = builder._render_style().encode("utf-8")
     size_bytes = len(style_bytes)
-    assert size_bytes <= 10_240, (
-        f"CSS サイズ {size_bytes:,} バイト が上限 10,240 バイト（10 KB）を超過しています。\n"
-        f"requirements.md AC-W6-8 / NFR-W6-3: 追加 CSS ≤ 10 KB（MUST）\n"
-        f"design.md §7 超過時フロー: ① 空白・コメント圧縮 → ② Radix step 削減 → ③ PM 級緩和"
+    assert size_bytes <= 16_384, (
+        f"CSS サイズ {size_bytes:,} バイト が上限 16,384 バイト（16 KiB）を超過しています。\n"
+        f"NFR-W7-1 v0.2.4: 追加 CSS ≤ 16,384 bytes（SHOULD / 3 段階レベル制）\n"
+        f"赤帯（≥ 14,746 bytes）到達時は retro で予算改定議題を必須化する"
     )
 
 

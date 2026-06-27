@@ -17,6 +17,12 @@ from dashboard.parsers.base import BaseParser
 # ※ タスク ID 内の Milestone 表記はハイフンなし（B5）。抽出後に B-5 形式に変換する
 _TASK_ID_RE = re.compile(r"W(\d+(?:\.\d+)?)-([A-Z])(\d+)-T(\d+)")
 
+# フォールバック抽出パターン（タスク ID が存在しない書式の SESSION_STATE.md 対応）
+# Milestone: B-5, B-4 等（大文字 1 文字 + ハイフン + 数字）
+_FALLBACK_MILESTONE_RE = re.compile(r"\b(B-\d+)\b")
+# Wave: "Wave 7", "Wave 1.5" 等
+_FALLBACK_WAVE_RE = re.compile(r"\bWave\s+(\d+(?:\.\d+)?)\b")
+
 # セクション見出しパターン（## または ###）
 _SECTION_RE = re.compile(r"^#{2,3}\s+(.+)$", re.MULTILINE)
 
@@ -123,6 +129,10 @@ class SessionStateParser(BaseParser):
         task_tuples = _extract_task_ids_from_text(content)
         milestones, waves = self._build_milestone_wave_lists(task_tuples)
 
+        # タスク ID が存在しない場合（書式変化対応）: テキスト直接スキャンでフォールバック
+        if not milestones:
+            milestones, waves = self._extract_milestones_waves_fallback(content)
+
         return {
             "ok": True,
             "error": None,
@@ -209,5 +219,55 @@ class SessionStateParser(BaseParser):
                         status="in-progress",  # 状態決定ロジックは V-3 ビュー側
                     )
                 )
+
+        return milestones, waves
+
+    def _extract_milestones_waves_fallback(
+        self,
+        content: str,
+    ) -> tuple[list[MilestoneInfo], list[WaveInfo]]:
+        """タスク ID が存在しない書式向けのフォールバック抽出。
+
+        B-N パターンで Milestone を、Wave N パターンで Wave 番号を取得する。
+        Wave は各 Milestone に関連付ける（全 Milestone x 全 Wave のクロス）。
+        重複排除済みのリストを返す。
+        """
+        seen_milestones: set[str] = set()
+        milestones: list[MilestoneInfo] = []
+        for m in _FALLBACK_MILESTONE_RE.finditer(content):
+            name = m.group(1)
+            if name not in seen_milestones:
+                seen_milestones.add(name)
+                milestones.append(
+                    MilestoneInfo(
+                        name=name,
+                        current_step="UNKNOWN",
+                        status="in-progress",
+                    )
+                )
+
+        seen_wave_nums: set[str] = set()
+        wave_nums: list[str] = []
+        for m in _FALLBACK_WAVE_RE.finditer(content):
+            num = m.group(1)
+            if num not in seen_wave_nums:
+                seen_wave_nums.add(num)
+                wave_nums.append(num)
+
+        waves: list[WaveInfo] = []
+        seen_waves: set[tuple[str, str]] = set()
+        for milestone_name in seen_milestones:
+            for wave_number in wave_nums:
+                key = (milestone_name, wave_number)
+                if key not in seen_waves:
+                    seen_waves.add(key)
+                    waves.append(
+                        WaveInfo(
+                            milestone=milestone_name,
+                            wave_number=wave_number,
+                            task_count=0,
+                            status="in-progress",
+                        )
+                    )
 
         return milestones, waves

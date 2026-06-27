@@ -59,15 +59,16 @@ def test_render_style_returns_style_tag() -> None:
 
 
 def test_render_style_size_under_10kb() -> None:
-    """_render_style() の出力が 10,240 バイト以下であること。
+    """_render_style() の出力が 16,384 バイト（16 KiB）以下であること。
 
-    design.md §7 NFR-W6-3: 追加 CSS ≤ 10 KB。
+    Wave 6 NFR-W6-3「追加 CSS ≤ 10 KB」は Wave 7 NFR-W7-1 v0.2.4 で
+    16,384 bytes（16 KiB）+ SHOULD に上書き継承された。テスト名は歴史的経緯のため維持。
     """
     builder = _make_empty_builder()
     style = builder._render_style()
     byte_size = len(style.encode("utf-8"))
-    assert byte_size <= 10_240, (
-        f"_render_style() のサイズが 10,240 バイト超過: {byte_size} バイト"
+    assert byte_size <= 16_384, (
+        f"_render_style() のサイズが 16,384 バイト超過: {byte_size} バイト（NFR-W7-1 v0.2.4）"
     )
 
 
@@ -214,13 +215,14 @@ def test_t_s1_10_render_contains_nav_landmark() -> None:
 
 
 def test_t_s1_11_css_size_under_10kb() -> None:
-    """T-S1-11: CSS 文字列サイズが 10,240 バイト（10 KB）以下であること。
+    """T-S1-11: CSS 文字列サイズが 16,384 バイト（16 KiB）以下であること。
 
-    design.md §14 T-S1-11: assert len(style.encode('utf-8')) <= 10_240
+    Wave 6 T-S1-11 起源時は 10,240 バイト（10 KB）上限。
+    Wave 7 NFR-W7-1 v0.2.4 で 16,384 バイト（16 KiB）+ SHOULD に上書き継承。
     """
     builder = _make_empty_builder()
     style = builder._render_style()
     byte_size = len(style.encode("utf-8"))
-    assert byte_size <= 10_240, (
-        f"CSS サイズが 10,240 バイト超過: {byte_size} バイト / 上限: 10,240 バイト"
+    assert byte_size <= 16_384, (
+        f"CSS サイズが 16,384 バイト超過: {byte_size} バイト / 上限: 16,384 バイト（NFR-W7-1 v0.2.4）"
     )
