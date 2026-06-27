@@ -215,8 +215,13 @@ def test_parse_task_assignee_is_dash_when_no_assignee_column(tmp_path):
     assert result["data"]["tasks"][0].assignee == "-"
 
 
-def test_parse_task_milestone_matches_parent_directory(tmp_path):
-    """TaskInfo.milestone が tasks.md の親ディレクトリ名と一致すること。"""
+def test_parse_task_milestone_extracted_from_task_id(tmp_path):
+    """TaskInfo.milestone が Task ID（W{n}-B{n}-T{n}）から逆引きされること。
+
+    旧仕様: milestone = 親ディレクトリ名（"b4-dashboard"）
+    新仕様 (T56): 完全形 Task ID から逆引き（W1-B5-T1 → "B-5"）。
+    ディレクトリ名は milestone 決定に使われない（完全形 Task ID 優先）。
+    """
     from dashboard.parsers.tasks import TasksParser
 
     milestone_dir = tmp_path / "docs" / "specs" / "b4-dashboard"
@@ -232,7 +237,8 @@ def test_parse_task_milestone_matches_parent_directory(tmp_path):
     result = parser.parse()
 
     assert result["ok"] is True
-    assert result["data"]["tasks"][0].milestone == "b4-dashboard"
+    # W1-B5-T1 → Task ID から逆引きで "B-5"（ディレクトリ名 "b4-dashboard" は使われない）
+    assert result["data"]["tasks"][0].milestone == "B-5"
 
 
 # ─────────────────────────────────────────────
@@ -273,18 +279,22 @@ def test_parse_ignores_non_checkbox_lines(tmp_path):
 
 
 def test_parse_checkbox_regex_matches_correct_pattern(tmp_path):
-    """regex ^-\\s\\[( |x)\\]\\s(.+)$ のパターンにのみマッチすること。"""
+    """regex ^-\\s\\[( |x)\\]\\s(.+)$ のパターンにのみマッチすること。
+
+    fixture は正規形式 Task ID（W{n}-B{n}-T{n}:）を使用する（T46 修正）。
+    旧 fixture は Task ID なしの説明文のみで、T45 厳格化後は 0 件になっていた。
+    """
     from dashboard.parsers.tasks import TasksParser
 
-    milestone_dir = tmp_path / "docs" / "specs" / "my-milestone"
+    milestone_dir = tmp_path / "docs" / "specs" / "B-5"
     milestone_dir.mkdir(parents=True)
     (milestone_dir / "tasks.md").write_text(
         textwrap.dedent("""\
-        - [x] 完了済みタスク（正しい形式）
-        - [ ] 未着手タスク（正しい形式）
-        -[x] スペースなし（マッチしない）
-        - [X] 大文字X（マッチしない）
-        - [*] アスタリスク（マッチしない）
+        - [x] W1-B5-T1: 完了済みタスク（正しい形式）
+        - [ ] W1-B5-T2: 未着手タスク（正しい形式）
+        -[x] W1-B5-T3: スペースなし（マッチしない）
+        - [X] W1-B5-T4: 大文字X（マッチしない）
+        - [*] W1-B5-T5: アスタリスク（マッチしない）
         """),
         encoding="utf-8",
     )
@@ -294,7 +304,7 @@ def test_parse_checkbox_regex_matches_correct_pattern(tmp_path):
 
     assert result["ok"] is True
     tasks = result["data"]["tasks"]
-    # 正しい形式の 2 件のみ
+    # チェックボックスが正しい形式（- [x] / - [ ]）の 2 件のみ
     assert len(tasks) == 2
 
 
@@ -338,19 +348,24 @@ def test_parse_scans_multiple_milestones(tmp_path):
 
 
 def test_parse_tasks_from_both_milestones_have_correct_milestone_field(tmp_path):
-    """複数 Milestone 走査時、各 Task.milestone が正しい Milestone 名を持つこと。"""
+    """複数 Milestone 走査時、各 Task.milestone が Task ID 逆引きで正しい Milestone 名を持つこと。
+
+    fixture を実プロジェクト形式（W1-B4-T1 / W1-B5-T1）に統一し、
+    期待値を Task ID 逆引き値（"B-4" / "B-5"）で検証する（T46 修正）。
+    旧 fixture（W1-A1-T1/W1-B1-T1）と旧期待値（"alpha"/"beta"）は廃止。
+    """
     from dashboard.parsers.tasks import TasksParser
 
     specs_dir = tmp_path / "docs" / "specs"
 
-    (specs_dir / "alpha").mkdir(parents=True)
-    (specs_dir / "alpha" / "tasks.md").write_text(
-        "- [x] W1-A1-T1: Alpha タスク\n", encoding="utf-8"
+    (specs_dir / "b4-dashboard").mkdir(parents=True)
+    (specs_dir / "b4-dashboard" / "tasks.md").write_text(
+        "- [x] W1-B4-T1: B-4 タスク\n", encoding="utf-8"
     )
 
-    (specs_dir / "beta").mkdir(parents=True)
-    (specs_dir / "beta" / "tasks.md").write_text(
-        "- [ ] W1-B1-T1: Beta タスク\n", encoding="utf-8"
+    (specs_dir / "b5-dashboard").mkdir(parents=True)
+    (specs_dir / "b5-dashboard" / "tasks.md").write_text(
+        "- [ ] W1-B5-T1: B-5 タスク\n", encoding="utf-8"
     )
 
     parser = TasksParser(tmp_path)
@@ -359,8 +374,9 @@ def test_parse_tasks_from_both_milestones_have_correct_milestone_field(tmp_path)
     assert result["ok"] is True
     tasks = result["data"]["tasks"]
     milestones_in_tasks = {t.milestone for t in tasks}
-    assert "alpha" in milestones_in_tasks
-    assert "beta" in milestones_in_tasks
+    # W1-B4-T1 → "B-4", W1-B5-T1 → "B-5"（Task ID から逆引き）
+    assert "B-4" in milestones_in_tasks
+    assert "B-5" in milestones_in_tasks
 
 
 # ─────────────────────────────────────────────
@@ -385,15 +401,20 @@ def test_parse_milestone_without_tasks_md_returns_ok_true_empty(tmp_path):
 
 
 def test_parse_mixed_milestones_includes_only_existing_tasks_md(tmp_path):
-    """tasks.md あり Milestone と なし Milestone が混在する場合、あり側の Task のみ返すこと。"""
+    """tasks.md あり Milestone と なし Milestone が混在する場合、あり側の Task のみ返すこと。
+
+    fixture を実プロジェクト形式（W1-B5-T1）に統一し、期待 milestone を
+    Task ID 逆引き値（"B-5"）で検証する（T46 修正）。
+    旧 fixture（W1-A1-T1）と旧期待値（"has-tasks" ディレクトリ名）は廃止。
+    """
     from dashboard.parsers.tasks import TasksParser
 
     specs_dir = tmp_path / "docs" / "specs"
 
-    # tasks.md あり
+    # tasks.md あり（正規形式 Task ID を使用）
     (specs_dir / "has-tasks").mkdir(parents=True)
     (specs_dir / "has-tasks" / "tasks.md").write_text(
-        "- [x] W1-A1-T1: 完了タスク\n", encoding="utf-8"
+        "- [x] W1-B5-T1: 完了タスク\n", encoding="utf-8"
     )
 
     # tasks.md なし
@@ -406,7 +427,8 @@ def test_parse_mixed_milestones_includes_only_existing_tasks_md(tmp_path):
     assert result["ok"] is True
     tasks = result["data"]["tasks"]
     assert len(tasks) == 1
-    assert tasks[0].milestone == "has-tasks"
+    # W1-B5-T1 → Task ID から逆引きで "B-5"
+    assert tasks[0].milestone == "B-5"
 
 
 # ─────────────────────────────────────────────
@@ -527,3 +549,172 @@ def test_parse_real_specs_tasks_are_task_info_instances():
         assert isinstance(task.milestone, str)
         assert isinstance(task.assignee, str)
         assert task.status in {"completed", "not-started"}
+
+
+# ─────────────────────────────────────────────
+# W7-B5-T45: Task ID 厳格化 regex テスト（FR-W7-1 / AC-W7-1）
+# ─────────────────────────────────────────────
+
+
+def test_strict_regex_extracts_full_form_task_id(tmp_path):
+    """正常系1: W7-B5-T44: 形式の Task ID が正しく抽出されること（FR-W7-1）。"""
+    from dashboard.parsers.tasks import TasksParser
+
+    milestone_dir = tmp_path / "docs" / "specs" / "B-5"
+    milestone_dir.mkdir(parents=True)
+    (milestone_dir / "tasks.md").write_text(
+        "- [ ] W7-B5-T44: Task ID 厳格化\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    assert len(tasks) == 1
+    assert tasks[0].id == "W7-B5-T44"
+
+
+def test_strict_regex_extracts_short_form_task_id(tmp_path):
+    """正常系2: T44: 単独形式の Task ID が正しく抽出されること（FR-W7-1）。"""
+    from dashboard.parsers.tasks import TasksParser
+
+    milestone_dir = tmp_path / "docs" / "specs" / "B-5"
+    milestone_dir.mkdir(parents=True)
+    (milestone_dir / "tasks.md").write_text(
+        "- [x] T44: 単発タスク説明\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    assert len(tasks) == 1
+    assert tasks[0].id == "T44"
+
+
+def test_strict_regex_does_not_extract_mid_text_task_id(tmp_path):
+    """異常系1: 説明文の途中に Task ID 形式の文字列が含まれても Task として抽出しないこと（FR-W7-1）。"""
+    from dashboard.parsers.tasks import TasksParser
+
+    milestone_dir = tmp_path / "docs" / "specs" / "B-5"
+    milestone_dir.mkdir(parents=True)
+    # 行頭が Task ID 形式でない: 説明文中に W1-B5-T1 が含まれるが先頭は「text」
+    (milestone_dir / "tasks.md").write_text(
+        "- [ ] text W1-B5-T1 in middle: 説明文\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    # 行頭が Task ID 形式でないため Task として登録されない
+    assert len(tasks) == 0
+
+
+def test_strict_regex_does_not_extract_invalid_form_task_id(tmp_path):
+    """異常系2: Milestone 名が小文字を含む不正形式は Task として抽出しないこと（FR-W7-1）。"""
+    from dashboard.parsers.tasks import TasksParser
+
+    milestone_dir = tmp_path / "docs" / "specs" / "B-5"
+    milestone_dir.mkdir(parents=True)
+    # 小文字混在（W1-b5-T1）と Wave 部分が非数字（Wa-B5-T1）の 2 行
+    (milestone_dir / "tasks.md").write_text(
+        "- [ ] W1-b5-T1: 小文字 Milestone 名\n"
+        "- [x] Wa-B5-T1: Wave 部分が非数字\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    # どちらも不正形式のため Task として登録されない
+    assert len(tasks) == 0
+
+
+# ─────────────────────────────────────────────
+# W7-B5-T56: ディレクトリ走査再帰化テスト
+# ─────────────────────────────────────────────
+
+
+def test_recursive_walk_includes_subdir_tasks(tmp_path):
+    """再帰走査でサブディレクトリ配下の tasks.md を含めること（T56 / FR-W7 §6 追加要件）。
+
+    tmp_path/docs/specs/top/sub/tasks.md を作成し、
+    サブディレクトリ内の Task が抽出されることを検証する。
+    """
+    from dashboard.parsers.tasks import TasksParser
+
+    # サブディレクトリ内に tasks.md を作成
+    subdir = tmp_path / "docs" / "specs" / "top" / "sub"
+    subdir.mkdir(parents=True)
+    (subdir / "tasks.md").write_text(
+        "- [ ] W7-B5-T56: ディレクトリ走査再帰化\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    # サブディレクトリの Task が 1 件抽出される
+    assert len(tasks) == 1
+    assert tasks[0].id == "W7-B5-T56"
+
+
+def test_milestone_name_extracted_from_task_id_for_full_form(tmp_path):
+    """完全形 Task ID（W7-B5-T44）から milestone が逆引きで "B-5" になること（T56）。
+
+    Task ID `W{n}-B{n}-T{n}` の `B{n}` 部分を `B-{n}` 形式に変換する。
+    例: W7-B5-T44 → milestone == "B-5"
+    """
+    from dashboard.parsers.tasks import TasksParser
+
+    milestone_dir = tmp_path / "docs" / "specs" / "b4-dashboard"
+    milestone_dir.mkdir(parents=True)
+    (milestone_dir / "tasks.md").write_text(
+        "- [x] W7-B5-T44: Task ID 厳格化\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    assert len(tasks) == 1
+    # W7-B5-T44 → Milestone は "B-5"（Task ID 逆引き）
+    assert tasks[0].milestone == "B-5"
+
+
+def test_milestone_name_fallback_to_dirname_for_short_form_task_id(tmp_path):
+    """短縮形 Task ID（T31）の場合 milestone がファイルパスの親ディレクトリ名になること（T56 fallback）。
+
+    Task ID が `T{n}` 単独形式の場合は milestone = ファイルが最も近い親ディレクトリ名。
+    例: goal-driven-orchestration/tasks.md の T31 → milestone == "goal-driven-orchestration"
+    """
+    from dashboard.parsers.tasks import TasksParser
+
+    parent_dir = tmp_path / "docs" / "specs" / "goal-driven-orchestration"
+    parent_dir.mkdir(parents=True)
+    (parent_dir / "tasks.md").write_text(
+        "- [ ] T31: 単発タスク説明\n",
+        encoding="utf-8",
+    )
+
+    parser = TasksParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    tasks = result["data"]["tasks"]
+    assert len(tasks) == 1
+    # T31 単独形式 → milestone は親ディレクトリ名（fallback）
+    assert tasks[0].milestone == "goal-driven-orchestration"

@@ -1,7 +1,8 @@
-"""tasks.py - TasksParser 実装（W3-B5-T12）
+"""tasks.py - TasksParser 実装（W3-B5-T12 / T56 再帰走査対応）
 
 対応仕様: docs/specs/b4-dashboard/design.md §5「TasksParser」
          docs/specs/b4-dashboard/tasks.md §3 W3-B5-T12
+         docs/specs/b4-dashboard/wave7/design.md §6「実装の追加要件」（T56）
 """
 
 from __future__ import annotations
@@ -23,9 +24,21 @@ _STATUS_MAP = {
     " ": "not-started",
 }
 
-# Task ID パターン: W<wave>-<MILESTONE_SLUG>-T<num>
-# 例: W1-B5-T1, W2-B5-T7, W1.5-B4-T9
-_TASK_ID_PREFIX_RE = re.compile(r"^(W\d+(?:\.\d+)?-[A-Za-z0-9]+-T\d+)")
+# Task ID パターン（Wave 7 厳格化 / FR-W7-1）:
+#   W<wave>-<MILESTONE>-T<num> 形式 または T<num> 単独形式
+#   Milestone 名は大文字アルファベット + 数字のみ（小文字混在は不正）
+#   Wave 番号は整数（W1, W7）と整数.5（W1.5）の両方を許容（terminology.md §2 準拠）
+#   行頭固定・コロン直後まで。それ以外の行は Task として抽出しない。
+# 例: W1-B5-T1: → "W1-B5-T1"
+#     W1.5-B4-T9: → "W1.5-B4-T9"
+#     T99: → "T99"
+#     詳細: → None（抽出しない）
+_TASK_ID_PREFIX_RE = re.compile(r"^(W\d+(?:\.\d+)?-[A-Z]\d+-T\d+|T\d+):")
+
+# 完全形 Task ID から Milestone 名を逆引きするパターン
+# 例: W7-B5-T44 → B5 → "B-5"
+#     W1.5-B4-T9 → B4 → "B-4"
+_MILESTONE_FROM_TASK_ID_RE = re.compile(r"^W\d+(?:\.\d+)?-([A-Z])(\d+)-T\d+")
 
 
 class TasksParser(BaseParser):
@@ -56,20 +69,19 @@ class TasksParser(BaseParser):
             return {"ok": False, "error": str(e), "data": None}
 
     def _do_parse(self) -> dict:
-        """実際のパース処理。例外はそのまま上位に伝播させる。"""
+        """実際のパース処理。例外はそのまま上位に伝播させる。
+
+        T56: specs_dir.glob("**/tasks.md") による再帰走査に変更。
+        直下の tasks.md（例: b4-dashboard/tasks.md）も引き続き走査対象。
+        """
         specs_dir = self._project_root / "docs" / "specs"
 
         if not specs_dir.exists():
             return {"ok": True, "error": None, "data": {"tasks": []}}
 
         tasks: list[TaskInfo] = []
-        for milestone_dir in sorted(specs_dir.iterdir()):
-            if not milestone_dir.is_dir():
-                continue
-            tasks_file = milestone_dir / "tasks.md"
-            if not tasks_file.exists():
-                continue
-            milestone_tasks = self._parse_tasks_file(tasks_file, milestone_dir.name)
+        for tasks_file in sorted(specs_dir.glob("**/tasks.md")):
+            milestone_tasks = self._parse_tasks_file(tasks_file, tasks_file.parent.name)
             tasks.extend(milestone_tasks)
 
         return {"ok": True, "error": None, "data": {"tasks": tasks}}
@@ -85,8 +97,16 @@ class TasksParser(BaseParser):
         except Exception:  # noqa: BLE001
             return []
 
-    def _extract_tasks(self, content: str, milestone_name: str) -> list[TaskInfo]:
-        """テキストコンテンツからチェックボックス行を抽出して TaskInfo リストを構築する。"""
+    def _extract_tasks(self, content: str, fallback_milestone: str) -> list[TaskInfo]:
+        """テキストコンテンツからチェックボックス行を抽出して TaskInfo リストを構築する。
+
+        Wave 7 厳格化（FR-W7-1）: _extract_task_id() が None を返す行は Task として
+        登録しない（旧: description 全体を ID にしてフォールバック登録 → 誤抽出）。
+
+        T56: milestone 名を Task ID から逆引きする。
+          - 完全形 W{n}-B{n}-T{n}: `B{n}` → `B-{n}` 形式（例: B5 → "B-5"）
+          - 短縮形 T{n}: fallback_milestone（tasks.md の直近親ディレクトリ名）を使用
+        """
         tasks: list[TaskInfo] = []
         for line in content.splitlines():
             match = _CHECKBOX_RE.match(line)
@@ -96,28 +116,53 @@ class TasksParser(BaseParser):
             description = match.group(2).strip()
             status = _STATUS_MAP[checkbox_value]
             task_id = self._extract_task_id(description)
+            if task_id is None:
+                continue  # Task ID 形式でない行はスキップ（AC-W7-1 誤抽出ゼロ化）
+            milestone = self._resolve_milestone(task_id, fallback_milestone)
             tasks.append(
                 TaskInfo(
                     id=task_id,
-                    milestone=milestone_name,
+                    milestone=milestone,
                     assignee="-",
                     status=status,
                 )
             )
         return tasks
 
-    def _extract_task_id(self, description: str) -> str:
-        """チェックボックス行の説明文から Task ID を抽出する。
+    def _resolve_milestone(self, task_id: str, fallback: str) -> str:
+        """Task ID から Milestone 名を逆引きする（T56）。
 
-        説明文の先頭が "W<num>-<LETTER><num>-T<num>:" 形式であれば Task ID を返す。
-        該当しない場合は説明文全体を ID として使用する。
+        完全形 W{n}-B{letter}{num}-T{n} の場合: `B{letter}{num}` → `{letter}-{num}` 形式
+          例: W7-B5-T44 → "B-5"
+              W1.5-B4-T9 → "B-4"
+        短縮形 T{n} の場合: fallback（tasks.md の親ディレクトリ名）を使用
+          例: T31 → "goal-driven-orchestration"（引数で渡された値）
+        """
+        milestone_match = _MILESTONE_FROM_TASK_ID_RE.match(task_id)
+        if milestone_match:
+            letter = milestone_match.group(1)
+            num = milestone_match.group(2)
+            return f"{letter}-{num}"
+        return fallback
+
+    def _extract_task_id(self, description: str) -> str | None:
+        """チェックボックス行の説明文から Task ID を抽出する（Wave 7 厳格化 / FR-W7-1）。
+
+        説明文の先頭が "W<num>-<MILESTONE>-T<num>:" または "T<num>:" 形式であれば
+        Task ID 文字列を返す。該当しない場合は None を返す（Task として登録しない）。
+
+        旧実装との差分:
+          旧: マッチしない場合 description 全体を ID として返す（誤抽出の根本原因）
+          新: マッチしない場合 None を返し、呼び出し側でスキップ（AC-W7-1 誤抽出ゼロ化）
 
         例:
             "W1-B5-T1: BaseParser 実装完了" → "W1-B5-T1"
-            "対応する仕様書が存在する" → "対応する仕様書が存在する"
+            "W1.5-B4-T9: 波及修正" → "W1.5-B4-T9"
+            "T99: 単発タスク" → "T99"
+            "詳細: parser 強化" → None
+            "さらに具体的な手順を: ..." → None
         """
         task_id_match = _TASK_ID_PREFIX_RE.match(description)
         if task_id_match:
             return task_id_match.group(1)
-        # Task ID が見つからない場合は説明文をそのまま ID として使用
-        return description
+        return None
