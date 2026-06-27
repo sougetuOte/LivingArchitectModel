@@ -1,8 +1,9 @@
-"""tasks.py - TasksParser 実装（W3-B5-T12 / T56 再帰走査対応）
+"""tasks.py - TasksParser 実装（W3-B5-T12 / T56 再帰走査対応 / T48 Assignee 抽出対応）
 
 対応仕様: docs/specs/b4-dashboard/design.md §5「TasksParser」
          docs/specs/b4-dashboard/tasks.md §3 W3-B5-T12
          docs/specs/b4-dashboard/wave7/design.md §6「実装の追加要件」（T56）
+         docs/specs/b4-dashboard/wave7/design.md §7「Stage 2: Assignee タグ規約の実装」（T48）
 """
 
 from __future__ import annotations
@@ -39,6 +40,33 @@ _TASK_ID_PREFIX_RE = re.compile(r"^(W\d+(?:\.\d+)?-[A-Z]\d+-T\d+|T\d+):")
 # 例: W7-B5-T44 → B5 → "B-5"
 #     W1.5-B4-T9 → B4 → "B-4"
 _MILESTONE_FROM_TASK_ID_RE = re.compile(r"^W\d+(?:\.\d+)?-([A-Z])(\d+)-T\d+")
+
+# description 末尾の @<assignee> タグを抽出するパターン（Wave 7 FR-W7-2 / design.md §7）
+# - \s+: タグ前の空白（必須）
+# - @([A-Za-z0-9_-]+): @ 接頭辞 + 英数字・アンダースコア・ハイフンからなる担当者名
+# - \s*$: タグ後の空白（任意）+ 末尾固定
+# 注: re.MULTILINE なし（Python 3 標準で $ は文字列末尾にマッチ）
+# 例: "Task 説明 @Sonnet" → "Sonnet"
+#     "メール @example.com を更新 @Sonnet" → "Sonnet"（末尾の @Sonnet のみ）
+ASSIGNEE_REGEX = r"\s+@([A-Za-z0-9_-]+)\s*$"
+
+
+def _extract_assignee(description: str) -> tuple[str, str]:
+    """description 末尾から @<assignee> タグを抽出する（Wave 7 FR-W7-2 / design.md §7）。
+
+    戻り値: (clean_description, assignee)
+      - clean_description: @<assignee> タグを除去し末尾空白を strip した description
+      - assignee: タグの担当者名（"Sonnet" 等）/ 未マッチ時は "-"
+
+    中間の @ は除去されない:
+      "メール @example.com を更新 @Sonnet" → ("メール @example.com を更新", "Sonnet")
+    """
+    match = re.search(ASSIGNEE_REGEX, description)
+    if match:
+        assignee = match.group(1)
+        clean = description[: match.start()].rstrip()
+        return clean, assignee
+    return description, "-"
 
 
 class TasksParser(BaseParser):
@@ -119,11 +147,16 @@ class TasksParser(BaseParser):
             if task_id is None:
                 continue  # Task ID 形式でない行はスキップ（AC-W7-1 誤抽出ゼロ化）
             milestone = self._resolve_milestone(task_id, fallback_milestone)
+            # description から Task ID 部分（"W7-B5-T44: "）を除いた残りを取得
+            # _extract_task_id() は先頭の ID 部分のみを返すので、":"以降が実際の説明文
+            id_prefix = task_id + ":"
+            raw_description = description[len(id_prefix):].strip()
+            _, assignee = _extract_assignee(raw_description)
             tasks.append(
                 TaskInfo(
                     id=task_id,
                     milestone=milestone,
-                    assignee="-",
+                    assignee=assignee,
                     status=status,
                 )
             )

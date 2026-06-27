@@ -47,14 +47,15 @@ class TaskInfo:
     Attributes:
         id: Task 識別子。例: "W1-B5-T1"
         milestone: 属する Milestone 名。例: "B-5"
-        assignee: 担当者名。例: "Sonnet", "-"
         status: 状態値。"not-started" / "in-progress" / "blocked" / "completed" のいずれか
+        assignee: 担当者名。例: "Sonnet", "-"。tasks.md の `@<assignee>` タグから抽出される
+            （Wave 7 FR-W7-2）。タグ未記入時は "-"。
     """
 
     id: str
     milestone: str
-    assignee: str
     status: str
+    assignee: str = "-"
 
 
 @dataclass
