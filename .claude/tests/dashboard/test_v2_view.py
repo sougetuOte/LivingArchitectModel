@@ -74,35 +74,36 @@ def test_render_contains_v2_section_id():
 
 
 def test_render_v2_contains_table():
-    """V-2 セクションに <table> 要素が存在すること。
+    """V-2 セクションに <article class="milestone-card"> 要素が存在すること。
 
-    対応完了条件: W2-B5-T9「<table> + <thead> + <tbody> 構造」
+    対応完了条件: W2-B5-T9 / wave7/design.md §8「section/article カード構造」
     """
     milestone = _make_milestone()
     html = _make_builder(milestones=[milestone]).render()
-    assert "<table>" in html, (
-        "生成 HTML に <table> が見つかりません（Milestone 1 件以上のケース）。"
+    assert '<article class="milestone-card"' in html, (
+        '<article class="milestone-card"> が見つかりません（Milestone 1 件以上のケース）。'
     )
 
 
 def test_render_v2_thead_has_three_columns():
-    """V-2 テーブルのヘッダに「Milestone」「現在の Step」「状態」の 3 列が存在すること。
+    """V-2 カードに Milestone 名・Step・状態の 3 要素が存在すること。
 
-    対応完了条件: W2-B5-T9「<thead><tr><th>Milestone</th><th>現在の Step</th><th>状態</th></tr></thead>」
-    設計仕様: design.md §4 V-2 DOM 構成案
+    対応完了条件: W2-B5-T9 / wave7/design.md §8「<h3>名前 / <span class="step"> / <span class="status">」
     """
-    milestone = _make_milestone()
+    milestone = _make_milestone(name="B-5", current_step="BUILDING")
     html = _make_builder(milestones=[milestone]).render()
-    assert "<th>Milestone</th>" in html, "<th>Milestone</th> が見つかりません。"
-    assert "<th>現在の Step</th>" in html, "<th>現在の Step</th> が見つかりません。"
-    assert "<th>状態</th>" in html, "<th>状態</th> が見つかりません。"
+    assert "<h3>B-5</h3>" in html, "<h3>B-5</h3> が見つかりません。"
+    assert '<span class="step">' in html, '<span class="step"> が見つかりません。'
+    assert '<span class="status">' in html, '<span class="status"> が見つかりません。'
 
 
 def test_render_v2_contains_tbody():
-    """V-2 テーブルに <tbody> が存在すること。"""
+    """V-2 セクションに <div class="milestones-container"> が存在すること。"""
     milestone = _make_milestone()
     html = _make_builder(milestones=[milestone]).render()
-    assert "<tbody>" in html, "生成 HTML に <tbody> が見つかりません。"
+    assert '<div class="milestones-container">' in html, (
+        '生成 HTML に <div class="milestones-container"> が見つかりません。'
+    )
 
 
 # ─────────────────────────────────────────────
@@ -118,35 +119,37 @@ def test_render_v2_milestone_name_in_row():
 
 
 def test_render_v2_anchor_link_format():
-    """Milestone 行に <a href="#v3-waves-{name}"> 形式のアンカーリンクがあること。
+    """Milestone カードに data-milestone="B-5" 属性と <h3>B-5</h3> が存在すること。
 
-    対応完了条件: W2-B5-T9「アンカーリンクが <a href="#v3-waves-<milestone>"> 形式」
-    設計仕様: design.md §4 V-2 DOM 構成案 / §4 ナビゲーション
+    対応完了条件: W2-B5-T9 / wave7/design.md §8「data-milestone 属性 + h3 タイトル」
     """
     milestone = _make_milestone(name="B-5")
     html = _make_builder(milestones=[milestone]).render()
-    assert '<a href="#v3-waves-B-5">B-5</a>' in html, (
-        "アンカーリンク <a href=\"#v3-waves-B-5\">B-5</a> が見つかりません。\n"
-        "設計: design.md §4 ナビゲーション「V-2 → V-3」"
+    assert 'data-milestone="B-5"' in html, (
+        'data-milestone="B-5" が見つかりません。'
     )
+    assert '<h3>B-5</h3>' in html, '<h3>B-5</h3> が見つかりません。'
 
 
 def test_render_v2_anchor_link_for_different_milestone():
-    """B-4 など別 Milestone でもアンカーリンクが正しく生成されること。"""
+    """B-4 など別 Milestone でも data-milestone 属性と h3 タイトルが正しく生成されること。"""
     milestone = _make_milestone(name="B-4")
     html = _make_builder(milestones=[milestone]).render()
-    assert '<a href="#v3-waves-B-4">B-4</a>' in html, (
-        "アンカーリンク <a href=\"#v3-waves-B-4\">B-4</a> が見つかりません。"
+    assert 'data-milestone="B-4"' in html, (
+        'data-milestone="B-4" が見つかりません。'
     )
+    assert '<h3>B-4</h3>' in html, '<h3>B-4</h3> が見つかりません。'
 
 
 def test_render_v2_multiple_milestones():
-    """複数 Milestone がある場合、全て行に表示されること。"""
+    """複数 Milestone がある場合、全て data-milestone 属性と h3 タイトルが表示されること。"""
     ms_b4 = _make_milestone(name="B-4", status="completed")
     ms_b5 = _make_milestone(name="B-5", status="in-progress")
     html = _make_builder(milestones=[ms_b4, ms_b5]).render()
-    assert '<a href="#v3-waves-B-4">B-4</a>' in html, "B-4 のリンクが見つかりません。"
-    assert '<a href="#v3-waves-B-5">B-5</a>' in html, "B-5 のリンクが見つかりません。"
+    assert 'data-milestone="B-4"' in html, 'B-4 の data-milestone 属性が見つかりません。'
+    assert '<h3>B-4</h3>' in html, 'B-4 の <h3> タイトルが見つかりません。'
+    assert 'data-milestone="B-5"' in html, 'B-5 の data-milestone 属性が見つかりません。'
+    assert '<h3>B-5</h3>' in html, 'B-5 の <h3> タイトルが見つかりません。'
 
 
 # ─────────────────────────────────────────────
@@ -235,11 +238,11 @@ def test_render_v2_status_badge_not_started():
 
 
 def test_render_v2_badge_has_span_class():
-    """状態バッジが <span class="badge" data-status="..."> 形式であること。"""
+    """状態が <span class="status"> 形式で表示されること（wave7/design.md §8）。"""
     milestone = _make_milestone(status="in-progress")
     html = _make_builder(milestones=[milestone]).render()
-    assert '<span class="badge" data-status=' in html, (
-        '<span class="badge" data-status=...> 形式のバッジが見つかりません。'
+    assert '<span class="status">' in html, (
+        '<span class="status"> 形式が見つかりません。'
     )
 
 
