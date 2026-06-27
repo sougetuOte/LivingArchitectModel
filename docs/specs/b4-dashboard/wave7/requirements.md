@@ -1,9 +1,9 @@
 # b4-dashboard Wave 7 — requirements.md
 
-- バージョン: 0.2.1
+- バージョン: 0.2.3
 - 作成日: 2026-06-27
-- 更新日: 2026-06-27（spec-critic 3 回レビュー反映 / v0.2.1 = v0.2.0 + 3 回目補記）
-- ステータス: **Approved**（v0.2.1 PM 最終承認 2026-06-27 / 3 文書セット一括）
+- 更新日: 2026-06-27（v0.2.3 = v0.2.2 + spec-critic 4 回目レビュー反映 / Critical 3 + Warning 4 + Info 3 対処）
+- ステータス: **Approved**（v0.2.3 PM 補追承認 2026-06-27 / spec-critic 4 回目盲点解消）
 - マイルストーン: B-5（Wave 7 / PoC 指摘パッケージ）
 - 関連:
   - `docs/specs/b4-dashboard/requirements.md` v0.2.0（PoC 仕様 / 継承元）
@@ -170,6 +170,24 @@ Wave 7 の変更は以下の後方互換を保つ:
 - 既存 Task ID 形式（`W{n}-B{n}-T{n}` / `T{n}`）は全件抽出継続
 - 既存 V-2 ビューの単一 Milestone 表示は複数 Milestone 一覧化に自然移行（既存テストは可能な限り維持）
 
+### NFR-W7-5: tasks.md パイロット運用（MUST / v0.2.3 改訂）
+
+Wave 7 の tasks.md は新規格チェックボックス形式を採用する **パイロット運用** を行う。
+
+> **義務レベル変更（v0.2.3）**: spec-critic 4 回目 Warning「SHOULD の NFR が MUST の AC-W7-3 の前提条件になっている矛盾」指摘を受け、SHOULD → **MUST** に昇格。AC-W7-3（MUST）達成の必須前提として位置付ける。
+
+**MUST 項目**:
+- Wave 7 tasks.md の本実装タスク（T44-T55 + T56）は `- [ ] W7-B5-T44: 既存テスト構造変更影響分析 @sonnet` 形式のチェックボックス行で記述する（表形式との並存可）
+- T-S* 検証タスクは引き続き太字記法 `- [ ] **T-S1-1**: ...` を使用（TasksParser 抽出対象外 / design.md §2 維持）
+- Wave 6 以前の tasks.md は terminology.md §5 移行猶予条項に従い旧表記維持（書き換え不要）
+- TasksParser がディレクトリ再帰走査を実装した上で（T56）、Wave 7 tasks.md §3.5 を読み取れる状態にする
+
+**MAY 項目**:
+- 既存 tasks.md エントリへの遡及記入は実施しない（後方互換 / NFR-W7-4 と整合）
+- Wave 8+ で全 tasks.md の新規格統一を別途検討
+
+**根拠**: Wave 7 Stage 1 MAGI 合議（[2026-06-27-magi-wave7-stage1-pivot.md](../../../artifacts/2026-06-27-magi-wave7-stage1-pivot.md)）+ spec-critic 4 回目レビューで、AC-W7-3 達成のために (1) Wave 7 tasks.md 自身を新規格 Task ID 行で構成 + (2) TasksParser ディレクトリ再帰走査の両方が必要と確定。
+
 ---
 
 ## §6 アクセプタンス条件（AC）
@@ -314,6 +332,25 @@ design.md / tasks.md にも v0.2.0 改訂で連動。3 文書セットでの PM 
 
 → 詳細議事録: [2026-06-27-magi-wave7-planning.md](../../../artifacts/2026-06-27-magi-wave7-planning.md)
 
+### 2026-06-27: v0.2.2 補追承認（Wave 7 Stage 1 MAGI Pivot 反映）
+
+Wave 7 Stage 1 BUILDING 着手時に T45 実装後の pytest 検証で発覚した「design.md §6 新 regex 仕様と実 tasks.md 運用の構造的乖離」に対し、MAGI 合議（[2026-06-27-magi-wave7-stage1-pivot.md](../../../artifacts/2026-06-27-magi-wave7-stage1-pivot.md)）でスコープ縮小 + パイロット運用方針を確定。本要件書への補追:
+
+- NFR-W7-5 新規追加（tasks.md パイロット運用 / SHOULD）
+- ステータスを v0.2.2 Approved（PM 補追承認）に更新
+
+design.md / tasks.md にも v0.2.2 で連動補追。
+
+### 2026-06-27: v0.2.3 補追承認（spec-critic 4 回目レビュー反映）
+
+v0.2.2 補追を spec-critic 4 回目に独立レビューさせた結果、Critical 3 件（うち 1 件は実機確認で昇格）+ Warning 4 件 + Info 3 件の指摘を受領。MAGI 4 Atom Reflection でも検出できなかった「実装コードとの整合性」盲点が露呈。本要件書への補追:
+
+- NFR-W7-5 を SHOULD → **MUST** 昇格（spec-critic Warning「SHOULD の NFR が MUST の AC-W7-3 の前提条件」矛盾解消）
+- ステータスを v0.2.3 Approved（PM 補追承認）に更新
+- design.md §6 / §10.5 / §14 + tasks.md §3 / §3.5 / §6 で連動補追（T56 追加 / 達成依存チェーン明示 / §3 §3.5 同期ルール明示 等）
+
+詳細な指摘内容と対処マッピングは design.md §13 v0.2.3 補追承認記録を参照。
+
 ---
 
 ## §11 upstream-first 裏取りステータス
@@ -369,3 +406,5 @@ design.md / tasks.md にも v0.2.0 改訂で連動。3 文書セットでの PM 
 | 0.2.0 | 2026-06-27 | spec-critic 独立レビュー指摘の反映 — FR-W7-4 Step 共通明記 (#C-2) / NFR-W7-2 MAY 項目追加 (#W-5) / AC-W7-2 表記統一 (#I-2) / AC-W7-4 達成手段補足 / AC-W7-9 chip 客観基準テーブル追加 (#W-6) / ステータス Conditional Approved (#C-4) |
 | 0.2.0+1 | 2026-06-27 | spec-critic 再レビュー（v0.2.0 → B 評価）指摘のインライン補記 — §12 DoR チェックリスト v0.2.0 反映 (#NI-2) / design.md 連動: §8 Opt 4 表記修正 (#NI-1) / tasks.md 連動: T51 昇順ソート実装明示 (#NW-2), T53 モックフィクスチャ方針 (#NW-1), T-S3-4 B-3 表記修正 (#NW-3), 内部参照を v0.2.0 に更新 |
 | **0.2.1** | 2026-06-27 | spec-critic 再々レビュー（v0.2.0+1 → B 維持）指摘の追加補記 + バージョン正式 bump — FR-W7-1 regex を Wave 1.5 形式 `W\d+(?:\.\d+)?-[A-Z]\d+-T\d+` に拡張（**継続懸念解消 / terminology.md §2 準拠**） / design.md 連動: §6 regex 拡張 + エッジケース表 (Wave 1.5 / W10) 追加, §3 A3-4 にソート方式（文字列辞書順）と将来 (B-10 以降の数値順) 切替方針明示 (#NW4) / tasks.md 連動: T53 §6 にフィクスチャ実装具体例追加 (#NW-1 完全解消) / DoR と参照を v0.2.1 に統一 (#NI-2 / #NI4 解消) |
+| **0.2.2** | 2026-06-27 | Wave 7 Stage 1 BUILDING 着手時の構造的乖離発覚に対する MAGI 合議結果反映 — NFR-W7-5 新規追加（tasks.md パイロット運用 / SHOULD）/ §10 に v0.2.2 PM 補追承認記録 / ステータスを Approved（v0.2.2 補追承認）に更新 / design.md §6 補足 + §10.5 パイロット運用ルール追加 / tasks.md §3.5 V-4 表示用チェックボックス行追加で連動 / 根拠議事録: `2026-06-27-magi-wave7-stage1-pivot.md` |
+| **0.2.3** | 2026-06-27 | spec-critic 4 回目レビュー（v0.2.2 補追の独立レビュー）指摘の反映 — NFR-W7-5 を SHOULD → MUST 昇格（spec-critic Warning「SHOULD/MUST 矛盾」解消）/ §10 に v0.2.3 PM 補追承認記録 / design.md §6 + §10.5 + §13 + §14 + tasks.md §3 + §3.5 + §6 で連動補追（T56 ディレクトリ走査再帰化 + AC-W7-3 達成依存チェーン明示 + §3/§3.5 同期ルール明示 + Stage 3 ゲート T-S3-4 conditional pass 基準明示 等）|
