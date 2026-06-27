@@ -79,6 +79,7 @@ class DashboardBuilder:
          12. フィルタ UI（#filter-controls / .filter-control / #filter-result-count）
          13. nav / スキップリンク
          14. パーサエラー
+         15. Milestone カード (Wave 7 T52 / V-2 セクション化 / design.md §8)
 
         Returns:
             str: <style>...</style> を含む CSS ブロック文字列。
@@ -293,6 +294,24 @@ nav ul li a {{ text-decoration: none; color: var(--color-text-primary); }}
   border-left: 3px solid var(--amber-9);
   padding: 0.75rem 1rem;
   background: var(--color-bg-surface);
+}}
+
+/* ─── 15. Milestone カード (V-2) ─────────────────────────────── */
+.milestones-container {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}}
+.milestone-card {{
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  background: var(--color-bg-surface);
+}}
+.milestone-card h3 {{
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
 }}
 </style>"""
 
@@ -546,12 +565,13 @@ document.addEventListener('DOMContentLoaded', () => {
     def _render_v2_milestones(self) -> str:
         """V-2 Milestone 一覧ビューの HTML を返す。
 
-        design.md §4「V-2: Milestone 一覧ビュー」DOM 構成案に準拠。
+        wave7/design.md §8「HTML 構造設計」に準拠。
 
         - Milestone が 0 件: empty state（「Milestone 情報なし」表示）
-        - 1 件以上: テーブル（thead 3 列 + tbody 各行）
-        - 各行の Step 列は self.data.current_phase を使用（全 Milestone 共通）
-        - アンカーリンク: <a href="#v3-waves-{name}">{name}</a>
+        - 1 件以上: section/article (milestone-card) 構造
+        - Milestone 名昇順ソート（文字列辞書順 / design.md §3 A3-4）
+        - 各 article の Step は self.data.current_phase を使用（全 Milestone 共通）
+        - 状態はテキストで表示（バッジなし）
         """
         current_phase = self.data.current_phase
 
@@ -563,29 +583,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 "</section>"
             )
 
-        rows = []
-        for ms in self.data.milestones:
-            badge_html = self._render_status_badge(ms.status)
-            rows.append(
-                f'      <tr data-milestone="{ms.name}">\n'
-                f'        <td><a href="#v3-waves-{ms.name}">{ms.name}</a></td>\n'
-                f"        <td>{current_phase}</td>\n"
-                f"        <td>{badge_html}</td>\n"
-                "      </tr>"
+        cards = []
+        for ms in sorted(self.data.milestones, key=lambda m: m.name):
+            cards.append(
+                f'    <article class="milestone-card" data-milestone="{ms.name}">\n'
+                f"      <h3>{ms.name}</h3>\n"
+                f'      <p>Step: <span class="step">{current_phase}</span></p>\n'
+                f'      <p>状態: <span class="status">{ms.status}</span></p>\n'
+                "    </article>"
             )
 
-        tbody_rows = "\n".join(rows)
+        cards_html = "\n".join(cards)
         return (
             '<section id="v2-milestones">\n'
             "  <h2>Milestone 一覧</h2>\n"
-            "  <table>\n"
-            "    <thead>\n"
-            "      <tr><th>Milestone</th><th>現在の Step</th><th>状態</th></tr>\n"
-            "    </thead>\n"
-            "    <tbody>\n"
-            f"{tbody_rows}\n"
-            "    </tbody>\n"
-            "  </table>\n"
+            '  <div class="milestones-container">\n'
+            f"{cards_html}\n"
+            "  </div>\n"
             "</section>"
         )
 
