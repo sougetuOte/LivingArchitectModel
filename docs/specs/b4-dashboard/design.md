@@ -1,8 +1,8 @@
 # 設計書: b4-dashboard（可視化レイヤー）
 
-- バージョン: 0.2.3
+- バージョン: 0.2.7
 - 作成日: 2026-06-20
-- 更新日: 2026-06-28（v0.2.3 = Wave 9 V-4 description 列追加 / chip task_5de9563e 対応 / Wave 7 retro A10）
+- 更新日: 2026-06-28（v0.2.7 = 最終クリーニング / Green State 完全達成）
 - ステータス: Draft（Wave 9 設計反映 / PM 承認待ち）
 - 根拠文書: `docs/specs/b4-dashboard/requirements.md`（FR-1〜FR-11 / NFR-1〜6 / AC-1〜8）
 - 参照文書: `docs/specs/b4-dashboard/glossary-draft.md`（v0.2.0）
@@ -235,10 +235,10 @@ Merger はパーサ同士を直接参照させるのではなく、`build_dashbo
         </th>
         <th id="th-description">description</th><!-- ソートボタンなし / aria-sort属性なし -->
         <th id="th-assignee" aria-sort="none">
-          <button class="sort-btn" data-col="1">担当</button>
+          <button class="sort-btn" data-col="2">担当</button>
         </th>
         <th id="th-status" aria-sort="none">
-          <button class="sort-btn" data-col="2">状態</button>
+          <button class="sort-btn" data-col="3">状態</button>
         </th>
       </tr>
     </thead>
@@ -254,9 +254,14 @@ Merger はパーサ同士を直接参照させるのではなく、`build_dashbo
 </section>
 ```
 
-> **Wave 9 変更点**: Task ID 右隣（2 列目）に description を追加。sort-btn の data-col 値は
-> Task ID=0 / 担当=1 / 状態=2 に再採番（担当・状態は旧 1/2 → 新 1/2 で数値変化なし、
-> description 列が 2 列目に挿入されることで表示上の列オフセットが生じる）。
+> **Wave 9 変更点**: Task ID 右隣（2 列目）に description を追加。**JS 定数値（`COL_ASSIGNEE` / `COL_STATUS`）および
+> `data-col` 属性値（担当 th / 状態 th）の両方が更新必須**（選択肢 A 補完 / 2026-06-28 ユーザー承認）:
+> - (a) JS 定数値: `COL_DESCRIPTION=1` 新規追加 / `COL_ASSIGNEE 1→2` / `COL_STATUS 2→3`
+> - (b) data-col 属性値: 担当 th `data-col="1"→"2"` / 状態 th `data-col="2"→"3"` / Task ID th `data-col="0"` 変更なし
+>
+> これにより `sortTable()` の `cells[columnIndex]`（data-col 経由）と `applyFilters()` の
+> `cells[COL_STATUS]`/`cells[COL_ASSIGNEE]`（定数経由）の両方が物理列と整合する。
+> 詳細は `wave9/design.md §6「JS 定数値 + data-col 属性値更新」節`および `wave9/requirements.md FR-W9-N1` を参照。
 > description 列ヘッダは `sort-btn` を持たず `aria-sort` 属性なし（FR-W9-4 MUST NOT）。
 
 ### ナビゲーション（FR-3 SHOULD）
@@ -949,7 +954,7 @@ requirements.md §7 AC との対応表:
 | ID | 事項 | 優先度 | 解決方針 |
 |----|------|--------|---------|
 | UQ-12 | description の max-width 実測値確定 | 中 | Wave 9 BUILDING フェーズでブラウザ上の実表示を確認し、300px から調整する（MAY）。`wave9/design.md §7` で仮値を提示 |
-| UQ-13 | description 列と既存ソート JS の整合確認 | 中 | 既存 applySort() が列インデックス（data-col）でソートするため、description 列の data-col 欠如が JS 例外を引き起こさないかを BUILDING で確認する（AC-W9-4 で検証） |
+| UQ-13 | ~~description 列と既存ソート JS の整合確認~~ | ~~中~~ | **解決済み（案 A + 選択肢 A 補完 + sortTable() aria-sort 修正 / 2026-06-28 ユーザー承認）**: JS 定数値（`COL_DESCRIPTION=1 / COL_ASSIGNEE=2 / COL_STATUS=3`）を更新し、thead テンプレートの data-col 属性値（担当: 1→2 / 状態: 2→3）を同期更新し、さらに `sortTable()` の `ths.forEach` 内 aria-sort 更新ロジックを `idx === columnIndex` 比較から `thCol === columnIndex`（`thCol` は `th.querySelector('.sort-btn')?.dataset.col` を parseInt したもの）比較に変更することで、aria-sort 属性更新・cells アクセスの両方が Wave 9 後の物理列と整合する。BUILDING での AC-W9-N1 実動作確認は引き続き必須（`wave9/requirements.md` 参照） |
 | UQ-14 | description キーワードフィルタの将来取込 | 低 | filter-text（既存）を description も対象に拡張するかは Wave 9+ で PM 判断。Wave 9 では変更なし（Non-Goals） |
 
 ---
@@ -977,6 +982,10 @@ requirements.md §7 AC との対応表:
 | 0.2.1 | 2026-06-28 | spec-critic レビュー反映（Critical 3 / Warning 6 / Info 4 / L1 追加 1）— §5 クラス設計を constructor 注入版に変更（I-C-3）/ §5 入力契約に SessionStateParser の milestones 重複なし保証を追記（I-C-2）/ §5 merge ロジック補完 status を "not-started" → "unknown" に変更し SESSION_STATE 揮発性を根拠化（I-W-2）/ §5 エラー耐障害性に session 内重複ケース追加（I-C-2）/ §5 MergedMilestone に Wave 8 非使用の脚注追加（L-Q2）/ §13 UQ-9 に FC-7/FC-10 相互依存 Note 追加（I-I-3）|
 | 0.2.2 | 2026-06-28 | spec-critic ラウンド 2 反映（Warning 2 / Info 4 / "unknown" バッジ Wave 8 スコープ化）— §8 CSS ブロックに "unknown" バッジルール Note 追加（I-W-N2）/ §13 UQ-11（models.py コメント更新）追加（I-W-N2）|
 | 0.2.3 | 2026-06-28 | Wave 9 V-4 description 列追加 / chip task_5de9563e 対応 / Wave 7 retro A10 — ヘッダ更新 / §2 Wave 9 Non-Goals 追加 / §4 V-4 表示要素テーブルを 4 列化・DOM 構成案更新 / §5 TaskInfo に description フィールド追加・TasksParser 節に description 処理記述追加 / §8 CSS に .description-cell Note 追加 / §13 UQ-12〜14 追加 / 参照文書に wave9/ 追加 |
+| 0.2.4 | 2026-06-28 | spec-critic ラウンド 1 反映（Critical 2 / Warning 6 / Info 4 / 案 A 採用）— §4 V-4 data-col Note 訂正（I-W-1 / JS 定数値更新必須を明示）/ §13 UQ-13 Critical 解決済化（案 A / JS 定数値更新 / I-C-2・I-I-3）|
+| 0.2.5 | 2026-06-28 | spec-critic ラウンド 2 反映（選択肢 A 補完 / 2026-06-28 ユーザー承認）— §4 V-4 data-col Note 再訂正（data-col 属性値も更新必須: 担当 1→2 / 状態 2→3）/ §4 V-4 DOM 構成案 thead の data-col 値を担当=2 / 状態=3 に更新 / §13 UQ-13 に「選択肢 A 補完」追記（data-col 属性値同期更新を解決内容に追加）|
+| 0.2.6 | 2026-06-28 | spec-critic ラウンド 3 反映（選択肢 A + sortTable() aria-sort 修正 / 2026-06-28 ユーザー承認）— §13 UQ-13 解決済み記述に「sortTable() aria-sort 更新ロジック修正（thCol 比較）」を追記（I-C-R1）|
+| 0.2.7 | 2026-06-28 | 最終クリーニング / Green State 完全達成（Critical = 0 / Warning = 0 / Info = 0）— ヘッダ版数 v0.2.7 化（wave9/ 各ファイルとバージョン統一）|
 
 ---
 
