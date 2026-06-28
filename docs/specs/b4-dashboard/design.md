@@ -1,10 +1,15 @@
 # 設計書: b4-dashboard（可視化レイヤー）
 
-- バージョン: 0.1.0
+- バージョン: 0.2.3
 - 作成日: 2026-06-20
-- ステータス: Draft（PM 承認待ち）
+- 更新日: 2026-06-28（v0.2.3 = Wave 9 V-4 description 列追加 / chip task_5de9563e 対応 / Wave 7 retro A10）
+- ステータス: Draft（Wave 9 設計反映 / PM 承認待ち）
 - 根拠文書: `docs/specs/b4-dashboard/requirements.md`（FR-1〜FR-11 / NFR-1〜6 / AC-1〜8）
 - 参照文書: `docs/specs/b4-dashboard/glossary-draft.md`（v0.2.0）
+- 参照文書: `docs/specs/b4-dashboard/wave8/requirements.md`（FR-W8-1〜 / Wave 8 追加要件）
+- 参照文書: `docs/specs/b4-dashboard/wave8/design.md`（Wave 8 詳細設計）
+- 参照文書: `docs/specs/b4-dashboard/wave9/requirements.md`（FR-W9-1〜 / Wave 9 追加要件）
+- 参照文書: `docs/specs/b4-dashboard/wave9/design.md`（Wave 9 詳細設計）
 
 ---
 
@@ -53,36 +58,58 @@ LAM プロジェクトは Project / Milestone / Step / Wave / Task の 4 + Phase
 - MCP 連携: B → C ハイブリッド拡張として future-candidates に記録済み（requirements.md §9）
 - モバイル対応
 
+#### Wave 8 追加 Non-Goals（v0.2.0）
+
+- **MilestoneRegistry 本格化（案 3）**: Wave 8（案 5）は `MilestoneSourceMerger` を将来の Registry 昇格への踏み石として位置付けるが、Registry 自体の実装は Wave 8 のスコープ外とする。Registry 昇格は骨子 ⑥（プロジェクト俯瞰オーケストレータ）の設計確定時に実施する（FC-10 参照）。
+- **FC-7 Step 別管理**: Milestone 別の Step（PLANNING/BUILDING/AUDITING）管理は引き続き将来候補。本 Wave 8 の `MilestoneSourceMerger` はデータソース統合（集合演算）のみを担い、Step 別管理は含まない。
+- **双方向同期**: Merger は read-only 集約レイヤであり、SessionState や tasks.md への書き戻し（双方向同期）は行わない（MUST NOT）。
+
+#### Wave 9 追加 Non-Goals（v0.2.3）
+
+- **description キーワードフィルタ**: V-4 の description 列を対象にしたテキストフィルタ機能は将来候補（FC 候補）。Wave 9 では既存テキスト検索（filter-text / Task ID・担当対象）の拡張は行わない。
+- **詳細表示モーダル**: description を全文表示するモーダルウィンドウは将来候補。Wave 9 では `title` 属性 tooltip のみで対応。
+- **description の多行折り返し**: 省略表示（ellipsis）のみとし、多行折り返しモードは実装しない。
+- **description ソート**: description 列にソートボタンは設けない（MAGI 合議 2026-06-28 B2 確定）。
+- **V-4 CSS 意匠変更**: Wave 9 で追加する `.description-cell` スタイル以外の CSS 意匠変更（配色テーマ・レイアウト）は対象外。
+
 ---
 
 ## §3 アーキテクチャ概要
 
-### コンポーネント構成
+### コンポーネント構成（v0.2.0 / Wave 8 集約レイヤ追加）
 
 ```
-[データソース層]                  [生成スクリプト]             [出力]
+[データソース層]                  [パーサ層]                [集約レイヤ（Wave 8 新設）]   [生成スクリプト]        [出力]
 SESSION_STATE.md    ──→  SessionStateParser  ─┐
-current-phase.md    ──→  CurrentPhaseParser  ─┤
-tasks.md（各 Milestone）──→  TasksParser       ─┼→  DashboardBuilder → dashboard.html
-git log（コマンド出力）──→  GitHistoryParser  ─┘
-                                               ↑
-                          build_dashboard.py（オーケストレータ）
-                                               ↑
-                     `/build-dashboard` スキル  または  `/quick-save` スキル（Step 追加）
+                                              ├─→  MilestoneSourceMerger  ─┐
+tasks.md（各 Milestone）──→  TasksParser      ─┘                            │
+                                                                             ├→  DashboardBuilder → dashboard.html
+current-phase.md    ──→  CurrentPhaseParser  ──────────────────────────────┤
+git log（コマンド出力）──→  GitHistoryParser  ───────────────────────────────┘
+                                                                            ↑
+                                               build_dashboard.py（オーケストレータ）
+                                                                            ↑
+                                    `/build-dashboard` スキル  または  `/quick-save` スキル（Step 追加）
 ```
 
-### データフロー
+**集約レイヤの位置付け**: `MilestoneSourceMerger`（Wave 8 新設）は SessionStateParser と TasksParser の両出力から Milestone 集合を統合し、V-2 および V-4 フィルタ UI に対して単一の SSOT を提供する。他の 2 パーサ（CurrentPhaseParser / GitHistoryParser）は MilestoneSourceMerger を経由しない。
+
+### データフロー（v0.2.0）
 
 1. `build_dashboard.py` が各パーサを呼び出す
 2. 各パーサは `parse() -> dict` を実行し、データまたは空のフォールバック値を返す
-3. `DashboardBuilder` が全パーサ結果を受け取り、HTML テンプレートを展開する
-4. 生成 HTML を `docs/artifacts/dashboard/dashboard.html` に書き出す
+3. `MilestoneSourceMerger` が SessionStateParser 結果と TasksParser 結果から Milestone 集合を統合し `DashboardData.milestones` を確定する（Wave 8 追加）
+4. `DashboardBuilder` が全パーサ結果（MilestoneSourceMerger 経由の統合 Milestone を含む）を受け取り、HTML テンプレートを展開する
+5. 生成 HTML を `docs/artifacts/dashboard/dashboard.html` に書き出す
 
-### パーサの独立性原則
+### パーサの独立性原則（v0.2.0 / Merger との関係を明示）
 
 各パーサは他のパーサの結果に依存してはならない（MUST NOT）。
 1 つのパーサが例外で失敗しても、`build_dashboard.py` は残りのパーサを継続呼び出しし、
 失敗したビューのみ「データなし」状態で描画する（FR-6 / NFR-6 の実現）。
+
+**MilestoneSourceMerger との関係**: Merger は「上位集約レイヤ」であり、パーサの独立性原則に違反しない。
+Merger はパーサ同士を直接参照させるのではなく、`build_dashboard.py`（オーケストレータ）が各パーサ結果を取得した後に Merger へ渡す設計とする。パーサ層と集約レイヤは依存方向が一方向（パーサ → Merger）であり、循環依存を持たない。
 
 ---
 
@@ -117,37 +144,39 @@ git log（コマンド出力）──→  GitHistoryParser  ─┘
 
 ### V-2: Milestone 一覧ビュー
 
-**表示要素:**
+**表示要素（v0.2.0 / データソースを集約レイヤ経由に整合化）:**
 
 | 要素 | データソース | 表示ロジック |
 |------|------------|------------|
-| Milestone 名 | SessionStateParser | SESSION_STATE.md から抽出 |
-| 現在の Step（属性列）| CurrentPhaseParser | `.claude/current-phase.md` の 1 行目を読む |
-| 状態 | SessionStateParser | 4 値ステータスバッジ |
+| Milestone 名 | **MilestoneSourceMerger**（Wave 8 SSOT） | SessionState の Milestone 集合 + tasks.md 由来の Milestone 集合を merge して提供 |
+| 現在の Step（属性列）| CurrentPhaseParser | `.claude/current-phase.md` の Phase 文字列を regex で全文抽出 |
+| 状態 | SessionStateParser（Merger 経由） | 4 値ステータスバッジ（"in-progress" 等）|
 
-**DOM 構成案:**
+> **Wave 7 → Wave 8 の整合化（v0.2.0）**: Wave 7 では V-2 の Milestone リストを「SessionStateParser が SESSION_STATE.md 内の Task ID から逆引きで構築」する実装ベース SSOT として暫定維持していた（wave7/design.md §8 「Milestone 識別の実装ベース定義」）。Wave 8 では `MilestoneSourceMerger` を新設し、SessionState 由来の Milestone 集合と tasks.md 由来の Milestone 集合を集合演算で統合した結果が V-2 の SSOT となる。これにより chip `task_68008f88`「Milestone フィルタ仕様乖離」が正式解決される。
+
+> V-2 Step 属性列は CurrentPhaseParser が返す単一フェーズ文字列（"PLANNING" / "BUILDING" / "AUDITING"）。
+> 複数 Milestone が存在する場合は全 Milestone に同じ Step を表示する（現時点は LAM 単一プロジェクト固定）。
+> Step の Milestone 別管理は引き続き将来候補（FC-7）。
+
+**DOM 構成案（Wave 7 実装継承）:**
 
 ```html
 <section id="v2-milestones">
   <h2>Milestone 一覧</h2>
-  <table>
-    <thead>
-      <tr><th>Milestone</th><th>現在の Step</th><th>状態</th></tr>
-    </thead>
-    <tbody>
-      <tr data-milestone="B-5">
-        <td><a href="#v3-waves-B-5">B-5</a></td>
-        <td>PLANNING</td>
-        <td><span class="badge" data-status="in-progress">進行中</span></td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="milestones-container">
+    <article class="milestone-card" data-milestone="B-4">
+      <h3>B-4</h3>
+      <p>Step: <span class="step">BUILDING</span></p>
+      <p>状態: <span class="status">in-progress</span></p>
+    </article>
+    <article class="milestone-card" data-milestone="B-5">
+      <h3>B-5</h3>
+      <p>Step: <span class="step">BUILDING</span></p>
+      <p>状態: <span class="status">in-progress</span></p>
+    </article>
+  </div>
 </section>
 ```
-
-> V-2 Step 属性列は CurrentPhaseParser が返す単一フェーズ文字列（"PLANNING" / "BUILDING" / "AUDITING"）。
-> 複数 Milestone が存在する場合は全 Milestone に同じ Step を表示する（現時点は LAM 単一プロジェクト固定）。
-> Step の Milestone 別管理は将来候補（将来複数 Step が必要になった段階で再設計）。
 
 ### V-3: Wave 一覧ビュー
 
@@ -181,27 +210,42 @@ git log（コマンド出力）──→  GitHistoryParser  ─┘
 
 ### V-4: Task 一覧ビュー
 
-**表示要素:**
+**表示要素（v0.2.3 / description 列追加 / フィルタ選択肢のデータソースを Merger 経由に整合化）:**
 
-| 要素 | データソース | 表示ロジック |
-|------|------------|------------|
-| Task ID | TasksParser | `docs/specs/<milestone>/tasks.md` から抽出 |
-| 担当（AI 種別）| TasksParser | tasks.md チェック行末の `@<assignee>` タグ（§5「Assignee タグ規約」）。未記入時は `-` |
-| 状態 | TasksParser | チェックボックス状態（`[x]` = `completed` / `[ ]` = `not-started`） + SessionStateParser で `in-progress` / `blocked` を補完 |
-| 完了判定 | TasksParser | `[x]` チェック |
+| 要素 | データソース | 表示ロジック | 列位置 |
+|------|------------|------------|--------|
+| Task ID | TasksParser | `docs/specs/<milestone>/tasks.md` から抽出 | 1列目 |
+| description | TasksParser | Task ID・assignee タグ除去後の本文（§5「TasksParser」参照）。空文字列時は空セル | **2列目**（Task ID 右隣）|
+| 担当（AI 種別）| TasksParser | tasks.md チェック行末の `@<assignee>` タグ（§5「Assignee タグ規約」）。未記入時は `-` | 3列目 |
+| 状態 | TasksParser | チェックボックス状態（`[x]` = `completed` / `[ ]` = `not-started`） + SessionStateParser で `in-progress` / `blocked` を補完 | 4列目 |
+| 完了判定 | TasksParser | `[x]` チェック | — |
 
-**DOM 構成案:**
+> **フィルタ選択肢の SSOT（v0.2.0）**: V-4 の「Milestone フィルタ」選択肢（`<select id="filter-milestone">`）は、Wave 7 以前では `DashboardData.milestones`（SessionStateParser の逆引き結果のみ）を参照していた。Wave 8 では `MilestoneSourceMerger` の統合結果を参照するように変更する（`_render_filter_controls()` が Merger SSOT を反映）。これにより tasks.md にしか存在しない Milestone（SESSION_STATE.md に Task ID が記録されていない Milestone）もフィルタ選択肢に現れるようになる。
+
+**DOM 構成案（v0.2.3 / 4 列 / description は 2 列目）:**
 
 ```html
 <section id="v4-tasks">
   <h2>Task 一覧</h2>
-  <table>
+  <table id="tasks-table">
     <thead>
-      <tr><th>Task ID</th><th>担当</th><th>状態</th></tr>
+      <tr>
+        <th id="th-task-id" aria-sort="none">
+          <button class="sort-btn" data-col="0">Task ID</button>
+        </th>
+        <th id="th-description">description</th><!-- ソートボタンなし / aria-sort属性なし -->
+        <th id="th-assignee" aria-sort="none">
+          <button class="sort-btn" data-col="1">担当</button>
+        </th>
+        <th id="th-status" aria-sort="none">
+          <button class="sort-btn" data-col="2">状態</button>
+        </th>
+      </tr>
     </thead>
     <tbody>
-      <tr data-task-id="W1-B5-T1">
+      <tr data-task-id="W1-B5-T1" data-milestone="B-5">
         <td>W1-B5-T1</td>
+        <td class="description-cell" title="BaseParser 実装完了">BaseParser 実装完了</td>
         <td>Sonnet</td>
         <td><span class="badge" data-status="completed">完了</span></td>
       </tr>
@@ -209,6 +253,11 @@ git log（コマンド出力）──→  GitHistoryParser  ─┘
   </table>
 </section>
 ```
+
+> **Wave 9 変更点**: Task ID 右隣（2 列目）に description を追加。sort-btn の data-col 値は
+> Task ID=0 / 担当=1 / 状態=2 に再採番（担当・状態は旧 1/2 → 新 1/2 で数値変化なし、
+> description 列が 2 列目に挿入されることで表示上の列オフセットが生じる）。
+> description 列ヘッダは `sort-btn` を持たず `aria-sort` 属性なし（FR-W9-4 MUST NOT）。
 
 ### ナビゲーション（FR-3 SHOULD）
 
@@ -276,10 +325,10 @@ class BaseParser:
 |------|------|
 | 入力 | `docs/specs/<milestone>/tasks.md`（存在するすべての Milestone 分）|
 | 責務 | チェックボックス行（`- [ ]` / `- [x]`）をスキャンし Task エントリを構築 |
-| 戻り値キー | `tasks: list[TaskInfo]`（各 Task に `id`, `status`, `assignee`, `milestone`）|
-| パース方針 | regex `^-\s\[( |x)\]\s(.+)$` でチェックボックス行を抽出。`[x]` → `completed`, `[ ]` → `not-started`。description 末尾の `@<assignee>` タグを抽出し `TaskInfo.assignee` に格納（§5「Assignee タグ規約」）。タグ未記入時は `assignee="-"`（後方互換） |
+| 戻り値キー | `tasks: list[TaskInfo]`（各 Task に `id`, `status`, `assignee`, `milestone`, `description`）|
+| パース方針 | regex `^-\s\[( |x)\]\s(.+)$` でチェックボックス行を抽出。`[x]` → `completed`, `[ ]` → `not-started`。description 末尾の `@<assignee>` タグを抽出し `TaskInfo.assignee` に格納（§5「Assignee タグ規約」）。タグ未記入時は `assignee="-"`（後方互換）。**Wave 9 追加**: `_extract_assignee(raw_description)` の戻り値第 1 要素（`clean_description`）を `TaskInfo.description` に渡す 1 行追加のみ。parser ロジックの追加ゼロ（既存 `raw_description` の活用）。詳細は `wave9/design.md §5` を参照 |
 | 失敗条件 | Milestone ディレクトリが存在しない / tasks.md 不在。個別 Milestone 失敗は他 Milestone の処理を止めない |
-| Milestone 検出 | `docs/specs/` 配下のサブディレクトリを glob で走査し、`tasks.md` が存在するものを対象とする |
+| Milestone 検出 | `docs/specs/` 配下を `**/tasks.md` で再帰走査（T56 / Wave 7 Stage 1 実装済）し、`tasks.md` が存在するものを対象とする。Milestone 名は Task ID（`W{n}-B{n}-T{n}`）の `B{n}` 部分から `B-{n}` 形式に変換して逆引き。TasksParser は自身が検出した Milestone 名リストを `MilestoneSourceMerger` に提供する（Wave 8 追加）|
 
 ##### Assignee タグ規約（Wave 7+ 追加 / RFC 2119 SHOULD）
 
@@ -365,6 +414,7 @@ class TaskInfo:
     milestone: str
     assignee: str               # 例: "Sonnet", "-"
     status: str
+    description: str = ""       # Wave 9 追加（FR-W9-2）: Task ID・assignee タグ除去後の本文。既定値 "" で後方互換維持
 
 @dataclass
 class DashboardData:
@@ -399,6 +449,143 @@ Wave の状態決定:
 
 > 上記ロジックは設計フェーズの初期案。BUILDING フェーズで実データを使った検証後に調整する（MAY）。
 
+### MilestoneSourceMerger — 集約レイヤ仕様（Wave 8 新設 / v0.2.0）
+
+#### 位置付け
+
+`MilestoneSourceMerger` は Wave 8 で新設する「上位集約レイヤ」であり、パーサ層とは独立した
+モジュールとして `.claude/scripts/dashboard/merger.py` に配置する。
+パーサの独立性原則（§3）に違反しない（Merger はパーサを直接呼び出さず、
+`build_dashboard.py` がパーサ結果を Merger に渡す）。
+
+#### クラス設計（スケッチ / BUILDING フェーズで確定）
+
+> **I-C-3 反映（v0.2.1）**: `MilestoneProvider.get_milestones()` は無引数シグネチャのため、
+> Merger は constructor で 2 入力を受け取り `get_milestones()` で結果を返す設計に変更。
+> `_merge()` は内部ロジック用 private メソッドとして整理する。
+
+```python
+from dataclasses import dataclass, field
+from dashboard.models import MilestoneInfo
+
+
+@dataclass
+class MergedMilestone:
+    """統合後 Milestone エントリ。出典タグ付き（Registry 昇格時の拡張型として残置）。
+
+    ※ Wave 8 段階では使用しない（Merger.get_milestones() の戻り値は MilestoneInfo）。
+       将来 Registry 昇格時に sources フィールドを持つ拡張型として利用予定（出典タグ機能用）。
+    """
+    name: str                         # 例: "B-5"
+    status: str                       # "in-progress" 等（SessionState 由来を優先）
+    sources: list[str] = field(default_factory=list)  # 例: ["session_state", "tasks"]
+
+
+class MilestoneSourceMerger:
+    """SessionStateParser と TasksParser の Milestone 集合を統合する集約レイヤ。
+
+    責務:
+      - constructor で 2 入力（session_milestones / task_milestone_names）を受け取る
+      - get_milestones() で MilestoneProvider Protocol を実装し、統合結果を返す
+      - エラー耐障害性: 片方が空または取得失敗でも残方で継続（MUST）
+      - read-only 集約: SessionState / tasks.md への書き戻しは行わない（MUST NOT）
+    """
+
+    def __init__(
+        self,
+        session_milestones: list[MilestoneInfo],
+        task_milestone_names: list[str],
+    ) -> None:
+        self._session_milestones = session_milestones
+        self._task_milestone_names = task_milestone_names
+
+    def get_milestones(self) -> list[MilestoneInfo]:
+        """Protocol MilestoneProvider 実装。統合後 Milestone リストを返す。
+
+        Returns:
+            重複排除・名前昇順ソート済みの MilestoneInfo リスト。
+            SessionState 由来のエントリは status 等の属性を保持する。
+            tasks.md 由来のみのエントリは status="unknown" で補完する
+            （SESSION_STATE.md は揮発的なため「記録なし = 未着手」とは限らない）。
+        """
+        return self._merge()
+
+    def _merge(self) -> list[MilestoneInfo]:
+        """内部統合ロジック（旧 merge()）。"""
+        ...
+```
+
+#### 入力契約
+
+| 入力 | 型 | 出所 |
+|------|----|----|
+| `session_milestones` | `list[MilestoneInfo]` | SessionStateParser.parse()["data"]["milestones"] |
+| `task_milestone_names` | `list[str]` | TasksParser.parse()["data"]["tasks"] の milestone フィールドを集合化 |
+
+> **I-C-2 反映（v0.2.1）: SessionStateParser の milestones 出力契約**:
+> `session_milestones` は `name` 重複なしで渡される。
+> SessionStateParser 内部の `seen_milestones: set[str]` 機構（`session_state.py` L195-209 の
+> `_build_milestone_wave_lists()` および L235 の `_extract_milestones_waves_fallback()`）が
+> 重複排除を保証する。
+> Merger 側は防衛として dict 変換で後勝ち集約（`{ms.name: ms for ms in session_milestones}`）を
+> 行うが、parser 側での重複発生は設計上想定しない。
+
+#### 出力契約
+
+| 出力 | 型 | 説明 |
+|------|----|----|
+| 統合 Milestone リスト | `list[MilestoneInfo]` | 重複排除・名前昇順ソート済み。`DashboardData.milestones` に直接代入される |
+
+#### merge ロジック（集合演算）
+
+```
+手順:
+1. session_milestones から name 集合 A を取得
+2. task_milestone_names から name 集合 B を取得
+3. A ∪ B（和集合）を作成
+4. A に存在する name は SessionStateParser の MilestoneInfo（status 属性付き）を使用
+5. B のみに存在する name は MilestoneInfo(name=n, current_step="UNKNOWN", status="unknown") で補完
+   （SESSION_STATE.md は揮発的なため「SESSION_STATE にない = 未着手」とは言えない。"unknown" で中立補完）
+6. 重複排除後、name 昇順（文字列辞書順）でソートして返す
+```
+
+**重複排除ルール**: 同一 name が両方に存在する場合、SessionState 由来のエントリを優先（status / current_step を保持）。
+tasks.md 由来のみの Milestone は `status="unknown"` で補完する（`"not-started"` ではない）。
+
+> **I-W-2 設計根拠（v0.2.1）**: SESSION_STATE.md は gitignore 対象かつセッション切替で変動する揮発的ファイルである。
+> 「SESSION_STATE.md に記録がない = 未着手」とは限らず、完了済み Milestone が誤って `"not-started"` 表示されるリスクがある。
+> これを回避するため、補完値は中立な `"unknown"` とする。
+
+**順序保証**: 出力は name の文字列辞書順でソートされる（Wave 7 A3-4 の決定踏襲）。将来 B-10 以降では自然順ソートに変更可能（互換破壊なし）。
+
+#### エラー耐障害性
+
+- `session_milestones` が空リストの場合: `task_milestone_names` のみで Milestone リストを構築（MUST）
+- `task_milestone_names` が空リストの場合: `session_milestones` のみを返す（MUST）
+- 両方が空の場合: 空リストを返す（MUST）。ダッシュボードは「Milestone 情報なし」を表示する
+- `session_milestones` 内に `name` 重複がある場合（parser 側設計上は発生しない）:
+  dict 変換で後勝ちで 1 件に集約（防衛的実装）。parser 側の `seen_milestones` 機構が一次保証（I-C-2）
+
+#### Registry 昇格契約（将来 ⑥ A 設計時の継承点）
+
+`MilestoneSourceMerger` は `MilestoneProvider` という Protocol 型を実装する形で設計する。
+将来 `MilestoneRegistry` へ昇格する際は、この Protocol の実装クラスを差し替えるだけで
+`build_dashboard.py` のオーケストレータコードを変更せずに済む設計を目指す。
+
+```python
+from typing import Protocol
+
+class MilestoneProvider(Protocol):
+    """Milestone 一覧を提供するコンポーネントの契約。
+
+    MilestoneSourceMerger（Wave 8）も MilestoneRegistry（将来 ⑥ A）も
+    このプロトコルを実装することで、オーケストレータ側の変更なしに差し替え可能にする。
+    """
+    def get_milestones(self) -> list[MilestoneInfo]: ...
+```
+
+> このスケッチは Wave 8 BUILDING フェーズで実装時に確定する。Protocol 名・メソッド名は仮称。
+
 ---
 
 ## §6 ビルドコマンド設計
@@ -416,6 +603,7 @@ Wave の状態決定:
         current_phase.py              ← CurrentPhaseParser
         tasks.py                      ← TasksParser
         git_history.py                ← GitHistoryParser
+    merger.py                         ← MilestoneSourceMerger（Wave 8 新設 / 集約レイヤ）
     builder.py                        ← DashboardBuilder（HTML テンプレート展開）
     models.py                         ← データクラス定義（DashboardData 等）
 ```
@@ -513,7 +701,14 @@ build_dashboard.py は処理開始と完了の timestamp を stderr に出力し
     .badge[data-status="in-progress"] { background: #007bff; color: #fff; }
     .badge[data-status="blocked"]     { background: #dc3545; color: #fff; }
     .badge[data-status="not-started"] { background: #6c757d; color: #fff; }
+    /* Wave 8 追加: "unknown" バッジ (FR-W8-N2 / AC-W8-N1 / I-W-N2 v0.2.2) */
+    /* .badge[data-status="unknown"] { background: <gray-9相当>; color: #fff; } */
+    /* ↑ 配色は BUILDING で確定。既存 4 値の挙動・配色は無改変 (MUST) */
     .badge { padding: 2px 8px; border-radius: 4px; font-size: 0.85em; }
+    /* Wave 9 追加: description 列 (FR-W9-5 SHOULD / NFR-W9-CSS) */
+    /* .description-cell { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } */
+    /* ↑ max-width 値は BUILDING で実測後に確定。title 属性 tooltip で full content を提供 (FR-W9-5) */
+    /* 既存テーブルレイアウト・列幅は無改変 (MUST NOT) */
     /* ... 最小スタイル ... */
   </style>
 </head>
@@ -740,6 +935,23 @@ requirements.md §7 AC との対応表:
 | UQ-6 | DashboardBuilder の HTML テンプレート管理方法 | 中 | Python の `string.Template` または f-string 展開で実装（外部テンプレートエンジン依存を避ける）|
 | UQ-7 | ~~複数 Milestone 時の Step 表示方針~~ | ~~低~~ | **将来候補へ移管（2026-06-22 / 採点軽微指摘 #3 対応）**: 同一トピックが `docs/specs/b4-dashboard/future-candidates.md` FC-7 で追跡されており、UQ-7 は実質クローズ。LAM が単一 Milestone である限り発生しないため、FC-7 を一次管理とし本表からは将来削除候補とする |
 
+#### Wave 8 追加未解決事項（v0.2.0）
+
+| ID | 事項 | 優先度 | 解決方針 |
+|----|------|--------|---------|
+| UQ-8 | `MilestoneSourceMerger` の配置モジュール確定 | 中 | Wave 8 BUILDING フェーズで `merger.py` として実装。§5 MilestoneSourceMerger 節のクラス設計を SSOT とする |
+| UQ-11 | `models.py` の `MilestoneInfo.status` コメントへ "unknown" 追記 | 低 | BUILDING 段階で `models.py` の `MilestoneInfo.status` フィールドコメントに `"unknown"` を追記する（SE 級 / FR-W8-N2 対応 / 既存 4 パーサ無改変原則の範囲外）。I-W-N2（v0.2.2）反映 |
+| UQ-9 | ⑥ A 着手時の `MilestoneRegistry` 昇格判断 | 低 | 骨子 ⑥（プロジェクト俯瞰オーケストレータ）の設計確定後に、`MilestoneProvider` Protocol を継承する形で `MilestoneRegistry` を実装するか評価する。FC-7（Step 別管理）と合わせて実施可能性を検討する。**Note（I-I-3）: FC-7（Step 別管理）と FC-10（/project-vision 連携）は採用判断が相互依存的であり、どちらを先に進めるかは両者の状況確認が必要。単独で先行採用する場合は依存関係を要確認** |
+| UQ-10 | FC-7（Step 別管理）と Wave 8 Merger の関係整理 | 低 | Wave 8 の Merger は Milestone 名の集合演算のみを担い、Step 情報は扱わない（§5 Non-Goals に明記済み）。FC-7 の採用判断は Registry 昇格時（UQ-9）と同タイミングで行う |
+
+#### Wave 9 追加未解決事項（v0.2.3）
+
+| ID | 事項 | 優先度 | 解決方針 |
+|----|------|--------|---------|
+| UQ-12 | description の max-width 実測値確定 | 中 | Wave 9 BUILDING フェーズでブラウザ上の実表示を確認し、300px から調整する（MAY）。`wave9/design.md §7` で仮値を提示 |
+| UQ-13 | description 列と既存ソート JS の整合確認 | 中 | 既存 applySort() が列インデックス（data-col）でソートするため、description 列の data-col 欠如が JS 例外を引き起こさないかを BUILDING で確認する（AC-W9-4 で検証） |
+| UQ-14 | description キーワードフィルタの将来取込 | 低 | filter-text（既存）を description も対象に拡張するかは Wave 9+ で PM 判断。Wave 9 では変更なし（Non-Goals） |
+
 ---
 
 ## §14 権限等級
@@ -748,6 +960,7 @@ requirements.md §7 AC との対応表:
 |------|------|
 | 本ファイル（design.md）の変更 | PM 級（仕様変更）|
 | `build_dashboard.py` および `.claude/scripts/dashboard/` の実装 | SE 級（新規コード追加）|
+| `merger.py`（MilestoneSourceMerger）の新規実装 | SE 級（新規コード追加）|
 | `/quick-save` SKILL.md への Step 5 追加 | SE 級（スキル内部変更・公開 API 不変）|
 | `/build-dashboard` スキルの新規作成 | SE 級（スキル追加）|
 | `.gitignore` への `docs/artifacts/dashboard/` 追記 | SE 級（permission-levels.md 参照）|
@@ -755,13 +968,31 @@ requirements.md §7 AC との対応表:
 
 ---
 
+## §15 改訂履歴
+
+| バージョン | 日付 | 変更内容 |
+|:----------|:-----|:--------|
+| 0.1.0 | 2026-06-20 | 初版起稿 — FR-1〜FR-11 / NFR-1〜6 / AC-1〜8 対応設計 |
+| 0.2.0 | 2026-06-28 | Wave 8 MAGI 合議（案 5）反映 — §2 Wave 8 Non-Goals 追加 / §3 MilestoneSourceMerger 集約レイヤ追加 / §4 V-2・V-4 データソース記述を Merger 経由に整合化 / §5 MilestoneSourceMerger 仕様（クラス設計・入出力契約・merge ロジック・Registry 昇格契約）追加 / §6 merger.py 配置追加 / §13 UQ-8〜10 追加 / §14 merger.py 権限等級追加 / 参照文書更新 |
+| 0.2.1 | 2026-06-28 | spec-critic レビュー反映（Critical 3 / Warning 6 / Info 4 / L1 追加 1）— §5 クラス設計を constructor 注入版に変更（I-C-3）/ §5 入力契約に SessionStateParser の milestones 重複なし保証を追記（I-C-2）/ §5 merge ロジック補完 status を "not-started" → "unknown" に変更し SESSION_STATE 揮発性を根拠化（I-W-2）/ §5 エラー耐障害性に session 内重複ケース追加（I-C-2）/ §5 MergedMilestone に Wave 8 非使用の脚注追加（L-Q2）/ §13 UQ-9 に FC-7/FC-10 相互依存 Note 追加（I-I-3）|
+| 0.2.2 | 2026-06-28 | spec-critic ラウンド 2 反映（Warning 2 / Info 4 / "unknown" バッジ Wave 8 スコープ化）— §8 CSS ブロックに "unknown" バッジルール Note 追加（I-W-N2）/ §13 UQ-11（models.py コメント更新）追加（I-W-N2）|
+| 0.2.3 | 2026-06-28 | Wave 9 V-4 description 列追加 / chip task_5de9563e 対応 / Wave 7 retro A10 — ヘッダ更新 / §2 Wave 9 Non-Goals 追加 / §4 V-4 表示要素テーブルを 4 列化・DOM 構成案更新 / §5 TaskInfo に description フィールド追加・TasksParser 節に description 処理記述追加 / §8 CSS に .description-cell Note 追加 / §13 UQ-12〜14 追加 / 参照文書に wave9/ 追加 |
+
+---
+
 ## 参照
 
 - `docs/specs/b4-dashboard/requirements.md`（v0.2.0・SSOT）
+- `docs/specs/b4-dashboard/wave8/requirements.md`（FR-W8-1〜 / Wave 8 追加要件）
+- `docs/specs/b4-dashboard/wave8/design.md`（Wave 8 詳細設計）
+- `docs/specs/b4-dashboard/wave9/requirements.md`（FR-W9-1〜 / Wave 9 追加要件）
+- `docs/specs/b4-dashboard/wave9/design.md`（Wave 9 詳細設計）
 - `docs/specs/b4-dashboard/glossary-draft.md`（v0.2.0）
+- `docs/specs/b4-dashboard/future-candidates.md`（FC-7 / FC-10 参照）
 - `.claude/rules/terminology.md`（用語階層の権威的定義）
 - `.claude/rules/planning-quality-guideline.md`（Design Doc チェックリスト）
 - `.claude/skills/quick-save/SKILL.md`（連動対象スキル）
 - `.claude/scripts/distill_lessons.py`（スクリプトパターン参考）
 - `docs/specs/v5-fat-reduction/design.md`（設計書章構成の参考）
+- `docs/artifacts/retro-W7-B5-2026-06-28.md`（Wave 7 retro / 引き継ぎ事項）
 
