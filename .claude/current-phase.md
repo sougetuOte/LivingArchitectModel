@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**PLANNING**
 
-_B-5: b4-dashboard Wave 7 PLANNING 完全クローズ（**requirements.md v0.2.1 + design.md v0.2.1 + tasks.md v0.2.1 すべて Approved / 3 文書セット PM 一括承認 2026-06-27**）→ **Wave 7 BUILDING 開始**（build-mode 起動 2026-06-27）。spec-critic 3 回独立レビュー実施（C → B → B → A 想定）+ MAGI 合議で 4 Stage 構成確定。スコープ: (1) TasksParser Task ID 厳格化 regex（`W\d+(?:\.\d+)?-[A-Z]\d+-T\d+` / Wave 1.5 形式対応）+ (2) Assignee タグ規約実装 + (3) 複数 Milestone 一覧化（全 Milestone 一覧化 / 文字列辞書順 / B-10 以降は将来候補）。Stage 構成: Stage 1（T44 影響分析 + T45 regex 厳格化 + T46 既存テスト更新）→ Stage 2（T47-T50 Assignee）→ Stage 3（T51-T53 複数 Milestone / **CSS 残予算 18 bytes タイト / 縮退オプション 4 件用意**）→ Stage 4（T54 統合 + T55 Lighthouse + PoC）。**着手タスク: W7-B5-T44**（既存テスト構造変更影響分析 / S 規模 / 成果物: `docs/artifacts/wave7-stage1-impact-analysis.md`）。ガードレール: TDD サイクル厳守 / 仕様書なし実装禁止 / テストなし実装は明示オプトアウト時のみ / 公開 API 変更時は doc 同期。承認ゲート: Stage 1〜4 各ゲート + 「承認」明示で AUDITING 復帰。体制: Fable=判断 / Sonnet=実装 / Haiku=採点・突合。**L2 委譲 prompt には [L2 委譲ガードレール 4 点](../docs/artifacts/knowledge/l2-delegation-guardrails.md) を冒頭挿入する。**_
+_B-5: Wave 7 BUILDING 完全完了（Stage 1〜4 全 Green / Lighthouse 97 / retro 完了 / HEAD = 4258c8a）→ **Wave 8+ PLANNING 着手**（design-mode 起動 2026-06-28）。スコープ確定（推奨順）: **D → B → A → C**。D: Milestone フィルタ仕様乖離修正（PM 級 / 既存 spec / chip task_68008f88）、B: V-4 description 列追加（小規模 / chip task_5de9563e）、A: 骨子 ⑥ プロジェクト俯瞰オーケストレータ（Wave 8 本体 / 新規 spec）、C: 骨子 ② MAGI v2 gabriel 導入（retro A4 / Wave 9 想定）。本セッションは 4 件の design + tasks のレビュー&修正を行う（実装には進まない）。並列度・委譲考慮: D は L1 直 軽量、B は Sonnet 委譲、A は Sonnet + 司令塔 L1.5、C は A と並走可能（独立領域）。承認ゲート: 各 design → review&fix → tasks → review&fix → PM 承認で BUILDING 復帰。体制: Fable=判断 / Sonnet=設計執筆 / Haiku=採点・突合。_
 
 ## 履歴
 
@@ -11,7 +11,8 @@ _B-5: b4-dashboard Wave 7 PLANNING 完全クローズ（**requirements.md v0.2.1
 | PLANNING | 2026-06-25 | 2026-06-25 | Wave 6 PLANNING（completed） |
 | BUILDING | 2026-06-25 | 2026-06-27 | Wave 6 BUILDING Stage 1〜4（completed / Lighthouse 97 / retro 済） |
 | PLANNING | 2026-06-27 | 2026-06-27 | Wave 7 PLANNING 完了（v0.2.1 PM 一括承認 / spec-critic 3 回レビュー反映） |
-| **BUILDING** | **2026-06-27** | — | **Wave 7 BUILDING 着手（Stage 1 = T44 から / 4 Stage 構成）** |
+| BUILDING | 2026-06-27 | 2026-06-28 | Wave 7 BUILDING Stage 1〜4（completed / Lighthouse 97 / Green State 4 連続 / retro 完了 / HEAD 4258c8a） |
+| **PLANNING** | **2026-06-28** | — | **Wave 8+ PLANNING 着手（D → B → A → C 順 / 4 件 design + tasks レビュー&修正）** |
 
 ---
 
