@@ -382,3 +382,115 @@ class TestFR34SpecFreeze:
         hook_output = data["hookSpecificOutput"]
         assert hook_output["permissionDecision"] == "ask", \
             f"非 AUTONOMOUS では {file_path} は PM ask であるべき（deny でない）。got: {hook_output['permissionDecision']}"
+
+
+class TestPMSessionDowngrade:
+    """セッションスコープ PM 級降格テスト（2026-06-29 / 案 A）
+
+    pre-tool-use.py が `.claude/.session-pm-edit-cache.json` を参照して、
+    同一セッション内 2 回目以降の同一 PM 級パス Edit を SE 級に降格することを検証する。
+    """
+
+    def _write_cache(self, project_root: Path, session_id: str, approved_paths: list[str]) -> Path:
+        """テスト用のキャッシュファイルを書き込む。"""
+        cache_file = project_root / ".claude" / ".session-pm-edit-cache.json"
+        cache_file.write_text(
+            json.dumps({"session_id": session_id, "approved_paths": approved_paths}),
+            encoding="utf-8",
+        )
+        return cache_file
+
+    def test_pm_with_matching_cache_downgrades_to_se(self, hook_runner, project_root):
+        """キャッシュに同 session_id + 同パスがある場合、PM が SE に降格される（stdout 空）"""
+        self._write_cache(project_root, "sess-1", ["docs/specs/test.md"])
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        # SE 降格時は stdout 空（permissionDecision を出力しない = ask ダイアログが出ない）
+        assert result.stdout.strip() == "", \
+            f"SE 降格時は stdout が空であるべき。got: {result.stdout!r}"
+
+    def test_pm_with_different_session_keeps_ask(self, hook_runner, project_root):
+        """キャッシュの session_id が異なる場合は PM ask を維持する（境界失効）"""
+        self._write_cache(project_root, "sess-OLD", ["docs/specs/test.md"])
+        input_json = {
+            "session_id": "sess-NEW",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "別 session_id の場合は PM ask が出力されるべき"
+        data = json.loads(stdout)
+        assert data["hookSpecificOutput"]["permissionDecision"] == "ask"
+
+    def test_pm_without_cache_keeps_ask(self, hook_runner, project_root):
+        """キャッシュファイルがない場合は通常通り PM ask（回帰防止）"""
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "キャッシュ無し時は PM ask が出力されるべき"
+        data = json.loads(stdout)
+        assert data["hookSpecificOutput"]["permissionDecision"] == "ask"
+
+    def test_pm_with_cache_different_path_keeps_ask(self, hook_runner, project_root):
+        """キャッシュに別パスのみの場合は、対象パスは PM ask を維持する"""
+        self._write_cache(project_root, "sess-1", ["docs/specs/other.md"])
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "別パスがキャッシュされていても対象パスは PM ask"
+        data = json.loads(stdout)
+        assert data["hookSpecificOutput"]["permissionDecision"] == "ask"
+
+    def test_autonomous_fr34_deny_unchanged_by_cache(self, hook_runner, project_root):
+        """AUTONOMOUS フェーズの FR-3.4 spec freeze (deny) はキャッシュの影響を受けない"""
+        write_phase(project_root, "AUTONOMOUS")
+        self._write_cache(project_root, "sess-1", ["docs/specs/test.md"])
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        stdout = result.stdout.strip()
+        assert stdout, "AUTONOMOUS では deny が出力されるべき"
+        data = json.loads(stdout)
+        # FR-3.4 deny は PM 判定の前段で行われるため、キャッシュ降格の対象外
+        assert data["hookSpecificOutput"]["permissionDecision"] == "deny"

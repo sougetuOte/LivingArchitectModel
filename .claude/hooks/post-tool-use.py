@@ -49,6 +49,20 @@ from _hook_utils import (  # noqa: E402
 # tool_events の最大保持件数（ループ中の状態ファイル肥大化を防止）
 _MAX_TOOL_EVENTS = 500
 
+# セッションスコープ PM 級降格キャッシュ（案 A / pre-tool-use.py と対）
+_PM_CACHE_FILENAME = ".session-pm-edit-cache.json"
+
+# PM 級パターン（pre-tool-use.py の _PM_PATTERNS と同等 / キャッシュ対象判定用）
+_PM_PATH_PATTERNS_FOR_CACHE = [
+    re.compile(r"^docs/specs/.*\.md$"),
+    re.compile(r"^docs/adr/.*\.md$"),
+    re.compile(r"^\.claude/rules/.*\.md$"),
+    re.compile(r"^\.claude/settings.*\.json$"),
+]
+
+# キャッシュの最大保持パス件数（同一セッション内で異常肥大化を防止）
+_PM_CACHE_MAX_PATHS = 200
+
 # テストコマンドの正規表現パターン（bash 版パリティ）
 _TEST_CMD_PATTERN = re.compile(
     r"(^|[\s])(pytest|npm[\s]+test|go[\s]+test|make[\s]+test)(?:[\s]|$)"
@@ -259,6 +273,67 @@ def _handle_doc_sync_flag(
             f.write(f"{normalized}\n")
 
 
+def _handle_pm_edit_cache(
+    tool_name: str,
+    file_path: str,
+    session_id: str,
+    project_root: Path,
+    cache_file: Path,
+    log_file: Path,
+) -> None:
+    """正常完了した PM 級書込を session-scoped キャッシュに記録する（案 A）。
+
+    pre-tool-use.py が次回以降の同一セッション内同一パス Edit を SE 級に降格するための土台。
+    session_id が変化した場合（新セッション）はキャッシュ全消去 + 新規作成する。
+    """
+    if tool_name not in ("Edit", "Write", "MultiEdit"):
+        return
+    if not file_path or not session_id:
+        return
+
+    normalized = normalize_path(file_path, project_root)
+    if not any(p.match(normalized) for p in _PM_PATH_PATTERNS_FOR_CACHE):
+        return
+
+    # 既存キャッシュ読み取り（破損時は再生成）
+    cache: dict = {}
+    if cache_file.exists():
+        try:
+            cache = json.loads(cache_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError, ValueError) as e:
+            log_entry(
+                log_file, "WARN", "post-tool-use",
+                f"pm-edit-cache unreadable (will recreate): {e}",
+            )
+            cache = {}
+
+    # session_id 変化を検知 → 全消去 + 新規作成
+    if cache.get("session_id") != session_id:
+        cache = {"session_id": session_id, "approved_paths": []}
+
+    approved = cache.get("approved_paths")
+    if not isinstance(approved, list):
+        approved = []
+        cache["approved_paths"] = approved
+
+    if normalized in approved:
+        return  # 既に記録済み（重複防止）
+
+    approved.append(normalized)
+    # 上限超過時は古いパスを切り捨て（FIFO）
+    if len(approved) > _PM_CACHE_MAX_PATHS:
+        cache["approved_paths"] = approved[-_PM_CACHE_MAX_PATHS:]
+
+    try:
+        atomic_write_json(cache_file, cache)
+    except Exception as e:
+        # キャッシュ書込失敗は Claude 動作をブロックしない（フェイルセーフ）
+        log_entry(
+            log_file, "WARN", "post-tool-use",
+            f"pm-edit-cache write failed: {type(e).__name__}: {e}",
+        )
+
+
 def _handle_loop_log(
     tool_name: str,
     command: str,
@@ -309,6 +384,7 @@ def main() -> None:
     last_result_file = project_root / ".claude" / "last-test-result"
     loop_state_path = project_root / ".claude" / "lam-loop-state.json"
     log_file = project_root / ".claude" / "logs" / "post-tool-use.log"
+    pm_cache_file = project_root / ".claude" / _PM_CACHE_FILENAME
 
     # .claude/ ディレクトリを確保
     (project_root / ".claude").mkdir(parents=True, exist_ok=True)
@@ -335,6 +411,12 @@ def main() -> None:
 
     # 2. doc-sync-flag の設定
     _handle_doc_sync_flag(tool_name, file_path, project_root, doc_sync_flag, log_file)
+
+    # 2.5 PM 級セッションスコープ降格キャッシュ更新（案 A / pre-tool-use.py と対）
+    session_id = data.get("session_id", "")
+    _handle_pm_edit_cache(
+        tool_name, file_path, session_id, project_root, pm_cache_file, log_file
+    )
 
     # 3. ループログ記録
     # exit_code は空文字: PostToolUse/PostToolUseFailure の入力データに exit code が含まれないため

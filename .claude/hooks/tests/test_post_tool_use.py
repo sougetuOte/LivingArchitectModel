@@ -450,3 +450,116 @@ class TestAtomicWriteSafety:
             f"新イベントが末尾に追記されるべき、実際の末尾: {events[-1]}"
         )
         assert events[-1]["tool_name"] == "Edit"
+
+
+class TestPMEditCache:
+    """セッションスコープ PM 級降格キャッシュ更新テスト（2026-06-29 / 案 A）
+
+    post-tool-use.py が正常完了した PM 級書込を `.claude/.session-pm-edit-cache.json`
+    に記録することを検証する。pre-tool-use.py 側の TestPMSessionDowngrade と対。
+    """
+
+    def _read_cache(self, project_root: Path) -> dict | None:
+        """キャッシュファイルを読み取る。存在しなければ None。"""
+        cache_file = project_root / ".claude" / ".session-pm-edit-cache.json"
+        if not cache_file.exists():
+            return None
+        return json.loads(cache_file.read_text(encoding="utf-8"))
+
+    def test_pm_edit_appends_to_cache(self, hook_runner, project_root):
+        """PM 級パス（docs/specs/）の Edit はキャッシュに追加される"""
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        cache = self._read_cache(project_root)
+        assert cache is not None, "PM 級 Edit 後はキャッシュが作成されるべき"
+        assert cache["session_id"] == "sess-1"
+        assert "docs/specs/test.md" in cache["approved_paths"]
+
+    def test_se_edit_does_not_create_cache(self, hook_runner, project_root):
+        """SE 級パス（src/）の Edit はキャッシュに追加されない"""
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "src/main.py",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        cache = self._read_cache(project_root)
+        # src/ は PM 級パターンに該当しないのでキャッシュ更新されない
+        assert cache is None or "src/main.py" not in cache.get("approved_paths", [])
+
+    def test_session_change_resets_cache(self, hook_runner, project_root):
+        """別 session_id の Edit はキャッシュを全消去 + 新規記録する"""
+        # 事前に旧 session のキャッシュを作成
+        cache_file = project_root / ".claude" / ".session-pm-edit-cache.json"
+        cache_file.write_text(
+            json.dumps({"session_id": "sess-OLD", "approved_paths": ["docs/specs/old.md"]}),
+            encoding="utf-8",
+        )
+        # 新 session で別パスを Edit
+        input_json = {
+            "session_id": "sess-NEW",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/new.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        cache = self._read_cache(project_root)
+        assert cache["session_id"] == "sess-NEW"
+        assert cache["approved_paths"] == ["docs/specs/new.md"], \
+            "session 変化時は旧キャッシュ消去 + 新規記録のみ"
+
+    def test_duplicate_path_not_appended(self, hook_runner, project_root):
+        """同一セッション内で同一パスの Edit を 2 回行ってもキャッシュは重複しない"""
+        cache_file = project_root / ".claude" / ".session-pm-edit-cache.json"
+        cache_file.write_text(
+            json.dumps({"session_id": "sess-1", "approved_paths": ["docs/specs/test.md"]}),
+            encoding="utf-8",
+        )
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": "docs/specs/test.md",
+                "old_string": "old",
+                "new_string": "new",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        cache = self._read_cache(project_root)
+        assert cache["approved_paths"] == ["docs/specs/test.md"], \
+            "重複追加されないこと"
+
+    def test_write_tool_also_caches(self, hook_runner, project_root):
+        """Write ツールも PM 級なら同様にキャッシュ追加される"""
+        input_json = {
+            "session_id": "sess-1",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": "docs/adr/0099-test.md",
+                "content": "x",
+            },
+        }
+        result = hook_runner(HOOK_PATH, input_json)
+        assert result.returncode == 0
+        cache = self._read_cache(project_root)
+        assert cache is not None
+        assert "docs/adr/0099-test.md" in cache["approved_paths"]

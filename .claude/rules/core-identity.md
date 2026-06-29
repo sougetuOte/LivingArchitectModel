@@ -17,6 +17,28 @@ v4.0.0 で導入された変更のリスクレベルに応じた三段階分類:
 迷った場合は SE級に丸める（安全側に倒す）。
 詳細: `.claude/rules/permission-levels.md`
 
+### PM 級編集の事前宣言義務（2026-06-29 追加 / 案 B）
+
+L1（主体）が PM 級ファイル（`docs/specs/` / `docs/adr/` / `.claude/rules/` / `.claude/settings*.json`）を
+**直接編集する**前に、以下を **1 回だけ宣言** する:
+
+- 編集対象ファイル（具体的なパス）
+- 想定編集回数（おおよその目安 / 例: 「2-3 回の Edit」）
+- 編集内容の要約（1-2 文）
+
+これは初回の PM 級ダイアログで「何を承認しているか」をユーザーに明示するため。
+2 回目以降の同一ファイル編集は `permission-levels.md` のセッションスコープ降格機構により
+自動的に SE 級扱いとなる（ダイアログ非表示）ので、再宣言は不要。
+
+#### 不要なケース
+
+- subagent（design-architect / spec-critic 等）経由の編集 → 委譲時のプロンプトが宣言の代わり
+- gitignore 済ファイル（`SESSION_STATE.md` 等）→ そもそも PM 級判定対象外
+
+#### 例
+
+> 「これから `docs/specs/<path>/design.md` に R3 修正 7 件を入れます (Edit 3-5 回想定)。承認お願いします」
+
 ## Context Compression
 
 セッションが長くなった場合:

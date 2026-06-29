@@ -40,6 +40,12 @@ from _hook_utils import (  # noqa: E402
     read_stdin_json,
 )
 
+# セッションスコープの PM 級降格キャッシュ（案 A）。
+# 同一セッション内で 2 回目以降の Edit/Write は SE 級に降格する。
+# キャッシュは PostToolUse hook が「正常完了した PM 級書込」を検知した時点で追加する。
+# セッション境界（session_id 変化）で自動失効。
+_PM_CACHE_FILENAME = ".session-pm-edit-cache.json"
+
 # 読み取り専用ツール: 常に PG 許可
 _READ_ONLY_TOOLS = frozenset({"Read", "Glob", "Grep", "WebSearch", "WebFetch"})
 
@@ -203,6 +209,35 @@ def _sanitize_target(raw: str) -> str:
     )
 
 
+def _is_pm_already_approved(
+    session_id: str,
+    normalized_path: str,
+    cache_file: Path,
+) -> bool:
+    """同一セッション内で当該 PM 級パスが既に承認済かを判定する（案 A）。
+
+    キャッシュは PostToolUse hook が「正常完了した PM 級書込」を検知した時点で追加する。
+    つまりここで True を返すのは「ユーザーが過去に同一セッション内で同一パスを承認した」場合のみ。
+
+    Returns:
+        True: 承認済（SE 級に降格すべき）
+        False: 未承認・キャッシュ無効・session_id 不一致（通常の PM 級判定を維持）
+    """
+    if not session_id or not normalized_path or not cache_file.exists():
+        return False
+    try:
+        cache = json.loads(cache_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, ValueError):
+        # キャッシュ破損時はフェイルセーフで「未承認」扱い（安全側 / PM ダイアログ維持）
+        return False
+    if cache.get("session_id") != session_id:
+        return False
+    approved = cache.get("approved_paths")
+    if not isinstance(approved, list):
+        return False
+    return normalized_path in approved
+
+
 def _read_current_phase(phase_file: Path) -> str:
     """current-phase.md から現在のフェーズ名を読み取る。
 
@@ -295,6 +330,17 @@ def main() -> None:
     level, reason = _determine_level_and_reason(
         tool_name, file_path, command, project_root, phase_file
     )
+
+    # 案 A: 同一セッション内で 2 回目以降の PM 級 Edit/Write は SE 級に降格する。
+    # DENY 経路（FR-9 / FR-3.4）は対象外（AUTONOMOUS の deny は不可侵）。
+    # キャッシュ追加は post-tool-use.py が「正常完了した PM 級書込」を検知した時点で行う。
+    if level == "PM" and file_path:
+        session_id = data.get("session_id", "")
+        cache_file = project_root / ".claude" / _PM_CACHE_FILENAME
+        normalized = normalize_path(file_path, project_root)
+        if _is_pm_already_approved(session_id, normalized, cache_file):
+            level = "SE"
+            reason = f"PM downgraded to SE (session-scoped re-edit) / original: {reason}"
 
     # ログ用のターゲット文字列（100 文字トランケート + 制御文字・双方向制御文字を除去）
     raw_target = file_path or command or "-"
