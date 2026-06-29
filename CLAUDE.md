@@ -8,6 +8,25 @@
 **Target Model**: Claude (Claude Code / Sonnet / Opus)
 **Project Scale**: Medium to Large
 
+## Execution Permission Modes (Advisory)
+
+LAM は Claude Code の **AutoMode** (`permissions.defaultMode = "auto"`) 採用を **SHOULD** とする（RFC 2119）。
+強制はしない（自己責任モデル）。LAM Hierarchy of Truth § User Intent 最上位の原則と整合する。
+
+理由: 承認 prompt の約 70% は形骸化しており、Anthropic 公式も approve-bot 問題を認知している
+（auto mode 発表記事: 「93% 承認」）。AutoMode の Sonnet 4.6 classifier + soft_deny + circuit breaker
+三層防御により、形骸化を解消しつつ不可逆操作（`rm -rf /` 等）は依然 prompt される。
+
+設定方法（`~/.claude/settings.json` に手動で記述 / `.claude/settings.json` では v2.1.142+ で無視される）:
+
+```json
+{ "permissions": { "defaultMode": "auto" } }
+```
+
+詳細は [`docs/internal/07_SECURITY_AND_AUTOMATION.md` § AutoMode Advisory](docs/internal/07_SECURITY_AND_AUTOMATION.md) 参照。
+LAM 規律として残す核（PM 級ファイル / インシデント履歴 / AUTONOMOUS 統治）は AutoMode と独立して稼働する
+（ADR-0008 § 軸 4 参照）。
+
 ## Hierarchy of Truth
 
 判断に迷った際の優先順位:
