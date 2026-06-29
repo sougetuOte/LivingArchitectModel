@@ -51,6 +51,7 @@ docs/daily/
 .claude/doc-sync-flag
 .claude/pre-compact-fired
 .claude/last-test-result
+.claude/.session-pm-edit-cache.json
 **/test-results.xml
 
 # Reference materials
