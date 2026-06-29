@@ -32,7 +32,22 @@ SESSION_STATE.md の「コンテキスト情報」セクションに記載され
 ---
 ```
 
-## 4. ユーザーの指示を待つ
+## 4. モード認知サマリ表示
+
+`.claude/scripts/detect-permission-mode.py` を Bash で実行し、stdout の JSON を受け取って
+復帰サマリーの末尾に 1 行追記する。ADR-0008 軸 2 に基づく自己責任モデルの認知導線。
+
+mode 値別の表示:
+
+- `mode == "auto"`: `Mode: auto (LAM 推奨設定 / Claude 自律性最大)`
+- `mode in ["default", "acceptEdits", "plan", "dontAsk"]`: `Mode: <値> (AutoMode 採用を推奨 / 詳細: CLAUDE.md §Permission Modes Advisory)`
+- `mode == "bypassPermissions"`: `Mode: bypassPermissions ⚠ AutoMode への切替を強く推奨 (LAM 規律 hook のみ稼働中)`
+- 検知不能 (`mode == null`): `Mode: 不明 (~/.claude/settings.json 読み取り失敗 / 詳細: CLAUDE.md §Permission Modes Advisory)`
+
+スクリプト実行自体に失敗した場合も「検知不能」扱いで 1 行追記する。
+stderr の warning は復帰サマリには出さず無視する (出力先は stderr のため Bash 結果には混ざらない)。
+
+## 5. ユーザーの指示を待つ
 
 ドキュメントの読み込みは、実際に作業を開始するタイミングで行う。
 **先回りして大量のファイルを読み込まないこと。**
