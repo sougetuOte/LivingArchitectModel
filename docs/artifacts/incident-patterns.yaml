@@ -1,0 +1,122 @@
+# incident-patterns.yaml — LAM 機械可読インシデント・パターンレジストリ
+#
+# ADR-0008 Phase B-1 (軸 4 C2 / 動的 deny の入力データ) として新規。
+# .claude/hooks/pre-tool-use.py が起動時に読み取り、tool_input と照合して
+# action (deny / ask / log_only) を判定する。
+#
+# 起票根拠: docs/adr/0008-approval-gate-redesign.md 軸 4 C2 (永続規律)
+# 連携: docs/internal/07_SECURITY_AND_AUTOMATION.md § AutoMode Advisory
+# 既存 deny マトリクスとの関係: .claude/rules/security-commands.md と非重複保持
+# (同一パターンを yaml に追加する場合は security-commands.md 側で削除)
+
+# ============================================================
+# スキーマ定義 (Phase B-1 MAGI 合議結論 / Reflection 反映後)
+# ============================================================
+#
+# top-level keys:
+#   version (int / 必須):
+#     スキーマバージョン。下位互換性のない変更時のみインクリメント。
+#   last_updated (date / 必須):
+#     ISO 8601 (YYYY-MM-DD) で最終更新日を記録。
+#   patterns (list / 必須):
+#     パターン定義の配列。
+#
+# patterns[].fields (8 フィールド / MAGI 合議結論):
+#   id (string / 必須):
+#     パターン識別子。kebab-case + 数字接尾辞 (例: P-2-bash-permission-error)。
+#     一意。
+#   source_md (string / 必須):
+#     出典ドキュメント (相対パス / プロジェクトルート起点)。
+#     incident-*.md or retro-*.md。
+#   trigger_type (enum / 必須):
+#     マッチング演算子。以下 3 種のみ:
+#       - "path_glob":       tool_input の file_path に対する fnmatch 一致
+#       - "command_literal": tool_input の command に対する完全一致 (大文字小文字区別)
+#       - "tool_set":        tool_name が trigger_pattern (配列) に含まれるか
+#   trigger_pattern (string | array / 必須):
+#     trigger_type に応じた値:
+#       path_glob       -> string (fnmatch パターン)
+#       command_literal -> string (完全一致対象)
+#       tool_set        -> array of string (tool_name 一覧)
+#   action (enum / 必須):
+#     hook の判定結果。以下 3 種:
+#       - "deny":     ツール実行を拒否 (CC が ToolUseError を返す)
+#       - "ask":      ユーザー承認ダイアログを出す
+#       - "log_only": permission.log に検知のみ記録 (ユーザー摩擦なし)
+#   severity (enum / 必須):
+#     重大度。"low" | "mid" | "high" | "critical"
+#   description (string / 必須):
+#     1-3 行説明。なぜこのパターンが必要か / 何を防ぐか。
+#   active (bool / 必須):
+#     有効フラグ。誤検知時の即座無効化用。デフォルト true。
+#     false にする場合は理由を git commit message に記載。
+#
+# 制約 (Reflection 反映):
+#   - 1 ルール 1 パターン (AND ネスト不可)
+#   - 複数条件のマッチが必要なら別ルールに分割し action を log_only で連携
+#   - 将来拡張余地: last_observed_at (寿命管理 / 90 日棚卸し連動)
+#
+# パース失敗時の fallback (pre-tool-use.py 側で実装 / Phase B-2):
+#   - yaml ファイル不在        -> 動的 deny 無効 (warning ログ + 通常判定へ進む)
+#   - yaml パース失敗          -> 動的 deny 無効 (warning ログ + 通常判定へ進む)
+#   - 単一パターン照合失敗     -> そのパターンのみスキップ (他は継続)
+#   いずれも hook はブロックしない (exit 0 維持 / Claude のツール実行を妨げない)
+
+# ============================================================
+# パターン定義
+# ============================================================
+
+version: 1
+last_updated: 2026-06-30
+
+patterns:
+  - id: P-2-bash-permission-error
+    source_md: docs/artifacts/retro-W6-B5-2026-06-25.md
+    trigger_type: tool_set
+    trigger_pattern:
+      - Bash
+    action: log_only
+    severity: low
+    description: |
+      L2 (tdd-developer 等) が委譲 prompt の権限境界明示なしに
+      実行権限のない Bash コマンド (find / cp / mkdir / chmod 等) を試行する
+      パターン。既存 Stage 3 ガードレール 4 点で予防済。本パターンは検知ログ
+      による頻度監視のみ (ask まで上げない / UX 摩擦を避ける)。
+      将来 ask 化判断は last_observed_at 導入後の retro で実施。
+    active: true
+
+  - id: P-3-temp-file-pre-push-leak
+    source_md: docs/artifacts/retro-B4-W1-W15-2026-06-20.md
+    trigger_type: path_glob
+    trigger_pattern: ".claude/grep_*.txt"
+    action: ask
+    severity: mid
+    description: |
+      監査スキャン用中間ファイル (.claude/grep_*.txt 等) が .gitignore 漏れで
+      git 追跡対象になるリスク。/ship 直前の git add 操作が誤って stage しない
+      よう ask に倒す。.gitignore に該当パターン追加で本ルールは active: false
+      に倒せる (将来監査スキル側で .gitignore テンプレ化検討 / retro-B4 Action A5)。
+    active: true
+
+# ============================================================
+# 維持運用
+# ============================================================
+#
+# 追加トリガー:
+#   - 新規 incident 起票時 (docs/artifacts/incident-*.md) → 機械可読化検討
+#   - retro で頻出パターン (2 回以上) を発見した場合 → yaml 追加検討
+#   - .claude/rules/auto-generated/draft-NNN.md 承認時 → trigger_pattern 抽出
+#
+# 棚卸しトリガー:
+#   - 90 日未使用パターンの棚卸しは将来 retro で実施 (last_observed_at 導入時)
+#   - active: false 状態が 180 日継続したパターンは削除検討
+#
+# 検知ログ確認:
+#   - .claude/logs/permission.log で trigger_pattern マッチ頻度を観察
+#   - log_only パターンの ask 化判断は頻度ベース (週 5 回以上で検討)
+#
+# 参照:
+#   - ADR-0008 軸 4 C2 (永続規律) / 軸 5 D1 (deny ↔ allow 二重化)
+#   - docs/internal/07_SECURITY_AND_AUTOMATION.md § AutoMode Advisory
+#   - .claude/rules/security-commands.md (既存 deny マトリクスとの非重複保持)
+#   - .claude/rules/auto-generated/trust-model.md (寿命管理連動の将来)
