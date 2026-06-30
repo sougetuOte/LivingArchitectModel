@@ -39,6 +39,11 @@ from _hook_utils import (  # noqa: E402
     normalize_path,
     read_stdin_json,
 )
+from _incident_patterns import (  # noqa: E402
+    PatternMatch,
+    load_patterns,
+    match_input,
+)
 
 # セッションスコープの PM 級降格キャッシュ（案 A）。
 # 同一セッション内で 2 回目以降の Edit/Write は SE 級に降格する。
@@ -48,6 +53,13 @@ _PM_CACHE_FILENAME = ".session-pm-edit-cache.json"
 
 # 読み取り専用ツール: 常に PG 許可
 _READ_ONLY_TOOLS = frozenset({"Read", "Glob", "Grep", "WebSearch", "WebFetch"})
+
+# subagent 起動を表すツール名。CC SDK で Task/Agent 両方が存在する旨が
+# 公式に明示されているため両対応。ADR-0008 Phase B-2b / MAGI 合議 C5。
+_SUBAGENT_TOOLS = frozenset({"Task", "Agent"})
+
+# additionalContext の上限（公式仕様 10,000 文字 / 余裕を見て 9,500 でトランケート）
+_ADDITIONAL_CONTEXT_LIMIT = 9500
 
 # AUDITING フェーズの PG 許可コマンドのプレフィックス
 # 注: settings.json の allow リストにも同コマンドが登録されている。
@@ -303,10 +315,116 @@ def _emit_permission_response(level: str, reason: str, target: str) -> None:
     ))
 
 
+def _emit_subagent_ask_response(reason: str, target: str) -> None:
+    """subagent 境界判定の ask 応答を出力する（reason をそのまま使う）。
+
+    汎用 _emit_permission_response の PM 分岐は reason を破棄してデフォルト文言で
+    上書きするため、subagent 用に専用 helper を分離する（ADR-0008 Phase B-2b）。
+    """
+    print(json.dumps(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "ask",
+                "permissionDecisionReason": reason,
+            }
+        },
+        ensure_ascii=False,
+    ))
+
+
+def _handle_subagent_boundary(
+    tool_name: str,
+    tool_input_dict: dict,
+    phase: str,
+) -> tuple[str, str, str] | None:
+    """subagent 起動 (Task/Agent) を検知して境界判定する（ADR-0008 Phase B-2b）。
+
+    MAGI 合議 C5: CC v2.1.178+ classifier との二重防御で重ね掛けは避け、
+    AUTONOMOUS + autonomous skill 配下のみ ask に倒す。通常フェーズは log_only。
+
+    Returns:
+        (level, reason, target):
+            level="PM"  -> 呼出側で ask 応答を出力
+            level="LOG" -> ログ記録のみで通常 flow 継続
+        None: subagent 起動ではない
+    """
+    if tool_name not in _SUBAGENT_TOOLS:
+        return None
+
+    subagent_type = ""
+    description = ""
+    if isinstance(tool_input_dict, dict):
+        subagent_type = str(tool_input_dict.get("subagent_type", "") or "")
+        description = str(tool_input_dict.get("description", "") or "")
+
+    target = _sanitize_target(subagent_type or description or "subagent")
+
+    if phase != "AUTONOMOUS":
+        return ("LOG", f"subagent launch (non-autonomous / log only): {subagent_type or '-'}", target)
+
+    # AUTONOMOUS フェーズでは autonomous skill 配下の起動を ask に倒す。
+    # subagent_type 名に "autonomous" を含む / 不明 / autonomous 系であることが
+    # 確認できない場合は安全側で ask（人間判断を仰ぐ）。
+    return (
+        "PM",
+        f"AUTONOMOUS subagent launch ({subagent_type or 'unknown'}): "
+        f"approval required (classifier 重ね掛け二重防御)",
+        target,
+    )
+
+
+def _emit_incident_response(pmatch: PatternMatch, target: str) -> None:
+    """incident pattern マッチ時の permissionDecision を stdout に出力（ADR-0008 Phase B-2c）。
+
+    B-2c: additionalContext で Claude 側 model に検知文言を残し、自己学習を促す
+    （system reminder ラップで tool result の隣に挿入される / 公式仕様）。
+
+    action="log_only" は呼出側で除外済み（出力なし）。
+    """
+    if pmatch.action == "deny":
+        decision = "deny"
+        decision_reason = (
+            f"LAM incident pattern '{pmatch.incident_id}' matched "
+            f"(severity={pmatch.severity}). 対象: {target}"
+        )
+    elif pmatch.action == "ask":
+        first_desc_line = (
+            pmatch.description.splitlines()[0] if pmatch.description else ""
+        )
+        decision = "ask"
+        decision_reason = (
+            f"LAM インシデント検知 '{pmatch.incident_id}' "
+            f"(severity={pmatch.severity}): {first_desc_line}。対象: {target}"
+        )
+    else:
+        return  # log_only は呼出側でフィルタ済（保険）
+
+    additional_context = (
+        f"[LAM hook] incident pattern '{pmatch.incident_id}' "
+        f"(action={pmatch.action}, severity={pmatch.severity}) "
+        f"matched on {target}. Source: {pmatch.source_md}. "
+        f"Description: {pmatch.description}"
+    )[:_ADDITIONAL_CONTEXT_LIMIT]
+
+    print(json.dumps(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": decision,
+                "permissionDecisionReason": decision_reason,
+                "additionalContext": additional_context,
+            }
+        },
+        ensure_ascii=False,
+    ))
+
+
 def main() -> None:
     project_root = get_project_root()
     log_file = project_root / ".claude" / "logs" / "permission.log"
     phase_file = project_root / ".claude" / "current-phase.md"
+    incident_yaml = project_root / "docs" / "artifacts" / "incident-patterns.yaml"
 
     # stdin から JSON 読み込み
     data = read_stdin_json()
@@ -325,6 +443,40 @@ def main() -> None:
     # ファイルパスとコマンドを取得
     file_path = get_tool_input(data, "file_path")
     command = get_tool_input(data, "command")
+    tool_input_dict = data.get("tool_input", {})
+    if not isinstance(tool_input_dict, dict):
+        tool_input_dict = {}
+
+    phase = _read_current_phase(phase_file)
+
+    # 1.5 subagent 境界判定（ADR-0008 Phase B-2b / MAGI 合議 C5）
+    sub_result = _handle_subagent_boundary(tool_name, tool_input_dict, phase)
+    if sub_result is not None:
+        sub_level, sub_reason, sub_target = sub_result
+        log_entry(log_file, sub_level, tool_name, f"{sub_target}\t\"{sub_reason}\"")
+        if sub_level == "PM":
+            _emit_subagent_ask_response(sub_reason, sub_target)
+            sys.exit(0)
+        # LOG: 検知のみ → 通常 flow へ続行（Task/Agent は後段判定で SE 級に倒れる）
+
+    # 1.6 動的 incident pattern 判定（ADR-0008 Phase B-2a / fail-open）
+    patterns = load_patterns(incident_yaml)
+    pmatch = match_input(patterns, tool_name, file_path, command)
+    if pmatch is not None:
+        target_for_incident = _sanitize_target(file_path or command or "-")
+        # B-2c: incident_id + severity + description 先頭行をログに記録
+        first_desc = pmatch.description.splitlines()[0] if pmatch.description else ""
+        log_entry(
+            log_file,
+            pmatch.action.upper(),
+            tool_name,
+            f"{target_for_incident}\t\"incident:{pmatch.incident_id}"
+            f"\t{pmatch.severity}\t{first_desc}\"",
+        )
+        if pmatch.action in ("deny", "ask"):
+            _emit_incident_response(pmatch, target_for_incident)
+            sys.exit(0)
+        # log_only: 通常 flow へ続行（ユーザー摩擦なし / 頻度監視のみ）
 
     # 権限等級判定
     level, reason = _determine_level_and_reason(
