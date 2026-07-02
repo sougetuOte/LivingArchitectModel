@@ -193,6 +193,38 @@ Reflection（Step 4）はこれに代替される（物理削除は BUILDING フ
 
 ---
 
+## 追補（2026-07-02）: MAGI 4 者化合議との接続
+
+2026-07-02 の MAGI 合議（`docs/artifacts/2026-07-02-magi-4th-member.md` / PM 承認済）により、
+本 ADR の gabriel を「**投票しない第 4 の構成員**（独立文脈・異モデルの外部検証者）」として
+体制上位置づける — 呼称「**MAGI 3+1 体制**」。合議ペルソナ 3 者の定義は変更しない（D-2 と整合）。
+
+### BUILDING スコープへの追加
+
+「影響を受けるコンポーネント」の文書更新（06_DECISION_MAKING.md / decision-making.md /
+SKILL.md）に、以下のエスカレーション階梯 1 表の明文化を追加する（新規文書は作らない）:
+
+| 段 | 主体 | 独立性 | 役割 |
+|---|------|--------|------|
+| 1 | MELCHIOR / BALTHASAR / CASPAR | 同一文脈 / L1 モデル | 発散・議論・収束 |
+| 2 | gabriel | 独立文脈 / Sonnet | 敵対検証（AoT 適用時のみ / D-3） |
+| 3 | Fable 召喚 | 独立セッション / Fable | 塞げない破綻（ADR-0009 / `.claude/rules/hga-summoning.md`） |
+| 4 | 人間（PM） | — | 最終エスカレーション（再 MAGI 上限超過 / abort） |
+
+### 却下時条項（2026-07-02 PM 指示）
+
+本 ADR が万一却下された場合、Reflection 変更率 0% 問題（コンテキスト参照）への代替検証機構の
+再設計が必要になる。これは統治構造の転換であり `.claude/rules/hga-summoning.md` の
+**無条件召喚ゾーン（不可逆な統治変更）に該当**するため、以下を必須（MUST）とする:
+
+1. **ユーザー協議** — 却下理由の確認と代替方針の合意
+2. **HGA 型 Fable 召喚** — 代替検証機構の再設計。圧縮ブリーフには却下理由 + 本 ADR の
+   却下済み案 1〜4 + 下記の生存原則を含める
+3. **生存原則の引き継ぎ** — 合議録 `docs/artifacts/2026-07-02-magi-4th-member.md` の
+   A1 原則（4 者目の価値軸は人数でなく独立性）・A4 エスカレーション階梯・
+   Reflection 同一文脈無効の実測（変更率 0%）は**本 ADR に依存しない確定知見**であり、
+   却下によって失われない。再設計はこれらを入力とする
+
 ## 参考資料
 
 - `docs/specs/v5-fat-reduction/future-candidates.md` FC-1（gabriel 統合 PM 決定・2026-06-19）
@@ -213,3 +245,4 @@ Reflection（Step 4）はこれに代替される（物理削除は BUILDING フ
 | 2026-06-29 | design-architect | R1 修正適用: 関連 ADR 行に ADR-0005/0006 Proposed 状態・Rejected 時の再評価義務を注記。関連仕様を v0.2.0 参照に更新（ステータス Proposed のまま） |
 | 2026-06-29 | design-architect | R2 機械更新: 関連仕様を v0.3.0 参照に更新（ステータス Proposed のまま）|
 | 2026-06-29 | design-architect | R3 修正: D-3 テーブルに `recommended_action=abort` 行追加 / 関連仕様を v0.4.0 参照に更新（ステータス Proposed のまま）|
+| 2026-07-02 | Living Architect (Fable 5 L1) | 追補: MAGI 4 者化合議の結論を反映（3+1 体制の明文化 / エスカレーション階梯 1 表を BUILDING スコープに追加 / 却下時条項を新設）。合議録: `docs/artifacts/2026-07-02-magi-4th-member.md`（ステータス Proposed のまま）|
