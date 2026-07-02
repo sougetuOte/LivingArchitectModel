@@ -3,7 +3,7 @@
 - バージョン: 0.3.1
 - 作成日: 2026-06-29
 - 更新日: 2026-06-29（v0.3.1 = v0.3.0 + spec-critic R3 軽微解消 / Info 2 件消化 → Critical 0 + Warning 5 + Info 1）
-- ステータス: **Draft**（spec-critic R2 レビュー反映完了 / PM 3 文書セット一括承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte / spec-critic R2 レビュー反映完了）
 - 根拠文書:
   - `docs/specs/b4-dashboard/wave9/requirements.md` v0.2.7 Draft（Green State 達成）
   - `docs/specs/b4-dashboard/wave9/design.md` v0.2.7 Draft（Green State 達成）
@@ -559,14 +559,14 @@ graph TD
 
 ## §9 PM 承認記録
 
-### PM 承認待ち（3 文書セット一括）
+### PM 承認済（3 文書セット一括 / 2026-07-02）
 
-Wave 9 は 3 文書セット PM 一括承認体制を採用（Wave 7 継承）:
+Wave 9 は 3 文書セット PM 一括承認体制を採用（Wave 7 継承）。2026-07-02 Phase 6 PM 一括承認（sougetuOte）:
 
-- [ ] requirements.md v0.2.7 の FR/NFR/AC を承認
-- [ ] design.md v0.2.7 の §3〜§8 設計を承認
-- [ ] tasks.md **v0.3.1** の T200〜T216 + T-S* タスク分解を承認（spec-critic R3 反映済 / Critical 0 / R4 軽微解消）
-- [ ] 承認後 → BUILDING フェーズ遷移可（Stage 1 着手）
+- [x] requirements.md v0.2.7 の FR/NFR/AC を承認
+- [x] design.md v0.2.7 の §3〜§8 設計を承認
+- [x] tasks.md **v0.3.1** の T200〜T216 + T-S* タスク分解を承認（spec-critic R3 反映済 / Critical 0 / R4 軽微解消）
+- [x] 承認済 → BUILDING フェーズ遷移可（Stage 1 着手）
 
 **注**: 本 tasks.md v0.3.1 は spec-critic R3 レビュー反映完了・R4 軽微解消の Draft 状態。
 PM 承認後、BUILDING 開始。

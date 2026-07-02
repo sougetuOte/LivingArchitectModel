@@ -1,14 +1,14 @@
 # Wave C (骨子 ②) MAGI v2 — gabriel Adversarial Verifier Integration — tasks.md
 
-- バージョン: 0.3.1 Draft
+- バージョン: 0.3.1
 - 作成日: 2026-06-29
-- ステータス: Draft（spec-critic R2 残存指摘 6 件解消 → 本承認へ）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte / spec-critic R2 残存指摘 6 件解消済）
 - 根拠文書:
   - `docs/specs/magi-v2-gabriel/requirements.md` v0.4.0 ✅ PM 承認済
   - `docs/specs/magi-v2-gabriel/design.md` v0.4.0 ✅ PM 承認済
-  - `docs/adr/0007-magi-v2-gabriel-integration.md` Proposed（本 Wave 内同時承認待ち）
-  - `docs/adr/0005-thin-harness-autonomous-governance.md` Proposed（gabriel 設計根拠 / Reflection 追補）
-  - `docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md` Proposed（Loop Eng verifier ↔ gabriel 対応）
+  - `docs/adr/0007-magi-v2-gabriel-integration.md` Accepted（2026-07-02 Phase 6 PM 承認）
+  - `docs/adr/0005-thin-harness-autonomous-governance.md` Accepted（gabriel 設計根拠 / Reflection 追補）
+  - `docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md` Accepted（2026-07-02）
   - `docs/specs/v5-fat-reduction/future-candidates.md` FC-1（gabriel 統合 PM 決定 / 2026-06-19）
   - `.claude/agent-memory/quality-auditor/magi-reflection-audit-2026-06-19.md`（Reflection 変更率 0% 実機計測）
 - マイルストーン: Milestone B-5 内の Wave C（骨子 ②）/ 共通基盤改修
@@ -619,8 +619,8 @@ L2 (Sonnet) 着手前に以下の 5 点を必ず確認してください:
 
 - requirements v0.4.0: ✅ PM 承認済 (2026-06-29)
 - design v0.4.0: ✅ PM 承認済 (2026-06-29)
-- ADR-0007: Proposed（本 Wave 内同時承認待ち）
-- **tasks v0.3.0 Draft**: spec-critic R3 反映済 (R2 残存 6 件解消 / Critical 0 / R4 軽微解消) / PM 承認待ち
+- ADR-0007: ✅ Accepted（2026-07-02 Phase 6 PM 承認）
+- **tasks v0.3.1**: ✅ Approved（2026-07-02 Phase 6 PM 一括承認 / sougetuOte）/ spec-critic R3 反映済 (R2 残存 6 件解消 / Critical 0 / R4 軽微解消)
 - **PM 判断 A1**: 採番修正 (WC-LAM → WC-B5) を採用 / `WC` アルファベット混在は terminology.md §3 ペア 3 例外措置として PM 承認（MAGI v2 統合の固有名）
 - **PM 判断 C1**: §7 PM 級事前承認ガードレール（5 点）を確定 / T5/T6/T7/T8 の L1 事前承認経路を明示
 - **L1 補追判断 (2026-06-29)**: §2 regex マッチ技術的誤り訂正 (C-NEW-1) + V-4 dashboard 非登録・SESSION_STATE.md / agent-memory 追跡で許容方針決定
@@ -631,9 +631,9 @@ L2 (Sonnet) 着手前に以下の 5 点を必ず確認してください:
 
 - `docs/specs/magi-v2-gabriel/requirements.md` v0.4.0 (要件 / 仕様中心)
 - `docs/specs/magi-v2-gabriel/design.md` v0.4.0 (実装 / 設計中心)
-- `docs/adr/0007-magi-v2-gabriel-integration.md` Proposed (判断根拠)
-- `docs/adr/0005-thin-harness-autonomous-governance.md` Proposed (Reflection 追補 / gabriel 設計根拠)
-- `docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md` Proposed (Loop Eng verifier ↔ gabriel 対応)
+- `docs/adr/0007-magi-v2-gabriel-integration.md` Accepted (判断根拠 / 2026-07-02 Phase 6 PM 承認)
+- `docs/adr/0005-thin-harness-autonomous-governance.md` Accepted (Reflection 追補 / gabriel 設計根拠 / 2026-05-29)
+- `docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md` Accepted (Loop Eng verifier ↔ gabriel 対応 / 2026-07-02)
 - `docs/specs/v5-fat-reduction/future-candidates.md` FC-1 (gabriel 統合 PM 決定 / 2026-06-19)
 - `.claude/agent-memory/quality-auditor/magi-reflection-audit-2026-06-19.md` (Reflection 変更率 0% 実機計測)
 - `docs/specs/b4-dashboard/wave7/tasks.md` v0.2.3 (タスク分解パターン参考 / 実体ファイル版数 / 参照確認済)

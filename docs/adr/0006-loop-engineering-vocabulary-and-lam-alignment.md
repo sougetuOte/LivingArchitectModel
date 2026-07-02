@@ -3,7 +3,7 @@
 ## メタ情報
 | 項目 | 内容 |
 |------|------|
-| ステータス | **Proposed**（2026-06-21 起草） |
+| ステータス | **Accepted**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte） |
 | 日付 | 2026-06-21 |
 | 意思決定者 | sougetuOte（最終承認）/ Living Architect（起草・合議） |
 | 関連ADR | [ADR-0005](./0005-thin-harness-autonomous-governance.md)（ハーネス減量と自律統治モード） |

@@ -3,7 +3,7 @@
 - バージョン: 0.2.7
 - 作成日: 2026-06-28
 - 更新日: 2026-06-28（v0.2.7 = 最終クリーニング / Green State 完全達成）
-- ステータス: Draft（PM 承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte）
 - 根拠文書: `docs/specs/b4-dashboard/wave9/requirements.md` v0.2.7
 - 参照文書:
   - `docs/specs/b4-dashboard/design.md` v0.2.7（元設計書 / §4 V-4 DOM 構成案・§5 TaskInfo/TasksParser・§8 CSS 更新済み / §13 UQ-13 Critical 解決済）

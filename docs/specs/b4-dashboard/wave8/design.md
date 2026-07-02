@@ -2,7 +2,7 @@
 
 - バージョン: 0.2.3
 - 作成日: 2026-06-28
-- ステータス: Draft（PM 承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte）
 - 根拠文書: `docs/specs/b4-dashboard/wave8/requirements.md` v0.2.0
 - 参照文書:
   - `docs/specs/b4-dashboard/design.md` v0.2.0（元設計書 / パーサ独立性原則 §3 / Merger 仕様 §5）

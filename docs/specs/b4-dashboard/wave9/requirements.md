@@ -3,7 +3,7 @@
 - バージョン: 0.2.7
 - 作成日: 2026-06-28
 - 更新日: 2026-06-28（v0.2.7 = 最終クリーニング / Green State 完全達成）
-- ステータス: Draft（PM 承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte）
 - マイルストーン: B-5（Wave 9 / V-4 description 列追加）
 - 関連:
   - `docs/specs/b4-dashboard/requirements.md` v0.2.0（PoC 仕様 / 継承元）

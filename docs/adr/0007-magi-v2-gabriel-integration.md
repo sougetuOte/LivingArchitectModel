@@ -4,7 +4,7 @@
 
 | 項目 | 内容 |
 |------|------|
-| ステータス | **Proposed**（2026-06-29 起草） |
+| ステータス | **Accepted**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte） |
 | 日付 | 2026-06-29 |
 | 意思決定者 | sougetuOte（最終承認）/ Living Architect（起草・合議） |
 | 関連 ADR | [ADR-0005](./0005-thin-harness-autonomous-governance.md)（ハーネス減量・Reflection 追補 / gabriel 設計根拠の発端）, [ADR-0006](./0006-loop-engineering-vocabulary-and-lam-alignment.md)（Loop Engineering 語彙 / verifier 分離 ↔ gabriel 対応）（両者とも Proposed / 万が一 Rejected 化された場合は本 ADR の Glossary 整合性を再評価する） |
@@ -246,3 +246,4 @@ SKILL.md）に、以下のエスカレーション階梯 1 表の明文化を追
 | 2026-06-29 | design-architect | R2 機械更新: 関連仕様を v0.3.0 参照に更新（ステータス Proposed のまま）|
 | 2026-06-29 | design-architect | R3 修正: D-3 テーブルに `recommended_action=abort` 行追加 / 関連仕様を v0.4.0 参照に更新（ステータス Proposed のまま）|
 | 2026-07-02 | Living Architect (Fable 5 L1) | 追補: MAGI 4 者化合議の結論を反映（3+1 体制の明文化 / エスカレーション階梯 1 表を BUILDING スコープに追加 / 却下時条項を新設）。合議録: `docs/artifacts/2026-07-02-magi-4th-member.md`（ステータス Proposed のまま）|
+| 2026-07-02 | sougetuOte (PM) | **Accepted**: Phase 6 PM 一括承認により Proposed → Accepted へ遷移。gabriel Wave C BUILDING 着手可。|

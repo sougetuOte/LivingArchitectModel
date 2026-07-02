@@ -3,7 +3,7 @@
 - バージョン: 0.3.1
 - 作成日: 2026-06-29
 - 更新日: 2026-06-29（v0.3.1 = v0.3.0 + R4 軽微修正 / Warning 1 + Info 2 解消）
-- ステータス: Draft（spec-critic R2 残存指摘全件解消済 / PM 承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte / spec-critic R2 残存指摘全件解消済）
 - 根拠文書:
   - `docs/specs/b4-dashboard/wave8/requirements.md` v0.2.3 Draft
   - `docs/specs/b4-dashboard/wave8/design.md` v0.2.3 Draft
@@ -475,8 +475,8 @@ graph TD
 
 ### 承認状況
 
-- **ステータス**: Draft（spec-critic R2 レビュー待ち → PM 承認待ち）
-- **3 文書セット一括承認予定**: requirements.md v0.2.3 + design.md v0.2.3 + tasks.md **v0.3.0** (R3 修正版 + R4 軽微解消)
+- **ステータス**: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte）
+- **3 文書セット一括承認済 (2026-07-02)**: requirements.md v0.2.3 + design.md v0.2.3 + tasks.md **v0.3.1** (R3 修正版 + R4 軽微解消)
 
 ---
 

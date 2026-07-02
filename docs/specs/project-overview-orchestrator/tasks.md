@@ -2,9 +2,9 @@
 
 **本ドキュメントの位置付け**: Spike 管理文書。POO 実装 tasks.md は Wave 11 PLANNING で別起草。
 
-- バージョン: 0.3.0 Draft
+- バージョン: 0.3.0
 - 作成日: 2026-06-29（v0.2.0: 2026-06-29 R2 修正）
-- ステータス: **Draft**（spec-critic R2 レビュー待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / sougetuOte）
 - 根拠文書:
   - `docs/specs/project-overview-orchestrator/requirements.md` v0.5.0（PM 承認済）
   - `docs/specs/project-overview-orchestrator/design.md` v0.3.0（PM 承認済）
