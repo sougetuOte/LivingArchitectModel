@@ -1,8 +1,8 @@
 # b4-dashboard Wave 6 — tasks.md
 
-- バージョン: 0.2.0
+- バージョン: 0.3.0
 - 作成日: 2026-06-25
-- 更新日: 2026-06-25（spec-critic レビュー反映 / T40/T41 分割）
+- 更新日: 2026-07-03（v0.3.0 = §3.5 D1 準拠チェックボックスブロック新設 / 親 tasks.md v1.0.0 化と連動）
 - ステータス: **Approved**（PM 承認 2026-06-25「A」/ requirements.md v0.2.0 + design.md v0.3.0 と整合）
 - マイルストーン: B-5（Wave 6 BUILDING フェーズ / Stage 1〜4）
 - 関連:
@@ -109,6 +109,28 @@
 - AC-W6-9: オフライン動作確認（外部 URL 参照なし / T42 担当）
 - AC-W6-11: ユーザー PoC レビュー OK（T43 担当 / SESSION_STATE 記録）
 - 既存 324 件全 PASS（T42 担当）
+
+---
+
+## §3.5 Wave 6 Task チェックボックス（D1 準拠 / dashboard 可視化用 / v0.3.0 新設）
+
+> **状態 SSOT**: 本ブロック（Wave 6 の Task 状態を示す唯一の情報源）
+> **内容 SSOT**: 上記 §3 Stage 別タスク一覧（完了条件・依存・工数）
+> D1 (所在一意性 invariant): 各 Task ID は本ブロックのみに出現する（親 `docs/specs/b4-dashboard/tasks.md` §3.0 には出現しない）
+
+- [x] W6-B5-T31: 既存テスト構造変更の事前影響分析 @sonnet
+- [x] W6-B5-T32: Radix Colors 192 値手動転記タスク（UI 独立） @sonnet
+- [x] W6-B5-T33: CSS 基盤実装（_render_style() メソッド新設） @sonnet
+- [x] W6-B5-T34: セマンティック HTML + <main> / <nav> ランドマーク追加 @sonnet
+- [x] W6-B5-T35: CSS Stage 1 自動テスト実装 + 既存 324 件 PASS 確認 @sonnet
+- [x] W6-B5-T36: ライト/ダーク切替の手動確認（T-S1-12 担当 / Chrome DevTools） @human
+- [x] W6-B5-T37: ソート JS 実装 + _render_script() メソッド新設 @sonnet
+- [x] W6-B5-T38: V-4 テーブルヘッダ改修 + ソート UI 追加 @sonnet
+- [x] W6-B5-T39: Stage 2 自動テスト実装 + 手動確認（T-S2-9 担当）+ 既存 324 PASS @sonnet
+- [x] W6-B5-T40: フィルタ UI HTML + _render_filter_controls() 新設 @sonnet
+- [x] W6-B5-T41: フィルタ JS 実装 + DOMContentLoaded 統合 + 行数検証 + Stage 3 ブラウザ確認 @sonnet
+- [x] W6-B5-T42: 統合テスト T-S4-2〜T-S4-9 実装 + 既存 324 件 PASS @sonnet
+- [x] W6-B5-T43: Lighthouse Accessibility 95+ 達成（調整ループ含む）+ PoC レビュー @human
 
 ---
 
@@ -476,6 +498,7 @@ graph LR
 |-----------|------|---------|
 | 0.1.0 | 2026-06-25 | 初版 Draft（design.md v0.3.0 + requirements.md v0.2.0 承認後の tasks 起草 / 11 タスク T31〜T41） |
 | 0.2.0 | 2026-06-25 | spec-critic レビュー反映（Critical 3 件 / Warning 6 件 / Info 4 件 / 見えない前提 4 件すべて対応）<br>**C-1**: §2 タスク ID 範囲を T31〜T43 に修正<br>**C-2**: T35 テスト件数を「T-S1-1〜T-S1-11 の 11 件（自動）+ T-S1-12 手動は T36 担当」に整合<br>**C-3**: T39 完了条件で T-S2-1〜T-S2-8（8 件自動）と T-S2-9（手動）を分離<br>**W-1**: T34 から「T-S1-9〜T-S1-10 PASS」削除し T35 に集約（TDD Red 整合）<br>**W-2/W-3**: T40/T41 を T40+T41（Stage 3）/ T42+T43（Stage 4）に分割（11 → 13 タスク化）<br>**W-4**: T32 完了条件に「公式ページ画面キャプチャ保存」追加（R-1 リスク対応）<br>**W-5**: T31 → T34 依存を Mermaid 図と「依存」列に追加<br>**W-6**: Stage 3 ブラウザ手動確認を T41 完了条件に明示<br>**I-1**: T31 完了条件を「FAIL 箇所全件リストアップ（0 件含む）」に修正<br>**I-2**: §8 DoD に「Red ステップで FAIL 確認」明文化<br>**I-3**: §5 WBS に既存 FR/NFR/AC の維持確認テスト対応表追加<br>**I-4**: T37 / T41 完了条件に「T40/T41 完了後も T-S2-* PASS 維持」追加<br>**VP-1**: T43 Lighthouse の chrome-devtools-mcp 不可時 fallback 手順を §7 R-5 に詳細化<br>**VP-2**: T32 担当を「AI エージェント主導 + 人間スクリーンショット照合」と明示<br>**VP-3**: §1 に「1 PR = 1 Stage 優先 / 1 タスク = 1 セッション目安」の優先順位明記<br>**VP-4**: §3 Stage ゲート条件に「手動 NG 時のエスカレーション = SE 級 → 必要なら PM 級」追記 |
+| 0.3.0 | 2026-07-03 | §3.5 D1 準拠チェックボックスブロック新設（W6-B5-T31..T43 全 [x] / dashboard 可視化用 / HGA #3 レビュー反映 + 親 tasks.md v1.0.0 化と連動 / assignee タグ Wave 7 準拠） |
 
 ---
 

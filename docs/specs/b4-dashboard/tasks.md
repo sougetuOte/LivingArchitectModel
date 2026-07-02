@@ -1,8 +1,9 @@
-# タスク定義書: b4-dashboard（可視化レイヤー）
+# タスク定義書: b4-dashboard（B-5 全体インデックス / Wave ロードマップ / 可視化レイヤー）
 
-- バージョン: 0.1.0
+- バージョン: 1.0.0
 - 作成日: 2026-06-20
-- ステータス: Draft（PM 承認待ち）
+- 更新日: 2026-07-03（v1.0.0 = B-5 全体インデックス/ロードマップに格上げ / HGA #3 レビュー反映）
+- ステータス: **Approved**（PM 承認 2026-07-03 / タスク3 実装 = 案 A + 所在一意性 invariant + Wave 1-6 全可視化）
 - マイルストーン: B-5（LAM プロジェクト骨子 ⑤）
 - 根拠文書:
   - `docs/specs/b4-dashboard/requirements.md`（v0.2.0）
@@ -38,6 +39,38 @@ SESSION_STATE.md および `docs/specs/` に分散する作業状態を単一 HT
 
 ## §2 Wave 分割戦略
 
+### B-5 Wave ロードマップ
+
+> **注記**: 本表はスナップショット。**進捗 SSOT は `docs/artifacts/dashboard/dashboard.html`（D5 invariant）**。
+> 状態遷移イベント（PM 承認・retro クローズ・BUILDING 開始）時に本表を更新する（イベント駆動同期規律 / §7 参照）。
+
+| Wave | 概要 | 状態 | Task 範囲 | 子ポインタ |
+|:----:|-----|:----:|:---------:|-----------|
+| Wave 1 | 骨格（Build Script + V-1） | **COMPLETE** | W1-B5-T1..T6 | 親 §3 §3.0 |
+| Wave 2 | パーサ層 1（SessionState / CurrentPhase） | **COMPLETE** | W2-B5-T7..T11 | 親 §3 §3.0 |
+| Wave 3 | ビュー実装（V-3/V-4 + TasksParser/GitHistoryParser） | **COMPLETE** | W3-B5-T12..T17 | 親 §3 §3.0 |
+| Wave 4 | 連動・耐障害（/quick-save 連動） | **COMPLETE** | W4-B5-T18..T22 | 親 §3 §3.0 |
+| Wave 5 | 仕上げ（NFR 検証 + PoC アクセプタンス） | **COMPLETE** | W5-B5-T23..T30 | 親 §3 §3.0 |
+| Wave 6 | UI 拡張（Radix Colors + ソート/フィルタ + a11y） | **COMPLETE** | W6-B5-T31..T43 | `wave6/tasks.md` §3.5 |
+| Wave 7 | 実 tasks.md フル可視化（parser 厳格化 + assignee） | **COMPLETE** | W7-B5-T44..T55 | `wave7/tasks.md` §3.5 |
+| Wave 8 | (BUILDING 承認済 / 未着手) | **APPROVED** | W8-B5-T100..T110 | `wave8/tasks.md` §3.5 |
+| Wave 9 | (BUILDING 承認済 / 未着手) | **APPROVED** | W9-B5-T200..T216 | `wave9/tasks.md` §3.5 |
+| Wave 10 | (計画のみ) | **PLANNED** | 未確定 | 子 dir 未作成 |
+| Wave 11 | (計画のみ) | **PLANNED** | 未確定 | 子 dir 未作成 |
+| Wave C | gabriel 統合（magi-v2 分岐） | **APPROVED** | POO-* | `docs/specs/magi-v2-gabriel/tasks.md`[^wave-c] |
+
+[^wave-c]: Wave C（gabriel）は b4-dashboard ツリー外の独立 Milestone `docs/specs/magi-v2-gabriel/` を指す。「B-5 の Wave C として並行進行させる」歴史的経緯で本表に便宜的に含める。parser 適合性上は `WC-` プレフィックス（`W\d+` 不一致）のため dashboard V-4 には表示されない（意図的）。
+
+#### 状態判定根拠（D5 / v1.0.0 新設）
+
+| 状態 | 判定根拠 |
+|-----|---------|
+| **COMPLETE** | ① §3.0 または子 tasks.md §3.5 の全チェックボックスが `[x]` **かつ** ② 対応 retro (`docs/artifacts/retro-W*-B5-*.md`) が存在する（Wave 1-5 は W5 PoC アクセプタンス `W5-B5-T29` で代替） |
+| **APPROVED** | 子 tasks.md front-matter status = "Approved" **かつ** BUILDING 未着手（§3.5 全 `[ ]`）|
+| **PLANNED** | 子 dir 未作成 or 子 tasks.md 未起草 |
+
+---
+
 ### 分割根拠（SPIDR 分析）
 
 | 軸 | 分割方法 | b4-dashboard への適用 |
@@ -69,6 +102,45 @@ flowchart LR
 ---
 
 ## §3 各 Wave のタスク詳細
+
+> **§3 COMPLETE 注記（v1.0.0 / 2026-07-03）**: 本 §3 は Wave 1-5 PoC 実装時の詳細タスク定義（v0.1.0 Draft）を歴史的記録として保持する。
+> **実施形態が原記述と異なる Task を含む**（例: 「PR 作成 + レビュー」等の完了条件は master 直コミット体制で字義通り実施されていない）。
+> Wave 1-5 の**状態 SSOT** は下記 §3.0 チェックボックスブロック（D3 例外）、**内容 SSOT** は本 §3 表形式。両者の役割分担は §7 (規約節) 参照。
+
+### §3.0 Wave 1-5 チェックボックス（D3 例外 / dashboard 可視化用 / v1.0.0 新設）
+
+- [x] W1-B5-T1: BaseParser インターフェース定義 @sonnet
+- [x] W1-B5-T2: build_dashboard.py スケルトン + DashboardBuilder 基本型 @sonnet
+- [x] W1-B5-T3: V-1 Project サマリービュー最小実装 @sonnet
+- [x] W1-B5-T4: 単一 HTML 出力形式の基本化（CSS/JS インライン化） @sonnet
+- [x] W1-B5-T5: /visualize スキル(仮)の最小実装 @sonnet
+- [x] W1-B5-T6: Wave 1 統合テスト（最小通る経路） @sonnet
+- [x] W2-B5-T7: SessionStateParser 実装（UQ-1 対応） @sonnet
+- [x] W2-B5-T8: CurrentPhaseParser 実装 @sonnet
+- [x] W2-B5-T9: V-2 Milestone 一覧ビュー実装 @sonnet
+- [x] W2-B5-T10: パーサエラーサマリー表示（FR-6 実装） @sonnet
+- [x] W2-B5-T11: Wave 2 統合テスト @sonnet
+- [x] W3-B5-T12: TasksParser 実装（UQ-2 対応） @sonnet
+- [x] W3-B5-T13: GitHistoryParser 実装（UQ-4 対応） @sonnet
+- [x] W3-B5-T14: V-3 Wave 一覧ビュー実装 @sonnet
+- [x] W3-B5-T15: V-4 Task 一覧ビュー実装 @sonnet
+- [x] W3-B5-T16: 状態値決定ロジック統合テスト @sonnet
+- [x] W3-B5-T17: 全ビュー統合テスト（AC-2） @sonnet
+- [x] W4-B5-T18: /quick-save SKILL.md Step 5 追加 @sonnet
+- [x] W4-B5-T19: パーサエラー時のフォールバック動作確認（AC-5） @sonnet
+- [x] W4-B5-T20: NFR-4 初期計測（生成時間 30 秒以内の基盤確認） @sonnet
+- [x] W4-B5-T21: .gitignore に docs/artifacts/dashboard/ 追記 @sonnet
+- [x] W4-B5-T22: Wave 4 統合テスト（AC-1 / AC-8） @sonnet
+- [x] W5-B5-T23: NFR-2 検証（ブラウザ表示時間 3 秒以内） @human
+- [x] W5-B5-T24: NFR-5 検証（外部依存なし・Python 標準ライブラリのみ） @sonnet
+- [x] W5-B5-T25: AC-7 検証（オフライン動作確認） @human
+- [x] W5-B5-T26: NFR-3 検証（対応ブラウザ Chrome/Edge 120+） @human
+- [x] W5-B5-T27: AC トレーサビリティ最終確認（AC-1〜AC-8 全検証） @sonnet
+- [x] W5-B5-T28: design.md 未解決設計事項（UQ-1〜UQ-7）の対応確認 @sonnet
+- [x] W5-B5-T29: PoC 最終レビュー・ユーザー確認 @human
+- [x] W5-B5-T30: Wave 5 最終統合テスト @sonnet
+
+---
 
 ### Wave 1: 骨格（Build Script Skeleton + V-1 Minimal）
 
@@ -681,7 +753,49 @@ flowchart LR
 
 ---
 
-## §7 権限等級（permission-levels.md 準拠）
+## §7 B-5 tasks.md 規約（invariant / v1.0.0 新設）
+
+### D1: 所在一意性 invariant
+
+- **W\<n\>-B5-T\<n\> 空間の一意性**: 各 Task ID（完全形 `W<n>-B5-T<n>`）は B-5 プロジェクト内の**1 つの tasks.md にのみ** parser 抽出対象のチェックボックス行として出現する。
+  - Wave 1-5（T1-T30）: 親 §3.0
+  - Wave 6（T31-T43）: `wave6/tasks.md` §3.5
+  - Wave 7（T44-T55）: `wave7/tasks.md` §3.5
+  - Wave 8（T100-T110）: `wave8/tasks.md` §3.5
+  - Wave 9（T200-T216）: `wave9/tasks.md` §3.5
+  - Wave C（POO-*）: `docs/specs/magi-v2-gabriel/tasks.md`（b4-dashboard ツリー外）
+- **短縮形 `T<n>:` の禁止**: b4-dashboard 系 tasks.md では短縮形 `T<n>:` を新規に使わない（parser の milestone 逆引きが fallback dir 名依存となり invariant を破るため）。既存の Wave 7 検証タスク `T-S1-1` 等は parser 非適合（`T-S` は `T\d+` 不一致）で意図的に非表示のため許容。
+
+### D3: Wave 1-5 は §3.0 で親側に例外配置する
+
+- **根拠**: Wave 1-5 は PoC 完了時点（2026-05）で子 dir を切らずに完了しており、事後に `wave1/tasks.md`..`wave5/tasks.md` を新設すると invariant D1 の維持コスト（履歴分離 + 参照リンク更新）が可視化の便益を上回るため親側に集約する。
+- Wave 6 以降は原則通り子 dir 側に §3.5 を配置する。
+
+### D5: 進捗 SSOT = dashboard.html
+
+- 本 tasks.md 内の状態記述（§2 ロードマップ表 / §3.0 チェックボックス）はすべてスナップショット。
+- **進捗の SSOT は `docs/artifacts/dashboard/dashboard.html`**（D5 invariant）。乖離を検知した場合は dashboard 再生成を優先する。
+- dashboard の再生成は `python .claude/scripts/build_dashboard.py --project-root D:/work7/LivingArchitectModel` で実行する。
+
+### 状態 SSOT と内容 SSOT の役割分担
+
+| 情報種別 | Wave 1-5 の SSOT | Wave 6-9 の SSOT |
+|---------|:---------------:|:----------------:|
+| **状態**（各 Task が completed / not-started / in-progress / blocked） | §3.0 チェックボックス | 各 `waveN/tasks.md` §3.5 |
+| **内容**（完了条件・依存・工数・詳細） | §3 表形式 | 各 `waveN/tasks.md` §3 表形式 |
+| **齟齬発生時の優先** | 状態: §3.0 / 内容: §3 | 状態: §3.5 / 内容: §3 |
+
+### イベント駆動同期規律
+
+- §2 ロードマップ表は以下のイベント時に更新する:
+  - PM 承認（新規 Wave の BUILDING 承認）: PLANNED → APPROVED
+  - BUILDING 完了 + retro クローズ: APPROVED → COMPLETE
+  - 新規 Wave 計画着手（子 dir 作成）: 未記載 → PLANNED
+- 定期的な同期作業は不要（dashboard 再生成で常時最新化されるため）。
+
+---
+
+## §8 権限等級（permission-levels.md 準拠）
 
 | タスク群 | 権限等級 | 理由 |
 |---------|--------|------|
@@ -696,7 +810,7 @@ flowchart LR
 
 ---
 
-## §8 Definition of Ready チェックリスト
+## §9 Definition of Ready チェックリスト
 
 ### 全タスク共通
 
@@ -717,7 +831,7 @@ flowchart LR
 
 ---
 
-## §9 既知リスク・前提条件
+## §10 既知リスク・前提条件
 
 ### R-1: SESSION_STATE.md パース堅牢性（UQ-1）
 
@@ -750,7 +864,7 @@ Chrome / Edge 120+ では検証するが、他のブラウザ（Firefox / Safari
 
 ---
 
-## §10 参照
+## §11 参照
 
 - `docs/specs/b4-dashboard/requirements.md`（v0.2.0、SSOT）
 - `docs/specs/b4-dashboard/design.md`（v0.1.0、設計実装方針）
@@ -760,6 +874,15 @@ Chrome / Edge 120+ では検証するが、他のブラウザ（Firefox / Safari
 - `.claude/rules/permission-levels.md`（権限等級分類）
 - `docs/specs/v5-fat-reduction/tasks.md`（タスク定義書の参考）
 - `SESSION_STATE.md`（マイルストーン配置・進捗状態）
+
+---
+
+## §12 改訂履歴
+
+| バージョン | 日付 | 変更概要 |
+|:---------|:-----|:--------|
+| 1.0.0 | 2026-07-03 | **B-5 全体インデックス/ロードマップに格上げ**（HGA #3 レビュー反映 + PM 承認）<br>- §2: B-5 Wave ロードマップ表新設（Wave 1-11+C / 状態判定根拠 3 分類定義 = COMPLETE/APPROVED/PLANNED / Wave C 脚注で `magi-v2-gabriel/` 参照）<br>- §3.0: Wave 1-5 チェックボックスブロック新設（D3 例外 / dashboard 可視化用 / W1-B5-T1..W5-B5-T30 全 `[x]`）<br>- §3 冒頭に COMPLETE 注記（「実施形態が原記述と異なる Task を含む」1 行含む）<br>- §7 (規約節) 新設: D1 (W*-B5-T* 空間一意性 + 短縮形 T\<n\>: 非使用) / D3 (Wave 1-5 例外) / D5 (進捗 SSOT=dashboard.html) / 状態⇔内容 SSOT 役割分担 / イベント駆動同期規律<br>- 既存 §7-§10 を §8-§11 に繰り下げ<br>- ステータス: Draft → Approved |
+| 0.1.0 | 2026-06-20 | 初版 Draft（Wave 1-5 の PoC 実装用タスク分解 / SPIDR + WBS 100% Rule 適用） |
 
 ---
 
