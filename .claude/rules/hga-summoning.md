@@ -48,6 +48,10 @@ MAGI の split は非対称シグナルとして扱う。MELCHIOR / BALTHASAR / 
 5. **正本化**: 召喚結果（分岐点と根拠）を Opus が正本として保持する。以降の肉付け・実装は
    Sonnet に指示する
 
+**大型探索型の分岐**: 予想 tool_uses 10+ の資料収集主体召喚は、上記手順ではなく
+下記「下調べパイプライン（research 委譲パターン）」に従い、Fable brief + Opus subagent 下請け構成にする。
+判断・crux 追及型（旧 #1・#4 型）は本手順を維持。
+
 ## currency push
 
 Fable は自分の知識が古いと気づけないため、鮮度ギャップは pull では回収できない。召喚前に
@@ -96,12 +100,103 @@ Opus が currency sweep を行い、以下をブリーフに畳み込む（**pus
 | 対話モード召喚 | 真の行き詰まり時のみ、人間を含めた協議を行う召喚 |
 | branch モード | Fable に Sonnet を直接ぶら下げる tight な適応探索のみ（稀・バウンド付き） |
 
-envelope（月 $40-80）は目安であり、Pro/Max の月次キャップを自設定して監視することを推奨する。
+### envelope 定義（2026-07-04 二軸化 / 下調べパイプライン導入後）
 
-**実測単価（2026-07-04 #5 実測後の更新）**: 通常召喚 1 回あたり **$1.84（tool_uses=0 短答）〜 $12.66（tool_uses 17 大型）**。
-平均 ~$5-8/回 → 月 5-10 回で envelope $40-80 到達。旧「~$1-4/回」想定は不足。
-**envelope 監視は API 実メータリング（jsonl 集計）基準に切替**。集計スクリプトと詳細は
-`docs/artifacts/hga-summon-log.md` §day-1 実測メモ (#5) 参照。branch モード ($13+/回) は別予算枠を維持。
+Fable = credit 従量（実 $）、Opus subagent = subscription quota（weekly cap %）に切り分けて監視する。
+
+| envelope 軸 | 対象 | 目安 |
+|:-----------|:-----|:-----|
+| **実 $ envelope** | Fable brief 分のみ（メーター実 $） | 月 **$10-40**（下調べパイプライン導入後・削減見込） |
+| **Opus quota envelope** | Opus subagent の subscription 消費 | weekly cap **20% 以内**（大型探索 3-5 回/週相当） |
+
+### 実測単価（2026-07-04 #5 実測後の更新）
+
+- Fable 単独召喚（旧型）: **$1.84（tool_uses=0 短答）〜 $12.66（tool_uses 17 大型）** / 平均 ~$5-8/回
+- 下調べパイプライン（Fable brief + Opus 下請け）: Fable brief 分 **~$0.20/回**（未実測 / パイロット #5 で確定予定）
+- **envelope 監視は API 実メータリング（jsonl 集計）基準**（`docs/artifacts/hga-summon-log.md` §day-1 実測メモ #5 参照）
+- branch モード ($13+/回) は別予算枠を維持
+
+## 下調べパイプライン（research 委譲パターン / 2026-07-04 新設）
+
+大型探索型の召喚（旧 #3 型 = tool_uses 10+ / 資料収集主体）は、Fable 単独ではなく
+**Fable brief + Opus subagent 下請け** の 2 段構成で実施する。「下調べは Fable の弱点、
+Opus の強み」を反映した委譲パターン。
+
+### 根拠
+
+- **Fable は doc pull / web 検索が苦手**（X community 定説 / 2026-07 実測でも本体は tool 使用が薄い）
+- **Opus 4.7/4.8 は Fable の半額**（$5/$25 vs $10/$50 / 2026-07-04 公式取得）
+- **Opus は Claude Code 上で subscription 吸収**（credit 従量ではなく weekly quota 消費）→ 実 $ には効かない
+- **Anthropic 内部評価**: Opus lead + Sonnet subagent = 単独 Opus 比 **+90.2%**（multi-agent research system 論文）
+- **retrieval 能力**: Opus 4.6 = 76% vs Sonnet 4.5 = 18.5%（8-needle 1M MRCR v2 / emergent.sh）
+
+### 委譲先モデル選定
+
+| 委譲先 | 用途 | 判断 |
+|:------|:-----|:-----|
+| **Opus 4.7 / Opus 4.8** | 検索・doc pull・retrieval 全般（**primary**） | 単価半分 + subscription 吸収 + retrieval 優位で最適 |
+| Sonnet 5 | **使わない** | Anthropic 公式 Sonnet 5 プロンプトガイドが「literal interpretation / does not silently generalize / does not infer requests you didn't make」と明記。loose brief で under-deliver するため下調べ用途に不適 |
+| Haiku 4.5 | 事実突合・rubric 採点のみ | 判断・多段推論には非採用（既存規律通り） |
+
+### tight brief 4-slot テンプレート
+
+Anthropic 公式 multi-agent research paper の failure mode（「research the semiconductor shortage」で
+subagent が 2021 と 2025 を独立探索し labor division 失敗）を修正する形式。全 4 slot 必須。
+
+1. **objective**（何を達成するか / 単一文で）
+2. **output format**（返却形式 / JSON or 箇条書き or dimension 別）
+3. **tool guidance**（使うべきツール・情報源の順序 / 具体パス OK）
+4. **task boundaries**（触らない領域・停止条件）
+
+### grounding bolt-on（全 subagent 共通）
+
+以下のブロックを全 subagent プロンプトに boilerplate として同梱する（LAM 既存の hedge 指示と統合可）。
+
+```
+Ground your claims: before reporting any finding as fact, audit it against a tool result
+from this session. If you cannot point to the file, line, or command output that proves it,
+mark it "unverified".
+```
+
+### loose brief の唯一例外
+
+**adversarial coverage-first review**（MAGI 敵対テスト / spec-critic 型）のみ、Anthropic 公式が
+明示的に loose 推奨。それ以外の召喚（下調べ・要件確認・crux 追及）は全て tight brief。
+
+```
+Report every issue you find, including ones you are uncertain about or consider low-severity.
+Do not filter for importance or confidence at this stage - a separate verification step will
+do that. Your goal here is coverage.
+```
+
+### 技術制約: flat fan-out のみ
+
+Fable subagent は **1 レベル深さのみ、nested 不可**（2026-06 コミュニティ実測 / digitalapplied.com）。
+「Fable → Opus → Sonnet」の 3 段チェーンは実行されない。必ず flat fan-out（Fable → Opus 直接）で構成する。
+
+### コスト構造
+
+| 成分 | 支払い形態 | 目安/回 |
+|:-----|:----------|-------:|
+| Fable brief（in + out 少量） | credit 実 $ | **~$0.20** |
+| Opus subagent（retrieval 主体） | subscription quota | weekly cap **3-5%** |
+| **合計 実 $** | | **~$0.20** |
+
+現状の Fable 単独大型探索 $12.66 に対し、下調べパイプライン化で **実 $ は 1/50 以下**（$0.20 圏）。
+ただし subscription quota は消費するため、L1 常用 Opus と合算した weekly cap 監視は必須。
+
+### 適用ゲート
+
+以下いずれかに該当する召喚に本パターンを適用する。
+
+- 予想 tool_uses 10 回以上（資料収集主体）
+- 複数ドメインの資料統合（LAM 内 + 外部 doc + web 情報 等）
+- crux 探索より前段の下調べフェーズ
+
+適用しないケース（Fable 単独維持）:
+- 索引 push で自己完結できる crux 判断のみ（旧 #4 型）
+- 敵対テスト / coverage 探索（loose brief 例外に該当）
+- 数百トークンの短答（下請け起動コストが overhead）
 
 ## 召喚記録
 
