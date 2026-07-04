@@ -1,0 +1,8 @@
+# tasks.md (Wave 8 統合テスト用 fixture)
+
+Milestone B-4 / B-5 / B-6 の Task ID を含む（B-4 と B-6 は SESSION_STATE.md に
+記載がなく、tasks.md にのみ存在する Milestone として Merger の補完動作を検証する）。
+
+- [x] W1-B5-T1: B-5 の Task（session_minimal.txt と重複）
+- [x] W1-B4-T1: B-4 の Task（tasks.md 由来のみ）
+- [ ] W1-B6-T1: B-6 の Task（tasks.md 由来のみ）

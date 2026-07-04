@@ -25,6 +25,7 @@ Wave 6: ソート JS 実装（_render_script() 新設）（W6-B5-T37 完了）
 Wave 6: V-4 テーブルヘッダ改修（ソート UI / data-milestone 追加）（W6-B5-T38 完了）
 Wave 6: フィルタ UI HTML + _render_filter_controls() 新設（W6-B5-T40 完了）
 Wave 6: フィルタ JS 実装 + DOMContentLoaded 統合（W6-B5-T41 完了）
+Wave 8: "unknown" status バッジ対応（_STATUS_LABELS + CSS ルール追加 / W8-B5-T104 完了）
 """
 
 from __future__ import annotations
@@ -125,6 +126,8 @@ body {{ margin: 0; }}
   --color-status-blocked-text:   var(--amber-11);
   --color-status-notstarted-bg:  var(--gray-3);
   --color-status-notstarted-text:var(--gray-11);
+  --color-status-unknown-bg:     #9ca3af;
+  --color-status-unknown-text:   var(--gray-12);
 
   /* ソート UI */
   --color-sort-indicator:        var(--blue-9);
@@ -162,6 +165,8 @@ body {{ margin: 0; }}
     --color-status-blocked-text:   var(--amber-11);
     --color-status-notstarted-bg:  var(--gray-3);
     --color-status-notstarted-text:var(--gray-11);
+    --color-status-unknown-bg:     #9ca3af;
+    --color-status-unknown-text:   var(--gray-12);
     --color-sort-indicator:        var(--blue-9);
     --color-sort-hover:            var(--blue-2);
     --color-filter-bg:             var(--gray-2);
@@ -199,6 +204,7 @@ tbody tr:hover {{ background-color: var(--color-bg-surface); }}
 .badge[data-status="in-progress"] {{ background: var(--color-status-progress-bg);  color: var(--color-status-progress-text);  }}
 .badge[data-status="blocked"]     {{ background: var(--color-status-blocked-bg);    color: var(--color-status-blocked-text);    }}
 .badge[data-status="not-started"] {{ background: var(--color-status-notstarted-bg); color: var(--color-status-notstarted-text); }}
+.badge[data-status="unknown"]     {{ background: var(--color-status-unknown-bg);     color: var(--color-status-unknown-text);     }}
 
 /* ─── 10. フォーカス可視化 ───────────────────────────────────── */
 :focus-visible {{
@@ -551,6 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "in-progress": "進行中",
         "blocked": "ブロック中",
         "not-started": "未着手",
+        "unknown": "不明",
     }
 
     def _render_status_badge(self, status: str) -> str:

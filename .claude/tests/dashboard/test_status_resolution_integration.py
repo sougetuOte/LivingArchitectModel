@@ -383,8 +383,11 @@ class TestStatusValuesAreOnly4Types:
         )
         html = _run_build_to_html(project_root, tmp_path)
 
-        # data-status="..." の値を全て抽出
-        found_statuses = set(re.findall(r'data-status="([^"]+)"', html))
+        # data-status="..." の値を全て抽出（<style> ブロック内の CSS セレクタ由来を除外し、
+        # 実バッジ要素のみを走査対象にする。Wave 8 で "unknown" バッジ CSS ルールが追加され
+        # style 内リテラルまで拾うと fixture に存在しない値が false positive となるため）
+        html_without_style = re.sub(r'<style>.*?</style>', '', html, flags=re.DOTALL)
+        found_statuses = set(re.findall(r'data-status="([^"]+)"', html_without_style))
 
         # 4 値以外の状態値が存在しないこと
         unexpected = found_statuses - self.VALID_STATUSES
