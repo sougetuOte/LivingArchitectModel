@@ -98,6 +98,11 @@ Opus が currency sweep を行い、以下をブリーフに畳み込む（**pus
 
 envelope（月 $40-80）は目安であり、Pro/Max の月次キャップを自設定して監視することを推奨する。
 
+**実測単価（2026-07-04 #5 実測後の更新）**: 通常召喚 1 回あたり **$1.84（tool_uses=0 短答）〜 $12.66（tool_uses 17 大型）**。
+平均 ~$5-8/回 → 月 5-10 回で envelope $40-80 到達。旧「~$1-4/回」想定は不足。
+**envelope 監視は API 実メータリング（jsonl 集計）基準に切替**。集計スクリプトと詳細は
+`docs/artifacts/hga-summon-log.md` §day-1 実測メモ (#5) 参照。branch モード ($13+/回) は別予算枠を維持。
+
 ## 召喚記録
 
 **全召喚を `docs/artifacts/hga-summon-log.md` に追記すること（MUST）**。争点 E の再論禁止規律と
@@ -118,11 +123,11 @@ envelope 監視の実行基盤となる。
 | 2 | 自己修復ループの往復回数を実際に抑えられるか | **実測済**（召喚 #1 / 2026-07-02 / 往復 0 回・索引 push 有効。`docs/artifacts/hga-summon-log.md` 参照） |
 | 3 | Fable が Claude Code で web/tool を使えるか | **解決済み**（実セッションで確認） |
 | 4 | routing/Opus フォールバックの発火頻度と可視性 | 公式仕様は transcript 可視通知。**監視で対応**（発火領域は攻撃的セキュリティ等で設計討議では稀） |
-| 5 | ブリーフの実効入力トークン | **部分実測**（召喚 #1 / 送信ブリーフ ~2.5k に対し召喚総消費 ~84.8k tok = 先載りが支配的と確認。input/output 分離値は subagent 完了 usage / transcript から取得不可 → 別手段要。`docs/artifacts/hga-summon-log.md` 参照） |
+| 5 | ブリーフの実効入力トークン / input・output 分離 | **解決済**（2026-07-04 実測完了 / jsonl 直読み手段確定 = 新規召喚不要）。実測結果: HGA #1 で API 総 tok 1,154,345 / input:output = 161:1 / **cache_creation が cost 66.8% を支配**（fresh input 14.3% / cache_read 12.8% / output 6.1%）。従量移行後の最適化優先順位 = cache_creation 抑制（先載り縮小より 5 分 TTL 内連続召喚で cache_c=0 化のほうが寄与大）。詳細は `docs/artifacts/hga-summon-log.md` §day-1 実測メモ (#5)。**注意**: `tool_uses=0` の一発応答召喚では jsonl の output_tokens が過小記録される（実測時は text char 数 × 0.8-1.5 で補正） |
 
-#2 は召喚 #1（2026-07-02）で実測済（往復 0 回・索引 push 有効）。#5 は召喚総消費のみ部分実測で、
-input/output の分離値（先載りで何倍に膨らむかの厳密比）は **2026-07-07 までの週次 50% 枠内**で
-別手段（専用軽量召喚での `/cost` 相当取得等）による確定を推奨する（従量課金移行前に前提を確定させるため）。
+#2 は召喚 #1（2026-07-02）で実測済（往復 0 回・索引 push 有効）。#5 は 2026-07-04 に jsonl 直読み手段で
+input/output 分離を実測完了（新規召喚ゼロ）。結果、cache_creation 支配の内訳が確定し、
+従量移行後の最適化優先順位が明確化された。
 
 ## 移行期注記
 
