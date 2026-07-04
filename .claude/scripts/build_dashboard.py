@@ -142,6 +142,21 @@ def _write_html(data: object, output_path: Path) -> int:
     return 0
 
 
+def _apply_milestone_merger(data: object) -> None:
+    """パーサループ完了後に MilestoneSourceMerger を実行し、data.milestones を確定する。
+
+    Wave 8 追加（W8-B5-T102 / design.md §5 正規スケッチ準拠）。
+    data.tasks（TasksParser 結果）確定後に呼び出すことが前提（MUST）。
+    """
+    from dashboard.merger import MilestoneSourceMerger
+
+    task_ms_names = list({t.milestone for t in data.tasks})
+    data.milestones = MilestoneSourceMerger(
+        session_milestones=data.milestones,
+        task_milestone_names=task_ms_names,
+    ).get_milestones()
+
+
 def build(project_root: Path, output_path: Path) -> int:
     """ダッシュボード HTML を生成する（design.md §9 コードブロック準拠）。
 
@@ -168,6 +183,11 @@ def build(project_root: Path, output_path: Path) -> int:
     ]
 
     _run_parsers(data, parsers)
+
+    # Wave 8: パーサループ完了後（data.tasks 確定後）に Merger を実行し、
+    # data.milestones を SessionState ∪ tasks.md の統合済みリストで上書き確定する
+    # （FR-W8-1 MUST / design.md §5）。
+    _apply_milestone_merger(data)
 
     rc = _write_html(data, output_path)
     if rc != 0:

@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING**
+**BUILDING**
 
-_B-5: Wave 7 BUILDING 完全完了（Stage 1〜4 全 Green / Lighthouse 97 / retro 完了 / HEAD = 4258c8a）→ **Wave 8+ PLANNING 着手**（design-mode 起動 2026-06-28）。スコープ確定（推奨順）: **D → B → A → C**。D: Milestone フィルタ仕様乖離修正（PM 級 / 既存 spec / chip task_68008f88）、B: V-4 description 列追加（小規模 / chip task_5de9563e）、A: 骨子 ⑥ プロジェクト俯瞰オーケストレータ（Wave 8 本体 / 新規 spec）、C: 骨子 ② MAGI v2 gabriel 導入（retro A4 / Wave 9 想定）。本セッションは 4 件の design + tasks のレビュー&修正を行う（実装には進まない）。並列度・委譲考慮: D は L1 直 軽量、B は Sonnet 委譲、A は Sonnet + 司令塔 L1.5、C は A と並走可能（独立領域）。承認ゲート: 各 design → review&fix → tasks → review&fix → PM 承認で BUILDING 復帰。体制: Fable=判断 / Sonnet=設計執筆 / Haiku=採点・突合。_
+_B-5 BUILDING 着手（2026-07-04 午後 / Wave 8 + gabriel Wave C Stage 2 並行）。Wave 8 Stage 1 (T100-T103 / MilestoneSourceMerger) と gabriel Wave C Stage 2 (WC-B5-T3/T4 / gabriel.md 実装 + 出力契約テスト) を 2 名の Sonnet L2 (tdd-developer) に並行分配。触るファイル完全分離 (dashboard/** vs .claude/agents/gabriel.md + .claude/tests/wave_c/**)。委譲時規律: `disallowedTools: [Agent]` (tdd-developer は元々 Agent なし) + "DIRECT EXECUTOR" boilerplate 適用済。次工程: Wave 8 Stage 2 (T104-T106) + gabriel Wave C Stage 3 (T5-T6 / PM 級 SKILL.md 改訂で事前承認要)。_
 
 ## 履歴
 
@@ -12,7 +12,8 @@ _B-5: Wave 7 BUILDING 完全完了（Stage 1〜4 全 Green / Lighthouse 97 / ret
 | BUILDING | 2026-06-25 | 2026-06-27 | Wave 6 BUILDING Stage 1〜4（completed / Lighthouse 97 / retro 済） |
 | PLANNING | 2026-06-27 | 2026-06-27 | Wave 7 PLANNING 完了（v0.2.1 PM 一括承認 / spec-critic 3 回レビュー反映） |
 | BUILDING | 2026-06-27 | 2026-06-28 | Wave 7 BUILDING Stage 1〜4（completed / Lighthouse 97 / Green State 4 連続 / retro 完了 / HEAD 4258c8a） |
-| **PLANNING** | **2026-06-28** | — | **Wave 8+ PLANNING 着手（D → B → A → C 順 / 4 件 design + tasks レビュー&修正）** |
+| PLANNING | 2026-06-28 | 2026-07-02 | Wave 8+ PLANNING（D → B → A → C 順 / 4 件 design + tasks 全て Phase 6 PM 一括承認） |
+| **BUILDING** | **2026-07-04** | — | **B-5 BUILDING 着手（Wave 8 Stage 1 T100-T103 + gabriel Wave C Stage 2 T3-T4 並行）** |
 
 ---
 
