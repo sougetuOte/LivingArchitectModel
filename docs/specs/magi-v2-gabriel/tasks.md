@@ -78,8 +78,8 @@ terminology.md §3 ペア 3「Wave は整数または「整数.5」形式」の�
 
 #### Stage 1 検証タスク
 
-- [ ] **T-S1-1**: Spike 完了記録（OQ-W-C-1 and OQ-W-C-6 の技術確認結果をドキュメント化 / `.claude/.session-spike-w-c-1.md` として記録 / BUILDING 着手時に参照）
-- [ ] **T-S1-2**: L3 (Haiku) 採点 Green State（両 Spike タスクの根拠が十分か / 実装実現性あるか）
+- [x] **T-S1-1**: Spike 完了記録（OQ-W-C-1 and OQ-W-C-6 の技術確認結果をドキュメント化 / `.claude/.session-spike-w-c-1.md` として記録 / BUILDING 着手時に参照）— 2026-07-04 完了 (T1/T2 両セクション記載)
+- [x] **T-S1-2**: L3 (Haiku) 採点 Green State（両 Spike タスクの根拠が十分か / 実装実現性あるか）— 2026-07-04 L1 直採点 Green (Critical=0 / Warning=0)。Sonnet L2 が literal interpretation で meta-response 早期終了する failure mode を実測し、hga-summoning.md § 委譲先モデル選定 (Sonnet 5 除外 / Opus primary) を裏付け
 
 #### Stage 1 ゲート条件
 
@@ -191,8 +191,8 @@ terminology.md §3 ペア 3「Wave は整数または「整数.5」形式」の�
 
 **注記**: 本 Wave (V-4 非登録) では §3.5 は tasks.md 内チェックボックス管理 SSOT として機能する / Stage ゲート条件（§3 各節）と二重管理となるため、完了判定時はいずれか一方に統一して実施すること
 
-- [ ] WC-B5-T1: OQ-W-C-6 Spike（タイムアウト検出機構） @sonnet
-- [ ] WC-B5-T2: OQ-W-C-1 Spike（gabriel コンテキスト分離度） @sonnet
+- [x] WC-B5-T1: OQ-W-C-6 Spike（タイムアウト検出機構） @sonnet — 2026-07-04 完了。結論: 呼び出し元計測（Claude Code に wall-clock timeout API なし / maxTurns は turn-based bound）
+- [x] WC-B5-T2: OQ-W-C-1 Spike（gabriel コンテキスト分離度） @sonnet — 2026-07-04 完了。結論: 部分分離（会話履歴は isolated だが CLAUDE.md 継承あり / 委譲プロンプト設計での bias 防御が必要）
 - [ ] WC-B5-T3: gabriel.md subagent スペック実装 @sonnet
 - [ ] WC-B5-T4: gabriel 出力契約テスト @sonnet
 - [ ] WC-B5-T5: MAGI フロー統合設計 @sonnet
