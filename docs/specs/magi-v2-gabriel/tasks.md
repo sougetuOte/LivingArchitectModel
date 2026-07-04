@@ -93,7 +93,7 @@ terminology.md §3 ペア 3「Wave は整数または「整数.5」形式」の�
 
 | Task ID | 内容 | 規模 | SPIDR 軸 | 担当層 |
 |:--------|:-----|:----|:--------|:------|
-| **WC-B5-T3** | gabriel.md フロントマター + system prompt 初版（upstream-first: `.claude/agents/` 公式ドキュメント確認後 / spec-critic.md / goal-driven-grader.md を参考形式として採用 / model=Sonnet 確定 / design.md §3 JSON スキーマを prompt に埋め込み） | M | Interface + Data | Sonnet (L2) |
+| **WC-B5-T3** | gabriel.md フロントマター + system prompt 初版（upstream-first: `.claude/agents/` 公式ドキュメント確認後 / `.claude/agents/goal-driven-grader.md` を主参考形式として採用（project-local 実在ファイル）/ 補助参考として global の `spec-critic` agent 型 (project-local .md 不在 = future-candidates FC-1 に記録) / model=Sonnet 確定 / design.md §3 JSON スキーマを prompt に埋め込み） | M | Interface + Data | Sonnet (L2) |
 | **WC-B5-T4** | gabriel 出力契約テスト（6 フィールド JSON 生成能力の確認テスト / 複数 stub MAGI 結論に対する gabriel 出力を検証 / AC-W-C-3 / 型・フィールド完備・クロスフィールド制約の基本チェック） | M | Paths | Sonnet (L2) |
 
 #### Stage 2 検証タスク

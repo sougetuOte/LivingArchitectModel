@@ -169,10 +169,71 @@ Do not filter for importance or confidence at this stage - a separate verificati
 do that. Your goal here is coverage.
 ```
 
-### 技術制約: flat fan-out のみ
+### Sonnet L2 委譲時の追加防御 (2026-07-04 実測に基づく追加)
 
-Fable subagent は **1 レベル深さのみ、nested 不可**（2026-06 コミュニティ実測 / digitalapplied.com）。
-「Fable → Opus → Sonnet」の 3 段チェーンは実行されない。必ず flat fan-out（Fable → Opus 直接）で構成する。
+**背景**: 2026-07-04 の Wave C Spike で Sonnet L2 subagent (`model="sonnet"`) が
+meta-response 早期終了する failure mode を実測。「the agent is running in the background /
+I'll wait for it to complete」型の応答で早期終了し、実作業は孫 subagent (spawnDepth 2) に
+丸投げされる。**Sonnet 5 の literal interpretation 特性 + v2.1.198 以降の
+「subagent が既定 background 実行」の組み合わせが原因と推定**。
+
+**対策 (C + A の組み合わせ)**:
+
+**C (構造的)**: Sonnet 委譲時は frontmatter で nested spawn を封じる:
+
+```yaml
+# .claude/agents/<sonnet-executor>.md 内
+disallowedTools: [Agent]  # 孫 subagent spawn を封じ、Sonnet に「自分でやる」以外の選択肢を残さない
+```
+
+または委譲プロンプト側で明示的に指示:
+
+```
+You are the executor. You do NOT have permission to delegate this task to another subagent.
+Complete all work in your own context and return the deliverable directly.
+```
+
+**A (保険的)**: Sonnet 委譲プロンプトの冒頭に boilerplate 追加:
+
+```
+You are the DIRECT EXECUTOR for this task. Do not describe your intent to work "in the
+background" — you ARE the background worker. Do not delegate further. Write results
+directly to the requested file/format before ending your turn.
+```
+
+**適用範囲**: HGA 下調べパイプラインの Sonnet 委譲だけでなく、通常の 3.5 層委譲モデル
+(L1 Opus / L2 Sonnet / L3 Haiku) の L2 委譲にも適用推奨。
+
+### 技術制約: subagent depth 制限 = 5 (2026-07-04 訂正)
+
+**訂正**: 本節の旧記述「Fable subagent は 1 レベル深さのみ・nested 不可」は誤情報だった。
+根拠として引用した digitalapplied.com（2026-06）の該当記述は、少なくとも 2026-07 時点の
+Claude Code v2.1.197 では成立しない。公式仕様および実測結果は以下:
+
+**公式仕様** (https://code.claude.com/docs/en/sub-agents 「Nested subagents」節):
+> Depth is counted as the number of subagent levels below the main conversation, regardless
+> of whether each level runs in the foreground or background. **A subagent at depth five
+> doesn't receive the Agent tool and can't spawn further.** The limit is fixed and not
+> configurable.
+
+**実測** (2026-07-04 Wave C Spike): Sonnet L2 subagent (depth 1) が孫 subagent (depth 2) を
+正常に spawn し、孫が実作業を完遂した事例を確認 (`.claude/.session-spike-w-c-1.md` 参照)。
+
+**現行運用ガイド**: 技術的には depth 5 まで spawn 可だが、**実運用では depth 1 (flat fan-out)
+を推奨**する。理由:
+
+- 深さが増えるほど各段の failure mode (meta-response 早期終了 / literal 過剰解釈等) が
+  積み重なり、最終成果物への到達確度が低下する
+- コスト・レイテンシが線形以上に増える (実測: 孫 subagent は 32-158 秒とばらつきが大)
+- 統合コストが増える (L1 が全 depth の中間結果を統合する必要)
+- Fable HGA 召喚の下調べパイプラインでは **Fable brief → Opus subagent (depth 1) 直接**
+  で構成し、Opus 内での nested spawn は不要 (Opus が Read/WebFetch 等を直接使う)
+
+**例外的に depth 2+ を許容するケース**:
+- コスト最適化のため大型探索を Sonnet に arbitration させ、実 retrieval を孫 (Opus 等) が担う場合
+- ただしこの構成は本規律の「Sonnet 委譲時の追加防御」§ で述べた failure mode の影響を受けやすい
+- 深さ 2 以上を採用する際は必ず Sonnet 側に `disallowedTools: [Agent]` を設定するか、
+  L1 が孫の完走を明示的にモニタリングする体制を組む
 
 ### コスト構造
 
