@@ -1,0 +1,8 @@
+{
+  "verdict": "refuted",
+  "severity": "warning",
+  "affected_atoms": [],
+  "reasoning": "この fixture は FR-W-C-6 のクロスフィールド制約違反を意図的に再現するための不正データである。verdict が refuted に設定されているにもかかわらず affected_atoms が空配列であり、影響 Atom が特定できていない。gabriel の根拠品質要件は、どの Atom に問題があるかを明示できない refute を禁止することで、根拠のない異議申し立てを構造的に排除する設計であり、本 fixture はその制約が正しく機能するかを検証する目的で作成されている。",
+  "recommended_action": "re-magi",
+  "confidence": 0.7
+}

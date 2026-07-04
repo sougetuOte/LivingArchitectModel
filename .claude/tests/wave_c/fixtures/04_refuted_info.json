@@ -1,0 +1,8 @@
+{
+  "verdict": "refuted",
+  "severity": "info",
+  "affected_atoms": ["A1"],
+  "reasoning": "Atom A1 の命名（gabriel の rubric 観点を表す語として「境界条件」を採用している点）は仕様上の誤りではないが、既存 06_DECISION_MAKING.md の用語体系と完全には一致しておらず、将来的な用語統一作業（terminology.md 準拠）の際に軽微な表記揺れとして扱われる可能性がある。結論のロジック自体には影響しない些末な指摘であり、記録のみで十分と判断する。CASPAR の統合結論を変更する必要は認められない。",
+  "recommended_action": "proceed",
+  "confidence": 0.55
+}

@@ -1,0 +1,8 @@
+{
+  "verdict": "refuted",
+  "severity": "warning",
+  "affected_atoms": ["A2"],
+  "reasoning": "Atom A2 の結論（Sonnet 起動コストは AoT 適用時のみに限定すれば十分に抑制できる）は、NFR-W-C-5 の実測評価が BUILDING 後 retro に委ねられている点を踏まえると、現時点では検証未了の楽観的前提に依拠している。致命的な矛盾ではないが、コスト超過が継続した場合の代替策（Haiku 降格等）が結論内で具体化されておらず、リスクとして残存している。CASPAR の判断自体を破棄するほどではないが、警告として結論に併記し、L1 統括の最終確認を促すべきと判断する。",
+  "recommended_action": "proceed",
+  "confidence": 0.62
+}

@@ -1,0 +1,8 @@
+{
+  "verdict": "inconclusive",
+  "severity": "info",
+  "affected_atoms": [],
+  "reasoning": "gabriel の応答が NFR-W-C-1 に定める 60 秒のレスポンス時間を超過したため、呼び出し元（MAGI フロー実行者）がタイムアウトとして検出し、本 fixture が示す inconclusive 相当のフォールバック値を生成した。この経路では gabriel 自身が実際に判定を返したわけではなく、design.md §5 のタイムアウトテンプレートに従い機械的に inconclusive として扱われる。CASPAR の判断は維持され、再 MAGI は実施しない運用とする。",
+  "recommended_action": "proceed",
+  "confidence": 0.0
+}

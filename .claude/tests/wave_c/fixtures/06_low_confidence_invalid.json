@@ -1,0 +1,8 @@
+{
+  "verdict": "confirmed",
+  "severity": "info",
+  "affected_atoms": [],
+  "reasoning": "この fixture は FR-W-C-6 のクロスフィールド制約違反を意図的に再現するための不正データである。confidence が 0.3 未満であるにもかかわらず verdict が confirmed に設定されており、validator はこの組み合わせを拒否しなければならない。gabriel の根拠品質要件は、確信度が低い場合に断定的な判定を許さないことで暴走を防止する設計であり、本 fixture はその制約が正しく機能するかを検証する目的で作成されている。",
+  "recommended_action": "proceed",
+  "confidence": 0.25
+}

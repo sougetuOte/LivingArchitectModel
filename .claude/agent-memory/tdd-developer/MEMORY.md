@@ -17,3 +17,4 @@
 - [B-5 W6 Stage 4 統合テスト実装](project_b5_w6_stage4_integration.md) — T42・MCP skip 5 件(疑似コード残置)・自動 4 件(HTML 500KB/CSS 10KB/外部参照 regex 3 種/ファイル数 20-35)・22 件ファイル PASS
 - [B-5 W7 Stage 1 影響分析](project_b5_w7_stage1_impact.md) — TasksParser regex 厳格化・実データ 378 件誤抽出確認・test_tasks_parser.py L306/L340/L387 破損リスク・test_v4_view.py は影響なし
 - [B-5 W7 T53a Stage 3 milestones テスト](project_b5_w7_t53a_stage3_milestones.md) — article/milestones-container 構造テスト 10 件・_render_v2_milestones() 直接呼び出し・T51 完了で即 PASS・test_v2_view.py 7 件は T51 起因 FAIL（T53b で対処）
+- [B-5 Wave C Stage 2 gabriel 実装](project_b5_wc_stage2_gabriel.md) — gabriel.md subagent + 出力契約テスト16件・クロスフィールド制約は専用バリデータで例外送出・Spike T2 bias防御文言埋め込み・jsonschema導入済み確認

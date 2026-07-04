@@ -1,0 +1,8 @@
+{
+  "verdict": "refuted",
+  "severity": "critical",
+  "affected_atoms": ["A1", "A3"],
+  "reasoning": "Atom A1 の前提（AoT 適用条件を満たす全ケースで gabriel が確実に起動される）が、Atom A3 の結論（opt-out 経路が AUTONOMOUS フェーズでも成立しうる）と論理的に矛盾している。ADR-0005 FR-9.1 の趣旨（自律エンジンは自身の統治への書込権限を持たない）に照らすと、A3 の結論のままでは自律ループが gabriel を実質的に迂回できてしまうリスクがある。この矛盾は Convergence 段階で解消されておらず、CASPAR の統合結論にそのまま持ち越されている。仕様の安全性に直結する見落としであり、再検討が必要と判断する。",
+  "recommended_action": "re-magi",
+  "confidence": 0.78
+}
