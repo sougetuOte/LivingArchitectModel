@@ -18,10 +18,13 @@ from dashboard.parsers.base import BaseParser
 _TASK_ID_RE = re.compile(r"W(\d+(?:\.\d+)?)-([A-Z])(\d+)-T(\d+)")
 
 # フォールバック抽出パターン（タスク ID が存在しない書式の SESSION_STATE.md 対応）
-# Milestone: B-5, B-4 等（大文字 1 文字 + ハイフン + 数字）
-_FALLBACK_MILESTONE_RE = re.compile(r"\b(B-\d+)\b")
-# Wave: "Wave 7", "Wave 1.5" 等
+# Milestone: B-5, R-1 等（大文字 1 文字 + ハイフン + 数字 / R-1 W-R1 S1 T6 で B → [A-Z] に拡張）
+# 拡張根拠: rule-001 パターン発火 3 回目 (2026-07-06) 対策 / Fable→Opus 実装ギャップ #1 恒久解
+_FALLBACK_MILESTONE_RE = re.compile(r"\b([A-Z]-\d+)\b")
+# Wave: "Wave 7", "Wave 1.5" 等（既存）
 _FALLBACK_WAVE_RE = re.compile(r"\bWave\s+(\d+(?:\.\d+)?)\b")
+# Wave (ハイフン記法): "W-R1", "W-R2" 等（R-1 W-R1 S1 T6 で追加 / W-<Letter><Num> 形式）
+_FALLBACK_WAVE_HYPHEN_RE = re.compile(r"\bW-([A-Z]\d+(?:\.\d+)?)\b")
 
 # セクション見出しパターン（## または ###）
 _SECTION_RE = re.compile(r"^#{2,3}\s+(.+)$", re.MULTILINE)
@@ -248,11 +251,12 @@ class SessionStateParser(BaseParser):
 
         seen_wave_nums: set[str] = set()
         wave_nums: list[str] = []
-        for m in _FALLBACK_WAVE_RE.finditer(content):
-            num = m.group(1)
-            if num not in seen_wave_nums:
-                seen_wave_nums.add(num)
-                wave_nums.append(num)
+        for regex in (_FALLBACK_WAVE_RE, _FALLBACK_WAVE_HYPHEN_RE):
+            for m in regex.finditer(content):
+                num = m.group(1)
+                if num not in seen_wave_nums:
+                    seen_wave_nums.add(num)
+                    wave_nums.append(num)
 
         waves: list[WaveInfo] = []
         seen_waves: set[tuple[str, str]] = set()

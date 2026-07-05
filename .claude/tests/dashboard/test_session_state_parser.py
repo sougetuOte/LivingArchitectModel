@@ -684,6 +684,78 @@ def test_parse_real_session_state_contains_wave():
     assert len(waves) >= 1
 
 
+def test_fallback_milestone_regex_matches_r_series():
+    """R-1 W-R1 S1 T6: fallback milestone regex が R-N 系を捕捉 (旧 B-N 専用の恒久解)."""
+    from dashboard.parsers.session_state import _FALLBACK_MILESTONE_RE
+
+    content = "現在の Milestone は R-1 (前 Milestone = B-5)。"
+    matches = [m.group(1) for m in _FALLBACK_MILESTONE_RE.finditer(content)]
+    assert "R-1" in matches
+    assert "B-5" in matches
+
+
+def test_fallback_milestone_regex_matches_any_letter_prefix():
+    """R-1 W-R1 S1 T6: [A-Z]-N の任意 1 文字 prefix を捕捉 (将来の命名体系変更に耐性)."""
+    from dashboard.parsers.session_state import _FALLBACK_MILESTONE_RE
+
+    for token in ["A-1", "B-5", "C-10", "R-1", "S-3", "Z-99"]:
+        content = f"context {token} context"
+        matches = [m.group(1) for m in _FALLBACK_MILESTONE_RE.finditer(content)]
+        assert token in matches, f"{token} not captured by _FALLBACK_MILESTONE_RE"
+
+
+def test_fallback_wave_hyphen_regex_matches_w_r_series():
+    """R-1 W-R1 S1 T6: fallback wave regex が W-R1 系 (ハイフン記法) を捕捉."""
+    from dashboard.parsers.session_state import _FALLBACK_WAVE_HYPHEN_RE
+
+    content = "W-R1 S1 T6 進行中。W-R2 は次 Wave。"
+    matches = [m.group(1) for m in _FALLBACK_WAVE_HYPHEN_RE.finditer(content)]
+    assert "R1" in matches
+    assert "R2" in matches
+
+
+def test_fallback_wave_regex_still_matches_plain_wave():
+    """R-1 W-R1 S1 T6: 旧 "Wave N" 記法も引き続き捕捉 (後方互換)."""
+    from dashboard.parsers.session_state import _FALLBACK_WAVE_RE
+
+    content = "Wave 1 完了。Wave 1.5 で fix。Wave 8 が最終。"
+    matches = [m.group(1) for m in _FALLBACK_WAVE_RE.finditer(content)]
+    assert "1" in matches
+    assert "1.5" in matches
+    assert "8" in matches
+
+
+def test_parse_r_series_synthetic_session_state(tmp_path):
+    """R-1 W-R1 S1 T6: R-N milestone + W-R N wave のみの SESSION_STATE.md を parse できる.
+
+    「B-5 Wave 8」応急措置に依存せず R-1 系表記のみで milestones/waves が抽出されることを保証。
+    """
+    from dashboard.parsers.session_state import SessionStateParser
+
+    session_content = (
+        "# SESSION_STATE\n"
+        "\n"
+        "**現在の Milestone**: R-1 (大規模レビュー & リファクタリング)\n"
+        "\n"
+        "## 進行中タスク\n"
+        "- W-R1 S1 T6: rule-001 拡張中\n"
+        "\n"
+        "## 次のステップ\n"
+        "- W-R1 S1 T7: Stage 末 ship\n"
+    )
+    session_file = tmp_path / "SESSION_STATE.md"
+    session_file.write_text(session_content, encoding="utf-8")
+
+    parser = SessionStateParser(tmp_path)
+    result = parser.parse()
+
+    assert result["ok"] is True
+    milestone_names = [m.name for m in result["data"]["milestones"]]
+    assert "R-1" in milestone_names
+    wave_nums = [w.wave_number for w in result["data"]["waves"]]
+    assert "R1" in wave_nums
+
+
 def test_parse_real_session_state_has_valid_data_structure():
     """実 SESSION_STATE.md のパース結果が正しいデータ構造を持つこと。"""
     from dashboard.models import MilestoneInfo, WaveInfo
