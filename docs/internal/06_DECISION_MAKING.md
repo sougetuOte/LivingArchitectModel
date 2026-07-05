@@ -136,9 +136,11 @@ flowchart TD
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│ Step 4: Reflection（振り返り — 1回限り）                │
-│   全員で結論を検証。致命的な見落としがあれば修正。      │
-│   なければ確定。                                        │
+│ Step 4: gabriel Adversarial Probe（AoT 適用時のみ）     │
+│   独立コンテキストで動作する gabriel subagent が        │
+│   CASPAR の結論を外部視点から adversarial verification  │
+│   軽量モード (非 AoT) では起動しない (FR-W-C-3 MUST NOT)│
+│   詳細: §6 / .claude/skills/magi/SKILL.md §Step 4       │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
@@ -184,10 +186,15 @@ flowchart LR
 
 ---
 
-### Reflection
+### gabriel probe（AoT 適用時のみ / 軽量モードでは省略）
 
-致命的な見落とし: なし → 結論確定
-（or: 致命的な見落とし: [内容] → 結論修正: [修正内容]）
+- verdict: [confirmed / refuted / inconclusive]
+- severity: [critical / warning / info]
+- confidence: [0.0-1.0]
+- affected_atoms: [Atom 識別子リスト]
+- reasoning: [gabriel の判定理由]
+- recommended_action: [proceed / re-magi / abort]
+- 処理: verdict に応じて Step 5 へ / 詳細分岐は SKILL.md §Step 4.1
 
 ---
 
@@ -201,37 +208,79 @@ flowchart LR
 2. [アクション2]
 ```
 
-## 6. Reflection（振り返りステップ）
+## 6. gabriel Adversarial Probe（AoT 適用時のみ / 旧 Reflection）
 
-MAGI Debate（Step 1-3）で CASPAR が結論を下した後、全員で結論を検証する。
+MAGI Debate（Step 1-3）で CASPAR が結論を下した後、**AoT 適用モード** では独立コンテキストで動作する **gabriel subagent** が adversarial verification を実施する。
 
-### 6.1. 目的
+### 6.1. 背景 — Reflection からの置換
 
-結論に致命的な見落としがないかを最終確認する。
-Multi-Agent Reflexion (MAR) の研究に基づき、ペルソナベースの振り返りが推論品質を向上させることが示されている。
+B-4 監査（2026-06-19）実機計測: 旧 Reflection の初回変更率 0%（全 7 件「致命的な見落とし: なし → 結論確定」）で「無効な安全網」であったことが判明した。根本原因は Step 3（CASPAR）直後の同一文脈再処理による入力同一問題。Wave C（骨子 ②）で構造的解決として、独立 subagent による adversarial probe に置換した（ADR-0007 Accepted 2026-07-02）。
 
-### 6.2. ルール
+### 6.2. Step 番号体系
 
-- **修正条件**: 致命的な見落とし（セキュリティ、データ損失、仕様違反）が見つかった場合のみ結論を修正する
-- **Bikeshedding 防止**: 「もっと良い案がある」程度では覆さない
-- **回数制限**: Reflection は最大 1 回。Reflection の Reflection は禁止
-- **出力**: 見落としの有無を必ず明示する
+- **AoT 適用モード**: Step 0（AoT Decomposition）→ Step 1（Divergence）→ Step 2（Debate）→ Step 3（Convergence / CASPAR 完結）→ **Step 4（gabriel probe）** → Step 5（AoT Synthesis）
+- **軽量モード（非 AoT）**: Step 1（Divergence）→ Step 2（Debate）→ Step 3（Convergence / 直接結論確定）/ **Step 4-5 は存在しない**
 
-### 6.3. 出力フォーマット
+軽量モードで gabriel は起動しない（FR-W-C-3 MUST NOT）。MAGI ログ冒頭で必ずモード（AoT または 軽量）を宣言する。
 
-見落としなしの場合:
-```
-### Reflection
-致命的な見落とし: なし → 結論確定
-```
+### 6.3. AoT フレームワークの温存
 
-見落としありの場合:
-```
-### Reflection
-致命的な見落とし: [具体的な内容]
-→ 結論修正: [修正後の結論]
-```
+本改訂で AoT Decomposition（§5.1-5.3 の Atom 定義・適用判断・適用条件）は **無改変** で保存される（NFR-W-C-6 MUST NOT）。gabriel は AoT Synthesis の結論を入力として受け取る位置に挿入されるのみで、AoT 自体には手を加えない。
 
-### 6.4. 参照
+### 6.4. gabriel の役割
 
-- [Multi-Agent Reflexion (MAR)](https://arxiv.org/html/2512.20845)
+CASPAR の統合結論を **そのまま正としてではなく**、結論に至った前提・根拠・棄却された代替案を独立に再検証する（FR-W-C-1）。
+
+**プローブ観点（rubric 5 観点）**:
+
+1. **論理的一貫性**: 各 Atom の結論に矛盾がないか
+2. **仕様整合**: CASPAR の結論が既存仕様（`docs/specs/` / `docs/internal/`）と矛盾しないか
+3. **リスク見落とし**: MELCHIOR / BALTHASAR が検討していない重大なリスクの有無
+4. **前提検証**: AoT Decomposition の Atom 依存関係が結論に反映されているか
+5. **境界条件**: 結論が適用できないエッジケース（スコープ外・例外）が未記録ではないか
+
+### 6.5. gabriel 出力契約
+
+6 フィールド JSON（design.md §3 詳細）:
+
+- `verdict`: `confirmed` / `refuted` / `inconclusive`
+- `severity`: `critical` / `warning` / `info`
+- `affected_atoms`: Atom 識別子リスト（`verdict=refuted` 時は非空必須）
+- `reasoning`: 判定理由（200-1000 字）
+- `recommended_action`: `proceed` / `re-magi` / `abort`
+- `confidence`: 0.0-1.0（0.3 未満は `verdict=inconclusive` 強制）
+
+### 6.6. 失敗時挙動（3 段階 + 追加）
+
+- **critical (初回)**: 再 MAGI 1 ラウンド（gabriel.reasoning を Divergence 入力に追加）
+- **critical (2 回目)**: 人間 escalation（AC-W-C-7 / 上限 1 回）
+- **warning**: MAGI 結論に指摘併記 + 警告ラベル
+- **info**: 記録のみ / MAGI 結論不変
+- **abort** (recommended_action=abort): 即時人間 escalation（verdict/severity 問わず）
+- **inconclusive / timeout / format_error**: MAGI 結論を確定（inconclusive 注記添付）
+
+分岐優先順位（MUST）: **abort > critical > warning > info > confirmed > inconclusive**
+
+### 6.7. 実装 SSOT + テスト
+
+- **実装 SSOT**: `.claude/scripts/magi_dispatch.py`（`resolve_action()` + `render_log_entry()` + `should_run_gabriel()` + `OptOutRecord` + `GateDecision`）
+- **統合テスト**: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (26 件) + `test_wave_c_e2e_integration.py` (21 件) + `test_wave_c_gabriel_output.py` (16 件)
+- **月次メトリクス**: `docs/artifacts/gabriel-metrics-environment-2026-07-05.md`（JSONL 12 フィールド）
+
+### 6.8. opt-out 経路
+
+以下 2 条件を **すべて** 満たす場合のみスキップ可能:
+
+1. opt-out 理由を MAGI ログに 1 文以上記録
+2. **ユーザー（L1 統括）** がスキップを明示
+
+**AUTONOMOUS フェーズでの自律ループ実行者の opt-out は却下**（ADR-0005 FR-9.1 統治への自己書込禁止）。試行された場合は MAGI ログに「opt-out 試行 / 却下」を記録し、通常通り gabriel probe を実施する。
+
+### 6.9. 参照
+
+- `.claude/skills/magi/SKILL.md`（skill 定義 / L1 宣言的仕様）
+- `docs/specs/magi-v2-gabriel/{requirements,design}.md` v0.4.0
+- `docs/adr/0007-magi-v2-gabriel-integration.md`（Accepted 2026-07-02）
+- `docs/adr/0005-thin-harness-autonomous-governance.md` FR-9.1（AUTONOMOUS ガード）
+- `.claude/agents/gabriel.md`（subagent 実装 / commit `6880421`）
+- [Multi-Agent Reflexion (MAR) - 旧 Reflection の学術背景](https://arxiv.org/html/2512.20845)

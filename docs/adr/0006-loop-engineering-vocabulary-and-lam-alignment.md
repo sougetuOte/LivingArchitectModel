@@ -78,7 +78,7 @@
 | verifier / evaluator gate | L3 採点（`goal-driven-grader` 等） | termination 判定者 |
 | termination condition + verifier rubric | `rubric.md` | 文献の「完了条件」に相当する LAM 独自の構造化定義 |
 | context engineering | `CLAUDE.md` / `.claude/rules/` / `MEMORY.md` 重層 | LAM 固有の多層化による実装 |
-| debate among specialists | 3 Agents Model（MAGI） | Reflection を gabriel に統合予定（②） |
+| debate among specialists | 3 Agents Model（MAGI） | MAGI v2 で gabriel adversarial probe を verifier として統合済（Wave C / 2026-07-05 / ADR-0007 Accepted） |
 | （文献に該当なし・人間との接面） | L1 統括 | LAM 固有のレイヤー。最終承認権と方向性維持を人間が担う |
 
 > **注意**: 本 Glossary は 2026-06-21 時点の対応関係である。Loop Engineering 用語は造語・流動的であり、今後改訂される場合は本 ADR を更新するか後続 ADR で差分を記録すること。
