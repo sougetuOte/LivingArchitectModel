@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING** (**R-1 PLANNING COMPLETE / BUILDING 遷移候補**)
+**BUILDING** (**R-1 BUILDING 着手 / W-R1 S1 開始判断待ち**)
 
-_R-1 PLANNING 完了（2026-07-05）。全 3 spec Approved: requirements.md (541 行) + design.md (898 行) + tasks.md (350 行) = 合計 1789 行。MAGI 4 Atom 合議 (retry 1) + gabriel 2 回発火 (両方 refuted/warning) + HGA #5 (R-1 スコープ crux) + HGA #6 (design.md adversarial review) + spec-critic 3 回 (requirements/design/tasks) = 3 段+HGA の adversarial 検証済。5 Wave × 87 Task 展開 (W-R1 監査 read-only / W-R2 dashboard refactor / W-R3 規律 SSOT 統合 / W-R4 削除・改名 / W-R5 最終監査 + gabriel + code-review ultra)。次セッションで BUILDING 遷移判断 (W-R1 S1 着手 or 変更) 予定。_
+_R-1 BUILDING 遷移 (2026-07-06)。全 3 spec Approved 確認済 (requirements/design/tasks)。W-R1 S1 (T1..T6) から開始予定 = inventory + G1-G5 baseline + rule-001 拡張前倒し + verify script + 循環依存 baseline。開始 task はユーザー判断待ち。_
 
 ## 履歴
 
@@ -14,7 +14,8 @@ _R-1 PLANNING 完了（2026-07-05）。全 3 spec Approved: requirements.md (541
 | BUILDING | 2026-06-27 | 2026-06-28 | Wave 7 BUILDING Stage 1〜4（completed / Lighthouse 97 / Green State 4 連続 / retro 完了 / HEAD 4258c8a） |
 | PLANNING | 2026-06-28 | 2026-07-02 | Wave 8+ PLANNING（D → B → A → C 順 / 4 件 design + tasks 全て Phase 6 PM 一括承認） |
 | BUILDING | 2026-07-04 | 2026-07-05 | B-5 BUILDING 完走（Wave 8 全 Stage + gabriel Wave C 全 Stage / 487 PASS + 14 SKIP / retro 完了 / B-5 Milestone COMPLETE / HEAD 93032da） |
-| **PLANNING** | **2026-07-05** | **2026-07-05** | **R-1 PLANNING 完了（大規模レビュー & リファクタリング / requirements + design + tasks 全 Approved / MAGI+gabriel+HGA+spec-critic 3 段 adversarial 検証済 / 5 Wave × 87 Task 展開）** |
+| PLANNING | 2026-07-05 | 2026-07-05 | R-1 PLANNING 完了（大規模レビュー & リファクタリング / requirements + design + tasks 全 Approved / MAGI+gabriel+HGA+spec-critic 3 段 adversarial 検証済 / 5 Wave × 87 Task 展開） |
+| **BUILDING** | **2026-07-06** | **-** | **R-1 BUILDING 遷移（W-R1 S1 T1..T6 開始判断待ち / Fable-authored spec を Opus が実装する最初の実測機会 → Fable→Opus 実装ギャップ観測対象）** |
 
 ---
 

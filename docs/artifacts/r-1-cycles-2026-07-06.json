@@ -1,0 +1,14 @@
+{
+  "generated_at": "2026-07-06",
+  "source_inventory": "docs/artifacts/r-1-inventory-2026-07-06.json",
+  "target_modules": [
+    "1",
+    "2",
+    "5"
+  ],
+  "file_count": 93,
+  "edge_count": 109,
+  "registry_size": 162,
+  "cycles": [],
+  "cycle_count": 0
+}

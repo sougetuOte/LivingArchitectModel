@@ -2,9 +2,9 @@
   "feature": "large-scale-review",
   "milestone": "R-1",
   "description": "B-5 期累積資産（dashboard / MAGI v2 / HGA / TDD 内省 v2 / 3.5 層委譲 等）の独立レビュー & リファクタリング。MAGI 4 Atom + gabriel probe 実運用初発火 + HGA 型 Fable 召喚を意図的に組み込む。",
-  "phase": "PLANNING",
-  "current_task": "R-1 PLANNING 完了 / BUILDING 遷移候補 (次セッション判断)",
-  "phase": "PLANNING_COMPLETE",
+  "phase": "BUILDING",
+  "current_task": "W-R1 S1 開始判断待ち (T1..T6)",
+  "building_entered_at": "2026-07-06T00:00:00Z",
   "status": {
     "requirements": "approved",
     "design": "approved",
