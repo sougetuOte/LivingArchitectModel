@@ -168,15 +168,15 @@ requirements.md §5 / design.md §10 で確定した パイロット運用に従
 
 ### Wave 8 実装タスク（V-4 表示対象）
 
-- [ ] W8-B5-T100: 既存テスト影響分析 @sonnet
-- [ ] W8-B5-T101: merger.py + MilestoneProvider + MilestoneSourceMerger 実装 @sonnet
-- [ ] W8-B5-T102: build_dashboard.py Merger 呼び出し追加 @sonnet
-- [ ] W8-B5-T103: Stage 1 単体テスト新設 @sonnet
-- [ ] W8-B5-T104: DashboardBuilder "unknown" バッジ対応 @sonnet
-- [ ] W8-B5-T105: V-2/V-4 SSOT 一致確認テスト @sonnet
-- [ ] W8-B5-T106: tasks.md 由来 Milestone 反映テスト @sonnet
-- [ ] W8-B5-T107: 既存テスト期待値更新 @sonnet
-- [ ] W8-B5-T108: CSS 予算確認 @sonnet
+- [x] W8-B5-T100: 既存テスト影響分析 @sonnet
+- [x] W8-B5-T101: merger.py + MilestoneProvider + MilestoneSourceMerger 実装 @sonnet
+- [x] W8-B5-T102: build_dashboard.py Merger 呼び出し追加 @sonnet
+- [x] W8-B5-T103: Stage 1 単体テスト新設 @sonnet
+- [x] W8-B5-T104: DashboardBuilder "unknown" バッジ対応 @sonnet
+- [x] W8-B5-T105: V-2/V-4 SSOT 一致確認テスト @sonnet
+- [x] W8-B5-T106: tasks.md 由来 Milestone 反映テスト @sonnet
+- [x] W8-B5-T107: 既存テスト期待値更新 @sonnet
+- [x] W8-B5-T108: CSS 予算確認 @sonnet
 - [ ] W8-B5-T109: Stage 4 統合テスト @sonnet
 - [ ] W8-B5-T110: L1 Lighthouse + ユーザー確認 @human
 
