@@ -178,7 +178,7 @@ requirements.md §5 / design.md §10 で確定した パイロット運用に従
 - [x] W8-B5-T107: 既存テスト期待値更新 @sonnet
 - [x] W8-B5-T108: CSS 予算確認 @sonnet
 - [x] W8-B5-T109: Stage 4 統合テスト @sonnet
-- [ ] W8-B5-T110: L1 Lighthouse + ユーザー確認 @human
+- [x] W8-B5-T110: L1 Lighthouse + ユーザー確認 @human
 
 ### Wave 8 検証タスク（V-4 抽出対象外 / 太字記法維持）
 
