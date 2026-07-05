@@ -200,8 +200,8 @@ terminology.md §3 ペア 3「Wave は整数または「整数.5」形式」の�
 - [ ] WC-B5-T7: 06_DECISION_MAKING.md 改訂 @sonnet
 - [ ] WC-B5-T8: decision-making.md 改訂 @sonnet
 - [ ] WC-B5-T9: ADR-0006 Glossary 追記 @sonnet
-- [ ] WC-B5-T10: 統合テスト（E2E） @sonnet
-- [ ] WC-B5-T11: メトリクス計測環境検出 @sonnet
+- [x] WC-B5-T10: 統合テスト（E2E） @sonnet
+- [x] WC-B5-T11: メトリクス計測環境検出 @sonnet
 
 ---
 

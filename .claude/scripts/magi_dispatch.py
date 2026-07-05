@@ -306,3 +306,108 @@ def render_log_entry(
         )
 
     raise ValueError(f"Unknown action: {action!r}")
+
+
+# ═════════════════════════════════════════════════════════════
+# gabriel probe 起動判定 (opt-out gate / Wave C Stage 5 T10)
+# ═════════════════════════════════════════════════════════════
+
+Phase = Literal["standard", "AUTONOMOUS"]
+
+GateAction = Literal["run", "skip_lightweight", "skip_opt_out", "reject_opt_out"]
+
+
+@dataclass(frozen=True)
+class OptOutRecord:
+    """gabriel probe の opt-out 宣言記録。
+
+    Attributes:
+        reason: opt-out の理由 (1 文以上必須 / SKILL.md §Step 4.2)
+        declarer: opt-out 宣言者 ("user" / "L1" / "autonomous")
+    """
+
+    reason: str
+    declarer: Literal["user", "L1", "autonomous"]
+
+
+@dataclass(frozen=True)
+class GateDecision:
+    """should_run_gabriel() の判定結果。
+
+    Attributes:
+        gate_action: 起動判定コード
+        should_run: True の場合 gabriel を起動 / False の場合スキップ
+        log_message: MAGI ログに記録すべきメッセージ (1 行)
+    """
+
+    gate_action: GateAction
+    should_run: bool
+    log_message: str
+
+
+def should_run_gabriel(
+    is_aot_mode: bool,
+    opt_out: OptOutRecord | None,
+    phase: Phase = "standard",
+) -> GateDecision:
+    """gabriel probe を起動すべきかを判定する。
+
+    起動判定 (SKILL.md §Step 4 + §Step 4.2 準拠):
+        1. 非 AoT (軽量モード) → skip (FR-W-C-3 MUST NOT / gabriel は AoT 適用時のみ起動)
+        2. AoT + opt_out=None → run (通常経路)
+        3. AoT + opt_out (declarer=user/L1 + reason 非空) → skip (§Step 4.2 opt-out 経路)
+        4. AoT + opt_out (declarer=autonomous / AUTONOMOUS フェーズ) → reject (ADR-0005 FR-9.1)
+        5. AoT + opt_out (reason 空) → run (opt-out 記録不備 / FR-W-C-4 MUST NOT)
+
+    Args:
+        is_aot_mode: AoT 適用モードなら True / 軽量モードなら False
+        opt_out: opt-out 宣言記録 / なしの場合は None
+        phase: 実行フェーズ ("standard" or "AUTONOMOUS")
+
+    Returns:
+        GateDecision
+    """
+    if not is_aot_mode:
+        return GateDecision(
+            gate_action="skip_lightweight",
+            should_run=False,
+            log_message="MAGI 軽量モード: gabriel probe は起動しない (FR-W-C-3 MUST NOT)。",
+        )
+
+    if opt_out is None:
+        return GateDecision(
+            gate_action="run",
+            should_run=True,
+            log_message="AoT 適用 MAGI: gabriel probe を起動する。",
+        )
+
+    if not opt_out.reason.strip():
+        return GateDecision(
+            gate_action="run",
+            should_run=True,
+            log_message=(
+                "opt-out 記録不備 (reason 空): FR-W-C-4 MUST NOT により却下 / "
+                "gabriel probe を通常通り起動する。"
+            ),
+        )
+
+    if phase == "AUTONOMOUS" or opt_out.declarer == "autonomous":
+        return GateDecision(
+            gate_action="reject_opt_out",
+            should_run=True,
+            log_message=(
+                "opt-out 試行 / 却下: AUTONOMOUS フェーズまたは自律ループ実行者の "
+                "opt-out 宣言は ADR-0005 FR-9.1 により無効 / "
+                "gabriel probe を通常通り起動する。"
+            ),
+        )
+
+    return GateDecision(
+        gate_action="skip_opt_out",
+        should_run=False,
+        log_message=(
+            f"gabriel opt-out 受理 (宣言者: {opt_out.declarer} / "
+            f"理由: {opt_out.reason[:80]}): "
+            "gabriel probe をスキップする。"
+        ),
+    )

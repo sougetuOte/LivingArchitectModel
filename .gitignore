@@ -53,6 +53,9 @@ docs/daily/
 .claude/last-test-result
 .claude/.session-pm-edit-cache.json
 **/test-results.xml
+# gabriel probe メトリクスログ (Wave C Stage 5 T11 / NFR-W-C-4 / NFR-W-C-5)
+# `*.log` パターンで既に ignore されるが明示のため列挙
+.claude/gabriel-metrics.log
 
 # Reference materials
 _reference/
