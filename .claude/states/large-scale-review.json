@@ -1,0 +1,53 @@
+{
+  "feature": "large-scale-review",
+  "milestone": "R-1",
+  "description": "B-5 期累積資産（dashboard / MAGI v2 / HGA / TDD 内省 v2 / 3.5 層委譲 等）の独立レビュー & リファクタリング。MAGI 4 Atom + gabriel probe 実運用初発火 + HGA 型 Fable 召喚を意図的に組み込む。",
+  "phase": "PLANNING",
+  "current_task": "R-1 PLANNING 完了 / BUILDING 遷移候補 (次セッション判断)",
+  "phase": "PLANNING_COMPLETE",
+  "status": {
+    "requirements": "approved",
+    "design": "approved",
+    "tasks": "approved"
+  },
+  "approvals": {
+    "requirements": "2026-07-05T00:00:00Z",
+    "design": "2026-07-05T00:01:00Z",
+    "tasks": "2026-07-05T00:02:00Z"
+  },
+  "artifacts": {
+    "plan_draft": "docs/artifacts/future-large-scale-review-plan-2026-07-05.md",
+    "requirements": "docs/specs/large-scale-review/requirements.md",
+    "design": "docs/specs/large-scale-review/design.md",
+    "tasks": "docs/specs/large-scale-review/tasks.md"
+  },
+  "wave_structure_draft": [
+    "W-R1: 監査 (Read-only) + MAGI + HGA スポット (必要時)",
+    "W-R2: dashboard 領域 refactor (builder.py 分割等)",
+    "W-R3: 規律 SSOT 統合 (rules × internal × adr の相互矛盾解消)",
+    "W-R4: hooks / agents 整理 (未使用 agent 削除判断 PM 級)",
+    "W-R5: 最終監査 (gabriel + code-review ultra + Lighthouse 再測定)"
+  ],
+  "magi_atoms_planned": [
+    "Atom 1: 監査スコープ = widescan vs layered",
+    "Atom 2: リファクタリング = in-place vs fork-then-merge",
+    "Atom 3: 破壊的変更許容範囲",
+    "Atom 4: W-R1 監査粒度 (ファイル / モジュール / 責務)"
+  ],
+  "hga_envelope": {
+    "actual_dollar_limit": "10-40 USD (Fable brief 分のみ)",
+    "opus_quota_weekly_cap": "20% 以内",
+    "fable_week_deadline": "2026-07-08 (Max 枠期限)"
+  },
+  "resolved_decisions": [
+    "Milestone 命名 = R-1 (Refactoring シリーズ / ユーザー承認 2026-07-05)"
+  ],
+  "open_decisions": [
+    "MAGI Atom 1-4 の結論",
+    "HGA 召喚回数上限",
+    "破壊的変更ガードレール",
+    "未使用 agent の削除判定基準"
+  ],
+  "completed_tasks": [],
+  "createdAt": "2026-07-05T00:00:00Z"
+}

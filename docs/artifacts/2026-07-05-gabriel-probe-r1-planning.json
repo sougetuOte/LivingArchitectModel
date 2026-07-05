@@ -1,0 +1,8 @@
+{
+  "verdict": "refuted",
+  "severity": "warning",
+  "affected_atoms": ["A1", "A4"],
+  "reasoning": "4 Atom 間の依存整合（A1→A4, A1/A4→A3, A3→A2）自体は論理的に妥当で、仕様（permission-levels.md / code-quality-guideline.md）との明確な矛盾もない。しかし2点の前提検証漏れを確認した。第一に A4「8モジュール分類」は計画書 §2.1-2.2 の実スコープを網羅していない。.claude/scripts/ には dashboard 以外に gd_guard.py・magi_dispatch.py・hga_usage.py 等の独立スクリプト群が実在し、さらに .claude/skills/（27+ SKILL.md、magi・full-review 等の中核オーケストレータ含む）が8分類のどこにも属さない。第二に hga-summoning.md は「2026-07-07までPro/Max weekly limit 50%枠」「以降クレジット従量移行」と明記するが、現在日付2026-07-05でR-1着手時期を考えるとPhase 2 (HGA召喚)がこの移行境界を跨ぐ可能性が高いにも関わらず、A2/Phase2設計にこの制約が一切反映されていない。加えてBALTHASARがA1で指摘した「消化率追跡」懸念はCASPARが「監査アウトプット様式で吸収」としたのみで、追加条件（Critical/Warning/Info分類+帰責先）は静的分類であり進捗追跡機構を含まず、実質未回収。severity=criticalに至るバグ・データ損失リスクではないため warning とする。",
+  "recommended_action": "re-magi",
+  "confidence": 0.72
+}

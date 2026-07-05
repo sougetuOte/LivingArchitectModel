@@ -30,6 +30,27 @@ Fable 5 への全召喚を追記する記録簿。目的は 2 点:
 
 | 4 | 2026-07-03 | spec/design 初期 (グローバル ~/.claude 統治設計 / 無条件召喚ゾーン = 不可逆設計コミット + 複数ドメイン統合 / ユーザー明示指示) | 通常 (スポット召喚 / 索引 push + 実装コード禁止縛り) | ブリーフ実効 ~4.5k / **API 総 tok 130,598 (#5 実測 tool_uses 0)** | **0** (資料要求なし・索引 push で自己完結判断) | **$1.84-$2.08 (#5 補正 / 出力欠損補正込)** ※#4 は tool_uses=0 の記録破損ケース (下記 #5 メモ参照) | etm-diary 是正依頼: スキル衝突解消方式 (A+B ハイブリッド) / バックアップ戦略 (運命別 3 分割 + default-deny allowlist) / 統治不変条件 (構成的 5 条 I-1〜I-5) |
 
+| 5 | 2026-07-05 | spec/design 初期 (R-1 大規模レビュー スコープ確定 / 無条件召喚ゾーン = spec/design 初期の設計軸確定 / ユーザー明示指示 = MAGI + gabriel 2 round 後の HGA 追加召喚提案承認) | 通常 (スポット召喚 / 索引 push + 事実収集 L1 完了 + 実装コード禁止縛り / #4 パターン準拠) | ブリーフ実効 ~6.5k / subagent_tokens 83,890 / tool_uses 4 (自力 pull で SKILL.md 実件数照合等) | **0** (資料要求なし) | **~$2-5 圏想定** (jsonl 実測は次日以降 / #4 型パターン準拠) | R-1 PLANNING crux 5 分岐 (Green State 追加 3 二値条件 R-G6/G7/G8 / 11 番目モジュール = ルート統治文書 / scope creep 予防 (d) 合成 + 昇格基準 / HGA スケジュール 3 回構成 #5/#6/#7 / unknown-unknown 5 件検出) |
+
+| 6 | 2026-07-05 | spec/design 初期 (R-1 design.md adversarial review / 無条件召喚ゾーン = 不可逆な設計コミット直前 / ユーザー明示指示 = 「HGA に敵対的レビューをしてもらってください」) | 通常 (スポット召喚 / 索引 push + 事実収集 L1 完了 + 実装コード禁止縛り / #4 パターン準拠) | ブリーフ実効 ~8k / subagent_tokens 128,935 / tool_uses 5 (現環境実測 = pydeps 未インストール / 最古 jsonl 2026-06-06 / `.claude/scripts/__init__.py` 不在 の実測 3 件) | **0** (資料要求なし) | **~$3-6 圏想定** (jsonl 実測は次日以降 / #4 型パターン準拠 / tool_uses 5 は #5 の 4 とほぼ同帯) | R-1 design.md crux 5 分岐 + unknown-unknown 3 件検出。特に **Critical 級 3 件を実測ベースで確定**: (a) pydeps 現環境未インストール + scripts/hooks 非パッケージ (自作 AST 反転) / (b) session log 30 日窓 (cleanupPeriodDays 既定 = 実測整合) → FR-F4 90 日設計を再定義 / (c) skills 検出は subagent_type ではない (Skill tool 別フィールド) → module 3 全 skills が偽陽性削除リスク |
+
+## day-1 実測メモ (召喚 #6 / 通常モード / 2026-07-05)
+
+- **実測ベース Critical 検出**: Fable が現環境で 3 件を実測 (pydeps + graphviz + networkx 全欠 / 最古 jsonl 2026-06-06 = 30 日窓 / `__init__.py` 不在) → design.md の 3 件の設計前提が実装時に破綻する Critical リスクを即座に潰した
+- **spec-critic (Sonnet 級) では捕捉不能**: 環境実測 + Claude Code CLI 深い実装知識 (session log 保持仕様 / Skill tool の起動記録フィールド分離 / grep bare-name + ADR flat 参照抜け) を要する指摘は Sonnet 級では原理的に困難
+- **リナンバー drift の指摘**: 本召喚により当初計画の #6 (W-R1 監査結果検証) は #7 に、#7 (W-R3 SSOT) は #8 にスライド → design §10 で反映 (承認前に drift 修正)
+- **envelope 監視**: 4 召喚合算想定 = 通常経路 $8-17 / Level 2 経路 $10-20 / Level 3 経路 $13-25。月次上限 $40 に依然余裕
+- **含意**: 環境依存要件が仕様に含まれる場合 (pydeps/session log/hook 経路 等) は MAGI では拾えず HGA が Critical レビュー経路として正当。純構造仕様のみなら spec-critic + MAGI で足りる (今後の運用指針)
+
+## day-1 実測メモ (召喚 #5 / 通常モード / 2026-07-05)
+
+- **crux 命中率 100% + 追加検出 5 件**: 5 crux 全てで分岐点と根拠が返却 + Fable が自力 pull 4 回 (SKILL.md 実件数 23 件・agents 実件数 12 件 の実測照合) で **L1 ブリーフ自体のインベントリ drift** を検出 → 「W-R1 冒頭のファイルシステム inventory 再生成を必須タスク化」を crux 提示
+- **既存憲法の再引用で新機構削減**: Non-Goals + deferred の合成 (planning-quality-guideline §3 + green-state-definition §4) を「新規制度ではなく既存の憲法適用」で解けと差し戻し。scope creep 予防を新機構ゼロで実現
+- **カレンダー駆動 → ゲート駆動へ修正**: HGA スケジュールは「7/7 期限が動かすのは前倒し対象のみ / ゲート該当外の追加召喚は不要 / W-R5 は召喚しない (検証は gabriel の実質貢献領域)」に整理
+- **11 番目モジュール発見**: `CLAUDE.md` + `CHEATSHEET.md` = ルート統治文書 (blast radius 最大 / 現分類では監査漏れ) を module 11 として独立化。`.claude/settings*.json` は module 5 に併合改称。`SESSION_STATE.md` (gitignore 済揮発資産) + `docs/artifacts/` (歴史記録・不変) は明示的 Non-Goals
+- **A2 in-place 前提の破綻可能性を指摘**: W-R2 (dashboard) は 424 テスト保護下だが、W-R3/W-R4 の対象 (rules/skills/agents = prose) には回帰網がなく **G1 は無内容に PASS する** → R-G7 (参照解決チェック) を Stage 末 smoke test の必須部品に組み込まないと A2 前提が崩れる
+- **含意**: #4 型パターン (事実収集 L1 完了 + 索引 push + 分岐点のみ) の 3 例目実証 (tool_uses 4 / 往復 0)。#3 型の 17 tool_uses と比較して 1/4 のコスト効率で同等以上の crux 命中
+
 ## day-1 実測メモ (召喚 #4 / 通常モード / 2026-07-03)
 
 - **#2 往復抑制 = 実証 3 例目**: 索引 push により Fable は追加資料要求 0 回で 3 分岐点を判断 (tool_uses 0 = ブリーフ内自己完結)。前 3 例と異なり自力 pull すら不要だった (事実収集を L1 が完了済みで渡したため)。

@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING**
+**PLANNING** (**R-1 PLANNING COMPLETE / BUILDING 遷移候補**)
 
-_B-5 BUILDING 着手（2026-07-04 午後 / Wave 8 + gabriel Wave C Stage 2 並行）。Wave 8 Stage 1 (T100-T103 / MilestoneSourceMerger) と gabriel Wave C Stage 2 (WC-B5-T3/T4 / gabriel.md 実装 + 出力契約テスト) を 2 名の Sonnet L2 (tdd-developer) に並行分配。触るファイル完全分離 (dashboard/** vs .claude/agents/gabriel.md + .claude/tests/wave_c/**)。委譲時規律: `disallowedTools: [Agent]` (tdd-developer は元々 Agent なし) + "DIRECT EXECUTOR" boilerplate 適用済。次工程: Wave 8 Stage 2 (T104-T106) + gabriel Wave C Stage 3 (T5-T6 / PM 級 SKILL.md 改訂で事前承認要)。_
+_R-1 PLANNING 完了（2026-07-05）。全 3 spec Approved: requirements.md (541 行) + design.md (898 行) + tasks.md (350 行) = 合計 1789 行。MAGI 4 Atom 合議 (retry 1) + gabriel 2 回発火 (両方 refuted/warning) + HGA #5 (R-1 スコープ crux) + HGA #6 (design.md adversarial review) + spec-critic 3 回 (requirements/design/tasks) = 3 段+HGA の adversarial 検証済。5 Wave × 87 Task 展開 (W-R1 監査 read-only / W-R2 dashboard refactor / W-R3 規律 SSOT 統合 / W-R4 削除・改名 / W-R5 最終監査 + gabriel + code-review ultra)。次セッションで BUILDING 遷移判断 (W-R1 S1 着手 or 変更) 予定。_
 
 ## 履歴
 
@@ -13,7 +13,8 @@ _B-5 BUILDING 着手（2026-07-04 午後 / Wave 8 + gabriel Wave C Stage 2 並�
 | PLANNING | 2026-06-27 | 2026-06-27 | Wave 7 PLANNING 完了（v0.2.1 PM 一括承認 / spec-critic 3 回レビュー反映） |
 | BUILDING | 2026-06-27 | 2026-06-28 | Wave 7 BUILDING Stage 1〜4（completed / Lighthouse 97 / Green State 4 連続 / retro 完了 / HEAD 4258c8a） |
 | PLANNING | 2026-06-28 | 2026-07-02 | Wave 8+ PLANNING（D → B → A → C 順 / 4 件 design + tasks 全て Phase 6 PM 一括承認） |
-| **BUILDING** | **2026-07-04** | — | **B-5 BUILDING 着手（Wave 8 Stage 1 T100-T103 + gabriel Wave C Stage 2 T3-T4 並行）** |
+| BUILDING | 2026-07-04 | 2026-07-05 | B-5 BUILDING 完走（Wave 8 全 Stage + gabriel Wave C 全 Stage / 487 PASS + 14 SKIP / retro 完了 / B-5 Milestone COMPLETE / HEAD 93032da） |
+| **PLANNING** | **2026-07-05** | **2026-07-05** | **R-1 PLANNING 完了（大規模レビュー & リファクタリング / requirements + design + tasks 全 Approved / MAGI+gabriel+HGA+spec-critic 3 段 adversarial 検証済 / 5 Wave × 87 Task 展開）** |
 
 ---
 
