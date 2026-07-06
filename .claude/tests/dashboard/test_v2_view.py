@@ -340,3 +340,65 @@ def test_render_v2_contains_h2_heading(make_milestone):
     milestone = make_milestone()
     html = _make_builder(milestones=[milestone]).render()
     assert "<h2>" in html, "V-2 セクションに <h2> 見出しが見つかりません。"
+
+
+# ─────────────────────────────────────────────
+# XSS 対策（R1-002 / html.escape 漏れ修正）
+# ─────────────────────────────────────────────
+
+
+_XSS_PAYLOAD = "<script>alert(1)</script>"
+_XSS_PAYLOAD_ESCAPED = "&lt;script&gt;alert(1)&lt;/script&gt;"
+
+
+def test_render_v2_milestone_name_is_escaped(make_milestone):
+    """Milestone 名に XSS ペイロードが含まれる場合、html.escape() でエスケープされること。
+
+    対応 issue: docs/artifacts/r-1-audit-tracker.md #R1-002
+    （_render_v2_milestones() で ms.name が html.escape() なしで interpolate されている）
+    """
+    milestone = make_milestone(name=_XSS_PAYLOAD)
+    html = _make_builder(milestones=[milestone]).render()
+    assert _XSS_PAYLOAD_ESCAPED in html, (
+        "Milestone 名の XSS ペイロードがエスケープされていません。\n"
+        f"期待: {_XSS_PAYLOAD_ESCAPED!r} が HTML に含まれること。"
+    )
+    assert _XSS_PAYLOAD not in html, (
+        "Milestone 名に生の <script> タグが出力されています（XSS 脆弱性）。"
+    )
+
+
+def test_render_v2_current_phase_is_escaped(make_milestone):
+    """current_phase に XSS ペイロードが含まれる場合、html.escape() でエスケープされること。
+
+    対応 issue: docs/artifacts/r-1-audit-tracker.md #R1-002
+    （_render_v2_milestones() で current_phase が html.escape() なしで interpolate されている）
+    """
+    milestone = make_milestone(name="B-5")
+    html = _make_builder(
+        milestones=[milestone], current_phase=_XSS_PAYLOAD
+    ).render()
+    assert _XSS_PAYLOAD_ESCAPED in html, (
+        "current_phase の XSS ペイロードがエスケープされていません。\n"
+        f"期待: {_XSS_PAYLOAD_ESCAPED!r} が HTML に含まれること。"
+    )
+    assert _XSS_PAYLOAD not in html, (
+        "current_phase に生の <script> タグが出力されています（XSS 脆弱性）。"
+    )
+
+
+def test_render_v2_status_is_escaped(make_milestone):
+    """ms.status に XSS ペイロードが含まれる場合、html.escape() でエスケープされること。
+
+    対応 issue: docs/artifacts/r-1-audit-tracker.md #R1-002
+    （_render_v2_milestones() で ms.status が html.escape() なしで interpolate されている）
+    """
+    milestone = make_milestone(name="B-5", status=_XSS_PAYLOAD)
+    html = _make_builder(milestones=[milestone]).render()
+    assert _XSS_PAYLOAD_ESCAPED in html, (
+        "status の XSS ペイロードがエスケープされていません。\n"
+        f"期待: {_XSS_PAYLOAD_ESCAPED!r} が HTML に含まれること。"
+    )
+    assert _XSS_PAYLOAD not in html, (
+        "status に生の <script> タグが出力されています（XSS 脆弱性）。"
+    )

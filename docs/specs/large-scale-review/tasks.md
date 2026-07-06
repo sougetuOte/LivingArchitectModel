@@ -155,7 +155,7 @@
 | **W-R2-S4-T1** | 残 Warning 抽出 (module 1/2/4 の Warning 全件) | FR-1 | S3 完了 | L1 | リスト作成 | - |
 | **W-R2-S4-T2** | Warning 消化 | FR-3 | S4-T1 | L2 Sonnet | module 1/2/4 Warning = 0 | WIP × N |
 | **W-R2-S4-T3** | 認知複雑度・重複コード観測値記録 (`docs/artifacts/r-1-observations-2026-07-*.md`) | NFR-1 補足 | S4-T2 | L1 | observations.md 起票 | WIP |
-| **W-R2-S4-T4** | tracker 更新 + Wave 完了 ship | - | S4-T2/T3 | L1 | `[R-1 W-R2 COMPLETE]` + 487 PASS + 14 SKIP + G1-G5 維持 | **Wave 末 ship** |
+| **W-R2-S4-T4** | tracker 更新 + Wave 完了 ship | - | S4-T2/T3 | L1 | `[R-1 W-R2 COMPLETE]` + 579 PASS + 14 SKIP (実測 / 旧 487 は W-R1 計画時 baseline) + G1-G5 維持 | **Wave 末 ship** |
 
 **Wave 完了ゲート**: module 1/2/4 の Critical = 0 + Warning = 0 (**W-R3/R4 送り裁定分 = R1-030・R1-056 を除く** / 2026-07-07 更新) / 576 PASS + 14 SKIP 以上維持 (旧 487 は W-R1 計画時 baseline) / observations.md 完備
 
