@@ -192,7 +192,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **responsibility_tag**: `dashboard-ui`
 - **attribution**: `self`
 - **status**: `closed` (2026-07-07 / W-R2 S4)
-- **closed_by_commit**: `<TBD-in-W-R2-S4-T4-ship>`
+- **closed_by_commit**: `16b367f`
 - **resolution**: `_render_v2_milestones` の 3 フィールド全て (`ms.name` = data-milestone 属性 + h3 / `current_phase` = span.step / `ms.status` = span.status) に `html.escape()` 適用。Red 実証: `<script>alert(1)</script>` 合成値 3 テスト (`test_render_v2_*_is_escaped`) が修正前 FAIL (生 script 混入を実測) → Green 27 PASS (conftest.py の make_milestone fixture 使用 = R1-031 成果物の初回再利用)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/scripts/dashboard/builder.py`
@@ -205,7 +205,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **responsibility_tag**: `dashboard-ui`
 - **attribution**: `self`
 - **status**: `closed` (2026-07-07 / W-R2 S4 / **第一歩完了で closed 裁定** — evidence_summary の消化条件 = CSS/JS 切出しを充足 / 残るビュー分割は issue ではなく W-R5 retro 議題として引継)
-- **closed_by_commit**: `<TBD-in-W-R2-S4-T4-ship>`
+- **closed_by_commit**: `16b367f`
 - **resolution**: 推奨修正方針通り CSS/JS 静的合成を `.claude/scripts/dashboard/static_assets.py` (441 行 / `render_style()` + `render_script()`) へそのまま移動。builder.py 側は thin delegate 化 (呼び出し箇所ゼロ変更) で **936 行 (git HEAD 実測 / 起票時 921 は旧時点) → 539 行**。**byte-identical 検証済** (before/after 17,193 bytes / diff IDENTICAL)。579 PASS + 14 SKIP 維持。V1-V4 ビュー分割は W-R5 retro 議題 (observations.md 2026-07-07 §3 参照)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/scripts/dashboard/builder.py`
