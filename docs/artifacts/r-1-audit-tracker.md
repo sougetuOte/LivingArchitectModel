@@ -166,7 +166,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **status**: **`closed`** (2026-07-06 / W-R2 S1 T3-T4 経由 / HGA #8 crux + L2 Sonnet TDD 実装 + HGA #9 adversarial verify 完了)
 - **opened_at**: 2026-07-06
 - **closed_at**: 2026-07-06
-- **closed_by_commit**: `<TBD-in-W-R2-S1-T5-ship>`
+- **closed_by_commit**: `34c0035`
 - **evidence_file**: `.claude/scripts/dashboard/builder.py`
 - **evidence_line**: 703-711
 - **evidence_summary**: `if task_id in line:` は素の部分文字列マッチ。`task_id="W1-B5-T1"` は `line="- W1-B5-T10: ..."` に一致するため、T1/T10, T2/T20 等の接頭辞衝突で誤ステータス伝播。既存テストは接頭辞衝突をカバーせず。design.md §5 「完全一致前提」との黙示的仕様不一致。
@@ -241,7 +241,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **status**: **`closed`** (2026-07-06 / W-R2 S1 T3-T4 経由 / HGA #8 crux + L2 Sonnet TDD 実装 + HGA #9 adversarial verify 完了)
 - **opened_at**: 2026-07-06
 - **closed_at**: 2026-07-06
-- **closed_by_commit**: `<TBD-in-W-R2-S1-T5-ship>`
+- **closed_by_commit**: `34c0035`
 - **severity_history**: initial Warning (2026-07-06) → Critical (2026-07-06 HGA #7 verdict A-2) → **closed as Critical (2026-07-06 W-R2 S1 T4)**
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 37-39 (`_W_R3_PAT_RULES_PATH`) + 43-44 (パターン 3 も同型)
