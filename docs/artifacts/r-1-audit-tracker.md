@@ -350,7 +350,7 @@
 - **status**: **`closed`** (前倒し消化 / W-R1 期に優先度高判断)
 - **opened_at**: 2026-07-06
 - **closed_at**: 2026-07-06
-- **closed_by_commit**: (次 ship で埋め / TDD Red-Green 完了 / 10 テスト新規 PASS)
+- **closed_by_commit**: `8c00786` (TDD Red-Green 完了 / 10 テスト新規 PASS)
 - **evidence_file**: `.claude/hooks/pre-tool-use.py`
 - **evidence_line**: 163-181 (特に 170-179)
 - **evidence_summary**: `command == pg_prefix or command.startswith(pg_prefix + " ")` prefix マッチ後、`_PG_BLACKLISTED_ARGS` (フラグ名のみ) を走査するのみで `;` / `&&` / `||` / `|` / `` ` `` / `$(` の shell 連結・置換演算子を検査しない。例: `ruff format x.py; rm -rf /tmp` は settings.json L4-32 allow (`Bash(ruff format *)`) にも合致し、hook も PG (auto-allow) を返すため両層で通過。コード自身が pre-tool-use.py L65-70 で「settings.json の粗いワイルドカードを hook 側で精密フィルタする二重防御」と明記しており設計意図と実装が乖離。
@@ -533,7 +533,7 @@
 - **status**: **`closed`** (前倒し消化 / W-R1 期に優先度高判断 = 実運用で gabriel abort 判定損失リスク解消)
 - **opened_at**: 2026-07-06
 - **closed_at**: 2026-07-06
-- **closed_by_commit**: (次 ship で埋め / 6 fields + 分岐優先順位追記)
+- **closed_by_commit**: `8c00786` (6 fields + 分岐優先順位追記)
 - **evidence_file**: `docs/internal/06_DECISION_MAKING.md`, `.claude/rules/decision-making.md`
 - **evidence_line**: 06 L242-251 (§6.5 gabriel 出力契約 6 fields) / decision-making.md L59-64 (gabriel probe 出力フォーマット 4 items)
 - **evidence_summary**: 親 SSOT 06 は gabriel 出力契約を **6 fields** と明記: `verdict/severity/affected_atoms/reasoning/recommended_action/confidence`。`affected_atoms` (verdict=refuted 時非空必須) と `recommended_action` (proceed/re-magi/abort 分岐制御必須 / §6.6 失敗時挙動が abort/critical/warning/info 分岐に依存) を含む。しかし実行時ロードされる要約版 `.claude/rules/decision-making.md` の Output Format には **4 items のみ** (verdict/severity/confidence/reasoning) 記載で、**分岐制御に必須の 2 fields が欠落**。要約版のみ参照する実行時に abort 判定が抜け落ちるリスク。
