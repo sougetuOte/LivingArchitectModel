@@ -490,7 +490,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **responsibility_tag**: `test-hygiene`
 - **attribution**: `self`
 - **status**: `closed` (2026-07-07 / W-R2 S3)
-- **closed_by_commit**: `<TBD-in-W-R2-S3-T4-ship>`
+- **closed_by_commit**: `6e0bb66`
 - **resolution**: `.claude/tests/dashboard/conftest.py` 新設 (factory fixture 3 種 / models.py フィールド定義準拠の既定値)。**計測基準の訂正**: 起票時「87 箇所」は型名の grep -c 言及回数ベースで、実際の手動構築呼び出し (`Name(` 形式) は 52 箇所 — うち 49 箇所を fixture 移行、3 箇所 (test_base_parser.py のモデル仕様直接検証テスト 3 件) は例外規則で意図的残置。ローカル重複ヘルパー (`_make_milestone` / `_make_wave` / `_make_task` / builder 系) を全廃し正味 -71 行 (7 ファイル変更 + conftest.py 新規 / 3 ファイルは手動構築なしと実測判明で無変更)。ファイル単位の段階検証 + 全体 576 PASS + 14 SKIP + 0 FAIL 維持 (件数不変) / L1 独立再走で一致確認
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/tests/dashboard/test_base_parser.py` (12 参照), `test_session_state_parser.py` (9), `test_tasks_parser.py` (10), `test_v2_view.py` (4), `test_v3_view.py` (13), `test_v4_view.py` (4), `test_wave6_stage2_sort.py` (3), `test_wave6_stage3_filter.py` (8), `test_wave6_stage4_integration.py` (19), `test_wave7_stage3_milestones.py` (5)
