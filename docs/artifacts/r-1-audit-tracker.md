@@ -25,41 +25,31 @@
 
 ## 2. モジュール別問題数ヒートマップ (11 × 3)
 
-**実測値埋め予定**: W-R1 S4 T4 (11 モジュール監査完了後)
-
-| モジュール | Critical | Warning | Info |
-|:----------|:--------:|:-------:|:----:|
-| 1. `.claude/scripts/dashboard/` | - | - | - |
-| 2. `.claude/scripts/` (外) | - | - | - |
-| 3. `.claude/skills/` (23 SKILL.md) | - | - | - |
-| 4. `.claude/tests/` | - | - | - |
-| 5. `.claude/hooks/` + `settings*.json` | - | - | - |
-| 6. `.claude/agents/` (12 件) | - | - | - |
-| 7. `.claude/rules/` (11 files + auto-generated/) | - | - | - |
-| 8. `docs/internal/` (00-07) | - | - | - |
-| 9. `docs/specs/` | - | - | - |
-| 10. `docs/adr/` | - | - | - |
-| 11. `CLAUDE.md` + `CHEATSHEET.md` | - | - | - |
-| **合計** | **-** | **-** | **-** |
-
-**W-R1 S3 完了** (module 5-8 埋め済み / S4 で module 9-11 + ヒートマップ完成予定):
+**W-R1 S4-T4 完成 (2026-07-06)**: 11 モジュール監査完了 → 33 セル実測値埋め済
 
 | モジュール | Critical | Warning | Info |
 |:----------|:--------:|:-------:|:----:|
 | 1. `.claude/scripts/dashboard/` | **1** | **2** | **5** |
 | 2. `.claude/scripts/` (外) | **0** | **3** | **5** |
-| 3. `.claude/skills/` | **0** | **3** | **2** |
+| 3. `.claude/skills/` (23 SKILL.md) | **0** | **3** | **2** |
 | 4. `.claude/tests/` | **0** | **2** | **3** |
 | 5. `.claude/hooks/` + `settings*.json` | **0** | **3** | **4** |
 | 6. `.claude/agents/` (12 件) | **0** | **3** | **2** |
-| 7. `.claude/rules/` + `auto-generated/` | **0** | **2** | **3** |
+| 7. `.claude/rules/` (11 files + auto-generated/) | **0** | **2** | **3** |
 | 8. `docs/internal/` (00-07) | **0** | **4** | **5** |
-| **8/11 累計** | **1** | **22** | **29** |
+| 9. `docs/specs/` (74 files / depth 制御) | **0** | **1** | **4** |
+| 10. `docs/adr/` (10 files) | **0** | **3** | **7** |
+| 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **2** | **3** |
+| **合計 (全 11 module)** | **1** | **28** | **43** |
+| **open** (前倒し 2 件 closed 除外) | **1** | **26** | **43** |
 
-**NFR-3 閾値超過確定** (spec-critic W5 対応 / retro §P2 補強):
-- 累計 Critical + Warning = **23 件** (module 8/11 時点 / 暫定閾値 10 の **2.3 倍超過**)
-- 線形外挿 (11/8): 11 モジュール完了時 **31-32 件想定**
-- **S5-T4 で条件分岐サブタスク起票必須** (「閾値超過時 = 優先順位付け sub-task 起票」)
+**NFR-3 閾値超過確定 (最終)** (spec-critic W5 対応):
+- 累計 Critical + Warning = **29 件** (open = 27 件)
+- 暫定閾値 10 の **2.9 倍超過** / 予測 (S3 線形外挿 31-32) に整合
+- **S5-T4 で条件分岐 sub-task 起票必須** (「閾値超過時 = 優先順位付け sub-task 起票」)
+- 実測ベース閾値提案: Critical 単独 3 件 or Critical + Warning 30 件 前後 (S5-T4 で MAGI 判断)
+
+**進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
 
 ---
 
@@ -593,17 +583,171 @@ _W-R1 S3 T3 (module 7 監査 / 11 files + auto-generated) で起票予定_
 
 _W-R1 S3 T4 (module 8 監査) で起票予定_
 
-### module 9: `docs/specs/`
+### module 9: `docs/specs/` (74 files / depth 制御)
 
-_W-R1 S4 T1 (module 9 監査) で起票予定_
+**監査完了**: 2026-07-06 (W-R1 S4 T1 / code-reviewer subagent + L1 監督 / **depth 3-tier 制御**)
+**集計**: Critical 0 / Warning 1 / Info 4 (subagent 集計 header 誤り W=4/I=3 → L1 実測 W=1/I=4 に訂正)
+**depth 分類**: Tier A 精読 15 files / Tier B 骨子スキャン 20 files / Tier C 存在確認 39 files
+**特記**: 74 files (15,396 行) の巨大モジュールを depth 制御で監査 → 主要 SSOT の drift 検出に集中し context 節約。**F-1 は 3 Milestone 横断の系統的 drift** (Rule of Three 該当 / 個別 spec 誤記ではなく Milestone クローズ運用の欠落) で W-R3 S4 一括修正候補。F-3 (v5-fat-reduction 反証記録) は W-R3 一括修正時の誤爆防止情報として起票価値高。
 
-### module 10: `docs/adr/`
+#### R1-046: 実装完了済み spec の親メタ「ステータス」が Draft のまま (3 Milestone 系統的 drift / Rule of Three)
+- **severity**: Warning
+- **responsibility_tag**: `spec-drift`
+- **attribution**: `self` (systematic / Milestone クローズ運用の欠落)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/specs/b4-dashboard/{design,requirements}.md`, `docs/specs/goal-driven-orchestration/{requirements,design,tasks,config}.md`, `docs/specs/magi-v2-gabriel/{requirements,design}.md`
+- **evidence_line**: 各ファイル冒頭 5-7 行目付近「ステータス」フィールド
+- **evidence_summary**: 3 独立 Milestone で「実装完了済み (tasks.md 本文 or 実コード確認済)」だが親仕様メタ status が未更新:
+  1. **b4-dashboard**: `design.md` = "Draft (Wave 9 設計反映 / PM 承認待ち)" だが `wave9/design.md` は "Approved (2026-07-02 Phase 6 PM 一括承認)" で Wave 1-9 全 Approved 済 (B-5 Milestone 完了確認済)。
+  2. **goal-driven-orchestration**: 4 files 全て "Draft (PM 承認待ち)" だが `tasks.md` L4-9 で「B-3 完了 / PM-G3 承認 2026-06-18」明記。実装 (`.claude/agents/goal-driven-*.md` 3 件 / `.claude/scripts/gd_*.py`) は module 2/6 で稼働確認済。
+  3. **magi-v2-gabriel**: `requirements.md` / `design.md` (v0.4.0) 全て "Draft" だが `tasks.md` は "Approved (2026-07-02 Phase 6 PM 一括承認)"。`.claude/agents/gabriel.md` は module 6 R1-036/R1-037 で稼働確認済 (`model: sonnet`)。
 
-_W-R1 S4 T2 (module 10 監査) で起票予定_
+  Rule of Three 該当 = 個別誤記でなく「Milestone クローズ時のメタ status 同期プロセス欠落」の運用 gap。
+- **推奨修正方針**: **W-R3 S4 (`docs/specs/` 一貫性修正)** で一括対応。各ファイル冒頭ステータス行を実態 (Approved + 承認日) に更新。**重要**: v5-fat-reduction も同じ Draft 表記だが実は未着手正常状態 (R1-I34 反証記録参照 / 誤爆防止)。**恒久対策**: `/ship` or Milestone クローズ時チェックリストに「関連 `docs/specs/*/requirements.md` + `design.md` のステータス行同期」追加 (rule 化候補 / W-R5 retro で判断)。
+
+#### R1-I33: `handoff-format.md` も同系統で "draft" のまま
+- **severity**: Info
+- **evidence_file**: `docs/specs/goal-driven-orchestration/handoff-format.md`
+- **evidence_line**: 2
+- **evidence_summary**: `**Status**: draft`。対応要件 AC-15 (FR-10) 実装済 (`lam-orchestrate` 接続稼働確認済 / `tasks.md` W6-T2 完了記録)。R1-046 と同根 → 一括対応で解消。
+
+#### R1-I34: v5-fat-reduction の "Draft" は正しい状態 (反証記録 / R1-046 の誤爆防止)
+- **severity**: Info
+- **responsibility_tag**: `false-positive-check`
+- **evidence_file**: `docs/specs/v5-fat-reduction/{requirements,design,tasks}.md`, `docs/artifacts/retro-B4-W1-W15-2026-06-20.md`
+- **evidence_line**: retro L83
+- **evidence_summary**: F-1 (R1-046) と同じ "Draft (PM 承認待ち)" 表記だが、実際は BUILDING 未実施 (tasks.md チェックボックス 57 中 3 のみ `[x]` / retro に「Wave 1 で完結 / Wave 2 存在せず」明記)。**W-R3 S4 での R1-046 対応時に誤って v5-fat-reduction を "Approved" 化しないよう注意** (逆 drift 発生防止)。
+
+#### R1-I35: `magi-skill-spec.md` (Tier C flat spec) の "draft" 表記が長期未更新
+- **severity**: Info
+- **evidence_file**: `docs/specs/magi-skill-spec.md`
+- **evidence_line**: 5
+- **evidence_summary**: `**ステータス**: draft` (作成日 2026-03-16)。`.claude/skills/magi/SKILL.md` は module 3 監査で orchestrator tier 稼働確認済。長期未更新 Tier C ファイルのため深追いせず Info 止。将来の docs/specs 棚卸し候補。
+
+#### R1-I36: `tdd-introspection-v2.md` の前提文書参照は実在確認済 (drift なし / positive observation)
+- **severity**: Info
+- **responsibility_tag**: `reference-integrity`
+- **evidence_file**: `docs/specs/tdd-introspection-v2.md`, `docs/design/v4.0.0-immune-system-design.md`
+- **evidence_line**: tdd-introspection-v2.md L6
+- **evidence_summary**: 「前提: v4.0.0 免疫系アーキテクチャ (`docs/design/v4.0.0-immune-system-design.md`)」参照は実ファイル存在確認済 (`ls` 実測)。R1-040 (module 8 で `docs/design/` が 00_PROJECT_STRUCTURE.md 未掲載を指摘) と根は同じだが本ファイル記述に誤りなし。**R1-040 対応で自動解消**。
+
+### module 10: `docs/adr/` (10 files / 1,580 行)
+
+**監査完了**: 2026-07-06 (W-R1 S4 T2 / code-reviewer subagent + L1 監督)
+**集計**: Critical 0 / Warning 3 / Info 7 (subagent 生 W=4/I=6 → L1 監督で F-4 「Wave C 表記」を Warning → Info 降格 / R1-I22 module 7 で同型を既に Info 起票済との一貫性)
+**特記**: ADR 特有の「決定の記録」性質上、Accepted 済決定への異議は原則起票禁止。W 3 件はいずれも「ADR 間相互参照 supersede 明記欠落」or「実装パス stale」の追跡性 (traceability) 問題。**F-1 が唯一「決定と実装の乖離」で優先度最高** (ADR-0001 Proposed 放置 + 決定内容の第2層が未実装)。
+
+#### R1-047: ADR-0001 が Proposed のまま約 4 ヶ月放置 + 決定内容の第2層 (prompt/haiku ハンドラ) が未実装
+- **severity**: **Warning** (優先度高 / 「決定と実装の乖離」)
+- **responsibility_tag**: `adr-status`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/adr/0001-model-routing-strategy.md`
+- **evidence_line**: 4, 38-44
+- **evidence_summary**: status = `Proposed` (2026-03-08 のまま)。決定内容 = 3 層ルーティング「第1層 パスベース (command型) / 第2層 内容ベース (prompt型 / haiku) / 第3層 深い検証 (agent型 / sonnet)」。実測: `.claude/settings.json` hooks 全 5 件 = `type: command` のみ、`.claude/hooks/pre-tool-use.py` 等は純粋 Python で LLM 呼び出しなし、grep で「第2層 prompt handler」の実装は一切見つからず未実装。実際のモデル出し分けは hooks 内 3 層カスケードではなく、`.claude/agents/*.md` frontmatter の `model:` 個別指定 (12 agents 実測済 / module 6 参照) という別アーキテクチャで実現。決定と実装が乖離しつつ ADR は Proposed → Accepted 審議も Superseded 記録もなし。
+- **推奨修正方針**: (a) ADR-0001 を Superseded とし、新規 ADR or 既存 ADR-0007/0009 に実装済モデル出し分け方針明記 or (b) ADR-0001 を Accepted へ正式遷移 + 「第2層は不採用 (subagent 個別指定で代替)」を改訂履歴に追記。**W-R3 S4 (docs/adr 整合修正)** で消化。
+
+#### R1-048: ADR-0008 が ADR-0004 (security-commands.md 決定元) を全面書き換えしつつ Supersede 明記なし (traceability gap)
+- **severity**: Warning
+- **responsibility_tag**: `superseded-not-noted`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/adr/0008-approval-gate-redesign.md`, `docs/adr/0004-bash-read-commands-allow-list.md`
+- **evidence_line**: 0008 L10 (関連 ADR: 0005/0006/0007 のみ), L185 (Phase A-6 `security-commands.md` 書き換え記述) / 0004 全文 (34 行 / 0008 前方参照なし)
+- **evidence_summary**: ADR-0004 (2026-03-12 Accepted) = `security-commands.md` の Read-Only コマンド無制限 allow 決定。ADR-0008 (2026-06-30 Accepted) Phase A-6 = 同一ファイル `security-commands.md` を反面教師制約 D1/D4 に基づき書き換え。しかし ADR-0008「関連 ADR」欄には 0005/0006/0007 のみで 0004 なし。実ファイル (`security-commands.md` L34) 確認で ADR-0004 決定内容 (`cat`/`grep` 等の無制限 allow) は結果的に維持されているため実害なしだが、後続読者が「ADR-0004 は ADR-0008 でどう扱われたか」を辿る手段が ADR 間参照になく追跡性欠落。
+- **推奨修正方針**: ADR-0008「関連 ADR」欄に ADR-0004 追加 + 軸5節に「Phase A-6 は ADR-0004 決定内容を継承しつつ反面教師制約で再文書化」等の 1 文追記。**W-R3 S4** で消化。
+
+#### R1-049: ADR-0003「結果」節の実装パス `.claude/commands/full-review.md` が現行 `.claude/skills/full-review/SKILL.md` と drift
+- **severity**: Warning
+- **responsibility_tag**: `spec-drift`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/adr/0003-context7-vs-webfetch.md`
+- **evidence_line**: 56
+- **evidence_summary**: 「`.claude/commands/full-review.md` — Phase 0.5 として context7 検出 + 警告ロジック追加済」記述だが、実測 (`ls .claude/commands/`) で当該ディレクトリ自体不在。実体は `.claude/skills/full-review/SKILL.md` に「Step 2: context7 MCP 検出」として存在 (内容自体はロジック的に整合 / grep 確認済)。commands→skills 全プロジェクト移行に ADR-0003 参照パスが追随せず。決定内容 (B 案: context7 優先 + WebFetch フォールバック) は正しく維持されているため実装破綻なし → Warning (Critical でない)。
+- **推奨修正方針**: ADR-0003 L56 参照パスを `.claude/skills/full-review/SKILL.md` (Step 2) に更新。**W-R3 S4** で他 ADR の同種 stale path と一括棚卸し。
+
+#### R1-I37: ADR-0006 / ADR-0007 に「Wave C」表記が terminology.md 適用後に残存 (R1-I22 と同型 legacy 引き継ぎ)
+- **severity**: Info (subagent 生 Warning → L1 監督で降格 / R1-I22 module 7 で同型を既に Info 起票済 = 一貫性)
+- **evidence_file**: `docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md`, `docs/adr/0007-magi-v2-gabriel-integration.md`
+- **evidence_line**: 0006 L81, L92-94 / 0007 L244, L249
+- **evidence_summary**: terminology.md §2 (2026-06-20 適用開始) は「Wave 1a 等のアルファベット混在禁止」。0006 L81「Wave C / 2026-07-05」、0007 L244「Wave C / 骨子②PLANNING」等が適用開始後の新規記述だが magi-v2-gabriel の Wave C 命名 (spec 側 legacy) を引き継いだ形。R1-I22 (`hga-summoning.md`) と同一パターン。terminology.md §5 経過措置により Info 起票許容範囲。
+- **推奨修正方針**: 次回該当 ADR 編集時に「Wave C」→ 正式 Milestone/Wave 番号 or 作業名に置換。**W-R3 で R1-I22 と一括対応** 推奨。
+
+#### R1-I38: ADR-0005 の FR-9.1 → FR-4.1a 自己訂正注記 = drift 解消好例 (positive observation)
+- **severity**: Info
+- **evidence_file**: `docs/adr/0005-thin-harness-autonomous-governance.md`
+- **evidence_line**: 238-243
+- **evidence_summary**: L238-243「注記: Accepted 後の整合修正 (2026-05-30)」で FR 番号更新を自己完結的に実施済。ADR-0007 L231 が ADR-0005 引用時は「Reflection 追補」内容のみ参照し FR 番号自体には触れず → 二次的 drift リスクなし。drift 解消好例の記録。
+
+#### R1-I39: ADR-0009 コスト実測 vs `hga-summoning.md` day-1 実測記述の整合 (positive observation)
+- **severity**: Info
+- **evidence_summary**: ADR-0009 day-1 実測 ($1.84〜$12.66) + ADR-0010 (2026-07-04) の HGA #4 実施記録が時系列上 ADR-0009 推奨枠内に収まり、`hga-summoning.md` day-1 実測チェックリスト (#1-#5) とも整合 (module 7 で drift 未検出)。
+
+#### R1-I40: ADR-0010 I-6 gabriel 配布経路と ADR-0007 実装スコープの整合 (positive observation)
+- **severity**: Info
+- **evidence_summary**: ADR-0010 I-6「gabriel 配布時に agents/ 追加 + version bump」は ADR-0007 (gabriel 2026-07-02 Accepted / プロジェクトローカル実装) と時系列整合。「本筋プロジェクトローカル実装先行 → 整備済 channel で一度だけ配布」の 2026-07-03 PM 決定とも矛盾なし。ADR-0010 最終行 TODO 「gabriel 配布時: lam-harness agents/ 追加」未完了は ADR 明示 TODO で drift ではない。
+
+#### R1-I41: ADR-0002 Stop hook 実装ファイル名の完全一致 (positive observation)
+- **severity**: Info
+- **evidence_file**: `docs/adr/0002-stop-hook-implementation.md`
+- **evidence_line**: 39-40
+- **evidence_summary**: L39「スクリプト: `.claude/hooks/lam-stop-hook.py`」「状態ファイル: `.claude/lam-loop-state.json`」記述と実ファイル (`ls .claude/hooks/` で `lam-stop-hook.py` 実在) が完全一致。ADR ステータス整合の良好事例 (R1-047 との対比材料)。
+
+#### R1-I42: ADR-0001〜0004 の簡易ヘッダ形式 vs ADR-0005 以降のメタ情報表形式で不統一 (テンプレート進化過程)
+- **severity**: Info
+- **evidence_file**: `docs/adr/0004-bash-read-commands-allow-list.md`
+- **evidence_summary**: 他 9 件は「メタ情報」表 (ステータス/日付/意思決定者/関連 ADR/関連仕様) 保持だが、ADR-0001〜0004 (初期 4 件) は簡易ヘッダのみ。ADR テンプレート自体の進化過程と推測、内容の正誤には影響せず。過去記録のフォーマット差は許容 (adr-template skill 現行版が新規 ADR 適用されていれば十分)。
 
 ### module 11: `CLAUDE.md` + `CHEATSHEET.md`
 
-_W-R1 S4 T3 (module 11 監査) で起票予定_
+**監査完了**: 2026-07-06 (W-R1 S4 T3 / L1 直監査)
+**集計**: Critical 0 / Warning 2 / Info 3
+**特記**: CLAUDE.md 単体は憲法として整合。CHEATSHEET.md 側で複数の spec drift 発見 (Reflection→gabriel 未反映複数箇所 + Rules 表 4/11 files 欠落)。
+
+#### R1-050: CHEATSHEET.md の「Reflection」記述複数箇所が ADR-0007 gabriel 置換 (2026-07-02 Accepted) を反映せず
+- **severity**: Warning
+- **responsibility_tag**: `spec-drift`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `CHEATSHEET.md`
+- **evidence_line**: 138 (skill 表 "MAGI System + Reflection"), 183 (SSOT 表 06_DECISION_MAKING 説明 "AoT + Reflection"), 205-206 (magi クイックガイド Step 4 "Reflection: 結論の致命的見落としを検証（1回限り）")
+- **evidence_summary**: ADR-0007 (Accepted 2026-07-02) で Reflection → gabriel 独立 subagent に構造的置換済。`.claude/rules/decision-making.md` L19 も注記済 (旧 Reflection は Wave C で gabriel に置換済)。しかし CHEATSHEET.md 3 箇所で旧 Reflection 記述残存 = ユーザー参照ドキュメントとしての最重要 UI 面で spec drift。
+- **推奨修正方針**: 3 箇所全て「gabriel adversarial probe」に置換 + Step 4 の説明を「gabriel 独立 subagent が 6-fields JSON schema で adversarial verification」に更新。**W-R3 S4 (ルート統治文書一貫性修正)** で消化 (PM 級)。
+
+#### R1-051: CHEATSHEET.md Rules ファイル一覧が 4/11 files 欠落 (36% 未列挙) + auto-generated 3 files 全欠落
+- **severity**: Warning
+- **responsibility_tag**: `reference-integrity`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `CHEATSHEET.md`
+- **evidence_line**: 38-49
+- **evidence_summary**: 現在 7 files 列挙 (core-identity / phase-rules / security-commands / decision-making / permission-levels / upstream-first / test-result-output)。**欠落 4 files**: `code-quality-guideline.md` (2026-06-08 追加) / `planning-quality-guideline.md` (2026-06-19) / `terminology.md` (2026-06-20) / `hga-summoning.md` (2026-07-02)。**auto-generated 3 files 全欠落**: README.md / rule-001.md / trust-model.md。実測 (`ls .claude/rules/` で 11 files + auto-generated/ 3 files)。
+- **推奨修正方針**: 表を全 11 rules + 3 auto-generated に更新 (or 「代表的な rules ファイル (抜粋)」と明記して抜粋であることを示す)。**W-R3 S4** で消化 (PM 級)。
+
+#### R1-I43: CHEATSHEET.md の `**v4.0.0 新規**` タグが stale (現行 v4.6+)
+- **severity**: Info
+- **evidence_file**: `CHEATSHEET.md`
+- **evidence_line**: 46, 50, 57
+- **evidence_summary**: `permission-levels.md **v4.0.0 新規**` タグは追加時のバージョン記録として有価値だが、現行 v4.6+ で「新規」ではない。次回 hygiene で削除 or 「v4.0.0 で導入」表現に変更検討。実害なし。
+
+#### R1-I44: CHEATSHEET.md スキル表 (L134-145) が 7 skill のみ列挙 (実 23 skill / 補助テーブル分割意図あり)
+- **severity**: Info
+- **evidence_file**: `CHEATSHEET.md`
+- **evidence_line**: 134-145
+- **evidence_summary**: スキル表に列挙されるのは 7 skill (magi / clarify / lam-orchestrate / skill-creator / adr-template / spec-template / ui-design-guide)。実際は 23 skill 存在 (module 3 監査済)。ただし他 skill (auditing / build-dashboard / building / full-review / goal-driven / init-harness 等) は「ワークフローコマンド」表 (L156-171) と「補助コマンド」表 (L166-171) に分散配置されている意図あり。網羅性完全化は Bikeshedding リスクあり Info 止め。
+
+#### R1-I45: CLAUDE.md L88 の 委譲閾値ルール表 と user feedback memory (「並列実行ガンガン」) の緊張関係 (memory 側補足済 / 実害なし)
+- **severity**: Info
+- **evidence_file**: `CLAUDE.md`
+- **evidence_line**: 88-100 (委譲の閾値ルール表)
+- **evidence_summary**: 表に「並列子 (2 名超) を分配する必要」→ L1.5 司令塔経路、「並列子 2 名以下」→ L1 直経路の記述あり。user feedback memory (2026-06-27 「並列実行ガンガン」明示指示) と一見緊張関係だが、memory 側で「委譲先選定基準であり L1 直作業を逐次化する根拠ではない / L1 直独立タスクは 3-4 並列まで遠慮なく」と補足済で解消可能。実害なし / 記録のみ。
 
 ---
 
@@ -615,6 +759,7 @@ _W-R1 S4 T3 (module 11 監査) で起票予定_
 | 2026-07-06 | L1 (Opus 4.7) | W-R1 S2 module 1-4 監査完了 (issue R1-001..R1-031 / R1-I01..R1-I15 起票) |
 | 2026-07-06 | L1 (Opus 4.7) | W-R1 S3 module 5-8 監査完了 (issue R1-032..R1-043 + R1-I16..R1-I29 起票 / 累計 C=1 W=22 I=29 / NFR-3 閾値超過確定 → S5-T4 条件分岐 sub-task 起票必須) |
 | 2026-07-06 | L1 (Opus 4.7) | **前倒し消化 2 件** (Wave 分離規律の例外 / ユーザー判断 = 実運用リスク優先): R1-042 (gabriel 6 fields drift / decision-making.md 更新 / PM 級) / R1-032 (pre-tool-use.py shell metachar / TDD Red-Green / 10 テスト新規 PASS / 534+14 SKIP 維持) → status open→closed |
+| 2026-07-06 | L1 (Opus 4.7) | W-R1 S4 module 9-11 監査完了 + ヒートマップ 33 セル完成 (issue R1-046..R1-051 + R1-I33..R1-I45 起票 / 全 11 module 累計 C=1 W=28 I=43 / open C=1 W=26 / NFR-3 閾値 2.9 倍超過確定) |
 
 ---
 
