@@ -276,7 +276,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **responsibility_tag**: `cli-entrypoint`
 - **attribution**: `self`
 - **status**: `closed` (2026-07-07 / W-R2 S2)
-- **closed_by_commit**: `<TBD-in-W-R2-S2-T4-ship>`
+- **closed_by_commit**: `341ba6a`
 - **resolution**: 推奨方針 (b) = dead code 除去を採用。裁定根拠: design §9.1 の小タスクルートは「grader ログを 1 件のみ渡す呼び出し方の違い」であり、design §13 パイプライン図にも SKILL.md フロー[8] にも `distill()` 内分岐の要求なし (L2 Sonnet が read-only 読解 + L1 検収)。パラメータ・docstring 該当記述・caller 引数を削除、CLI `--small-task` フラグは文書化された呼び出し例と整合するため意味的マーカーとして維持 (help 文言を実態に更新)。新規テスト 4 件 (`test_distill_lessons.py` / 削除前ベースライン 4 PASS → 削除後 4 PASS)。副次: `SKILL.md` フロー[8] L292 の呼び出し例から `is_small_task=False` を除去 (ドキュメント同期 / SE 級 / L1 実施)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/scripts/distill_lessons.py`
@@ -289,7 +289,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
 - **status**: `closed` (2026-07-07 / W-R2 S2)
-- **closed_by_commit**: `<TBD-in-W-R2-S2-T4-ship>`
+- **closed_by_commit**: `341ba6a`
 - **resolution**: `_tracked_files()` 新設 (`git ls-files` 1 回実行 + プロセス内キャッシュ) + `_glob_module()` に tracked filter 追加。**module 2 限定ではなく全 module (1-11) パターンに一貫適用**。Red 実証: `test_module_2_excludes_gitignored_files` + `test_module_2_file_count_matches_tracked_files` が修正前 FAIL (`14 == 12` 不一致 / `scan_nfr_refs*.py` 2 件検出) → 修正後 9 PASS / 0 FAIL。inventory JSON の再生成は実施せず (W-R5 S2 baseline 再計測ゲートで吸収 / 従来方針通り)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/scripts/r1_inventory.py`
@@ -302,7 +302,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
 - **status**: `closed` (2026-07-07 / W-R2 S2 前倒し消化)
-- **closed_by_commit**: `<TBD-in-W-R2-S2-T4-ship>`
+- **closed_by_commit**: `341ba6a`
 - **resolution**: 推奨修正方針通り、fname 捕捉時 (`if fname:`) は `(dir/fname).exists()` を厳密要求・非捕捉時は従来 any() 判定を維持する非対称分岐に変更 (L2 Sonnet tdd-developer / 2 段階検出パターン踏襲)。Red 実証: `test_verify_w_r3_detects_drift_when_dir_exists_but_fname_missing` が修正前 FAIL (hole の実証) → Green 27 PASS + regression 保護 3 テスト。live drift 0 維持。**HGA #10 adversarial verify = confirmed-with-warnings / fix_before_ship 不要 / confidence 0.90** (§0.2)。residual (多階層参照の fname 非捕捉退化) は R1-056 として分離起票
 - **opened_at**: 2026-07-06 (HGA #9 verdict C-N3)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
