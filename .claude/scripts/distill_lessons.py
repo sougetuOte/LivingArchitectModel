@@ -21,8 +21,9 @@ SKILL.md フロー[8] からの呼び出し:
     --grader-log .claude/logs/gd/<task_id>-loop*-grader.json
 
 小タスクルート（design §9.1）:
-  --small-task フラグで grader 判定 JSON のみを入力として処理する。
-  L1 最終検収をスキップするため、grader ログのみが入力となる。
+  --small-task フラグは grader ログを 1 件のみ渡す呼び出し方の違いを示す
+  マーカーであり、distill() 自体の処理ロジックは中/大タスクルートと同一
+  （grader ログのみを入力として扱う点は全ルート共通）。
 """
 
 from __future__ import annotations
@@ -276,7 +277,6 @@ def distill(
     grader_log_paths: list[str],
     lessons_path: Optional[Path] = None,
     verified: Optional[bool] = None,
-    is_small_task: bool = False,
 ) -> None:
     """grader ログを分析して lessons.md に教訓を追記する。
 
@@ -285,12 +285,15 @@ def distill(
     - 未検証の推測 → 同ファイルに「未検証」タグ付きで追記（MUST）
     - W-5 制約: docs/artifacts/knowledge/ への書き込みは禁止（MUST NOT）
 
+    小タスクルート（design §9.1）は grader ログを 1 件のみ渡す呼び出し方の
+    違いであり、本関数の処理ロジックは中/大タスクルートと同一（grader ログの
+    みを入力として扱う点は全ルート共通のため、ルート別分岐は不要）。
+
     Args:
         task_id: タスク識別子。
         grader_log_paths: grader ログファイルのパスリスト（glob 展開済み）。
         lessons_path: 書き込み先 lessons.md のパス（None でデフォルトパスを使用）。
         verified: True=強制検証済み / False=強制未検証 / None=自動判定。
-        is_small_task: True で小タスクルート（grader ログのみ入力・design §9.1）。
     """
     target_path = lessons_path if lessons_path is not None else _default_lessons_path()
     grader_logs = _load_grader_logs(grader_log_paths)
@@ -344,7 +347,11 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--small-task",
         action="store_true",
-        help="小タスクルート: grader 判定 JSON のみを入力とする（design §9.1）",
+        help=(
+            "小タスクルートであることを示すマーカー（design §9.1）。"
+            "grader ログを 1 件のみ渡す呼び出し方の違いであり、"
+            "蒸留処理自体は中/大タスクルートと同一。"
+        ),
     )
     parser.add_argument(
         "--verified",
@@ -377,6 +384,8 @@ def main() -> int:
     parser = build_arg_parser()
     args = parser.parse_args()
 
+    # --small-task は呼び出し方（grader ログ 1 件のみ）を示す意味的マーカーであり
+    # distill() の処理ロジックには影響しない（R1-007 / design §9.1）。
     lessons_path = Path(args.lessons_path) if args.lessons_path else None
 
     # --verified フラグの変換
@@ -392,7 +401,6 @@ def main() -> int:
         grader_log_paths=args.grader_log,
         lessons_path=lessons_path,
         verified=verified,
-        is_small_task=args.small_task,
     )
 
     print(f"[distill-lessons] 蒸留完了: task_id={args.task_id}")

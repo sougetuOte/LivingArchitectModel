@@ -134,8 +134,8 @@
 
 | Task | 内容 | F | D | 担当層 | 完了条件 | commit |
 |:-----|:-----|:--|:--|:------:|:---------|:------:|
-| **W-R2-S2-T1** | module 2 Critical issue リスト抽出 | FR-1 | S1 完了 | L1 | リスト作成 | - |
-| **W-R2-S2-T2** | 各 Critical に Red-Green-Refactor 実行 (既存テスト十分な場合は Red スキップ可 / tracker コメント欄に明記) | FR-3 / R-G6 | S2-T1 | L2 Sonnet | module 2 Critical = 0 / smoke test PASS | WIP × N |
+| **W-R2-S2-T1** | module 2 残 issue リスト抽出 → **R1-053 (W / HGA #9 起票 / 前倒し) + R1-007 + R1-008** (2026-07-07 L1 裁定: R1-053 は tracker P2 = W-R3 相当だが R1-006 と同 bug class + R-G7 gate 汚染候補のため S2 へ前倒し消化) | FR-1 | S1 完了 | L1 | リスト作成 | - |
+| **W-R2-S2-T2** | 各 issue に Red-Green-Refactor 実行 (既存テスト十分な場合は Red スキップ可 / tracker コメント欄に明記) / R1-053 は実装後 HGA verify (2 段階検出パターン踏襲 / crux-scoping 不要 = bug 局所化明確) | FR-3 / R-G6 | S2-T1 | L2 Sonnet | R1-053/R1-007/R1-008 修正完了 / smoke test PASS | WIP × N |
 | **W-R2-S2-T3** | tracker 更新 | FR-2 | S2-T2 | L1 | status closed | WIP |
 | **W-R2-S2-T4** | S2 Stage 末 ship | - | S2-T2/T3 | L1 | ship + push | **Stage 末 ship** |
 

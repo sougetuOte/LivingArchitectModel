@@ -17,9 +17,10 @@ import ast
 import glob
 import json
 import os
+import subprocess
 import sys
 from datetime import date
-from typing import Union
+from typing import Optional, Union
 
 # 11 モジュール分類 (design.md §4.1 MODULES dict 準拠)
 MODULES: dict[int, Union[str, list[str]]] = {
@@ -43,13 +44,36 @@ def _normalize(p: str) -> str:
     return p.replace("\\", "/")
 
 
+_TRACKED_FILES_CACHE: Optional[set[str]] = None
+
+
+def _tracked_files() -> set[str]:
+    """`git ls-files` の結果を正規化 (/ 区切り) した set で返す (R1-008 対応).
+
+    glob.glob() は .gitignore を関知しないため、gitignore 済みファイル
+    (例: .claude/scripts/scan_nfr_refs*.py) が inventory に混入する問題への対処。
+    プロセス内でキャッシュし、複数モジュール走査での重複呼び出しを避ける。
+    """
+    global _TRACKED_FILES_CACHE
+    if _TRACKED_FILES_CACHE is None:
+        result = subprocess.run(
+            ["git", "ls-files"],
+            capture_output=True, text=True, check=True,
+        )
+        _TRACKED_FILES_CACHE = {_normalize(line) for line in result.stdout.splitlines()}
+    return _TRACKED_FILES_CACHE
+
+
 def _glob_module(pattern: Union[str, list[str]], module_id: int) -> list[str]:
     patterns = pattern if isinstance(pattern, list) else [pattern]
+    tracked = _tracked_files()
     files: set[str] = set()
     for p in patterns:
         for f in glob.glob(p, recursive=True):
             fn = _normalize(f)
             if module_id == 2 and fn.startswith(MODULE_2_EXCLUDE_PREFIX):
+                continue
+            if fn not in tracked:
                 continue
             files.add(fn)
     return sorted(files)

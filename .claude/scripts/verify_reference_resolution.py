@@ -141,14 +141,21 @@ def verify_w_r3() -> list[dict]:
             category = m.group(1)  # specs or adr
             slug = m.group(2)
             fname = m.group(3)
-            # docs/specs/<slug>/ (ディレクトリ) or docs/adr/<slug>.md (フラット) を許容
-            candidates = [
-                REPO_ROOT / f"docs/{category}" / slug,
-                REPO_ROOT / f"docs/{category}" / f"{slug}.md",
-            ]
+            # R1-053 (HGA #9 C-N3): fname が capture された場合、dir 実在だけで
+            # any(exists) が True になり fname 自体の実在検査が素通しされる
+            # existence-check hole があった (R1-006 と同 bug class)。
+            # fname 捕捉時は dir/fname の実在のみを厳密に要求し、
+            # fname 非捕捉時 (dir のみ / slug のみ参照) は従来通り any() 判定を維持する。
             if fname:
-                candidates.append(REPO_ROOT / f"docs/{category}" / slug / fname)
-            if not any(c.exists() for c in candidates):
+                is_drift = not (REPO_ROOT / f"docs/{category}" / slug / fname).exists()
+            else:
+                # docs/specs/<slug>/ (ディレクトリ) or docs/adr/<slug>.md (フラット) を許容
+                candidates = [
+                    REPO_ROOT / f"docs/{category}" / slug,
+                    REPO_ROOT / f"docs/{category}" / f"{slug}.md",
+                ]
+                is_drift = not any(c.exists() for c in candidates)
+            if is_drift:
                 drifts.append(
                     {
                         "pattern": "w-r3-spec-ref",

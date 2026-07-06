@@ -652,8 +652,16 @@ def test_parse_real_session_state_file():
     assert result["data"] is not None
 
 
-def test_parse_real_session_state_contains_b5_milestone():
-    """実 SESSION_STATE.md から B-5 が milestones に含まれること。"""
+def test_parse_real_session_state_contains_milestone():
+    """実 SESSION_STATE.md から [A-Z]-N 形式の Milestone が 1 件以上抽出されること。
+
+    旧名 test_parse_real_session_state_contains_b5_milestone。literal "B-5" assert は
+    W-R1 S1 T6 の fallback regex 恒久拡張 ([A-Z]-\\d+) にテスト側が未同期だった残滓で、
+    R-1 期 SESSION_STATE (R-1 表記のみ) で発火 (2026-07-07)。Milestone 命名体系に
+    依存しないパターン検証に更新 (rule-001 準拠 / 観測 #4)。
+    """
+    import re
+
     from dashboard.parsers.session_state import SessionStateParser
 
     session_file = _PROJECT_ROOT / "SESSION_STATE.md"
@@ -665,7 +673,8 @@ def test_parse_real_session_state_contains_b5_milestone():
 
     assert result["ok"] is True
     milestone_names = [m.name for m in result["data"]["milestones"]]
-    assert "B-5" in milestone_names
+    assert milestone_names, "SESSION_STATE.md から Milestone が 1 件も抽出されない"
+    assert any(re.fullmatch(r"[A-Z]-\d+", name) for name in milestone_names)
 
 
 def test_parse_real_session_state_contains_wave():

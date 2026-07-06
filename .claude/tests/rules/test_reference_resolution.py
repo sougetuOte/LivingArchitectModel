@@ -275,3 +275,109 @@ def test_verify_w_r3_no_false_positive_on_real_repo():
         assert "<" not in referenced and ">" not in referenced, (
             f"placeholder 表記が drift として誤検出されています: {drift}"
         )
+
+
+# ---- R1-053: verify_w_r3 パターン 3 の existence-check hole (2026-07-06 HGA #9 C-N3) ----
+#
+# 根拠: docs/artifacts/r-1-audit-tracker.md §R1-053
+# bug: dir が実在すれば candidates の any(exists) が True になり、fname (capture 済) の
+#      実在検査が素通しされ、実在しない fname 参照が drift として検出されない
+#      (silent false negative / R1-006 と同 bug class)。
+# 修正方針: fname が capture された場合は (dir/fname).exists() を厳密要求する。
+#           fname が capture されない参照 (dir のみ / slug のみ) の判定は現行挙動を維持する。
+
+
+def test_verify_w_r3_detects_drift_when_dir_exists_but_fname_missing(monkeypatch, tmp_path):
+    """(a) 実在 dir + 非実在 fname → drift として検出される (R1-053 の主眼 / 修正前は FAIL する).
+
+    合成 fixture: tmp_path 配下に docs/internal/*.md (source) と
+    docs/specs/large-scale-review/ (実在 dir、ただし fname は置かない) を用意し、
+    REPO_ROOT をモンキーパッチして verify_w_r3() を走査させる。
+    """
+    internal_dir = tmp_path / "docs" / "internal"
+    internal_dir.mkdir(parents=True)
+    specs_dir = tmp_path / "docs" / "specs" / "large-scale-review"
+    specs_dir.mkdir(parents=True)
+    # fname 用ディレクトリは実在するが、参照先ファイル自体は作らない (nonexistent-file-xyz.md)
+    source = internal_dir / "sample.md"
+    source.write_text(
+        "参照: docs/specs/large-scale-review/nonexistent-file-xyz.md を参照。",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_w_r3()
+
+    matches = [d for d in result if d["pattern"] == "w-r3-spec-ref"]
+    assert len(matches) == 1, (
+        f"実在しない fname (nonexistent-file-xyz.md) が drift として検出されていません "
+        f"(dir 存在による existence-check hole / R1-053): {result}"
+    )
+    assert "nonexistent-file-xyz.md" in matches[0]["referenced"]
+
+
+def test_verify_w_r3_no_drift_when_dir_and_fname_both_exist(monkeypatch, tmp_path):
+    """(b) regression 保護: 実在 dir + 実在 fname → drift なし."""
+    internal_dir = tmp_path / "docs" / "internal"
+    internal_dir.mkdir(parents=True)
+    specs_dir = tmp_path / "docs" / "specs" / "large-scale-review"
+    specs_dir.mkdir(parents=True)
+    (specs_dir / "existing-file.md").write_text("dummy", encoding="utf-8")
+    source = internal_dir / "sample.md"
+    source.write_text(
+        "参照: docs/specs/large-scale-review/existing-file.md を参照。",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_w_r3()
+
+    matches = [d for d in result if d["pattern"] == "w-r3-spec-ref"]
+    assert matches == [], f"実在する fname 参照が誤って drift 報告されています: {matches}"
+
+
+def test_verify_w_r3_dir_only_reference_unaffected_by_fix(monkeypatch, tmp_path):
+    """(c) regression 保護: fname が capture されない参照形 (dir のみ) は現行挙動を維持する.
+
+    末尾スラッシュのみで終わる参照 (docs/specs/<slug>/) は group3 (fname) が None のまま
+    であり、dir の存在有無のみで判定される従来ロジックが変わらないこと。
+    """
+    internal_dir = tmp_path / "docs" / "internal"
+    internal_dir.mkdir(parents=True)
+    specs_dir = tmp_path / "docs" / "specs" / "large-scale-review"
+    specs_dir.mkdir(parents=True)
+    source = internal_dir / "sample.md"
+    source.write_text(
+        "参照: docs/specs/large-scale-review/ を参照。",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_w_r3()
+
+    matches = [d for d in result if d["pattern"] == "w-r3-spec-ref"]
+    assert matches == [], (
+        f"dir のみ参照 (fname 非 capture) は dir 実在で drift なし判定のはずが、"
+        f"誤って drift 報告されています (R1-053 修正の非対象範囲): {matches}"
+    )
+
+
+def test_verify_w_r3_slug_only_reference_unaffected_by_fix(monkeypatch, tmp_path):
+    """(c-2) regression 保護: fname が capture されない参照形 (slug のみ / スラッシュなし) も現行挙動維持."""
+    internal_dir = tmp_path / "docs" / "internal"
+    internal_dir.mkdir(parents=True)
+    # docs/adr/<slug>.md のフラット形式 (dir なし・fname なし・slug に .md を含む)
+    adr_dir = tmp_path / "docs" / "adr"
+    adr_dir.mkdir(parents=True)
+    (adr_dir / "0009-hga-fable-summoning.md").write_text("dummy", encoding="utf-8")
+    source = internal_dir / "sample.md"
+    source.write_text(
+        "参照: docs/adr/0009-hga-fable-summoning.md を参照。",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_w_r3()
+
+    matches = [d for d in result if d["pattern"] == "w-r3-spec-ref"]
+    assert matches == [], f"実在する flat adr 参照が誤って drift 報告されています: {matches}"

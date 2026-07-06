@@ -289,8 +289,9 @@ distill(
     grader_log_paths=["path/to/loop01-grader.json", "path/to/loop02-grader.json"],
     lessons_path=None,     # None でデフォルトパス（.claude/agent-memory/.../lessons.md）を使用
     verified=None,         # None で fail→pass 遷移から自動判定
-    is_small_task=False,   # 小タスクルート時は True
 )
+# 小タスクルートは grader_log_paths を 1 件のみ渡す呼び出し方の違いであり、
+# distill() のロジックは全ルート共通 (R1-007 / design §9.1)
 ```
 
 ### [9] 後処理・完了報告

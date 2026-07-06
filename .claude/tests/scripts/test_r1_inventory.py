@@ -75,3 +75,43 @@ def test_output_file_written(tmp_path):
     import json
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["_meta"]["module_count"] == 11
+
+
+def test_module_2_excludes_gitignored_files():
+    """R1-008: module 2 の inventory に gitignore 済みファイルが混入しない.
+
+    .claude/scripts/scan_nfr_refs.py / scan_nfr_refs2.py は
+    .gitignore (`.claude/scripts/scan_nfr_refs*.py`) の対象だが、
+    glob.glob() は gitignore を関知しないため inventory に混入していた。
+    """
+    inv = build_inventory()
+    module_2_files = inv["2"]["files"]
+    gitignored_leaks = [
+        f for f in module_2_files
+        if f.endswith("scan_nfr_refs.py") or f.endswith("scan_nfr_refs2.py")
+    ]
+    assert not gitignored_leaks, (
+        f"module 2 に gitignore 済みファイルが混入: {gitignored_leaks}"
+    )
+
+
+def test_module_2_file_count_matches_tracked_files():
+    """R1-008: module 2 のファイル数が `git ls-files` の tracked 件数と一致する."""
+    import subprocess
+    tracked = subprocess.run(
+        ["git", "ls-files", ".claude/scripts/*.py"],
+        cwd=str(SCRIPTS_DIR.parent.parent),
+        capture_output=True, text=True, check=True,
+    ).stdout.splitlines()
+    tracked_module_2 = [
+        t.replace("\\", "/") for t in tracked
+        if not t.replace("\\", "/").startswith(".claude/scripts/dashboard/")
+    ]
+
+    inv = build_inventory()
+    module_2_files = inv["2"]["files"]
+
+    assert len(module_2_files) == len(tracked_module_2), (
+        f"module 2 count mismatch: inventory={len(module_2_files)} "
+        f"tracked={len(tracked_module_2)}"
+    )

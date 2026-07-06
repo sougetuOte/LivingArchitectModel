@@ -2,9 +2,9 @@
 
 **生成日**: 2026-07-05
 **承認日**: 2026-07-05
-**観測回数**: 3 (2026-06-27, 2026-07-05, 2026-07-06)
-**ステータス**: approved (2026-07-06 R-1 拡張実施)
-**last_matched**: 2026-07-06
+**観測回数**: 4 (2026-06-27, 2026-07-05, 2026-07-06, 2026-07-07)
+**ステータス**: approved (2026-07-06 R-1 拡張実施 / 2026-07-07 テスト側同期完了)
+**last_matched**: 2026-07-07
 **閾値到達**: `trust-model.md` の初期閾値 2 回に到達 / 3 回目発火で **fallback regex 恒久拡張** を実施 (R-1 W-R1 S1 T6)
 
 ## 根拠パターン
@@ -14,6 +14,7 @@
 | 1 | 2026-06-27 | `test_parse_real_session_state_contains_b5_milestone` + `_contains_wave` | SESSION_STATE.md 編集で B-N / Wave N パターンが欠落し、`SessionStateParser` の fallback 正規表現が空マッチ |
 | 2 | 2026-07-05 | 同上 | ヘッダから `B-5 BUILDING 着手` 表記を除去した副次影響で再発 |
 | 3 | 2026-07-06 | 同上 | R-1 Milestone 遷移により SESSION_STATE.md が `R-1` / `W-R1` 系表記のみとなり、B-N 専用 fallback regex が空マッチ (Fable→Opus 実装ギャップ #1 の実測発火) |
+| 4 | 2026-07-07 | `test_parse_real_session_state_contains_b5_milestone` (旧名) | T6 で parser regex は `[A-Z]-\d+` に恒久拡張済みだったが、**テスト側の literal `"B-5"` assert が未同期のまま残存** (T6 実装ギャップの残滓)。R-1 期 SESSION_STATE で発火し parser は `['R-1']` を正常抽出 = SESSION_STATE 側は本ルール準拠・**テストが根本原因**。テストを `test_parse_real_session_state_contains_milestone` に改名し milestone 非依存のパターン検証 (`[A-Z]-\d+` fullmatch) に更新 (W-R2 S2 / 2026-07-07) |
 
 パターン詳細ログ: `.claude/tdd-patterns.log` (`ANALYZED` マーカー以降)
 retro 記録: `docs/artifacts/retro-B5-W8-WC-2026-07-05.md` §2.5
@@ -33,9 +34,12 @@ retro 記録: `docs/artifacts/retro-B5-W8-WC-2026-07-05.md` §2.5
 
 ```bash
 python -m pytest \
-  .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_b5_milestone \
+  .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_milestone \
   .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_wave
 ```
+
+> 注 (2026-07-07): 旧テスト名 `test_parse_real_session_state_contains_b5_milestone` は W-R2 S2 で
+> `test_parse_real_session_state_contains_milestone` に改名 (literal "B-5" assert の恒久解 / 観測 #4)。
 
 ### 拡張の根拠 (2026-07-06 / R-1 W-R1 S1 T6)
 
