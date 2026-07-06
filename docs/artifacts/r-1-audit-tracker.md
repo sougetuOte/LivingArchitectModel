@@ -42,7 +42,7 @@
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | - | - | - |
 | **合計** | **-** | **-** | **-** |
 
-**W-R1 S2 進行中** (module 1-4 埋め / T2-T5 完了ごとに更新):
+**W-R1 S3 完了** (module 5-8 埋め済み / S4 で module 9-11 + ヒートマップ完成予定):
 
 | モジュール | Critical | Warning | Info |
 |:----------|:--------:|:-------:|:----:|
@@ -50,6 +50,16 @@
 | 2. `.claude/scripts/` (外) | **0** | **3** | **5** |
 | 3. `.claude/skills/` | **0** | **3** | **2** |
 | 4. `.claude/tests/` | **0** | **2** | **3** |
+| 5. `.claude/hooks/` + `settings*.json` | **0** | **3** | **4** |
+| 6. `.claude/agents/` (12 件) | **0** | **3** | **2** |
+| 7. `.claude/rules/` + `auto-generated/` | **0** | **2** | **3** |
+| 8. `docs/internal/` (00-07) | **0** | **4** | **5** |
+| **8/11 累計** | **1** | **22** | **29** |
+
+**NFR-3 閾値超過確定** (spec-critic W5 対応 / retro §P2 補強):
+- 累計 Critical + Warning = **23 件** (module 8/11 時点 / 暫定閾値 10 の **2.3 倍超過**)
+- 線形外挿 (11/8): 11 モジュール完了時 **31-32 件想定**
+- **S5-T4 で条件分岐サブタスク起票必須** (「閾値超過時 = 優先順位付け sub-task 起票」)
 
 ---
 
@@ -329,11 +339,247 @@
 
 ### module 5: `.claude/hooks/` + `settings*.json`
 
-_W-R1 S3 T1 (module 5 監査) で起票予定_
+**監査完了**: 2026-07-06 (W-R1 S3 T1 / code-reviewer subagent + L1 監督)
+**集計**: Critical 0 / Warning 3 / Info 4
+**特記**: F-2 (python3 hardcode) は subagent 判定 Warning 維持 (単一ユーザー環境でも将来リスク / attribution: `self` + spec_ambiguity 併記)。F-5 の duplication は post-tool-use.py L55 コメントで「同等」と自認済 → maintenance risk として Warning 確定。subagent 生指摘 3 W + 4 I はすべて実在確認済 / 降格・棄却なし。
+
+#### R1-032: `_determine_by_command` の PG コマンド判定が shell メタ文字 (`;` `&&` `` ` `` `$()`) を素通し
+- **severity**: **Warning**
+- **responsibility_tag**: `permission-check`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/hooks/pre-tool-use.py`
+- **evidence_line**: 163-181 (特に 170-179)
+- **evidence_summary**: `command == pg_prefix or command.startswith(pg_prefix + " ")` prefix マッチ後、`_PG_BLACKLISTED_ARGS` (フラグ名のみ) を走査するのみで `;` / `&&` / `||` / `|` / `` ` `` / `$(` の shell 連結・置換演算子を検査しない。例: `ruff format x.py; rm -rf /tmp` は settings.json L4-32 allow (`Bash(ruff format *)`) にも合致し、hook も PG (auto-allow) を返すため両層で通過。コード自身が pre-tool-use.py L65-70 で「settings.json の粗いワイルドカードを hook 側で精密フィルタする二重防御」と明記しており設計意図と実装が乖離。
+- **推奨修正方針**: Red で合成 command (`'ruff format x.py; rm -rf /tmp'`) を `_determine_by_command` に渡し AUDITING フェーズで `level != "PG"` を assert。Green で `args_part` に対し `;` / `&&` / `||` / `|` / `` ` `` / `$(` のいずれかを含む場合は無条件で `("PM", "PG command contains shell metacharacter")` を返す分岐を `_PG_BLACKLISTED_ARGS` チェック前段に追加。**W-R4 S3-T4 (hooks 統合)** で消化推奨。
+
+#### R1-033: settings.json 全 5 hook 起動コマンドが `python3` ハードコード (Windows portability リスク)
+- **severity**: Warning
+- **responsibility_tag**: `settings`
+- **attribution**: `self` (併記: `spec_ambiguity` — hook 起動コマンドのポータビリティ要件が仕様未定義)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/settings.json`
+- **evidence_line**: 74, 80, 86, 91, 96
+- **evidence_summary**: 全 hook 起動コマンドが `python3 "$CLAUDE_PROJECT_DIR"/.claude/hooks/*.py` 固定。CLAUDE.md は「Windows 11 Pro + Git Bash」明記だが素の Windows Python installer は `python3` エイリアスを提供しない (現環境は pyenv-win 経由で解決)。将来環境変更や新規 contributor 環境で hook が silent failure する構造リスク (hook 起動失敗 = permission システム全崩壊)。
+- **推奨修正方針**: (a) `python "$CLAUDE_PROJECT_DIR"/...` に統一 or (b) `command -v python3 >/dev/null && python3 ... || python ...` fallback シェルに変更 or (c) `docs/internal/07_SECURITY_AND_AUTOMATION.md` にポータビリティ要件明文化 (spec_ambiguity 解消のみ)。**W-R4 S3-T4 (hooks 統合)** で消化推奨。
+
+#### R1-034: `_PM_PATH_PATTERNS_FOR_CACHE` (post-tool-use.py) と `_PM_PATTERNS` (pre-tool-use.py) が別々定義で重複保守
+- **severity**: Warning
+- **responsibility_tag**: `permission-check`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/hooks/post-tool-use.py`, `.claude/hooks/pre-tool-use.py`
+- **evidence_line**: post-tool-use.py L55-61 / pre-tool-use.py L92-99
+- **evidence_summary**: post-tool-use.py L55 コメントで「pre-tool-use.py の `_PM_PATTERNS` と同等 / キャッシュ対象判定用」と自認しつつ、正規表現リストが手書き複製 (4 patterns)。**out-of-root パターン (pre 側 L94) はキャッシュ側に存在せず**、out-of-root 経由の PM 判定はセッションスコープ降格キャッシュ対象外という非対称挙動 (意図的か未検証か design.md 上でも確認できず)。将来どちらか一方のみ更新すると PM 級キャッシュ判定と実際の PM 級判定が drift する保守リスク。
+- **推奨修正方針**: Red で「両リストのパス系パターン (out-of-root を除く) が完全一致」を assert するテスト追加。Green で `_hook_utils.py` に一本化し双方 import に切替。out-of-root asymmetry は「安全側維持 or キャッシュ対象化」を design 側で決定してからコメントで意図明示。**W-R4 S3-T4 (hooks 統合)** で消化推奨。
+
+#### R1-I16: subagent 起動 (Task/Agent) の非 AUTONOMOUS フェーズ二重ログ記録
+- **severity**: Info
+- **evidence_file**: `.claude/hooks/pre-tool-use.py`
+- **evidence_summary**: `_handle_subagent_boundary` が非 AUTONOMOUS で `("LOG", ...)` を返し `main()` が 1 行書き込むが、`sys.exit()` せず後続 `_determine_level_and_reason` に継続 → Task/Agent は file_path/command 未保持のため `("SE", "no-path (default SE)")` として 2 行目書き込み。1 回の subagent 起動につき permission.log に 2 行 (LOG + SE) が記録され解析時に紛らわしい。次回 hooks リファクタで統一候補。
+
+#### R1-I17: `docs/artifacts/incident-patterns.yaml` の毎回ファイル I/O ロード
+- **severity**: Info
+- **evidence_file**: `.claude/hooks/_incident_patterns.py`
+- **evidence_line**: 8-9, 51-97
+- **evidence_summary**: モジュール docstring が「副作用なし・毎回ファイル読込」を意図的設計と明記 (即時反映・テスト容易性のトレードオフ)。現状ファイルサイズ (6.2KB) では実害軽微だが、パターン数増大時のレイテンシ影響懸念。設計意図明示済のため Info 起票のみ。
+
+#### R1-I18: out-of-root マーカーが PM 級キャッシュ機構でスキップされる非対称設計
+- **severity**: Info
+- **evidence_file**: `.claude/hooks/pre-tool-use.py`, `.claude/hooks/post-tool-use.py`
+- **evidence_summary**: pre-tool-use.py L94 `_PM_PATTERNS` には `^__out_of_root__/` が PM 理由として含まれるが、post-tool-use.py L56-61 `_PM_PATH_PATTERNS_FOR_CACHE` には未含有。root 外パス書込が PM 級判定された場合、承認後もセッションスコープ降格キャッシュに登録されず、同一セッション内で毎回 PM ダイアログ再表示 (安全側挙動 / 実害なし)。**R1-034 と一体で消化**。
+
+#### R1-I19: `settings.local.json` の `Read` allow が個人環境パスを含む (ローカル限定・共有非対象)
+- **severity**: Info
+- **evidence_file**: `.claude/settings.local.json`
+- **evidence_line**: 1-9
+- **evidence_summary**: `Read(//c/Users/metral/**)` / `Read(//c/work5/Kage-Shiki/**)` は個人環境固有パス。ファイル名 `.local.json` からチーム共有非対象 (LAM 監査対象外 / Green State 判定に影響なし)。指摘のみ記録。
 
 ### module 6: `.claude/agents/`
 
-_W-R1 S3 T2 (module 6 監査 / 12 件実測) で起票予定_
+**監査完了**: 2026-07-06 (W-R1 S3 T2 / L1 直監査 + context7 upstream 裏取り)
+**集計**: Critical 0 / Warning 3 / Info 2
+**特記**: context7 (`/websites/code_claude` sub-agents / AgentDefinition Python dataclass) で公式 frontmatter フィールド確定 → `# permission-level:` は非公式 (dead comment cluster) / `effort:` は公式だが `default` は EffortLevel 列挙値外 / `tools: Agent(name)` parametrized は `settings.json permissions.deny` 側は公式サポート済だが subagent frontmatter `tools:` allowlist 側は未確定 (要実測)。
+
+#### R1-035: `# permission-level: XX` コメントアウトが 8 agents に散在 (dead comment cluster)
+- **severity**: Warning
+- **responsibility_tag**: `frontmatter`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/agents/code-reviewer.md`, `design-architect.md`, `doc-writer.md`, `quality-auditor.md`, `requirement-analyst.md`, `task-decomposer.md`, `tdd-developer.md`, `test-runner.md`
+- **evidence_line**: 各 L7-L8
+- **evidence_summary**: `# permission-level: SE/PG/PM` コメントアウトが 8 files で散在 (grep 実測)。context7 (`/websites/code_claude` sub-agents / `AgentDefinition` dataclass) 検証結果、`permission-level:` は公式 sub-agents frontmatter に**存在しない** (公式フィールド = name/description/tools/model/memory/skills/effort/permissionMode/mcpServers/initialPrompt/maxTurns/background/disallowedTools/hooks)。LAM の permission-level 判定は `pre-tool-use.py` のパスベース判定 (`permission-levels.md`) で実装済のため、frontmatter 側経路は完全に dead。gabriel / goal-driven-* 4 agents は既に持たない (統一済状態が正)。
+- **推奨修正方針**: 8 files から `# permission-level:` 行を削除。**W-R4 S2-T4 (agents 改名) or W-R3 S3 (rules 相互矛盾解消)** で消化。
+
+#### R1-036: `goal-driven-l3-executor.md` の `effort: default` は EffortLevel 列挙値外 (dead config 疑い)
+- **severity**: Warning
+- **responsibility_tag**: `frontmatter`
+- **attribution**: `self` (併記: `spec_ambiguity`)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/agents/goal-driven-l3-executor.md`
+- **evidence_line**: 9, 28, 120
+- **evidence_summary**: `effort:` フィールドは公式 (`AgentDefinition.effort: EffortLevel | int | None` / context7 検証済) だが EffortLevel 列挙値は `low/medium/high/xhigh/max` 相当。**`default` は列挙外**。design §12 FR-8「ultracode (xhigh) 昇格禁止」の意図実現手段として使用されているが Claude Code が受け付ける値ではなく effectively ignored (R1-016 と同型 dead config)。docs/specs/goal-driven-orchestration/design.md §12 側も同時更新必要 (spec drift 兆候)。**Fable→Opus gap**: 仕様側の暗黙値決定が upstream 仕様確認前になされた可能性 (retro §Problem P1 事例 #2/#3 の変種)。
+- **推奨修正方針**: (a) `effort: low` に置換 + design §12 更新 or (b) フィールド削除 + 別手段で xhigh 封じ。**W-R3 S3 (rules 相互矛盾解消) or W-R4 S3 (skills 削除 + hooks 統合)** で追加調査後に消化。
+
+#### R1-037: `goal-driven-l2-foreman.md` の `tools: Agent(goal-driven-l3-executor)` parametrized 記法が subagent frontmatter で未文書化
+- **severity**: Warning
+- **responsibility_tag**: `frontmatter`
+- **attribution**: `self` (併記: `spec_ambiguity`)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/agents/goal-driven-l2-foreman.md`
+- **evidence_line**: 7
+- **evidence_summary**: `tools: Read, Glob, Grep, Agent(goal-driven-l3-executor)` の parametrized 記法。context7 検証で 2026-w25 `settings.json permissions.deny` 側の `Agent(model:opus)` 記法は公式サポート確認済だが、subagent frontmatter `tools:` allowlist 側でこの記法が正当かは**明記なし**。可能性: (a) 公式サポート未文書化 / (b) plain `Agent` として parse され parametrized 部分無視 (実質全 Agent 起動許可 = overpermission) / (c) parse error で `Agent` tool 無効化。実測必要。
+- **推奨修正方針**: (1) 実測 (`.claude/agents/goal-driven-l2-foreman` を Task ツールで起動 → 別 agent の spawn を試みる → 挙動観察)。(2) 結果に応じて `disallowedTools` で明示他 agent 封じ or `tools: Agent` (plain) 化 + 実装側自制。**W-R4 S3-T4 (hooks 統合)** で追加調査後に消化。
+
+#### R1-I20: agent description YAML block style 不統一 (`>` folded vs `|` literal)
+- **severity**: Info
+- **evidence_summary**: 12 agents 中 `code-reviewer` / `doc-writer` / `test-runner` が `>` (folded)、他 9 が `|` (literal) (grep 実測)。両方 YAML 正当だが inconsistent。description は plain text として consume されるため実害なし。次回 hygiene で統一候補。
+
+#### R1-I21: gabriel.md のみ完全 JSON schema 定義、他 11 agents は Markdown 例示のみ
+- **severity**: Info
+- **evidence_file**: `.claude/agents/gabriel.md`
+- **evidence_line**: 79-121, 134-147
+- **evidence_summary**: gabriel.md は JSON schema draft-07 完全定義 + クロスフィールド制約 (FR-W-C-6) 明記。他 agents (goal-driven-grader / l2-foreman / l3-executor 含む) は Markdown 出力例のみ。gabriel は high-stakes verifier のため厳密性重視の意図あり (正当な差別化 / 変更不要)。統一提案は Info 級。
+
+### module 7: `.claude/rules/` + `auto-generated/`
+
+**監査完了**: 2026-07-06 (W-R1 S3 T3 / code-reviewer subagent + L1 監督)
+**集計**: Critical 0 / Warning 2 / Info 3
+**特記**: subagent が全 14 files で参照する実装・仕様・ADR・internal SSOT を Grep/Bash で実在確認済 (unverified なし)。両 Warning は「同一トピックの重要度/枠組み定義の rules 間 drift」で construct-level (実運用破綻は未確認 / W-R3 で消化)。
+
+#### R1-038: `code-quality-guideline.md` と `phase-rules.md` の「テストなし実装」重要度判定 drift
+- **severity**: Warning
+- **responsibility_tag**: `rules-consistency`
+- **attribution**: `self` (併記: `spec_ambiguity` — 両者の優先順位が rules 上で明記されていない)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/rules/code-quality-guideline.md`, `.claude/rules/phase-rules.md`
+- **evidence_line**: code-quality-guideline.md L37 / phase-rules.md L87
+- **evidence_summary**: `code-quality-guideline.md` L37 は「テストが存在しない新規ロジック」を明示的に **Warning (non-blocking)** に分類し「BUILDING の TDD ルール違反でもあるが、保守困難性の観点で Warning」と注記。一方 `phase-rules.md` L87 は BUILDING 「禁止」リストに「テストなし実装」を無条件掲載し Critical 相当の絶対規律として読める。同一トピックで AUDITING 時の重要度 (Warning) と BUILDING 時の規律 (絶対禁止) が別重みづけを持ち、優先順位が rules 上未明記。監査担当が Critical/Warning に倒すべきか判断がぶれるリスク。
+- **推奨修正方針**: code-quality-guideline.md L37 に「ただし BUILDING フェーズ中の禁止事項 (`phase-rules.md`) としては別途扱う。AUDITING 時点での重要度判定は本項の Warning を用いる」等、両者関係性を明示する 1 文追加。**W-R3 S3 (rules 相互矛盾解消)** で消化。
+
+#### R1-039: `hga-summoning.md` の envelope 記述に新旧併存の矛盾 (月 $40-80 単一枠 vs 二軸化後の実 $/quota 分離)
+- **severity**: Warning
+- **responsibility_tag**: `rules-consistency`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `.claude/rules/hga-summoning.md`
+- **evidence_line**: 94-110
+- **evidence_summary**: L96「以下は月 $40-80 の envelope の**外**とする」が、直後 L103-110「envelope 定義 (2026-07-04 二軸化)」節で導入された「実 $ envelope (月 $10-40)」+「Opus quota envelope (weekly cap 20%)」の二軸とどう対応するか不明瞭。二軸化後は「月 $40-80 envelope」概念が実質置換されているが L96 旧記述残存 → 「対話モード召喚」「branch モード」がどちらの軸の外かユーザーが判断不能。
+- **推奨修正方針**: L96 を「以下は実 $ envelope (月 $10-40) および Opus quota envelope (weekly cap 20%) の両方の**外**とする」等、二軸化後の用語に統一。**PM 級ファイルのため W-R3 S3 で人間承認取得の上修正**。
+
+#### R1-I22: `hga-summoning.md` L200/L245 の「Wave C」表記が terminology.md アルファベット付番禁止に近接
+- **severity**: Info
+- **evidence_file**: `.claude/rules/hga-summoning.md`, `.claude/rules/terminology.md`
+- **evidence_line**: hga-summoning.md L200, 245 / terminology.md §2 Wave 節 (L64-68 相当)
+- **evidence_summary**: hga-summoning.md に「Wave C Spike」表記が 2 箇所 (2026-07-04 追加 = terminology.md 適用開始日 2026-06-20 以降の新規記述)。terminology.md §2「Wave は正整数または『整数.5』形式で付番 (Wave 1a 等のアルファベット混在は使わない)」に近接違反。ただし terminology.md §5 経過措置により Info 起票許容 (旧 B-4 Milestone 期の Wave A/B/C/D 命名の legacy 引き継ぎと推定)。
+- **推奨修正方針**: 次回 hga-summoning.md 編集時に「B-5 Wave 2 Spike」等の正式 Wave 番号 or 単なる「Spike セッション」等の作業名に置換。優先度低。
+
+#### R1-I23: `hga-summoning.md` 移行期注記 (L314-318) が監査時点で翌日 (2026-07-07) 期限
+- **severity**: Info
+- **evidence_file**: `.claude/rules/hga-summoning.md`
+- **evidence_line**: 314-318
+- **evidence_summary**: 「移行期注記」節が「2026-07-07 までは... 直セッション運用も許容」「2026-07-07 以降のクレジット従量移行後は本規律を既定」と記述。監査実施日 (currentDate 2026-07-06) から翌日で条件分岐切替。R-1 Milestone 進行中に運用条件変化 → W-R2/W-R3 タイミングで「2026-07-07 経過後の要否確認」の棚卸し対象。
+- **推奨修正方針**: 修正不要 (現時点で矛盾ではない)。次回 hga-summoning.md 編集時に本節要否・内容更新を検討。
+
+#### R1-I24: `test-result-output.md` の「テストFW設定追加 = PG級」が permission-levels.md PG 級定義と緊張関係
+- **severity**: Info
+- **evidence_file**: `.claude/rules/test-result-output.md`, `.claude/rules/permission-levels.md`
+- **evidence_line**: test-result-output.md L100-103 / permission-levels.md L6-15 (PG 級列挙)
+- **evidence_summary**: test-result-output.md L103 が「テストFW設定追加」を PG 級と定めるが、permission-levels.md PG 級列挙は「既存振る舞いを変えない機械的修正」限定 (フォーマット / typo / lint 自動修正等)。`pyproject.toml` へのテストレポーター設定追加 (新規パス導入 = 振る舞い変更) は厳密には非該当で、むしろ SE 級「テスト追加・修正」に近い。実害小 (両ルールとも「軽い関与で良い」結論は近い) だが等級定義に微妙な不整合。
+- **推奨修正方針**: test-result-output.md L103 を SE 級修正 or permission-levels.md PG 級列挙に「本ルールに従ったテストFW設定追加」明示追加。**W-R3 S3 (rules 相互矛盾解消)** で消化候補。優先度低。
+
+### module 8: `docs/internal/` (00-07)
+
+**監査完了**: 2026-07-06 (W-R1 S3 T4 / code-reviewer subagent + L1 監督)
+**集計**: Critical 0 / Warning 4 / Info 5 (subagent 生指摘 W 5 → F-5 (phase-rules 2 軸表 absence) を Info 降格 / subagent 自身が「Info 昇格でも可・境界事例」明記)
+**特記**: docs/internal SSOT 親と子 rules / 実装 / spec の drift が主軸。W-R3 S2 (docs/internal SSOT drift 解消 / 一括承認 Stage) の直接材料。特に **R1-042 (gabriel 出力契約 6 vs 4 field drift)** は分岐制御 field 欠落で優先度高。
+
+#### R1-040: `docs/design/` ディレクトリが 00_PROJECT_STRUCTURE.md 構成表に存在しない (実体は 02 が参照 + 6 files 実在)
+- **severity**: Warning
+- **responsibility_tag**: `ssot-parent-child-consistency`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/internal/00_PROJECT_STRUCTURE.md`
+- **evidence_line**: 9-37 (Directory Structure ツリー)
+- **evidence_summary**: `00_PROJECT_STRUCTURE.md` §1 ディレクトリ構成ツリーには `docs/specs/` `docs/adr/` `docs/tasks/` `docs/internal/` `docs/artifacts/` `docs/slides/` `docs/daily/` `docs/memos/` のみ列挙、`docs/design/` **欠落**。一方 `docs/internal/02_DEVELOPMENT_FLOW.md` L47 は `/clarify docs/design/<feature>-design.md` を明示参照し、実ディレクトリ `docs/design/` には `cross-module-blame-design.md` 等 **6 files 実在** (subagent Bash `ls docs/design` で確認済)。「ドキュメント資産の地図」としての 00 が実運用と乖離。
+- **推奨修正方針**: 00_PROJECT_STRUCTURE.md §1 ツリーに `docs/design/` (設計書 / Phase 1 成果物) 追加 + §2-B (Specifications) 類似の配置ルール節新設。**W-R3 S2 (docs/internal SSOT drift 解消)** で消化。
+
+#### R1-041: 07_SECURITY_AND_AUTOMATION.md の Green State 記述が MVP/完全実装の段階区分欠落 (G3/G4 常時必須のように読める)
+- **severity**: Warning
+- **responsibility_tag**: `spec-drift`
+- **attribution**: `downstream` (07 が SSOT 親 `green-state-definition.md` §2.1-2.2 の段階導入情報を反映していない)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/internal/07_SECURITY_AND_AUTOMATION.md`
+- **evidence_line**: 111-115 (Stop hook 自律ループ制御節)
+- **evidence_summary**: 07 は「Green State (G1: テスト全パス + G2: lint 0 + G3: Issue 解決 + G4: 仕様差分 0 + G5: セキュリティ) 達成で停止」と記載のみで、`docs/specs/green-state-definition.md` §2.1「MVP では G1+G2+G5 の 3 条件を自動判定 / G3, G4 は完全実装で段階的追加」の段階導入に触れず。同仕様 §2.2 「AUTONOMOUS モードは Wave 2 まで G1 のみ」も未反映。07 通り読むと現行 AUTONOMOUS 実装 (G1 のみ) が「未達成状態」と誤読されうる。
+- **推奨修正方針**: 07 §5「Stop hook による自律ループ制御」に「MVP は G1+G2+G5 / G3/G4 は完全実装で段階導入 (詳細: `green-state-definition.md` §2.1-2.2)」を 1 文追記。**W-R3 S2** で消化。
+
+#### R1-042: 06_DECISION_MAKING.md §6.5 の gabriel 出力契約 6 fields が `.claude/rules/decision-making.md` 要約版で 4 fields に縮退 (`affected_atoms` + `recommended_action` 欠落)
+- **severity**: **Warning** (優先度高 / 分岐制御 field 欠落)
+- **responsibility_tag**: `ssot-parent-child-consistency`
+- **attribution**: `downstream` (子 rules が親 SSOT の必須 field を反映していない)
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/internal/06_DECISION_MAKING.md`, `.claude/rules/decision-making.md`
+- **evidence_line**: 06 L242-251 (§6.5 gabriel 出力契約 6 fields) / decision-making.md L59-64 (gabriel probe 出力フォーマット 4 items)
+- **evidence_summary**: 親 SSOT 06 は gabriel 出力契約を **6 fields** と明記: `verdict/severity/affected_atoms/reasoning/recommended_action/confidence`。`affected_atoms` (verdict=refuted 時非空必須) と `recommended_action` (proceed/re-magi/abort 分岐制御必須 / §6.6 失敗時挙動が abort/critical/warning/info 分岐に依存) を含む。しかし実行時ロードされる要約版 `.claude/rules/decision-making.md` の Output Format には **4 items のみ** (verdict/severity/confidence/reasoning) 記載で、**分岐制御に必須の 2 fields が欠落**。要約版のみ参照する実行時に abort 判定が抜け落ちるリスク。
+- **推奨修正方針**: `.claude/rules/decision-making.md` の gabriel probe セクションに `affected_atoms` と `recommended_action` 追加 + 06 §6.6 の分岐優先順位 (abort > critical > warning > info > confirmed > inconclusive) への言及も 1 文追加。**PM 級ファイルのため W-R3 S2 一括承認想定**。
+
+#### R1-043: 00_PROJECT_STRUCTURE.md の `.claude/states/*.json` 説明 (「フェーズごとの承認ゲート管理」) が実態 (機能/Milestone 単位) と乖離
+- **severity**: Warning
+- **responsibility_tag**: `spec-drift`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06
+- **evidence_file**: `docs/internal/00_PROJECT_STRUCTURE.md`
+- **evidence_line**: 68
+- **evidence_summary**: 00 §2-E は「`.claude/states/*.json`: フェーズごとの承認ゲート管理、タスク進捗の永続的状態記録」と記述。しかし実ファイルは `cc-spec-alignment.json` / `cross-module-blame.json` / `gitleaks-integration.json` / `goal-driven-orchestration.json` / `hooks-python-migration.json` / `large-scale-review.json` / `magi-skill.json` / `scalable-code-review.json` / `v4.0.0-immune-system.json` の **9 files** (subagent Bash `ls` 実測)、**いずれも Milestone/機能単位命名**で「フェーズ (PLANNING/BUILDING/AUDITING) ごと」の粒度ではない。フェーズ現在値管理は `.claude/current-phase.md` (00 §2-E 直後で正確に説明) が担い、states/*.json は別責務 (機能別承認ゲート・進捗)。
+- **推奨修正方針**: 00 §2-E 該当行を「機能/Milestone 単位の承認ゲート状態・進捗記録 (例: `<milestone-slug>.json`)」に修正 + 「フェーズごとの」誤解表現除去。**W-R3 S2** で消化。
+
+#### R1-I25: 02_DEVELOPMENT_FLOW.md が phase-rules.md の「フェーズ × 権限等級」二軸表 (3x3) 全体像要約を欠く
+- **severity**: Info (境界事例 / subagent 生 Warning → L1 監督で Info 降格 / subagent 自身「Info 昇格でも可」明記)
+- **evidence_file**: `docs/internal/02_DEVELOPMENT_FLOW.md`, `.claude/rules/phase-rules.md`
+- **evidence_line**: 02 L100-107 (権限等級に基づく修正制御節 / AUDITING のみ抜粋) / phase-rules.md 冒頭「フェーズとの二軸設計」表
+- **evidence_summary**: 02 Phase 3 節は AUDITING の PG/SE/PM 制御のみ抜粋、子 rules phase-rules.md 冒頭の「PLANNING/BUILDING/AUDITING × PG/SE/PM」3x3 マトリクス (PLANNING 全列 `-` = 承認ゲートのみ) の全体像を欠く。02 Phase 1 (PLANNING) 節も権限等級言及なし → 読者は「PLANNING では PG/SE/PM 適用なし」を 02 単独では読み取れず (phase-rules.md separate 読了必要)。矛盾ではないが親 SSOT が子の全体設計要約を欠く。
+- **推奨修正方針**: 02 Phase 1 冒頭 or Phase 3 冒頭に「フェーズ × 権限等級全体設計は `.claude/rules/phase-rules.md` 冒頭二軸表参照 (PLANNING は承認ゲートのみで PG/SE 概念適用なし)」の 1 文追加。**W-R3 S2** で消化候補。
+
+#### R1-I26: 05_MCP_INTEGRATION.md §5 の `.mcp.json` 設定例がプレースホルダーのみで実プロジェクト未存在
+- **severity**: Info
+- **evidence_file**: `docs/internal/05_MCP_INTEGRATION.md`
+- **evidence_line**: 84-118
+- **evidence_summary**: `.mcp.json` は Glob 実測で本プロジェクトに未存在。05 冒頭で「MCP サーバーはすべてオプション」明記のため矛盾ではないが、LAM 自身が serena/heimdall 等未採用の旨明記なし。
+- **推奨修正方針**: 冒頭 Note に「本 LAM プロジェクトでは現時点で MCP サーバー未導入」1 文追記 (任意)。
+
+#### R1-I27: 02_DEVELOPMENT_FLOW.md「MAGI System との連携」節が AoT 適用要否判断基準 (06 §5.3) 参照を欠く
+- **severity**: Info
+- **evidence_file**: `docs/internal/06_DECISION_MAKING.md`, `docs/internal/02_DEVELOPMENT_FLOW.md`
+- **evidence_line**: 06 L68-77 (AoT SSOT 宣言) / 02 L27-40 (MAGI System 連携表)
+- **evidence_summary**: 02「タスク分割 | タスクの Atom 化 + Wave 構成判断」記述が 06 の AoT 適用条件 (判断ポイント 2+ / レイヤー 3+ / 選択肢 3+) と併記されず、02 単独読了で AoT 適用要否判断基準が見えない。06 参照リンクで充足しているとも判断可能な境界事例。
+- **推奨修正方針**: 対応不要 (現状 06 参照で充足)。将来的に 02 表に「適用要否は 06 §5.3 参照」1 行追加すると親切。
+
+#### R1-I28: 04_RELEASE_OPS.md がプロジェクト非依存の一般テンプレートで LAM リリース実態 (Milestone/Wave 開発 / 配布物なし) との接続が薄い
+- **severity**: Info
+- **evidence_file**: `docs/internal/04_RELEASE_OPS.md`
+- **evidence_line**: 1-43 (全文)
+- **evidence_summary**: 04 は「本番環境デプロイ」「パッケージ公開」等 SaaS/アプリ開発前提の汎用内容で、LAM (Claude Code 設定・rule・skill 群) の実際の運用 (CHANGELOG.md 実在確認済 / SemVer 運用実例 / git tag 運用実態) との接続が示されず。05 MCP と同様の汎用テンプレート性で致命的ではない。
+- **推奨修正方針**: 対応不要、または「本プロジェクトでは配布物を持たないため §1-2 は将来のプロダクト化時に適用」の Note 追記。
+
+#### R1-I29: `.claude/rules/decision-making.md` の AoT フロー表記が 06 §5.2/5.4 mermaid と異なる (テキスト矢印 vs mermaid)
+- **severity**: Info
+- **evidence_file**: `docs/internal/06_DECISION_MAKING.md`, `.claude/rules/decision-making.md`
+- **evidence_line**: 06 L98-109 (mermaid flowchart) / decision-making.md L37-43 (テキスト矢印)
+- **evidence_summary**: 内容自体は矛盾していないが、06 が mermaid で厳密フローチャート (分岐含む) を持つのに対し、要約版はシンプルな一直線矢印表現のみで「複数条件のいずれか該当」の OR 分岐ニュアンスが失われる (実害は R1-042 の方が大 / 表現形式の違いのみ)。
+- **推奨修正方針**: 対応不要 (要約版としての簡略化は許容範囲)。
 
 ### module 7: `.claude/rules/` + `auto-generated/`
 
@@ -362,6 +608,8 @@ _W-R1 S4 T3 (module 11 監査) で起票予定_
 | 日付 | 変更者 | 内容 |
 |:-----|:-------|:-----|
 | 2026-07-06 | L1 (Opus 4.7) | 初版起票 (W-R1 S2 T1 / 骨組作成 / issue 未起票) |
+| 2026-07-06 | L1 (Opus 4.7) | W-R1 S2 module 1-4 監査完了 (issue R1-001..R1-031 / R1-I01..R1-I15 起票) |
+| 2026-07-06 | L1 (Opus 4.7) | W-R1 S3 module 5-8 監査完了 (issue R1-032..R1-043 + R1-I16..R1-I29 起票 / 累計 C=1 W=22 I=29 / NFR-3 閾値超過確定 → S5-T4 条件分岐 sub-task 起票必須) |
 
 ---
 
