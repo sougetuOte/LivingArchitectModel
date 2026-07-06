@@ -138,15 +138,41 @@ Opus の強み」を反映した委譲パターン。
 | Sonnet 5 | **使わない** | Anthropic 公式 Sonnet 5 プロンプトガイドが「literal interpretation / does not silently generalize / does not infer requests you didn't make」と明記。loose brief で under-deliver するため下調べ用途に不適 |
 | Haiku 4.5 | 事実突合・rubric 採点のみ | 判断・多段推論には非採用（既存規律通り） |
 
-### tight brief 4-slot テンプレート
+### tight brief 5-slot テンプレート (2026-07-06 拡張 / R-1 W-R1 S1+S2 retro 由来)
 
 Anthropic 公式 multi-agent research paper の failure mode（「research the semiconductor shortage」で
-subagent が 2021 と 2025 を独立探索し labor division 失敗）を修正する形式。全 4 slot 必須。
+subagent が 2021 と 2025 を独立探索し labor division 失敗）を修正する形式。全 5 slot 必須。
 
 1. **objective**（何を達成するか / 単一文で）
 2. **output format**（返却形式 / JSON or 箇条書き or dimension 別）
 3. **tool guidance**（使うべきツール・情報源の順序 / 具体パス OK）
 4. **task boundaries**（触らない領域・停止条件）
+5. **primary_sources**（絶対視すべき一次資料の URL または context7 library ID / 2026-07-06 追加）
+
+#### primary_sources 追加の根拠 (2026-07-06 / R-1 W-R1 S2 retro 事例 #4)
+
+subagent (Sonnet) は「与えられた一次資料を絶対視する癖」と「context7 等の rich source を能動的に
+引かない癖」を持つ。R-1 W-R1 S2 T4 (module 3 skills 監査) で subagent がローカルの `skill-creator/SKILL.md`
+を Claude Code SKILL.md の公式スキーマ一次情報源と誤認し、`allowed-tools:` を「非公式フィールド」と
+誤判定した実測がある (R1-016 / tracker 参照)。L1 (Opus) 側で context7 の `/websites/code_claude`
+を fetch → 公式仕様と判明 → subagent 判定を訂正した。
+
+primary_sources を明示的に指定することで:
+- subagent が最初から正しい一次資料を絶対視する (誤ったローカル文書を一次と誤認しない)
+- context7 library ID を書いておけば subagent が能動的に fetch する動線が生まれる
+- L1 監督工程での upstream 裏取り往復回数を削減 (2026-07-06 実測: R1-016 の訂正で 1 往復)
+
+#### primary_sources の書式例
+
+```
+5. **primary_sources** (絶対視すべき一次資料 / 該当する場合):
+   - context7 library: `/websites/code_claude` (topic: skill frontmatter / hooks 等)
+   - upstream URL: https://code.claude.com/docs/en/skills
+   - ローカル SSOT: `docs/specs/large-scale-review/design.md` §5.3 (これのみ / 他 SKILL.md 等の派生資料は参考扱い)
+```
+
+「該当する場合」は、外部ライブラリ / SaaS API / プラットフォーム機能に触れる brief でのみ必須。
+純粋にプロジェクト内部の実装検証 brief では省略可 (「該当なし」を 5. に明記して skip)。
 
 ### grounding bolt-on（全 subagent 共通）
 
