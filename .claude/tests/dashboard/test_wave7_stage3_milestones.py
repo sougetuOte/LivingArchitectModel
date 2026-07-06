@@ -29,21 +29,21 @@ if str(_SCRIPTS_DIR) not in sys.path:
 
 
 @pytest.fixture
-def multi_milestone_data():
+def multi_milestone_data(make_milestone):
     """複数 Milestone を含む DashboardData モック。
 
     出現順 B-5 → B-4 を意図的に与え、_render_v2_milestones() 内の
     ソートが機能していることを検証可能にする。
     実 SESSION_STATE.md に依存しない（gitignore 対象のため再現性なし）。
     """
-    from dashboard.models import DashboardData, MilestoneInfo
+    from dashboard.models import DashboardData
 
     return DashboardData(
         current_phase="PLANNING",
         milestones=[
             # 出現順: B-5 が先 → ソート後 B-4 が先になることを確認
-            MilestoneInfo(name="B-5", current_step="UNKNOWN", status="in-progress"),
-            MilestoneInfo(name="B-4", current_step="UNKNOWN", status="in-progress"),
+            make_milestone(name="B-5", current_step="UNKNOWN"),
+            make_milestone(name="B-4", current_step="UNKNOWN"),
         ],
         waves=[],
         tasks=[],
@@ -51,14 +51,14 @@ def multi_milestone_data():
 
 
 @pytest.fixture
-def single_milestone_data():
+def single_milestone_data(make_milestone):
     """単一 Milestone を含む DashboardData モック。"""
-    from dashboard.models import DashboardData, MilestoneInfo
+    from dashboard.models import DashboardData
 
     return DashboardData(
         current_phase="BUILDING",
         milestones=[
-            MilestoneInfo(name="B-5", current_step="UNKNOWN", status="in-progress"),
+            make_milestone(name="B-5", current_step="UNKNOWN"),
         ],
         waves=[],
         tasks=[],

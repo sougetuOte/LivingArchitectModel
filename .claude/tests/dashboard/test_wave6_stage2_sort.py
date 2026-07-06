@@ -17,7 +17,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from dashboard.builder import DashboardBuilder
-from dashboard.models import DashboardData, MilestoneInfo, TaskInfo
+from dashboard.models import DashboardData
 
 
 # ─────────────────────────────────────────────
@@ -41,23 +41,14 @@ def _make_empty_builder() -> DashboardBuilder:
     return DashboardBuilder(data)
 
 
-def _make_builder_with_tasks() -> DashboardBuilder:
+def _make_builder_with_tasks(make_milestone, make_task) -> DashboardBuilder:
     """Task を持つ DashboardBuilder を生成する（T-S2-7 等で使用）。
 
     design.md §14 T-S2-7 のフィクスチャ要件:
     「非空 tasks リスト」で _render_v4_tasks() が data-milestone= を出力することを確認。
     """
-    milestone = MilestoneInfo(
-        name="B-5",
-        current_step="BUILDING",
-        status="in-progress",
-    )
-    task = TaskInfo(
-        id="W1-B5-T1",
-        milestone="B-5",
-        assignee="Sonnet",
-        status="completed",
-    )
+    milestone = make_milestone()
+    task = make_task(id="W1-B5-T1", assignee="Sonnet", status="completed")
     data = DashboardData(
         milestones=[milestone],
         waves=[],
@@ -117,14 +108,14 @@ def test_t_s2_02_render_script_init_sort_buttons_exists() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s2_03_render_output_contains_sort_btn_class() -> None:
+def test_t_s2_03_render_output_contains_sort_btn_class(make_milestone, make_task) -> None:
     """render() の出力 HTML に class="sort-btn" が含まれること。
 
     design.md §14 T-S2-3 合格基準:
         assert 'class="sort-btn"' in html
     design.md §9 DOM 構造: <button class="sort-btn" data-col="N">
     """
-    builder = _make_builder_with_tasks()
+    builder = _make_builder_with_tasks(make_milestone, make_task)
     html_output = builder.render()
     assert 'class="sort-btn"' in html_output, (
         "render() 出力に 'class=\"sort-btn\"' が見つかりません。\n"
@@ -137,7 +128,7 @@ def test_t_s2_03_render_output_contains_sort_btn_class() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s2_04_render_output_contains_aria_sort_none() -> None:
+def test_t_s2_04_render_output_contains_aria_sort_none(make_milestone, make_task) -> None:
     """render() の出力 HTML に aria-sort="none" が含まれること。
 
     design.md §14 T-S2-4 合格基準:
@@ -145,7 +136,7 @@ def test_t_s2_04_render_output_contains_aria_sort_none() -> None:
     design.md §9 DOM 構造: <th id="th-task-id" aria-sort="none">
     WAI-ARIA 1.1: aria-sort 初期値は "none"。
     """
-    builder = _make_builder_with_tasks()
+    builder = _make_builder_with_tasks(make_milestone, make_task)
     html_output = builder.render()
     assert 'aria-sort="none"' in html_output, (
         "render() 出力に 'aria-sort=\"none\"' が見つかりません。\n"
@@ -158,14 +149,14 @@ def test_t_s2_04_render_output_contains_aria_sort_none() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s2_05_render_output_contains_tasks_table_id() -> None:
+def test_t_s2_05_render_output_contains_tasks_table_id(make_milestone, make_task) -> None:
     """render() の出力 HTML に id="tasks-table" が含まれること。
 
     design.md §14 T-S2-5 合格基準:
         assert 'id="tasks-table"' in html
     design.md §9: テーブル ID は 'tasks-table'（Wave 6 で新規付与）。
     """
-    builder = _make_builder_with_tasks()
+    builder = _make_builder_with_tasks(make_milestone, make_task)
     html_output = builder.render()
     assert 'id="tasks-table"' in html_output, (
         "render() 出力に 'id=\"tasks-table\"' が見つかりません。\n"
@@ -198,7 +189,7 @@ def test_t_s2_06_render_script_contains_aria_sort_update() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s2_07_render_v4_tasks_row_has_data_milestone() -> None:
+def test_t_s2_07_render_v4_tasks_row_has_data_milestone(make_milestone, make_task) -> None:
     """_render_v4_tasks() の行に data-milestone= 属性が含まれること（非空 tasks データ）。
 
     design.md §14 T-S2-7 合格基準:
@@ -206,7 +197,7 @@ def test_t_s2_07_render_v4_tasks_row_has_data_milestone() -> None:
     design.md §9 / §13: _render_v4_tasks() は各 <tr> に data-milestone="{task.milestone}" を付与。
     Stage 3 フィルタ機能（applyFilters）で row.dataset.milestone を参照する際に使用。
     """
-    builder = _make_builder_with_tasks()
+    builder = _make_builder_with_tasks(make_milestone, make_task)
     v4_html = builder._render_v4_tasks()
     assert "data-milestone=" in v4_html, (
         "_render_v4_tasks() 出力に 'data-milestone=' が見つかりません。\n"

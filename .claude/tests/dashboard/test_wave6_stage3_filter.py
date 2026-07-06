@@ -18,7 +18,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from dashboard.builder import DashboardBuilder
-from dashboard.models import DashboardData, MilestoneInfo, TaskInfo
+from dashboard.models import DashboardData
 
 
 # ─────────────────────────────────────────────
@@ -42,7 +42,7 @@ def _make_empty_builder() -> DashboardBuilder:
     return DashboardBuilder(data)
 
 
-def _make_builder_with_milestone() -> DashboardBuilder:
+def _make_builder_with_milestone(make_milestone) -> DashboardBuilder:
     """Milestone を持つ DashboardBuilder を生成する（T-S3-10 で使用）。
 
     design.md §14 T-S3-10 のフィクスチャ要件（W-NEW-3 対応）:
@@ -51,11 +51,7 @@ def _make_builder_with_milestone() -> DashboardBuilder:
     を渡し、_render_filter_controls() の Milestone select に
     '<option value="B-5">' が含まれることを確認する。
     """
-    milestone = MilestoneInfo(
-        name="B-5",
-        current_step="BUILDING",
-        status="in-progress",
-    )
+    milestone = make_milestone()
     data = DashboardData(
         milestones=[milestone],
         waves=[],
@@ -70,19 +66,10 @@ def _make_builder_with_milestone() -> DashboardBuilder:
     return DashboardBuilder(data)
 
 
-def _make_builder_with_tasks() -> DashboardBuilder:
+def _make_builder_with_tasks(make_milestone, make_task) -> DashboardBuilder:
     """Task を持つ DashboardBuilder を生成する（render() 出力検証で使用）。"""
-    milestone = MilestoneInfo(
-        name="B-5",
-        current_step="BUILDING",
-        status="in-progress",
-    )
-    task = TaskInfo(
-        id="W1-B5-T1",
-        milestone="B-5",
-        assignee="Sonnet",
-        status="completed",
-    )
+    milestone = make_milestone()
+    task = make_task(id="W1-B5-T1", assignee="Sonnet", status="completed")
     data = DashboardData(
         milestones=[milestone],
         waves=[],
@@ -232,7 +219,7 @@ def test_t_s3_06_filter_controls_contains_filter_reset() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s3_07_render_output_contains_aria_live_polite() -> None:
+def test_t_s3_07_render_output_contains_aria_live_polite(make_milestone, make_task) -> None:
     """render() の出力 HTML に aria-live="polite" が含まれること。
 
     design.md §14 T-S3-7 合格基準:
@@ -241,7 +228,7 @@ def test_t_s3_07_render_output_contains_aria_live_polite() -> None:
     _render_v4_tasks() 内に配置（T40 完了条件）。
     WAI-ARIA: aria-live="polite" でスクリーンリーダーが件数変更を非割り込みで通知。
     """
-    builder = _make_builder_with_tasks()
+    builder = _make_builder_with_tasks(make_milestone, make_task)
     html_output = builder.render()
     assert 'aria-live="polite"' in html_output, (
         "render() 出力に 'aria-live=\"polite\"' が見つかりません。\n"
@@ -254,7 +241,7 @@ def test_t_s3_07_render_output_contains_aria_live_polite() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s3_08_render_output_contains_filter_result_count() -> None:
+def test_t_s3_08_render_output_contains_filter_result_count(make_milestone, make_task) -> None:
     """render() の出力 HTML に id="filter-result-count" が含まれること。
 
     design.md §14 T-S3-8 合格基準:
@@ -263,7 +250,7 @@ def test_t_s3_08_render_output_contains_filter_result_count() -> None:
     は _render_v4_tasks() 内、フィルタ UI の直後に配置。
     AC-W6-7: applyFilters() がこの要素の textContent を "{n} 件表示" に更新する。
     """
-    builder = _make_builder_with_tasks()
+    builder = _make_builder_with_tasks(make_milestone, make_task)
     html_output = builder.render()
     assert 'id="filter-result-count"' in html_output, (
         "render() 出力に 'id=\"filter-result-count\"' が見つかりません。\n"
@@ -298,7 +285,7 @@ def test_t_s3_09_render_script_contains_style_display() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s3_10_filter_milestone_option_matches_milestone_info() -> None:
+def test_t_s3_10_filter_milestone_option_matches_milestone_info(make_milestone) -> None:
     """_render_filter_controls() の Milestone option 値が DashboardData.milestones の name と一致すること。
 
     design.md §14 T-S3-10 合格基準（W-NEW-3 対応）:
@@ -310,7 +297,7 @@ def test_t_s3_10_filter_milestone_option_matches_milestone_info() -> None:
     ms.name を <option value="{name}">{name}</option> として動的生成する。
     MilestoneInfo オブジェクトリストを渡すことで確認（文字列リストではない）。
     """
-    builder = _make_builder_with_milestone()
+    builder = _make_builder_with_milestone(make_milestone)
     filter_html = builder._render_filter_controls()
     assert '<option value="B-5">' in filter_html, (
         "_render_filter_controls() に '<option value=\"B-5\">' が見つかりません。\n"

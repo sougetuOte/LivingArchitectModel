@@ -67,12 +67,12 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 項目 | 値 | 出典 |
 |:----|:---|:-----|
 | 初期閾値 (暫定) | 10 件 | requirements.md NFR-3 |
-| **確定閾値 (S5-T4 / 2026-07-06)** | **Critical 単独 3 件 or Critical + Warning 30 件** | 実測ベース (**W-R2 S2 完了後 open C=0 W=22 実測** / HGA #10 反映後) |
+| **確定閾値 (S5-T4 / 2026-07-06)** | **Critical 単独 3 件 or Critical + Warning 30 件** | 実測ベース (**W-R2 S3 完了後 open C=0 W=21 実測** / HGA #10 反映後) |
 | 超過時アクション | 優先順位付けサブタスクを tracker に起票 (下記 §1.1) | spec-critic Warning W5 |
 
 ### 1.1 W-R2 以降の消化優先順位 (S5-T4 sub-task)
 
-暫定閾値 10 は超過 (実測 open C+W = 22 / 2026-07-07 W-R2 S2 完了時点) だが、実測ベース閾値 (C 単独 3 / C+W 30) 内。以下優先順位で消化:
+暫定閾値 10 は超過 (実測 open C+W = 21 / 2026-07-07 W-R2 S3 完了時点) だが、実測ベース閾値 (C 単独 3 / C+W 30) 内。以下優先順位で消化:
 
 | Priority | Wave | issue | 根拠 |
 |:--------:|:----:|:-----|:-----|
@@ -84,7 +84,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | P2 (W-R3 S3) | W-R3 S3 | R1-017/R1-018/R1-035/R1-038/R1-039/R1-I24 | rules 相互矛盾 |
 | P2 (W-R3 S4) | W-R3 S4 | R1-046 (3 Milestone status drift) / R1-047/R1-048 (Info)/R1-049 | specs + adr + ルート統治文書一貫性 |
 | P3 (W-R4 S1-3) | W-R4 全 Stage | R1-002/R1-003/R1-032 (closed)/R1-033/R1-034/R1-036/R1-037/R1-052 (closed) | hooks/agents/skills 整理 |
-| P4 (W-R2 S3-4) | W-R2 S3-4 | ~~R1-007/R1-008~~ (closed 2026-07-07 W-R2 S2 前倒し) / R1-030/R1-031 残 | dashboard 領域 Warning |
+| P4 (W-R2 S3-4) | W-R2 S3-4 | ~~R1-007/R1-008~~ (closed W-R2 S2) / ~~R1-031~~ (closed W-R2 S3) / **R1-030 は W-R4 S2 `git rm` 束ねへ送り (推奨方針通り / 2026-07-07 L1 裁定)** | dashboard 領域 Warning |
 | Info | W-R5 or 棚上げ | 全 Info 44 件 | Green State 判定に影響なし (code-quality-guideline 準拠) |
 
 ~~**開放 Critical 2 件** (R1-001 + R1-006) は **W-R2 S1 で最優先消化** (P1)。W-R5 S1 の R-G6 判定前に Critical=0 を確定必須。~~ **→ 2026-07-06 W-R2 S1 で消化完了 (open Critical = 0 実現)**。以降は R1-053 (Warning / HGA #9 発見) の消化計画を W-R3 以降で立案。
@@ -93,7 +93,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 
 ## 2. モジュール別問題数ヒートマップ (11 × 3)
 
-**W-R2 S2 完了時点 (HGA #10 verdict 反映後 / 2026-07-07)**: 11 モジュール監査完了 + HGA #7/#8/#9/#10 adversarial verify 反映済 + R1-001/R1-006/R1-053/R1-007/R1-008 closed + R1-056/057/058/059 起票
+**W-R2 S3 完了時点 (2026-07-07)**: 11 モジュール監査完了 + HGA #7/#8/#9/#10 adversarial verify 反映済 + R1-001/R1-006/R1-053/R1-007/R1-008/R1-031 closed + R1-056/057/058/059 起票 + R1-030 は W-R4 S2 送り裁定
 
 | モジュール | Critical | Warning | Info |
 |:----------|:--------:|:-------:|:----:|
@@ -109,7 +109,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
 | **合計 (全 11 module / 全期間)** | **2** | **28** | **49** |
-| **open** (closed 8 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008) | **0** | **22** | **49** |
+| **open** (closed 9 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031) | **0** | **21** | **49** |
 
 **HGA #7 verdict 反映差分** (2026-07-06 / Fable):
 - (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
@@ -119,10 +119,10 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
 
 **NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
-- 累計 Critical + Warning = **30 件** (open C+W = **22 件** / closed 8 件除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008 / R1-056 新規 open)
+- 累計 Critical + Warning = **30 件** (open C+W = **21 件** / closed 9 件除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031 / R1-056 新規 open)
 - **暫定閾値 10 の 3.0 倍超過 (累計)**
 - **実測ベース閾値** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
-  - **W-R2 S2 完了後**: 実測 open C=0 (< 3 OK) / C+W open=22 (< 30 OK) → 実測ベース閾値では **未超過**
+  - **W-R2 S3 完了後**: 実測 open C=0 (< 3 OK) / C+W open=21 (< 30 OK) → 実測ベース閾値では **未超過**
   - ~~S5-T4 の条件分岐 sub-task = R1-001 の即消化を W-R2 S1 で最優先化~~ → **2026-07-06 完了 (open Critical = 0 実現)**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
@@ -489,7 +489,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `test-hygiene`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: `closed` (2026-07-07 / W-R2 S3)
+- **closed_by_commit**: `<TBD-in-W-R2-S3-T4-ship>`
+- **resolution**: `.claude/tests/dashboard/conftest.py` 新設 (factory fixture 3 種 / models.py フィールド定義準拠の既定値)。**計測基準の訂正**: 起票時「87 箇所」は型名の grep -c 言及回数ベースで、実際の手動構築呼び出し (`Name(` 形式) は 52 箇所 — うち 49 箇所を fixture 移行、3 箇所 (test_base_parser.py のモデル仕様直接検証テスト 3 件) は例外規則で意図的残置。ローカル重複ヘルパー (`_make_milestone` / `_make_wave` / `_make_task` / builder 系) を全廃し正味 -71 行 (7 ファイル変更 + conftest.py 新規 / 3 ファイルは手動構築なしと実測判明で無変更)。ファイル単位の段階検証 + 全体 576 PASS + 14 SKIP + 0 FAIL 維持 (件数不変) / L1 独立再走で一致確認
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/tests/dashboard/test_base_parser.py` (12 参照), `test_session_state_parser.py` (9), `test_tasks_parser.py` (10), `test_v2_view.py` (4), `test_v3_view.py` (13), `test_v4_view.py` (4), `test_wave6_stage2_sort.py` (3), `test_wave6_stage3_filter.py` (8), `test_wave6_stage4_integration.py` (19), `test_wave7_stage3_milestones.py` (5)
 - **evidence_line**: 分散 (grep -c 実測)

@@ -28,7 +28,7 @@ if str(_SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS_DIR))
 
 from dashboard.builder import DashboardBuilder
-from dashboard.models import DashboardData, MilestoneInfo, TaskInfo
+from dashboard.models import DashboardData
 
 
 # ─────────────────────────────────────────────
@@ -36,35 +36,37 @@ from dashboard.models import DashboardData, MilestoneInfo, TaskInfo
 # ─────────────────────────────────────────────
 
 
-def _make_builder_with_full_data() -> DashboardBuilder:
+_TASK_ID_STATUS_PAIRS = [
+    ("W1-B5-T1", "completed"),
+    ("W2-B5-T9", "completed"),
+    ("W3-B5-T14", "completed"),
+    ("W3-B5-T15", "completed"),
+    ("W6-B5-T31", "completed"),
+    ("W6-B5-T32", "completed"),
+    ("W6-B5-T33", "completed"),
+    ("W6-B5-T34", "completed"),
+    ("W6-B5-T35", "completed"),
+    ("W6-B5-T36", "completed"),
+    ("W6-B5-T37", "completed"),
+    ("W6-B5-T38", "completed"),
+    ("W6-B5-T39", "completed"),
+    ("W6-B5-T40", "completed"),
+    ("W6-B5-T41", "completed"),
+    ("W6-B5-T42", "in-progress"),
+    ("W6-B5-T43", "not-started"),
+]
+
+
+def _make_builder_with_full_data(make_milestone, make_task) -> DashboardBuilder:
     """統合テスト用の現実的なデータを持つ DashboardBuilder を生成する。
 
     Milestone / Task / 各状態を網羅したフィクスチャ。
     複数テスト（T-S4-6 / T-S4-7 / T-S4-8）で再利用する。
     """
-    milestone = MilestoneInfo(
-        name="B-5",
-        current_step="BUILDING",
-        status="in-progress",
-    )
+    milestone = make_milestone()
     tasks = [
-        TaskInfo(id="W1-B5-T1", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W2-B5-T9", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W3-B5-T14", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W3-B5-T15", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T31", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T32", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T33", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T34", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T35", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T36", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T37", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T38", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T39", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T40", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T41", milestone="B-5", assignee="Sonnet", status="completed"),
-        TaskInfo(id="W6-B5-T42", milestone="B-5", assignee="Sonnet", status="in-progress"),
-        TaskInfo(id="W6-B5-T43", milestone="B-5", assignee="Sonnet", status="not-started"),
+        make_task(id=task_id, assignee="Sonnet", status=status)
+        for task_id, status in _TASK_ID_STATUS_PAIRS
     ]
     data = DashboardData(
         milestones=[milestone],
@@ -306,7 +308,7 @@ def test_t_s4_05_dark_mode_visual_via_mcp() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s4_06_html_size_under_500kb() -> None:
+def test_t_s4_06_html_size_under_500kb(make_milestone, make_task) -> None:
     """builder.render() の出力 HTML が 500,000 バイト（500 KB）以下であること。
 
     種別: 自動
@@ -323,7 +325,7 @@ def test_t_s4_06_html_size_under_500kb() -> None:
         仮に 500 KB を超えていれば AssertionError で FAIL する。
         仕様上は余裕があるため通常 PASS する見込み。
     """
-    builder = _make_builder_with_full_data()
+    builder = _make_builder_with_full_data(make_milestone, make_task)
     html_bytes = builder.render().encode("utf-8")
     size_bytes = len(html_bytes)
     assert size_bytes <= 500_000, (
@@ -337,7 +339,7 @@ def test_t_s4_06_html_size_under_500kb() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s4_07_added_css_size_under_10kb() -> None:
+def test_t_s4_07_added_css_size_under_10kb(make_milestone, make_task) -> None:
     """builder._render_style() の出力 CSS が 16,384 バイト（16 KiB）以下であること。
 
     種別: 自動
@@ -355,7 +357,7 @@ def test_t_s4_07_added_css_size_under_10kb() -> None:
     Wave 7 Stage 3 時点の実測:
         ~10,400 バイト（緑帯 / V-2 Milestone カード CSS 追加後）
     """
-    builder = _make_builder_with_full_data()
+    builder = _make_builder_with_full_data(make_milestone, make_task)
     style_bytes = builder._render_style().encode("utf-8")
     size_bytes = len(style_bytes)
     assert size_bytes <= 16_384, (
@@ -370,7 +372,7 @@ def test_t_s4_07_added_css_size_under_10kb() -> None:
 # ─────────────────────────────────────────────
 
 
-def test_t_s4_08_offline_no_external_refs() -> None:
+def test_t_s4_08_offline_no_external_refs(make_milestone, make_task) -> None:
     """render() 出力 HTML に外部参照（https?:// URL）が含まれないことを確認する。
 
     種別: 自動
@@ -393,7 +395,7 @@ def test_t_s4_08_offline_no_external_refs() -> None:
         コメント内 URL（例: CSS の転記元 URL コメント「/* https://www.radix-ui.com/ */」）は
         上記パターンにマッチしないため誤検知しない（W-NEW-4 設計意図）。
     """
-    builder = _make_builder_with_full_data()
+    builder = _make_builder_with_full_data(make_milestone, make_task)
     html_output = builder.render()
 
     # パターン 1: <link> タグの外部 href 参照

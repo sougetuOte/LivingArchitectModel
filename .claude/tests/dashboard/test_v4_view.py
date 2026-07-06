@@ -48,18 +48,6 @@ def _make_builder(tasks=None, in_progress=None, blocked=None, completed=None):
     return DashboardBuilder(data)
 
 
-def _make_task(
-    task_id: str = "W1-B5-T1",
-    milestone: str = "b4-dashboard",
-    assignee: str = "-",
-    status: str = "not-started",
-):
-    """テスト用 TaskInfo を生成するヘルパー。"""
-    from dashboard.models import TaskInfo
-
-    return TaskInfo(id=task_id, milestone=milestone, assignee=assignee, status=status)
-
-
 # ─────────────────────────────────────────────
 # R-6: <section id="v4-tasks"> の存在確認（設計書出力ファイルからのアサーション）
 # ─────────────────────────────────────────────
@@ -85,44 +73,44 @@ def test_render_contains_v4_section_id():
 # ─────────────────────────────────────────────
 
 
-def test_render_v4_contains_table_with_tasks():
+def test_render_v4_contains_table_with_tasks(make_task):
     """Task が 1 件以上のとき <table> 要素が存在すること。
 
     対応完了条件: W3-B5-T15「テーブルに Task ID・担当・状態カラムが表示される」
     Wave 6 T38 緩和: `<table>` に `id="tasks-table"` 属性が付与されたため、
     開きタグの部分一致（`<table`）で検査する（SE 級）。
     """
-    task = _make_task()
+    task = make_task()
     result_html = _make_builder(tasks=[task]).render()
     assert "<table" in result_html, (
         "生成 HTML に <table 要素が見つかりません（Task 1 件以上のケース）。"
     )
 
 
-def test_render_v4_thead_has_three_columns():
+def test_render_v4_thead_has_three_columns(make_task):
     """V-4 テーブルのヘッダに「Task ID」「担当」「状態」の 3 列が存在すること。
 
     対応完了条件: W3-B5-T15「テーブルに Task ID・担当・状態カラムが表示される」
     設計仕様: design.md §4 V-4 DOM 構成案「<th>Task ID</th><th>担当</th><th>状態</th>」
     Wave 6 T38 緩和: ヘッダ内に <button> が内包されるため文字列包含チェックに緩和（SE 級）。
     """
-    task = _make_task()
+    task = make_task()
     result_html = _make_builder(tasks=[task]).render()
     assert "Task ID" in result_html, "ヘッダに「Task ID」が見つかりません。"
     assert "担当" in result_html, "ヘッダに「担当」が見つかりません。"
     assert "状態" in result_html, "ヘッダに「状態」が見つかりません。"
 
 
-def test_render_v4_contains_tbody():
+def test_render_v4_contains_tbody(make_task):
     """V-4 テーブルに <tbody> が存在すること。"""
-    task = _make_task()
+    task = make_task()
     result_html = _make_builder(tasks=[task]).render()
     assert "<tbody>" in result_html, "生成 HTML に <tbody> が見つかりません。"
 
 
-def test_render_v4_section_has_h2_heading():
+def test_render_v4_section_has_h2_heading(make_task):
     """V-4 セクションに <h2> 見出しが存在すること。"""
-    task = _make_task()
+    task = make_task()
     result_html = _make_builder(tasks=[task]).render()
     assert "<h2>" in result_html, "V-4 セクションに <h2> 見出しが見つかりません。"
 
@@ -132,36 +120,36 @@ def test_render_v4_section_has_h2_heading():
 # ─────────────────────────────────────────────
 
 
-def test_render_v4_task_id_in_row():
+def test_render_v4_task_id_in_row(make_task):
     """Task ID が tbody 行に表示されること。
 
     対応完了条件: W3-B5-T15「テーブルに Task ID カラムが表示される」
     """
-    task = _make_task(task_id="W1-B5-T1")
+    task = make_task(id="W1-B5-T1")
     result_html = _make_builder(tasks=[task]).render()
     assert "W1-B5-T1" in result_html, "Task ID「W1-B5-T1」が HTML に見つかりません。"
 
 
-def test_render_v4_task_id_row_has_data_attribute():
+def test_render_v4_task_id_row_has_data_attribute(make_task):
     """<tr data-task-id="{id}"> 属性が各行に存在すること。
 
     設計仕様: design.md §4 V-4 DOM 構成案「<tr data-task-id="W1-B5-T1">」
     """
-    task = _make_task(task_id="W1-B5-T1")
+    task = make_task(id="W1-B5-T1")
     result_html = _make_builder(tasks=[task]).render()
     assert 'data-task-id="W1-B5-T1"' in result_html, (
         'data-task-id="W1-B5-T1" 属性が <tr> タグに見つかりません。'
     )
 
 
-def test_render_v4_multiple_tasks_all_shown():
+def test_render_v4_multiple_tasks_all_shown(make_task):
     """複数 Task がある場合、全 Task が表示されること。
 
     対応完了条件: W3-B5-T15「全 Task が表示される（Orphan Task 検出用）」
     """
-    task1 = _make_task(task_id="W1-B5-T1")
-    task2 = _make_task(task_id="W2-B5-T7")
-    task3 = _make_task(task_id="W3-B5-T12")
+    task1 = make_task(id="W1-B5-T1")
+    task2 = make_task(id="W2-B5-T7")
+    task3 = make_task(id="W3-B5-T12")
     result_html = _make_builder(tasks=[task1, task2, task3]).render()
     assert "W1-B5-T1" in result_html, "Task W1-B5-T1 が HTML に見つかりません。"
     assert "W2-B5-T7" in result_html, "Task W2-B5-T7 が HTML に見つかりません。"
@@ -173,16 +161,16 @@ def test_render_v4_multiple_tasks_all_shown():
 # ─────────────────────────────────────────────
 
 
-def test_render_v4_assignee_shown():
+def test_render_v4_assignee_shown(make_task):
     """担当列が表示されること。"""
-    task = _make_task(assignee="Sonnet")
+    task = make_task(assignee="Sonnet")
     result_html = _make_builder(tasks=[task]).render()
     assert "Sonnet" in result_html, "担当「Sonnet」が HTML に見つかりません。"
 
 
-def test_render_v4_assignee_dash_when_empty():
+def test_render_v4_assignee_dash_when_empty(make_task):
     """担当が '-' のとき '-' が表示されること。"""
-    task = _make_task(assignee="-")
+    task = make_task(assignee="-")
     result_html = _make_builder(tasks=[task]).render()
     # '-' はハイフン。HTML内に含まれているか確認（他のコンテキストとの区別は不要）
     assert "-" in result_html, "担当が '-' のとき '-' が HTML に見つかりません。"
@@ -193,12 +181,12 @@ def test_render_v4_assignee_dash_when_empty():
 # ─────────────────────────────────────────────
 
 
-def test_render_v4_status_badge_not_started():
+def test_render_v4_status_badge_not_started(make_task):
     """not-started Task に状態バッジ（data-status="not-started"）と「未着手」が表示されること。
 
     設計仕様: design.md §4 V-4 + §5 Task 状態決定ロジック step 5
     """
-    task = _make_task(status="not-started")
+    task = make_task(status="not-started")
     result_html = _make_builder(tasks=[task]).render()
     assert 'data-status="not-started"' in result_html, (
         'data-status="not-started" が見つかりません。'
@@ -206,12 +194,12 @@ def test_render_v4_status_badge_not_started():
     assert "未着手" in result_html, "状態バッジの日本語ラベル「未着手」が見つかりません。"
 
 
-def test_render_v4_status_badge_completed():
+def test_render_v4_status_badge_completed(make_task):
     """completed Task に状態バッジ（data-status="completed"）と「完了」が表示されること。
 
     設計仕様: design.md §5 Task 状態決定ロジック step 4
     """
-    task = _make_task(status="completed")
+    task = make_task(status="completed")
     result_html = _make_builder(tasks=[task]).render()
     assert 'data-status="completed"' in result_html, (
         'data-status="completed" が見つかりません。'
@@ -219,12 +207,12 @@ def test_render_v4_status_badge_completed():
     assert "完了" in result_html, "状態バッジの日本語ラベル「完了」が見つかりません。"
 
 
-def test_render_v4_status_badge_in_progress():
+def test_render_v4_status_badge_in_progress(make_task):
     """in-progress Task に状態バッジ（data-status="in-progress"）と「進行中」が表示されること。
 
     設計仕様: design.md §5 Task 状態決定ロジック step 2（SessionState 補完）
     """
-    task = _make_task(status="in-progress")
+    task = make_task(status="in-progress")
     result_html = _make_builder(tasks=[task]).render()
     assert 'data-status="in-progress"' in result_html, (
         'data-status="in-progress" が見つかりません。'
@@ -232,12 +220,12 @@ def test_render_v4_status_badge_in_progress():
     assert "進行中" in result_html, "状態バッジの日本語ラベル「進行中」が見つかりません。"
 
 
-def test_render_v4_status_badge_blocked():
+def test_render_v4_status_badge_blocked(make_task):
     """blocked Task に状態バッジ（data-status="blocked"）と「ブロック中」が表示されること。
 
     設計仕様: design.md §5 Task 状態決定ロジック step 3（SessionState 補完）
     """
-    task = _make_task(status="blocked")
+    task = make_task(status="blocked")
     result_html = _make_builder(tasks=[task]).render()
     assert 'data-status="blocked"' in result_html, (
         'data-status="blocked" が見つかりません。'
@@ -245,9 +233,9 @@ def test_render_v4_status_badge_blocked():
     assert "ブロック中" in result_html, "状態バッジの日本語ラベル「ブロック中」が見つかりません。"
 
 
-def test_render_v4_badge_has_span_class():
+def test_render_v4_badge_has_span_class(make_task):
     """状態バッジが <span class="badge" data-status="..."> 形式であること。"""
-    task = _make_task(status="in-progress")
+    task = make_task(status="in-progress")
     result_html = _make_builder(tasks=[task]).render()
     assert '<span class="badge" data-status=' in result_html, (
         '<span class="badge" data-status=...> 形式のバッジが見つかりません。'
@@ -259,7 +247,7 @@ def test_render_v4_badge_has_span_class():
 # ─────────────────────────────────────────────
 
 
-def test_render_v4_task_status_override_in_progress_from_session_state():
+def test_render_v4_task_status_override_in_progress_from_session_state(make_task):
     """TasksParser が not-started を返しても、SessionState の in_progress に含まれる Task は
     in-progress として表示されること。
 
@@ -269,7 +257,7 @@ def test_render_v4_task_status_override_in_progress_from_session_state():
     R-1: 状態値フィールド名が design.md §5 と文字単位で一致すること
     """
     # TasksParser では not-started、SessionState では進行中
-    task = _make_task(task_id="W1-B5-T1", status="not-started")
+    task = make_task(id="W1-B5-T1", status="not-started")
     result_html = _make_builder(
         tasks=[task],
         in_progress=["W1-B5-T1: BaseParser 実装"],
@@ -281,13 +269,13 @@ def test_render_v4_task_status_override_in_progress_from_session_state():
     )
 
 
-def test_render_v4_task_status_override_blocked_from_session_state():
+def test_render_v4_task_status_override_blocked_from_session_state(make_task):
     """TasksParser が not-started を返しても、SessionState の blocked に含まれる Task は
     blocked として表示されること。
 
     設計仕様: design.md §5 Task 状態決定ロジック 優先順位 3
     """
-    task = _make_task(task_id="W2-B5-T7", status="not-started")
+    task = make_task(id="W2-B5-T7", status="not-started")
     result_html = _make_builder(
         tasks=[task],
         blocked=["W2-B5-T7: ブロック中の問題"],
@@ -298,13 +286,13 @@ def test_render_v4_task_status_override_blocked_from_session_state():
     )
 
 
-def test_render_v4_task_status_override_completed_from_session_state():
+def test_render_v4_task_status_override_completed_from_session_state(make_task):
     """TasksParser が not-started を返しても、SessionState の completed に含まれる Task は
     completed として表示されること。
 
     設計仕様: design.md §5 Task 状態決定ロジック 優先順位 1
     """
-    task = _make_task(task_id="W1-B5-T1", status="not-started")
+    task = make_task(id="W1-B5-T1", status="not-started")
     result_html = _make_builder(
         tasks=[task],
         completed=["W1-B5-T1: 完了済み"],
@@ -315,12 +303,12 @@ def test_render_v4_task_status_override_completed_from_session_state():
     )
 
 
-def test_render_v4_session_state_completed_overrides_tasks_parser_not_started():
+def test_render_v4_session_state_completed_overrides_tasks_parser_not_started(make_task):
     """SessionState 優先順位 1（completed）が tasks.md not-started より優先されること。
 
     design.md §5 優先順位テスト: 1 > 5
     """
-    task = _make_task(task_id="W1-B5-T1", status="not-started")
+    task = make_task(id="W1-B5-T1", status="not-started")
     result_html = _make_builder(
         tasks=[task],
         completed=["W1-B5-T1: 完了"],
@@ -332,12 +320,12 @@ def test_render_v4_session_state_completed_overrides_tasks_parser_not_started():
     )
 
 
-def test_render_v4_tasks_parser_completed_status_retained():
+def test_render_v4_tasks_parser_completed_status_retained(make_task):
     """TasksParser が completed を返した Task は completed のまま表示されること。
 
     設計仕様: design.md §5 Task 状態決定ロジック step 4（tasks.md の [x]）
     """
-    task = _make_task(task_id="W1-B5-T1", status="completed")
+    task = make_task(id="W1-B5-T1", status="completed")
     result_html = _make_builder(tasks=[task]).render()
     assert 'data-status="completed"' in result_html, (
         "TasksParser が completed を返した Task が completed で表示されていません。"
@@ -374,7 +362,7 @@ def test_render_v4_section_exists_even_when_no_tasks():
 # ─────────────────────────────────────────────
 
 
-def test_render_v4_html_escape_in_task_id():
+def test_render_v4_html_escape_in_task_id(make_task):
     """Task ID に HTML 特殊文字が含まれる場合、エスケープされて出力されること。
 
     既存パターン: builder.py の _render_parser_errors() で html.escape() を使用済み
@@ -382,7 +370,7 @@ def test_render_v4_html_escape_in_task_id():
     自前 script を除去した後の文字列に Task ID 起源の `<script>` が残っていないことを検証する
     二段検証（SE 級）。`&lt;script&gt;` の存在検証は元の HTML に対して行う。
     """
-    task = _make_task(task_id="<script>alert('xss')</script>")
+    task = make_task(id="<script>alert('xss')</script>")
     result_html = _make_builder(tasks=[task]).render()
     stripped = re.sub(r"<script\b[^>]*>.*?</script>", "", result_html, flags=re.DOTALL)
     assert "<script>" not in stripped, (
@@ -393,9 +381,9 @@ def test_render_v4_html_escape_in_task_id():
     )
 
 
-def test_render_v4_html_escape_in_assignee():
+def test_render_v4_html_escape_in_assignee(make_task):
     """担当列に HTML 特殊文字が含まれる場合、エスケープされること。"""
-    task = _make_task(assignee='<b>hack"er</b>')
+    task = make_task(assignee='<b>hack"er</b>')
     result_html = _make_builder(tasks=[task]).render()
     assert "<b>" not in result_html, "担当列の HTML エスケープが行われていません。"
 
@@ -405,9 +393,9 @@ def test_render_v4_html_escape_in_assignee():
 # ─────────────────────────────────────────────
 
 
-def test_v1_section_not_broken_by_v4():
+def test_v1_section_not_broken_by_v4(make_task):
     """V-4 実装後も V-1 セクションが正常に生成されること（回帰テスト）。"""
-    task = _make_task()
+    task = make_task()
     result_html = _make_builder(tasks=[task]).render()
     assert '<section id="v1-project-summary">' in result_html, (
         "V-4 追加後に V-1 セクションが消えています。回帰テスト失敗。"
@@ -415,9 +403,9 @@ def test_v1_section_not_broken_by_v4():
     assert "LAM Dashboard" in result_html, "LAM Dashboard タイトルが消えています。"
 
 
-def test_v2_section_not_broken_by_v4():
+def test_v2_section_not_broken_by_v4(make_task):
     """V-4 実装後も V-2 セクションが正常に生成されること（回帰テスト）。"""
-    task = _make_task()
+    task = make_task()
     result_html = _make_builder(tasks=[task]).render()
     assert '<section id="v2-milestones">' in result_html, (
         "V-4 追加後に V-2 セクションが消えています。回帰テスト失敗。"

@@ -143,8 +143,8 @@
 
 | Task | 内容 | F | D | 担当層 | 完了条件 | commit |
 |:-----|:-----|:--|:--|:------:|:---------|:------:|
-| **W-R2-S3-T1** | module 4 Warning 抽出 (fixture 重複 / テスト分割候補) | FR-1 | S2 完了 | L1 | リスト作成 | - |
-| **W-R2-S3-T2** | Warning 消化 (fixture 共通化 / テスト分割) | FR-3 | S3-T1 | L2 Sonnet | 487 PASS + 14 SKIP 維持 | WIP × N |
+| **W-R2-S3-T1** | module 4 Warning 抽出 → **R1-031 (fixture 共通化) を本 Stage 消化 / R1-030 (debug スクリプト 5 件削除) は tracker 推奨方針通り W-R4 S2 `git rm` 束ねへ送り** (2026-07-07 L1 裁定) | FR-1 | S2 完了 | L1 | リスト作成 | - |
+| **W-R2-S3-T2** | Warning 消化 (fixture 共通化 / テスト分割) | FR-3 | S3-T1 | L2 Sonnet | **576 PASS + 14 SKIP 維持** (S2 完了時点実測 / 旧 487 は W-R1 計画時 baseline) | WIP × N |
 | **W-R2-S3-T3** | tracker 更新 | FR-2 | S3-T2 | L1 | status closed | WIP |
 | **W-R2-S3-T4** | S3 Stage 末 ship | - | S3-T2/T3 | L1 | ship + push | **Stage 末 ship** |
 
@@ -157,7 +157,7 @@
 | **W-R2-S4-T3** | 認知複雑度・重複コード観測値記録 (`docs/artifacts/r-1-observations-2026-07-*.md`) | NFR-1 補足 | S4-T2 | L1 | observations.md 起票 | WIP |
 | **W-R2-S4-T4** | tracker 更新 + Wave 完了 ship | - | S4-T2/T3 | L1 | `[R-1 W-R2 COMPLETE]` + 487 PASS + 14 SKIP + G1-G5 維持 | **Wave 末 ship** |
 
-**Wave 完了ゲート**: module 1/2/4 の Critical = 0 + Warning = 0 / 487 PASS + 14 SKIP 維持 / observations.md 完備
+**Wave 完了ゲート**: module 1/2/4 の Critical = 0 + Warning = 0 (**W-R3/R4 送り裁定分 = R1-030・R1-056 を除く** / 2026-07-07 更新) / 576 PASS + 14 SKIP 以上維持 (旧 487 は W-R1 計画時 baseline) / observations.md 完備
 
 ---
 
