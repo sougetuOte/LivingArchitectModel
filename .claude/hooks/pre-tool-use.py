@@ -89,6 +89,11 @@ _PG_BLACKLISTED_ARGS = (
     "--ext",
 )
 
+# R1-032: PG コマンドで禁止する shell メタ文字（コマンド連結・置換演算子）。
+# `ruff format x.py; rm -rf /tmp` のような合成が settings.json Layer 1 allow の
+# prefix ワイルドカードマッチと hook 側 PG 判定の両方を通過する gap を塞ぐ。
+_SHELL_METACHARACTERS = (";", "&&", "||", "|", "`", "$(")
+
 # パス判定パターン（PM 級）
 _PM_PATTERNS = [
     (re.compile(r"^__out_of_root__/"), "out-of-root path"),
@@ -169,8 +174,13 @@ def _determine_by_command(
     if _read_current_phase(phase_file) == "AUDITING":
         for pg_prefix in _AUDITING_PG_COMMANDS:
             if command == pg_prefix or command.startswith(pg_prefix + " "):
-                # ブラックリスト引数チェック（単語境界で照合し誤マッチを防止）
                 args_part = command[len(pg_prefix):]
+                # R1-032: shell メタ文字（コマンド連結・置換）を含む場合は PM に降格。
+                # settings.json Layer 1 allow が prefix ベースで shell を token 化しないため
+                # 「二重防御」（L65-70）の意図に沿って hook 側で必ず PM 判定する。
+                if any(mc in args_part for mc in _SHELL_METACHARACTERS):
+                    return "PM", "PG command contains shell metacharacter"
+                # ブラックリスト引数チェック（単語境界で照合し誤マッチを防止）
                 if any(
                     re.search(r'(?:^|\s)' + re.escape(bl) + r'(?:\s|=|$)', args_part, re.IGNORECASE)
                     for bl in _PG_BLACKLISTED_ARGS

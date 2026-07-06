@@ -347,8 +347,10 @@
 - **severity**: **Warning**
 - **responsibility_tag**: `permission-check`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (前倒し消化 / W-R1 期に優先度高判断)
 - **opened_at**: 2026-07-06
+- **closed_at**: 2026-07-06
+- **closed_by_commit**: (次 ship で埋め / TDD Red-Green 完了 / 10 テスト新規 PASS)
 - **evidence_file**: `.claude/hooks/pre-tool-use.py`
 - **evidence_line**: 163-181 (特に 170-179)
 - **evidence_summary**: `command == pg_prefix or command.startswith(pg_prefix + " ")` prefix マッチ後、`_PG_BLACKLISTED_ARGS` (フラグ名のみ) を走査するのみで `;` / `&&` / `||` / `|` / `` ` `` / `$(` の shell 連結・置換演算子を検査しない。例: `ruff format x.py; rm -rf /tmp` は settings.json L4-32 allow (`Bash(ruff format *)`) にも合致し、hook も PG (auto-allow) を返すため両層で通過。コード自身が pre-tool-use.py L65-70 で「settings.json の粗いワイルドカードを hook 側で精密フィルタする二重防御」と明記しており設計意図と実装が乖離。
@@ -528,8 +530,10 @@
 - **severity**: **Warning** (優先度高 / 分岐制御 field 欠落)
 - **responsibility_tag**: `ssot-parent-child-consistency`
 - **attribution**: `downstream` (子 rules が親 SSOT の必須 field を反映していない)
-- **status**: `open`
+- **status**: **`closed`** (前倒し消化 / W-R1 期に優先度高判断 = 実運用で gabriel abort 判定損失リスク解消)
 - **opened_at**: 2026-07-06
+- **closed_at**: 2026-07-06
+- **closed_by_commit**: (次 ship で埋め / 6 fields + 分岐優先順位追記)
 - **evidence_file**: `docs/internal/06_DECISION_MAKING.md`, `.claude/rules/decision-making.md`
 - **evidence_line**: 06 L242-251 (§6.5 gabriel 出力契約 6 fields) / decision-making.md L59-64 (gabriel probe 出力フォーマット 4 items)
 - **evidence_summary**: 親 SSOT 06 は gabriel 出力契約を **6 fields** と明記: `verdict/severity/affected_atoms/reasoning/recommended_action/confidence`。`affected_atoms` (verdict=refuted 時非空必須) と `recommended_action` (proceed/re-magi/abort 分岐制御必須 / §6.6 失敗時挙動が abort/critical/warning/info 分岐に依存) を含む。しかし実行時ロードされる要約版 `.claude/rules/decision-making.md` の Output Format には **4 items のみ** (verdict/severity/confidence/reasoning) 記載で、**分岐制御に必須の 2 fields が欠落**。要約版のみ参照する実行時に abort 判定が抜け落ちるリスク。
@@ -610,6 +614,7 @@ _W-R1 S4 T3 (module 11 監査) で起票予定_
 | 2026-07-06 | L1 (Opus 4.7) | 初版起票 (W-R1 S2 T1 / 骨組作成 / issue 未起票) |
 | 2026-07-06 | L1 (Opus 4.7) | W-R1 S2 module 1-4 監査完了 (issue R1-001..R1-031 / R1-I01..R1-I15 起票) |
 | 2026-07-06 | L1 (Opus 4.7) | W-R1 S3 module 5-8 監査完了 (issue R1-032..R1-043 + R1-I16..R1-I29 起票 / 累計 C=1 W=22 I=29 / NFR-3 閾値超過確定 → S5-T4 条件分岐 sub-task 起票必須) |
+| 2026-07-06 | L1 (Opus 4.7) | **前倒し消化 2 件** (Wave 分離規律の例外 / ユーザー判断 = 実運用リスク優先): R1-042 (gabriel 6 fields drift / decision-making.md 更新 / PM 級) / R1-032 (pre-tool-use.py shell metachar / TDD Red-Green / 10 テスト新規 PASS / 534+14 SKIP 維持) → status open→closed |
 
 ---
 

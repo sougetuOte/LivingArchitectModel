@@ -59,9 +59,11 @@ AoT Decomposition → MAGI Debate (各Atom) → gabriel probe → AoT Synthesis
 ### gabriel probe（AoT 適用時のみ）
 - verdict: confirmed / refuted / inconclusive
 - severity: critical / warning / info
-- confidence: 0.0-1.0
-- reasoning: [判定理由]
-- 処理: verdict に応じて AoT Synthesis へ（詳細分岐は SKILL.md §Step 4.1）
+- affected_atoms: [Atom ID の配列 / verdict=refuted 時は非空必須]
+- reasoning: [判定理由 / 200-1000 字]
+- recommended_action: proceed / re-magi / abort
+- confidence: 0.0-1.0（0.3 未満なら verdict=inconclusive 強制）
+- 処理: `recommended_action` に応じた分岐（優先順位: **abort > critical+re-magi > warning > info > confirmed > inconclusive**）。詳細分岐は SKILL.md §Step 4.1。親 SSOT: `docs/internal/06_DECISION_MAKING.md` §6.5-6.6
 
 ### AoT Synthesis
 **統合結論**: ...

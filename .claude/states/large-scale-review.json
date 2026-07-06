@@ -3,7 +3,7 @@
   "milestone": "R-1",
   "description": "B-5 期累積資産（dashboard / MAGI v2 / HGA / TDD 内省 v2 / 3.5 層委譲 等）の独立レビュー & リファクタリング。MAGI 4 Atom + gabriel probe 実運用初発火 + HGA 型 Fable 召喚を意図的に組み込む。",
   "phase": "BUILDING",
-  "current_task": "W-R1 S1 開始判断待ち (T1..T6)",
+  "current_task": "W-R1 S3 完了 (module 5-8 監査 / tracker 8/11 累計 C=1 W=22 I=29 / NFR-3 閾値超過確定) / 次: W-R1 S4 (module 9-11 + ヒートマップ)",
   "building_entered_at": "2026-07-06T00:00:00Z",
   "status": {
     "requirements": "approved",
@@ -48,6 +48,10 @@
     "破壊的変更ガードレール",
     "未使用 agent の削除判定基準"
   ],
-  "completed_tasks": [],
+  "completed_tasks": [
+    "W-R1 S1 (Green State + inventory + rule-001 前倒し / commits: f2fbf02, 164bca9)",
+    "W-R1 S2 (module 1-4 監査 / commit: b89d8cd / tracker 骨組 + module 1-4)",
+    "W-R1 S3 (module 5-8 監査 / commit: a37570a / tracker 4 module 追記 / NFR-3 閾値超過確定)"
+  ],
   "createdAt": "2026-07-05T00:00:00Z"
 }
