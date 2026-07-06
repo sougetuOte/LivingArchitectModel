@@ -54,7 +54,7 @@
 
 ### C. ADR (Architectural Decision Records)
 
-- **Naming**: `docs/adr/NNNN-kebab-case-title.md`（NNNN: 4桁連番、0001から）
+- **Naming**: `docs/adr/<NNNN>-<kebab-case-title>.md`（NNNN: 4桁連番、0001から）
 - **Immutable**: 一度確定した ADR は原則変更せず、変更が必要な場合は新しい ADR を作成して "Supersedes" と明記する。
 
 ### D. Subagent Persistent Memory

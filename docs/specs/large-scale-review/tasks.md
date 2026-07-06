@@ -104,16 +104,33 @@
 - **L2 Sonnet ブリーフ (tight brief 4-slot / spec-critic Warning W6 対応)**: Stage 内で「N 件の Critical issue」を一括委譲する場合、`hga-summoning.md` §tight brief 4-slot に従い objective (issue X の refactor) / output format / tool guidance / task boundaries を Task 単位で明記。1 Task = N 件の Critical を「issue ごとに順次サイクル実行」と読める粒度に精緻化
 - **Stage 末 ship 前の L3 Haiku 突合** (spec-critic Warning W8 対応 / §9 リスク緩和策との整合): Stage 末 ship の直前に L3 Haiku で「tracker で closed 化された issue ID vs commit message 内の closed IDs 列挙」の突合を実施 (W-R2/W-R3/W-R4 の全 Stage 末 ship Task に共通適用)
 
-### Stage S1: module 1 (dashboard/) Critical 消化
+### Stage S1: module 1/2 Critical 消化 (R1-001 + R1-006 / **Fable HGA #8 crux 反映 / 2026-07-06**)
+
+**変更履歴**: 2026-07-06 に HGA #7 で R1-006 が Warning → Critical 昇格したため、S1 スコープを module 1 単独から **module 1/2 両 Critical 併合** に拡張 (元 S2 の R1-006 を S1 に吸収)。S2 は module 2 残 Warning 消化に scope 変更。
+
+**Fable HGA #8 crux (2026-07-06)** — tracker 推奨の regex は両方とも不十分と判明:
+
+- **R1-001**: tracker 推奨 `(?:[:\s]|$)` は装飾文字 (`**ID**`, `(ID)`, `` `ID` ``, 全角括弧, 読点) で false negative + leading 境界欠如で短縮形 `T\d+` が `S3-T1` / `W3-B5-T31` 途中に誤マッチ。**Fable 推奨**: `re.search(r"(?<![A-Za-z0-9-])" + re.escape(task_id) + r"(?![A-Za-z0-9])", line)` (negative lookbehind + lookahead 両方 / trailing に `-` を含めない理由 = `T1-T5` 範囲記法保護)
+- **R1-006**: tracker 推奨の一律 `[A-Za-z0-9._-]+` は slug (パターン3 group2) がドット捕食 → Windows 末尾ドット quirk (`Path('docs/specs/xxx.').exists()` → True) で偽 Green。**Fable 推奨**: アンカー付き 2 箇所 (パターン1 group1 + パターン3 group3) は `[A-Za-z0-9._-]+`、slug (パターン3 group2 / アンカーなし) は構造化形 `[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*` (**内部ドットのみ許容 / 末尾ドット不可**)
+
+**副産物** (Fable crux 由来 / 実装時忘れ防止):
+- **docstring 同時更新必須**: `builder.py` L690-694 の「行に `task_id` が含まれる」→「行に `task_id` が (英数字と接する形なく) 現れる」相当に改訂 (Spec Synchronization)
+- **live baseline drift=1 の裁定**: 現行 `verify_reference_resolution.py --wave w-r3` は既に drift=1 (`docs/specs/feature` placeholder / `99_reference_generic.md` 由来) を報告している。W-R2 S1 内で「テンプレ placeholder として山括弧付きの `<feature>` に書式変更 (現状既に山括弧 / crux 内 unverified 側)、もしくは検出器側で `<...>` を含む参照を除外リスト化」のいずれかを 1 行決めておく (R-G7 再判定の前提)
+- **R1-001 の意図的挙動変更 (2 件 / HGA #9 verdict C-N2 で 2 件目追加)**:
+  1. 短縮形 `task.id='T31'` (非 W 形式) が完全形 'W3-B5-T31' 行にリンクしなくなる (現行 substring で偽リンクしていた) — この cross-form リンク前提の運用があるかを T3 で確認
+  2. **範囲記法エンドポイント semantics** (HGA #9 C-N2 追加): SESSION_STATE.md の "T1-T5" のような範囲記法に対し、**範囲は展開しない** (左端 T1 のみマッチ / 右端 T5 は非マッチ)。旧 substring 実装は両端マッチしていたが、旧実装は接頭辞衝突 (R1-001) を含む欠陥のため旧挙動は仕様ではない (未文書化の副産物であった)。呼び出し側で範囲を扱う必要があれば個別 ID (T1, T2, T3, T4, T5) を completed リストに列挙する運用とする。この仕様は `test_r1_001_task_status_token_boundary.py::TestRangeNotationEndpointSemantics` (Case 8 / 3 テスト) で固定。
 
 | Task | 内容 | F | D | 担当層 | 完了条件 | commit |
 |:-----|:-----|:--|:--|:------:|:---------|:------:|
-| **W-R2-S1-T1** | module 1 Critical issue リスト抽出 (tracker から grep) | FR-1 | W-R1 完了 | L1 | Critical リスト作成 | - |
-| **W-R2-S1-T2** | 各 Critical issue に対する Red (新規テスト) → Green (実装) → Refactor サイクル実行 | FR-3 / R-G6 | S1-T1 | L2 Sonnet | module 1 Critical = 0 / 424 テスト維持 | WIP × N |
-| **W-R2-S1-T3** | tracker の module 1 Critical を wip → closed 更新 | FR-2 | S1-T2 | L1 | tracker status 更新 | WIP |
-| **W-R2-S1-T4** | S1 Stage 末 ship (closed issue IDs 列挙) | - | S1-T2/T3 | L1 | ship + push + smoke test PASS | **Stage 末 ship** |
+| **W-R2-S1-T1** | ✅ 完了 (本セッション内 / HGA #8 crux-scoping で吸収) — R1-001 + R1-006 の Critical リスト抽出 + Fable crux 分析 | FR-1 | W-R1 完了 | L1 | Critical リスト + Fable crux 応答 | - |
+| **W-R2-S1-T2** | Red-Green-Refactor 実行: (a) R1-001 = `builder.py` `_resolve_task_status` + docstring 修正 + Fable 提示 test cases 7 件追加 / (b) R1-006 = `verify_reference_resolution.py` パターン 1/3 修正 + Fable 提示 test cases 7 件追加 | FR-3 / R-G6 | S1-T1 | L2 Sonnet (tdd-developer) | 両 Critical = 0 / 537 PASS + 14 SKIP + 追加 tests 全 PASS / regression 0 | WIP |
+| **W-R2-S1-T3** | **Fable HGA #9 adversarial verify** (修正コード + 追加テストを独立検証 / HGA #7 メタ欠陥#1 対策) — attack surface 抜け / edge case 漏れ / regression risk を独立検出 | FR-3 補足 | S1-T2 | Fable | verdict = confirmed (or refuted → S1-T2 に戻る) | - |
+| **W-R2-S1-T4** | tracker で R1-001 / R1-006 を wip → closed 更新 + `severity_history` (R1-006 のみ) + `closed_by_commit` 記録 + baseline drift 裁定を反映 | FR-2 | S1-T3 | L1 | tracker status = closed | WIP |
+| **W-R2-S1-T5** | S1 Stage 末 ship (closed issue IDs = R1-001, R1-006 列挙) + HGA #8/#9 を `hga-summon-log.md` に追記 | - | S1-T4 | L1 | ship + push + smoke test PASS | **Stage 末 ship** |
 
-### Stage S2: module 2 (scripts/ 外) Critical 消化
+**Fable HGA #8 呼応** (2026-07-06): crux-scoping brief (small brief 2-3k / 2 段召喚) で R1-001+R1-006 の crux 特定。tool_uses 16 / duration 27min / probe スクリプト実測含む。応答は本 tasks.md および tracker 更新に反映済。
+
+### Stage S2: module 2 (scripts/ 外) Warning 消化 (旧 Critical 消化 → S1 に吸収)
 
 | Task | 内容 | F | D | 担当層 | 完了条件 | commit |
 |:-----|:-----|:--|:--|:------:|:---------|:------:|

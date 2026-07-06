@@ -19,7 +19,7 @@ AI がやるのは「仕様化・実装・検証・自律ループ」。
 ### Phase 0: Requirement → Spec (Definition of Ready) [PLANNING]
 
 **Input:** docs/memos/idea.md
-**Output:** docs/specs/feature_x.md (Ready)
+**Output:** docs/specs/<feature>.md (Ready)
 
 **Example:**
 

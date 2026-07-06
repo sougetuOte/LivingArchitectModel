@@ -31,6 +31,7 @@ Wave 8: "unknown" status バッジ対応（_STATUS_LABELS + CSS ルール追加 
 from __future__ import annotations
 
 import html
+import re
 
 from ._radix_colors import RADIX_DARK, RADIX_LIGHT
 from .models import DashboardData
@@ -687,11 +688,22 @@ document.addEventListener('DOMContentLoaded', () => {
         """design.md §5 Task 状態決定ロジックに従い、最終的な状態を返す。
 
         優先順位:
-          1. DashboardData.completed の行に task_id が含まれる → "completed"
-          2. DashboardData.in_progress の行に task_id が含まれる → "in-progress"
-          3. DashboardData.blocked の行に task_id が含まれる → "blocked"
+          1. DashboardData.completed の行に task_id がトークン境界一致で現れる → "completed"
+          2. DashboardData.in_progress の行に task_id がトークン境界一致で現れる → "in-progress"
+          3. DashboardData.blocked の行に task_id がトークン境界一致で現れる → "blocked"
           4. base_status（TasksParser の [x]/[ ] チェックから決定済み）を使用
           5. 上記いずれにも該当しない場合は "not-started"
+
+        トークン境界一致（R1-001 / 2026-07-06 修正）:
+          単純な部分文字列マッチ（`task_id in line`）は "W1-B5-T1" が
+          "W1-B5-T10" のような接頭辞衝突行にも誤って一致するため、
+          negative lookbehind + lookahead で境界を非対称に検査する:
+          - leading 側 (lookbehind): 英数字・ハイフンいずれも直前に許さない
+            （短縮形 "T1" が "S3-T1" の一部として誤マッチしないため）
+          - trailing 側 (lookahead): 英数字は許さないが、ハイフンは許容
+            （SESSION_STATE.md の "T1-T5" のような範囲記法で左端 "T1"
+            のマッチを保つため / 範囲は展開せず、右端 "T5" の
+            エンドポイント matching は仕様として保証しない）
 
         Args:
             task_id: Task の識別子。例: "W1-B5-T1"
@@ -700,14 +712,17 @@ document.addEventListener('DOMContentLoaded', () => {
         Returns:
             最終的な状態値（4 値のいずれか）。
         """
+        pattern = re.compile(
+            r"(?<![A-Za-z0-9-])" + re.escape(task_id) + r"(?![A-Za-z0-9])"
+        )
         for line in self.data.completed:
-            if task_id in line:
+            if pattern.search(line):
                 return "completed"
         for line in self.data.in_progress:
-            if task_id in line:
+            if pattern.search(line):
                 return "in-progress"
         for line in self.data.blocked:
-            if task_id in line:
+            if pattern.search(line):
                 return "blocked"
         return base_status
 

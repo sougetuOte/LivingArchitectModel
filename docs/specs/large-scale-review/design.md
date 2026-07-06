@@ -410,23 +410,29 @@ W-R1 S2 で `pydeps` (§6 で選定) を使用して import グラフ生成 → 
 対象: `.claude/rules/*.md` 内の rule 相互参照 + `docs/internal/*.md` 内の spec 参照
 
 ```bash
-# パターン 1: rules 内で他 rules.md をパス指定参照 (数字含む rule-NNN 対応 / auto-generated サブディレクトリ対応)
-grep -rE '\.claude/rules/(auto-generated/)?[a-z0-9-]+\.md' .claude/rules/ docs/internal/
+# 【非推奨 / レガシー参考】以下 bash grep は概要示唆用。実運用は下記 verify_reference_resolution.py を使うこと
+# パターン 1: rules 内で他 rules.md をパス指定参照 (数字含む rule-NNN + 大文字 + 内部ドット対応 / auto-generated サブディレクトリ対応)
+grep -rE '\.claude/rules/(auto-generated/)?[A-Za-z0-9._-]+\.md' .claude/rules/ docs/internal/
 
 # パターン 2: rules 内で "rule-XXX" 名前参照
 grep -rE 'rule-[0-9]{3}' .claude/rules/
 
-# パターン 3: internal 内で spec 参照
-grep -rE 'docs/(specs|adr)/[a-z0-9-]+/' docs/internal/
+# パターン 3: internal 内で spec 参照 (dir 形式 + フラット .md 形式両対応)
+grep -rE 'docs/(specs|adr)/[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*(/[A-Za-z0-9._-]+\.md)?' docs/internal/
 ```
 
-**パターン抜け穴の是正 (W4)**: 元パターン `[a-z-]+\.md` は数字を含むファイル名 (`rule-001.md` 等) と auto-generated サブディレクトリを捕捉できなかった。上記の `(auto-generated/)?[a-z0-9-]+\.md` は数字も含めた文字クラスに拡張し、`auto-generated/` を optional prefix として明示。
+**パターン抜け穴の是正 (W4)**: 元パターン `[a-z-]+\.md` は数字を含むファイル名 (`rule-001.md` 等) と auto-generated サブディレクトリを捕捉できなかった。上記は数字も含めた文字クラスに拡張し、`auto-generated/` を optional prefix として明示。
 
 **HGA #6 Crux 1-d 追加是正**:
 - **bare-name 参照** (`` `phase-rules.md` `` 等の prefix なし参照) が実測で複数存在するが上記パターンは補足できない
-- **ADR flat 直参照** (`docs/adr/0005-*.md` 等) はパターン 3 の末尾 `/` 必須のため補足できない
+- ~~**ADR flat 直参照** (`docs/adr/0005-*.md` 等) はパターン 3 の末尾 `/` 必須のため補足できない~~ — **HGA #9 refute 対応 (2026-07-06 / R1-006 修正後)**: パターン 3 の末尾は optional (`(?:/([A-Za-z0-9._-]+\.md)?)?`) であり ADR フラット直参照は現行実装 (`verify_reference_resolution.py` L50-52) で補足済。旧記述は R1-006 修正前の欠陥に基づく誤りであった (`test_reference_resolution.py::test_w_r3_pat_spec_ref_matches_dir_and_file` で恒久検証)
 - **層 1 の設計を反転**: 「bash grep 単独」ではなく **「Python 側で正規表現 + 存在検査を一体実装」** に寄せる (Windows/Git Bash のクォート地獄回避 + キャプチャグループ抽出 + 存在検査を 1 スクリプトで完結)
 - 具体的な Python 実装は W-R3 S1 で `.claude/scripts/verify_reference_resolution.py` として作成 (§5.3 unittest と同ファイル群 / W-R1 S1 の inventory と同居可)
+
+**R1-006 修正反映 (2026-07-06 / HGA #9 refute #2 対応)**:
+- 上記 bash grep は「概要示唆」用途に留める (Windows/Git Bash のクォート地獄で層 1 として不安定 / bash 文字クラス表記と Python re の同一性を保証できない)
+- **正規の R-G7 gate 実行手段は Python 実装** (`python .claude/scripts/verify_reference_resolution.py --wave w-r3 --exit-nonzero-on-drift`)
+- 文字クラスの正本は Python 実装側 (パターン 1 group 1 と パターン 3 group 3 は `[A-Za-z0-9._-]+`、パターン 3 slug は `[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*` の非対称設計 / 末尾ドット quirk による Windows platform 依存を回避)
 
 各出力パスを `os.path.exists()` で存在検査 → 実在しない = drift → tracker 起票。
 

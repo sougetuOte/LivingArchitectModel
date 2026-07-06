@@ -13,6 +13,29 @@
 
 ---
 
+## 0.1. HGA #9 verdict (2026-07-06 / W-R2 S1 実装後 adversarial verify)
+
+Fable HGA #9 (2026-07-06 / W-R2 S1 T4) が R1-001 + R1-006 実装 (L2 Sonnet tdd-developer) の 5 軸 verify を実施 → **overall_verdict = confirmed / severity = warning / recommended_action = fix_before_ship / confidence 0.85**。
+
+**軸別結果**:
+- **軸 A (regex 実装忠実性)**: confirmed / discrepancies = [] (Read で 3 regex 全て HGA #8 spec と文字単位一致確認)
+- **軸 B (attack surface 完全性)**: confirmed / 7+8 category 全て pinning test 済 (41 tests / 41 PASS 独立再走)
+- **軸 C (追加 attack surface)**: refuted / 新規発見 3 件 → R1-053 (Warning) / R1-054 (Info) / R1-055 (Info) として起票
+- **軸 D (regression risk)**: refuted / **design.md §5.1 spec-sync gap** 検出 → 本 T4 内で L1 修正済 (L414/L420/L427 更新 + PM 級)
+- **軸 E (baseline drift 裁定)**: confirmed / 両 disposition 妥当 + missed drift = 0
+
+**ship 前修正 (fix_before_ship / 全て W-R2 S1 T4 内で消化済)**:
+1. **builder.py docstring L697-704 asymmetry** (info): 「前後が英数字・ハイフンで挟まれていない」の左右非対称を明示的に説明 (leading = 英数字・ハイフン非許容 / trailing = 英数字非許容だがハイフン許容 / T1-T5 範囲記法左端保護のため)
+2. **範囲記法エンドポイント semantics 固定** (C-N2 / warning): 意図的挙動変更 note を tasks.md §Stage S1 に追加 + `TestRangeNotationEndpointSemantics` (3 テスト) で仕様固定 (左端 T1 マッチ / 右端 T5 非マッチ / 範囲は展開しない)
+3. **design.md §5.1 spec-sync (warning / PM 級)**: L414/L420 bash grep char class を実装済み値に更新 + L427 stale claim 書き直し (ADR flat 直参照の補足可能性を訂正)
+
+**新規起票 3 件** (§4 module 1/2 参照):
+- R1-053 (Warning): C-N3 = `verify_w_r3()` パターン 3 の existence-check hole (dir 存在で fname 存在検査省略 / R1-006 と同 bug class)
+- R1-054 (Info): C-N1 = R1-001 lookbehind/lookahead が underscore 境界文字扱いせず (`W1-B5-T1_note` 誤マッチ surface / spec 忠実だが未文書化)
+- R1-055 (Info): C-N4 = Path.exists() の win32 case-insensitive で drift portability リスク (現行 live scan で 0 実例)
+
+**meta 対策 (HGA #7 verdict メタ欠陥#1 の追加ゲート提案)**: 修正 pattern/constant が literal-quoted されている docs/specs/* を grep → PM 級を L1 assign。今回は L2 tracker 経由の docstring 同期しか自動化されておらず、sibling SSOT (design.md §5.1) の同期が nobody's checklist だった。W-R5 retro で `code-quality-guideline.md` に「同型 finding の先例参照義務」と併せて追加検討。
+
 ## 0. HGA #7 verdict メタ構造欠陥 (W-R5 retro 議題 / 2026-07-06 追加)
 
 Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロセス構造欠陥。W-R5 retro で恒久対策議題化する:
@@ -30,7 +53,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 項目 | 値 | 出典 |
 |:----|:---|:-----|
 | 初期閾値 (暫定) | 10 件 | requirements.md NFR-3 |
-| **確定閾値 (S5-T4 / 2026-07-06)** | **Critical 単独 3 件 or Critical + Warning 30 件** | 実測ベース (open C=1 W=23 実測 / HGA #7 反映後) |
+| **確定閾値 (S5-T4 / 2026-07-06)** | **Critical 単独 3 件 or Critical + Warning 30 件** | 実測ベース (**W-R2 S1 完了後 open C=0 W=24 実測** / HGA #9 反映後) |
 | 超過時アクション | 優先順位付けサブタスクを tracker に起票 (下記 §1.1) | spec-critic Warning W5 |
 
 ### 1.1 W-R2 以降の消化優先順位 (S5-T4 sub-task)
@@ -39,8 +62,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 
 | Priority | Wave | issue | 根拠 |
 |:--------:|:----:|:-----|:-----|
-| **P1 (即時)** | W-R2 S1 | **R1-001 (Critical)** — task_id 部分文字列マッチ | 唯一の Critical (dashboard 表示ロジック / 実運用で誤ステータス伝播) |
-| **P1 (即時)** | W-R2 S1 | **R1-006 (Critical / HGA #7 昇格)** — R-G7 監査インフラ false negative | Critical 昇格分 / R-G7 baseline 再判定の前提 / R1-001 と同 bug class |
+| ~~P1 (即時)~~ **closed** (2026-07-06 / W-R2 S1) | W-R2 S1 | ~~**R1-001 (Critical)**~~ — task_id 部分文字列マッチ → HGA #8 crux + Sonnet TDD 実装 + HGA #9 verify で closed | 唯一の Critical (dashboard 表示ロジック / 実運用で誤ステータス伝播) |
+| ~~P1 (即時)~~ **closed** (2026-07-06 / W-R2 S1) | W-R2 S1 | ~~**R1-006 (Critical / HGA #7 昇格)**~~ — R-G7 監査インフラ false negative → 同上経路で closed | Critical 昇格分 / R-G7 baseline 再判定の前提 / R1-001 と同 bug class |
+| P2 (W-R3 or 新規 Wave) | W-R3 以降 | **R1-053 (Warning / HGA #9 新規)** — verify_w_r3 パターン 3 の existence-check hole | R1-006 と同 bug class (silent false negative / R-G7 gate 汚染候補) / 実 live scan で 0 実例のため P2 相当 |
 | P2 (W-R3 S2) | W-R3 S2 | R1-042 (closed) + R1-040/R1-041/R1-043/R1-050 | docs/internal SSOT drift 解消 |
 | P2 (W-R3 S3) | W-R3 S3 | R1-017/R1-018/R1-035/R1-038/R1-039/R1-I24 | rules 相互矛盾 |
 | P2 (W-R3 S4) | W-R3 S4 | R1-046 (3 Milestone status drift) / R1-047/R1-048 (Info)/R1-049 | specs + adr + ルート統治文書一貫性 |
@@ -48,18 +72,18 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | P4 (W-R2 S3-4) | W-R2 S3-4 | R1-007/R1-008/R1-030/R1-031 | dashboard 領域 Warning |
 | Info | W-R5 or 棚上げ | 全 Info 44 件 | Green State 判定に影響なし (code-quality-guideline 準拠) |
 
-**開放 Critical 2 件** (R1-001 + R1-006) は **W-R2 S1 で最優先消化** (P1)。W-R5 S1 の R-G6 判定前に Critical=0 を確定必須。
+~~**開放 Critical 2 件** (R1-001 + R1-006) は **W-R2 S1 で最優先消化** (P1)。W-R5 S1 の R-G6 判定前に Critical=0 を確定必須。~~ **→ 2026-07-06 W-R2 S1 で消化完了 (open Critical = 0 実現)**。以降は R1-053 (Warning / HGA #9 発見) の消化計画を W-R3 以降で立案。
 
 ---
 
 ## 2. モジュール別問題数ヒートマップ (11 × 3)
 
-**W-R1 S5 (HGA #7 verdict 反映後 / 2026-07-06)**: 11 モジュール監査完了 + HGA #7 adversarial verify 反映済
+**W-R2 S1 完了時点 (HGA #9 verdict 反映後 / 2026-07-06)**: 11 モジュール監査完了 + HGA #7/#8/#9 adversarial verify 反映済 + R1-001/R1-006 closed + R1-053/054/055 起票
 
 | モジュール | Critical | Warning | Info |
 |:----------|:--------:|:-------:|:----:|
-| 1. `.claude/scripts/dashboard/` | **1** | **2** | **5** |
-| 2. `.claude/scripts/` (外) | **1** | **2** | **5** |
+| 1. `.claude/scripts/dashboard/` | **1** | **2** | **6** |
+| 2. `.claude/scripts/` (外) | **1** | **3** | **6** |
 | 3. `.claude/skills/` (23 SKILL.md) | **0** | **3** | **2** |
 | 4. `.claude/tests/` | **0** | **2** | **3** |
 | 5. `.claude/hooks/` + `settings*.json` | **0** | **4** | **4** |
@@ -69,8 +93,8 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 9. `docs/specs/` (74 files / depth 制御) | **0** | **1** | **4** |
 | 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
-| **合計 (全 11 module)** | **2** | **26** | **44** |
-| **open** (前倒し 3 件 closed 除外) | **1** | **23** | **44** |
+| **合計 (全 11 module / 全期間)** | **2** | **27** | **46** |
+| **open** (closed 5 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006) | **0** | **24** | **46** |
 
 **HGA #7 verdict 反映差分** (2026-07-06 / Fable):
 - (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
@@ -80,11 +104,11 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
 
 **NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
-- 累計 Critical + Warning = **28 件** (open C+W = **24 件** / R1-032/R1-042/R1-052 closed 除外)
+- 累計 Critical + Warning = **29 件** (open C+W = **24 件** / R1-032/R1-042/R1-052/R1-001/R1-006 closed 除外 + R1-053 新規 open)
 - **暫定閾値 10 の 2.4 倍超過**
-- **実測ベース閾値提案** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
-  - 実測 C=2 (< 3 OK) / C+W open=24 (< 30 OK) → 実測ベース閾値では **未超過** (暫定閾値のみ超過)
-  - S5-T4 の条件分岐 sub-task = **「暫定閾値超過 & 実測ベース閾値内」→ Priority 1 = 唯一 Critical (R1-001) の即消化を W-R2 S1 で最優先化**
+- **実測ベース閾値** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
+  - **W-R2 S1 完了後**: 実測 C=0 (< 3 OK) / C+W open=24 (< 30 OK) → 実測ベース閾値では **未超過**
+  - ~~S5-T4 の条件分岐 sub-task = R1-001 の即消化を W-R2 S1 で最優先化~~ → **2026-07-06 完了 (open Critical = 0 実現)**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
 
@@ -139,12 +163,14 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: **Critical**
 - **responsibility_tag**: `dashboard-ui`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-06 / W-R2 S1 T3-T4 経由 / HGA #8 crux + L2 Sonnet TDD 実装 + HGA #9 adversarial verify 完了)
 - **opened_at**: 2026-07-06
+- **closed_at**: 2026-07-06
+- **closed_by_commit**: `<TBD-in-W-R2-S1-T5-ship>`
 - **evidence_file**: `.claude/scripts/dashboard/builder.py`
 - **evidence_line**: 703-711
 - **evidence_summary**: `if task_id in line:` は素の部分文字列マッチ。`task_id="W1-B5-T1"` は `line="- W1-B5-T10: ..."` に一致するため、T1/T10, T2/T20 等の接頭辞衝突で誤ステータス伝播。既存テストは接頭辞衝突をカバーせず。design.md §5 「完全一致前提」との黙示的仕様不一致。
-- **推奨修正方針**: Red で W1-B5-T10 のみ完了・W1-B5-T1 未完了の合成 fixture で接頭辞衝突テストを追加。Green で `re.search(re.escape(task_id) + r"(?:[:\s]|$)", line)` 相当のトークン境界チェックに置換 (task ID 直後がコロン/空白/行末なら一致 / 数字が続くなら不一致)。
+- **推奨修正方針 (2026-07-06 HGA #8 crux 反映 / 初期方針は不十分と判明)**: Red で W1-B5-T10 のみ完了・W1-B5-T1 未完了の合成 fixture で接頭辞衝突テストを追加。Green で `re.search(r"(?<![A-Za-z0-9-])" + re.escape(task_id) + r"(?![A-Za-z0-9])", line)` に置換 (**negative lookbehind + lookahead 両方**)。**HGA #8 発見**: 初期方針 `(?:[:\s]|$)` は装飾文字 (`**ID**`, `(ID)`, `` `ID` ``, 全角括弧, 読点) で false negative + leading 境界欠如で短縮形 `T\d+` が `S3-T1` / `W3-B5-T31` 途中に誤マッチ。trailing に `-` を含めない理由 = SESSION_STATE 実物 L105 の `T1-T5` 範囲記法保護。**追加要件**: docstring L690-694 「行に `task_id` が含まれる」も同時更新 (Spec Synchronization)。Red で追加すべき境界テスト網羅 = 装飾 `**ID**` / `(ID)` / `` `ID` `` / 全角括弧 / leading 短縮形 `T31` の `W3-B5-T31` 誤マッチ回避 / Wave 小数形式 `W1.5-B4-T9` (計 7 case)。
 
 #### R1-002: `_render_v2_milestones` が html.escape() を漏らしている (同ファイル内一貫性欠落)
 - **severity**: Warning
@@ -191,6 +217,17 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **evidence_line**: 20, 54-55
 - **evidence_summary**: `_VALID_PHASES = ("PLANNING", "BUILDING", "AUDITING", "AUTONOMOUS")` に "UNKNOWN" は含まれないが、fallback 時 phase="UNKNOWN" を返す (L55)。docstring L31 で明示のため実害なし。次回 Refactor 時に `_PHASE_PATTERN_CANDIDATES` 等への改名検討推奨。
 
+#### R1-054: `_resolve_task_status` の lookbehind/lookahead が underscore を境界文字扱いしない (HGA #9 verdict C-N1 / 未文書化 false-positive surface)
+- **severity**: Info (spec 忠実 / HGA #8 crux の指定通りだが未文書化)
+- **responsibility_tag**: `dashboard-ui`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06 (HGA #9 verdict C-N1)
+- **evidence_file**: `.claude/scripts/dashboard/builder.py`
+- **evidence_line**: 713-714 (regex `(?<![A-Za-z0-9-])<task_id>(?![A-Za-z0-9])`)
+- **evidence_summary**: HGA #9 probe: `re.search(r"(?<![A-Za-z0-9-])W1\-B5\-T1(?![A-Za-z0-9])", "W1-B5-T1_note: done")` → match=True。task_id が snake_case token の一部として embed された場合に誤マッチする surface が存在。実 SESSION_STATE 実物には該当 token なし (0 例) だが、将来 task_id 表記慣習が変わった場合の false-positive risk。
+- **推奨対応**: (a) accept-and-document (現行仕様維持 + `_resolve_task_status` docstring に「underscore は境界文字扱いしない」と 1 行明記) / (b) lookbehind/lookahead 両方に `_` を追加 (`(?<![A-Za-z0-9_-])` + `(?![A-Za-z0-9_])`)。W-R3 or W-R4 で軽微 refactor として消化候補。R1-001 core regex とは独立。
+
 ### module 2: `.claude/scripts/` (外)
 
 **監査完了**: 2026-07-06 (W-R1 S2 T3 / code-reviewer subagent + L1 監督)
@@ -201,13 +238,23 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: **Critical** (HGA #7 verdict A-2 で 2026-07-06 昇格 / 初期 Warning → **Critical** / 監査インフラ欠陥は R1-001 と同一 bug class = R-G7 ゲート判定を偽 Green 化するため被監査コードより一段重い)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-06 / W-R2 S1 T3-T4 経由 / HGA #8 crux + L2 Sonnet TDD 実装 + HGA #9 adversarial verify 完了)
 - **opened_at**: 2026-07-06
-- **severity_history**: initial Warning (2026-07-06) → Critical (2026-07-06 HGA #7 verdict A-2)
+- **closed_at**: 2026-07-06
+- **closed_by_commit**: `<TBD-in-W-R2-S1-T5-ship>`
+- **severity_history**: initial Warning (2026-07-06) → Critical (2026-07-06 HGA #7 verdict A-2) → **closed as Critical (2026-07-06 W-R2 S1 T4)**
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 37-39 (`_W_R3_PAT_RULES_PATH`) + 43-44 (パターン 3 も同型)
 - **evidence_summary**: `_W_R3_PAT_RULES_PATH = re.compile(r"\.claude/rules/(?:auto-generated/)?([a-z0-9-]+\.md)")` は文字クラスが `[a-z0-9-]+` のみ。**実測 (2026-07-06)**: rule-001.md L76 の `.claude/rules/auto-generated/README.md` 参照が unmatched (大文字ファイル名 false negative)。**HGA #7 追加検出**: パターン 3 も同型で **ドット (`.`) を含むファイル名も unmatched** (例: `v4.0.0-immune-system-requirements.md`)。false negative = 実 drift があっても drift=0 と誤報告する監査ツール自体の信頼性欠陥 → R-G7 ゲート (Green State baseline §「実 drift なし」判定根拠) を偽 Green 化。
-- **推奨修正方針**: 正規表現を `[A-Za-z0-9._-]+` (大文字 + ドット両対応) に拡張。Red で (a) 大文字ファイル名 (README.md) + (b) ドット含みファイル名 (v4.0.0-*.md) 両方のテスト追加。既存 `test_reference_resolution.py` (`.claude/tests/rules/`) に追加。**W-R2 S1 で最優先消化** (Critical / R-G7 baseline 再判定の前提)。**Fable→Opus gap 恒久対策 memo §事例 #2** として記録推奨 (2 段階検出 = subagent 1 段目 + HGA 2 段目 パターン)。
+- **推奨修正方針 (2026-07-06 HGA #8 crux 反映 / 初期方針の一律拡張は platform 依存バグを招くと判明)**: **HGA #8 発見**: tracker 初期方針の一律 `[A-Za-z0-9._-]+` は **パターン 3 slug (group 2 / `\.md` アンカーなし)** で文末句点を捕食 (例: `'... docs/specs/large-scale-review. 次の文'` → slug=`large-scale-review.` になる) → Windows 末尾ドット quirk (`Path('docs/specs/large-scale-review.').exists()` → 本機 win32 で True 実測) で **偽 Green** / POSIX で False で偽 drift。修正は 3 箇所に**同一クラス適用不可**:
+  - **パターン 1 group 1** (`\.md` アンカー付き): `[A-Za-z0-9._-]+` — greedy+backtrack で末尾自動整形 (安全)
+  - **パターン 3 group 3** (`\.md` アンカー付き): 同上
+  - **パターン 3 group 2 (slug / アンカーなし)**: `[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*` (**内部ドットのみ許容 / 末尾ドット不可**)
+  - パターン 2 (`rule-\d{3}`) は無関係で無変更
+- **underscore 含める理由**: 現 rules/ ファイル名は kebab 統一だが、drift 検出器では『マッチしない = silent false negative』が最悪の失敗モードであり、underscore 参照は『マッチして existence 検査で drift 報告される』方が正しい (Fable 判定)
+- Red で追加すべきテスト (計 8 case): (a) 大文字 `README.md` + (b) ドット合成 `foo.v2.md` + (c) 文末句点 backtrack `phase-rules.md.` + (d) パターン 3 ドット slug `v4.0.0-immune-system-requirements.md` + (e) 文末句点 slug ケース (末尾ドットなしで停止 / Red 対比) + (f) 既存 `0009-hga-fable-summoning.md` regression + (g) underscore drift 検出 (`some_rule.md` unmatched → matched に変化 + drift report) + (h) E2E で新規 drift が全て「真の実在なし」であること (false positive ゼロ検査)
+- **live baseline 事前裁定**: 現行 `verify_reference_resolution.py --wave w-r3` は既に drift=1 (`docs/specs/feature` placeholder / `99_reference_generic.md` 由来) を報告済。W-R2 S1 内で「山括弧付き `<feature>` テンプレ書式変更 or 検出器側で `<...>` 除外リスト化」のいずれかを 1 行決めておく (R-G7 再判定の前提)
+- **W-R2 S1 で最優先消化** (Critical / R-G7 baseline 再判定の前提)。**Fable→Opus gap 恒久対策 memo §事例 #2** として記録推奨 (2 段階検出 = subagent 1 段目 + HGA 2 段目 パターン)。
 
 #### R1-007: `distill_lessons.py` の `is_small_task` パラメータが未使用のままシグネチャに残存 (dead code)
 - **severity**: Warning
@@ -230,6 +277,17 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **evidence_line**: 27 (`2: ".claude/scripts/*.py"`), 46-55 (`_glob_module`)
 - **evidence_summary**: `glob.glob()` は `.gitignore` を関知しない。`git check-ignore` 実測で `.claude/scripts/scan_nfr_refs.py` / `scan_nfr_refs2.py` は gitignore 対象と確認済だが、inventory JSON の module 2 に混入 (実測 14 files ≠ tracked 12 files)。後続の R-G8 / 監査集計が gitignore 済 ad-hoc スクリプトを「本番コード」誤認するリスク。
 - **推奨修正方針**: `_glob_module` に `git ls-files` ベースの filter 追加 or `.gitignore` パターン照合。Red で gitignore 済ダミーファイル配置 → inventory 出力に含まれないこと assert。**W-R2 S2 で対応推奨** (inventory 再生成が R-G8 baseline の前提)。
+
+#### R1-053: `verify_w_r3` パターン 3 の existence-check hole (dir 存在で fname 存在検査省略 / **R1-006 と同 bug class**)
+- **severity**: Warning (**Critical candidate** / silent false negative surface / R-G7 gate 汚染候補 / ただし live scan で 0 実例のため即時 Critical 昇格せず Warning 起票)
+- **responsibility_tag**: `audit-script`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-06 (HGA #9 verdict C-N3)
+- **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
+- **evidence_line**: 145-151 (`candidates = [dir, slug.md, dir/fname]` + `if not any(c.exists() for c in candidates): drift 起票`)
+- **evidence_summary**: HGA #9 probe P4: `docs/specs/large-scale-review/nonexistent-file-xyz.md` を pattern 3 が `(specs, large-scale-review, nonexistent-file-xyz.md)` として capture するが、candidate 配列に `dir/` (`docs/specs/large-scale-review/`) が含まれ実在するため `any(exists)=True` → **fname の実在検査を素通し**して drift 判定に至らない。**これは R1-006 が Critical に昇格した「silent false negative」と同じ bug class**。**軽減要因**: (i) 本 logic は S1-T2 で新規導入されたものではなく事前存在 (char-class 変更のみが scope だった) / (ii) HGA #9 probe P8 で live corpus に該当実例 0 件と実測。**新規 issue として起票**し R1-001/R1-006 は reopen しない (HGA #9 recommendation)。
+- **推奨修正方針**: `verify_w_r3` パターン 3 分岐で fname が capture された場合 (`fname is not None`) は `(dir/fname).exists()` を厳密要求 (any → all または fname 存在時は fname 経路のみで判定)。Red で本 issue evidence_summary の合成 fixture を追加。**W-R3 S1 or 新規 Wave で消化推奨** (R-G7 baseline を偽 Green 化する潜在があり P2 相当)。
 
 #### R1-I06: `gd_state.py` (727 行 / 最大) は SRP 維持 / 分割不要 (Warning 対象外)
 - **severity**: Info
@@ -254,6 +312,17 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 #### R1-I10: subagent 監督訂正 — verify_reference_resolution.py のテストは `.claude/tests/rules/test_reference_resolution.py` に存在
 - **severity**: Info (メタ記録 / issue ではない)
 - **evidence_summary**: subagent が「テストファイルが存在しない」と報告したが、実際は `.claude/tests/rules/test_reference_resolution.py` (T4 output / 15 テスト) が存在。subagent が `.claude/tests/scripts/` のみ探索した見落とし。R1-006 の推奨修正方針は当該ファイルに追加テストを書き加える形。
+
+#### R1-055: `Path.exists()` の win32 case-insensitive で drift portability リスク (HGA #9 verdict C-N4 / residual)
+- **severity**: Info (residual risk / live corpus で 0 実例)
+- **responsibility_tag**: `audit-script`
+- **attribution**: `self` (併記: `spec_ambiguity` — 検出器 portability 要件が未定義)
+- **status**: `open`
+- **opened_at**: 2026-07-06 (HGA #9 verdict C-N4)
+- **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
+- **evidence_line**: 100-104, 138-144 (存在検査ロジック全般)
+- **evidence_summary**: HGA #9 probe P6: `Path('.claude/rules/PHASE-RULES.md').exists()=True` および `Path('docs/specs/LARGE-SCALE-REVIEW').exists()=True` を本機 (win32 / NTFS default) で実測。case-drifted 参照が本機で偽 Green 化し、POSIX checkout では真 drift として顕在化する platform 依存リスク。HGA #9 probe P9 で live corpus に case-mismatch 参照 0 件と実測されているため即時 Warning 起票せず。CI が Linux で走る場合 (Green State §G1) や複数 checkout 環境で発火可能性。
+- **推奨対応**: (a) accept-as-residual (現状維持 / POSIX CI ゲートで代替検出) / (b) case-exact check 実装 (`os.listdir()` ベースで parent dir と capture 名 case-exact 一致確認)。R-G7 baseline 変動を許容できるなら (b) を W-R3 or W-R4 で軽微 refactor 消化候補。
 
 ### module 3: `.claude/skills/`
 

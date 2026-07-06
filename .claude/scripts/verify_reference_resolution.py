@@ -34,14 +34,21 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # ---- W-R3 用パターン (rules 相互参照 / internal → spec 参照) ----
 
 # パターン 1: rules 内で他 rules.md をパス指定参照 (auto-generated サブディレクトリ対応 / 数字含む rule-NNN)
+# R1-006 (2026-07-06 HGA #8 crux 反映): 大文字・ドット合成ファイル名の false negative 修正。
+# \.md アンカーが後続するため greedy+backtrack で文末句点等を自動的に含めない (安全)。
 _W_R3_PAT_RULES_PATH = re.compile(
-    r"\.claude/rules/(?:auto-generated/)?([a-z0-9-]+\.md)"
+    r"\.claude/rules/(?:auto-generated/)?([A-Za-z0-9._-]+\.md)"
 )
 # パターン 2: rules 内で "rule-XXX" 名前参照
 _W_R3_PAT_RULE_NAME = re.compile(r"\brule-(\d{3})\b")
 # パターン 3: internal 内で spec 参照 (末尾スラッシュ or ファイル)
+# R1-006: group2 (slug / \.md アンカーなし) は内部ドットのみ許容し末尾ドットは不可とする。
+# 一律 [A-Za-z0-9._-]+ を適用すると Windows 末尾ドット quirk
+# (Path('...large-scale-review.').exists() が win32 で True) により文末句点を
+# 捕食し偽 Green 化するため、group2 のみ非対称に "内部ドット限定" のクラスにする。
+# group3 (\.md アンカー付き) はパターン 1 と同様に安全。
 _W_R3_PAT_SPEC_REF = re.compile(
-    r"docs/(specs|adr)/([a-z0-9-]+)(?:/([a-z0-9-]+\.md)?)?"
+    r"docs/(specs|adr)/([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)(?:/([A-Za-z0-9._-]+\.md)?)?"
 )
 
 # ---- W-R4 用パターン (skills + agents frontmatter) ----
