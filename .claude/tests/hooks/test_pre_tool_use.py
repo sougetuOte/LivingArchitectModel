@@ -100,6 +100,48 @@ def test_dollar_paren_command_substitution_returns_pm(tmp_path):
     assert level == "PM"
 
 
+# ---- R1-052 (HGA #7 検出): R1-032 追加対応 3 文字 ----
+
+
+def test_single_ampersand_backgrounding_returns_pm(tmp_path):
+    """`ruff format x.py & rm -rf /tmp` → PM (単体 `&` = バックグラウンド実行区切り).
+
+    R1-032 の初期修正 `_SHELL_METACHARACTERS` タプルには `&&` (連続 2 文字) のみ含まれ、
+    単体 `&` が欠落していた。`ruff format x.py & rm -rf /tmp` は shell で
+    「x.py をバックグラウンド起動 → 直後 rm -rf 実行」となり同じ攻撃クラス。
+    HGA #7 (Fable 2026-07-06) が実測ベースで検出。
+    """
+    phase_file = _make_auditing_phase_file(tmp_path)
+    level, _reason = pre_tool_use._determine_by_command(
+        "ruff format x.py & rm -rf /tmp", phase_file
+    )
+    assert level == "PM"
+
+
+def test_newline_composition_returns_pm(tmp_path):
+    """`ruff format x.py\\nrm -rf /tmp` → PM (改行によるコマンド連結).
+
+    HGA #7 検出: 複数行コマンドは shell で行ごとに実行されるため PG では通せない。
+    """
+    phase_file = _make_auditing_phase_file(tmp_path)
+    level, _reason = pre_tool_use._determine_by_command(
+        "ruff format x.py\nrm -rf /tmp", phase_file
+    )
+    assert level == "PM"
+
+
+def test_process_substitution_returns_pm(tmp_path):
+    """`ruff format <(cat evil.txt)` → PM (プロセス置換 `<(...)`).
+
+    HGA #7 検出: 初期修正は `$(` のみ検査で `<(` (プロセス置換) を素通しした。
+    """
+    phase_file = _make_auditing_phase_file(tmp_path)
+    level, _reason = pre_tool_use._determine_by_command(
+        "ruff format <(cat evil.txt)", phase_file
+    )
+    assert level == "PM"
+
+
 # ---- Regression guard: 既存の PG / PM 判定を退行させない ----
 
 

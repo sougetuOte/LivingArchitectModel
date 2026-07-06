@@ -13,41 +13,78 @@
 
 ---
 
+## 0. HGA #7 verdict メタ構造欠陥 (W-R5 retro 議題 / 2026-07-06 追加)
+
+Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロセス構造欠陥。W-R5 retro で恒久対策議題化する:
+
+1. **修正の再監査ループ欠落**: W-R1 は Read-Only 監査 Wave だが、例外的な前倒し消化 (R1-032/R1-042) の修正コード自体は監査対象 11 モジュールのどのパスにも乗らない → R1-052 (R1-032 の残存 attack surface) を招いた。**恒久対策**: W-R2 以降の全消化に「fix の attack-surface 再列挙 + 独立検証 (gabriel 型 or spec-critic 独立召喚)」ゲート追加。
+2. **tracker SSOT の自己検証欠如**: R-1 は inventory / cycle / reference の自動検査ツールを自作しながら、最重要成果物である tracker のヒートマップ⇔本文⇔変更履歴の突合検査がない (Fable A-3 が実証 = module 10 Info 件数 7 vs 実載 6 の drift 検出)。**恒久対策**: `.claude/scripts/verify_tracker_integrity.py` を W-R5 S1 の R-G6 判定前提として作成。
+3. **Stage 間 severity/attribution 判定規準ドリフト**: severity (R1-001 Critical vs R1-006 Warning: 同一 bug class) と attribution (S3 downstream vs S4 self: 同一 drift 型) が監査 Stage ごとに揺れる。**恒久対策**: `code-quality-guideline.md` に「同型 finding の先例参照義務」+ 「監査インフラ欠陥は被監査コードより一段重い」等の重み付け規準を追加。
+
+これらは W-R5 retro で議題化し、必要に応じて rules / spec / hga-summoning.md への恒久反映を実施する。
+
+---
+
 ## 1. NFR-3 Critical 件数閾値
 
 | 項目 | 値 | 出典 |
 |:----|:---|:-----|
 | 初期閾値 (暫定) | 10 件 | requirements.md NFR-3 |
-| 確定閾値 | **W-R1 S5-T4 で実測に基づき確定** | tasks.md W-R1 S5 T4 |
-| 超過時アクション | 優先順位付けサブタスクを tracker に起票 | spec-critic Warning W5 |
+| **確定閾値 (S5-T4 / 2026-07-06)** | **Critical 単独 3 件 or Critical + Warning 30 件** | 実測ベース (open C=1 W=23 実測 / HGA #7 反映後) |
+| 超過時アクション | 優先順位付けサブタスクを tracker に起票 (下記 §1.1) | spec-critic Warning W5 |
+
+### 1.1 W-R2 以降の消化優先順位 (S5-T4 sub-task)
+
+暫定閾値 10 は超過 (実測 open C+W = 24) だが、実測ベース閾値 (C 単独 3 / C+W 30) 内。以下優先順位で消化:
+
+| Priority | Wave | issue | 根拠 |
+|:--------:|:----:|:-----|:-----|
+| **P1 (即時)** | W-R2 S1 | **R1-001 (Critical)** — task_id 部分文字列マッチ | 唯一の Critical (dashboard 表示ロジック / 実運用で誤ステータス伝播) |
+| **P1 (即時)** | W-R2 S1 | **R1-006 (Critical / HGA #7 昇格)** — R-G7 監査インフラ false negative | Critical 昇格分 / R-G7 baseline 再判定の前提 / R1-001 と同 bug class |
+| P2 (W-R3 S2) | W-R3 S2 | R1-042 (closed) + R1-040/R1-041/R1-043/R1-050 | docs/internal SSOT drift 解消 |
+| P2 (W-R3 S3) | W-R3 S3 | R1-017/R1-018/R1-035/R1-038/R1-039/R1-I24 | rules 相互矛盾 |
+| P2 (W-R3 S4) | W-R3 S4 | R1-046 (3 Milestone status drift) / R1-047/R1-048 (Info)/R1-049 | specs + adr + ルート統治文書一貫性 |
+| P3 (W-R4 S1-3) | W-R4 全 Stage | R1-002/R1-003/R1-032 (closed)/R1-033/R1-034/R1-036/R1-037/R1-052 (closed) | hooks/agents/skills 整理 |
+| P4 (W-R2 S3-4) | W-R2 S3-4 | R1-007/R1-008/R1-030/R1-031 | dashboard 領域 Warning |
+| Info | W-R5 or 棚上げ | 全 Info 44 件 | Green State 判定に影響なし (code-quality-guideline 準拠) |
+
+**開放 Critical 2 件** (R1-001 + R1-006) は **W-R2 S1 で最優先消化** (P1)。W-R5 S1 の R-G6 判定前に Critical=0 を確定必須。
 
 ---
 
 ## 2. モジュール別問題数ヒートマップ (11 × 3)
 
-**W-R1 S4-T4 完成 (2026-07-06)**: 11 モジュール監査完了 → 33 セル実測値埋め済
+**W-R1 S5 (HGA #7 verdict 反映後 / 2026-07-06)**: 11 モジュール監査完了 + HGA #7 adversarial verify 反映済
 
 | モジュール | Critical | Warning | Info |
 |:----------|:--------:|:-------:|:----:|
 | 1. `.claude/scripts/dashboard/` | **1** | **2** | **5** |
-| 2. `.claude/scripts/` (外) | **0** | **3** | **5** |
+| 2. `.claude/scripts/` (外) | **1** | **2** | **5** |
 | 3. `.claude/skills/` (23 SKILL.md) | **0** | **3** | **2** |
 | 4. `.claude/tests/` | **0** | **2** | **3** |
-| 5. `.claude/hooks/` + `settings*.json` | **0** | **3** | **4** |
+| 5. `.claude/hooks/` + `settings*.json` | **0** | **4** | **4** |
 | 6. `.claude/agents/` (12 件) | **0** | **3** | **2** |
 | 7. `.claude/rules/` (11 files + auto-generated/) | **0** | **2** | **3** |
 | 8. `docs/internal/` (00-07) | **0** | **4** | **5** |
 | 9. `docs/specs/` (74 files / depth 制御) | **0** | **1** | **4** |
-| 10. `docs/adr/` (10 files) | **0** | **3** | **7** |
-| 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **2** | **3** |
-| **合計 (全 11 module)** | **1** | **28** | **43** |
-| **open** (前倒し 2 件 closed 除外) | **1** | **26** | **43** |
+| 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
+| 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
+| **合計 (全 11 module)** | **2** | **26** | **44** |
+| **open** (前倒し 3 件 closed 除外) | **1** | **23** | **44** |
 
-**NFR-3 閾値超過確定 (最終)** (spec-critic W5 対応):
-- 累計 Critical + Warning = **29 件** (open = 27 件)
-- 暫定閾値 10 の **2.9 倍超過** / 予測 (S3 線形外挿 31-32) に整合
-- **S5-T4 で条件分岐 sub-task 起票必須** (「閾値超過時 = 優先順位付け sub-task 起票」)
-- 実測ベース閾値提案: Critical 単独 3 件 or Critical + Warning 30 件 前後 (S5-T4 で MAGI 判断)
+**HGA #7 verdict 反映差分** (2026-07-06 / Fable):
+- (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
+- (A) **R1-052 新規起票 + closed** (HGA #7 検出 / R1-032 修正が単体 `&` / `\n` / `<(` を素通し / 3 テスト追加で完全 closed)
+- (B) R1-048 (ADR-0004 supersede) → **Info 降格** (実害なし自認 / R1-I46 へ)
+- (B) R1-051 (CHEATSHEET Rules 4/11 欠落) → **Info 降格** (7/23 skills R1-I44 との対称 / CHEATSHEET は「抜粋」明示可能 / R1-I47 へ)
+- (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
+
+**NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
+- 累計 Critical + Warning = **28 件** (open C+W = **24 件** / R1-032/R1-042/R1-052 closed 除外)
+- **暫定閾値 10 の 2.4 倍超過**
+- **実測ベース閾値提案** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
+  - 実測 C=2 (< 3 OK) / C+W open=24 (< 30 OK) → 実測ベース閾値では **未超過** (暫定閾値のみ超過)
+  - S5-T4 の条件分岐 sub-task = **「暫定閾値超過 & 実測ベース閾値内」→ Priority 1 = 唯一 Critical (R1-001) の即消化を W-R2 S1 で最優先化**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
 
@@ -77,6 +114,17 @@
 - `deferred_from` → `open` 昇格条件: 「in-scope モジュールの Green State 条件 (Critical / Warning) を block する場合」のみ (FR-2 二値判定 / 昇格判定に MAGI を呼ばない)
 
 **責務タグの用途** (FR-5): モジュール横断で「同種の責務が複数モジュールに散らばっているか」を W-R5 retro で集計する材料。
+
+**attribution 併記形式** (HGA #7 verdict C-3 対応 / 2026-07-06 追加):
+- 主 attribution + `(併記: <補助 attribution>)` 形式を許容 (例: `self (併記: spec_ambiguity)`)
+- 主 attribution は必ず 5 択 (`upstream` / `downstream` / `spec_ambiguity` / `unknown` / `self`) から選択
+- 併記 attribution は補助的 (spec の曖昧さと自己完結性が併存する境界事例等)
+- W-R5 機械集計時は主 attribution のみで分類 (併記は補助注記として扱う)
+
+**severity 変更履歴** (HGA #7 verdict A-2 / B-1 / B-2 対応 / 2026-07-06 追加):
+- severity は監査後の再判定 (HGA verdict 等) で変更可能
+- 変更時は issue セクションに `severity_history` フィールド追記 (`initial <old> (date) → <new> (date reason)`)
+- 変更履歴は W-R5 retro での監査プロセス品質評価材料 (Stage 間判定ドリフト検出用)
 
 ---
 
@@ -149,16 +197,17 @@
 **集計**: Critical 0 / Warning 3 / Info 4
 **特記**: 3 件全てが **本監査シリーズで作成した self コード** の Warning (Fable→Opus gap 事例 #2 = Opus 自身の T1/T4 実装漏れを subagent が発見)
 
-#### R1-006: `verify_reference_resolution.py` の rules パス正規表現が大文字始まりファイル名を検出漏れ (自己コード)
-- **severity**: **Warning**
+#### R1-006: `verify_reference_resolution.py` の rules パス正規表現が大文字・ドット含みファイル名を検出漏れ (監査インフラ false negative / R-G7 ゲート判定汚染)
+- **severity**: **Critical** (HGA #7 verdict A-2 で 2026-07-06 昇格 / 初期 Warning → **Critical** / 監査インフラ欠陥は R1-001 と同一 bug class = R-G7 ゲート判定を偽 Green 化するため被監査コードより一段重い)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
 - **status**: `open`
 - **opened_at**: 2026-07-06
+- **severity_history**: initial Warning (2026-07-06) → Critical (2026-07-06 HGA #7 verdict A-2)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
-- **evidence_line**: 37-39
-- **evidence_summary**: `_W_R3_PAT_RULES_PATH = re.compile(r"\.claude/rules/(?:auto-generated/)?([a-z0-9-]+\.md)")` は文字クラスが `[a-z0-9-]+` のみ。**実測**: rule-001.md L76 が `.claude/rules/auto-generated/README.md` を参照しているが正規表現 unmatched (`re.search()` returns None)。false negative = 実 drift があっても drift=0 と誤報告する監査ツール自体の信頼性欠陥。
-- **推奨修正方針**: 正規表現を `[A-Za-z0-9_-]+` に拡張。Red で `test_w_r3_pat_rules_path_matches_uppercase_filename` を追加 (README.md 等の入力で match)。既存 test_reference_resolution.py (`.claude/tests/rules/`) に追加。**Fable→Opus gap 恒久対策 memo §事例 #2** として記録推奨。
+- **evidence_line**: 37-39 (`_W_R3_PAT_RULES_PATH`) + 43-44 (パターン 3 も同型)
+- **evidence_summary**: `_W_R3_PAT_RULES_PATH = re.compile(r"\.claude/rules/(?:auto-generated/)?([a-z0-9-]+\.md)")` は文字クラスが `[a-z0-9-]+` のみ。**実測 (2026-07-06)**: rule-001.md L76 の `.claude/rules/auto-generated/README.md` 参照が unmatched (大文字ファイル名 false negative)。**HGA #7 追加検出**: パターン 3 も同型で **ドット (`.`) を含むファイル名も unmatched** (例: `v4.0.0-immune-system-requirements.md`)。false negative = 実 drift があっても drift=0 と誤報告する監査ツール自体の信頼性欠陥 → R-G7 ゲート (Green State baseline §「実 drift なし」判定根拠) を偽 Green 化。
+- **推奨修正方針**: 正規表現を `[A-Za-z0-9._-]+` (大文字 + ドット両対応) に拡張。Red で (a) 大文字ファイル名 (README.md) + (b) ドット含みファイル名 (v4.0.0-*.md) 両方のテスト追加。既存 `test_reference_resolution.py` (`.claude/tests/rules/`) に追加。**W-R2 S1 で最優先消化** (Critical / R-G7 baseline 再判定の前提)。**Fable→Opus gap 恒久対策 memo §事例 #2** として記録推奨 (2 段階検出 = subagent 1 段目 + HGA 2 段目 パターン)。
 
 #### R1-007: `distill_lessons.py` の `is_small_task` パラメータが未使用のままシグネチャに残存 (dead code)
 - **severity**: Warning
@@ -390,6 +439,24 @@
 - **evidence_line**: 1-9
 - **evidence_summary**: `Read(//c/Users/metral/**)` / `Read(//c/work5/Kage-Shiki/**)` は個人環境固有パス。ファイル名 `.local.json` からチーム共有非対象 (LAM 監査対象外 / Green State 判定に影響なし)。指摘のみ記録。
 
+#### R1-052 (HGA #7 検出 / 2026-07-06): R1-032 追加対応 — `_SHELL_METACHARACTERS` タプルが単体 `&` / `\n` / `<(` を素通し
+- **severity**: Warning
+- **responsibility_tag**: `permission-check`
+- **attribution**: `self`
+- **status**: **`closed`** (HGA #7 verdict A-1 直後に前倒し消化 / commit で埋め)
+- **opened_at**: 2026-07-06
+- **closed_at**: 2026-07-06
+- **evidence_file**: `.claude/hooks/pre-tool-use.py`
+- **evidence_line**: 95 (初期修正 `_SHELL_METACHARACTERS = (";", "&&", "||", "|", "\`", "$(")`)
+- **evidence_summary**: R1-032 の初期修正 (commit `8c00786`) は 6 文字のみ列挙で、以下 3 パターンを素通ししていた:
+  - **単体 `&`** (バックグラウンド区切り): `ruff format x.py & rm -rf /tmp` は `"&&" in "x.py & rm..."` = False で PG auto-allow に到達 (shell では末尾でなければコマンド区切り)
+  - **改行 `\n`** (複数行コマンド): shell で行ごとに実行
+  - **プロセス置換 `<(...)`** ($( のみ検査で `<(` 未対応)
+
+  Fable HGA #7 (2026-07-06) が実測ベースで検出 (verdict A-1)。同一 attack class (R1-032 と等価) の残存で、L1 監督の「修正の再監査」工程欠落を実証 (メタ構造欠陥 #1)。
+- **修正**: `_SHELL_METACHARACTERS` タプルに `"&"`, `"\n"`, `"<("` を追加 (計 9 文字)。追加テスト 3 件 (single ampersand / newline / process substitution) で Red-Green 完了 → 全 13 tests PASS + regression 537 PASS + 14 SKIP。
+- **HGA #7 反映アクション**: L1 監督工程に「前倒し消化時の attack-surface 再列挙 + 独立検証」ゲートを W-R5 retro で議題化 (メタ構造欠陥 #1 恒久対策)。
+
 ### module 6: `.claude/agents/`
 
 **監査完了**: 2026-07-06 (W-R1 S3 T2 / L1 直監査 + context7 upstream 裏取り)
@@ -575,14 +642,6 @@
 - **evidence_summary**: 内容自体は矛盾していないが、06 が mermaid で厳密フローチャート (分岐含む) を持つのに対し、要約版はシンプルな一直線矢印表現のみで「複数条件のいずれか該当」の OR 分岐ニュアンスが失われる (実害は R1-042 の方が大 / 表現形式の違いのみ)。
 - **推奨修正方針**: 対応不要 (要約版としての簡略化は許容範囲)。
 
-### module 7: `.claude/rules/` + `auto-generated/`
-
-_W-R1 S3 T3 (module 7 監査 / 11 files + auto-generated) で起票予定_
-
-### module 8: `docs/internal/` (00-07)
-
-_W-R1 S3 T4 (module 8 監査) で起票予定_
-
 ### module 9: `docs/specs/` (74 files / depth 制御)
 
 **監査完了**: 2026-07-06 (W-R1 S4 T1 / code-reviewer subagent + L1 監督 / **depth 3-tier 制御**)
@@ -641,7 +700,7 @@ _W-R1 S3 T4 (module 8 監査) で起票予定_
 #### R1-047: ADR-0001 が Proposed のまま約 4 ヶ月放置 + 決定内容の第2層 (prompt/haiku ハンドラ) が未実装
 - **severity**: **Warning** (優先度高 / 「決定と実装の乖離」)
 - **responsibility_tag**: `adr-status`
-- **attribution**: `self`
+- **attribution**: `downstream` (HGA #7 verdict C-2 で 2026-07-06 訂正 / 初期 `self` → `downstream` / ADR-0001 module 10 と実装 module 5/6 の cross-module drift = 単一モジュール完結ではない)
 - **status**: `open`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0001-model-routing-strategy.md`
@@ -649,8 +708,9 @@ _W-R1 S3 T4 (module 8 監査) で起票予定_
 - **evidence_summary**: status = `Proposed` (2026-03-08 のまま)。決定内容 = 3 層ルーティング「第1層 パスベース (command型) / 第2層 内容ベース (prompt型 / haiku) / 第3層 深い検証 (agent型 / sonnet)」。実測: `.claude/settings.json` hooks 全 5 件 = `type: command` のみ、`.claude/hooks/pre-tool-use.py` 等は純粋 Python で LLM 呼び出しなし、grep で「第2層 prompt handler」の実装は一切見つからず未実装。実際のモデル出し分けは hooks 内 3 層カスケードではなく、`.claude/agents/*.md` frontmatter の `model:` 個別指定 (12 agents 実測済 / module 6 参照) という別アーキテクチャで実現。決定と実装が乖離しつつ ADR は Proposed → Accepted 審議も Superseded 記録もなし。
 - **推奨修正方針**: (a) ADR-0001 を Superseded とし、新規 ADR or 既存 ADR-0007/0009 に実装済モデル出し分け方針明記 or (b) ADR-0001 を Accepted へ正式遷移 + 「第2層は不採用 (subagent 個別指定で代替)」を改訂履歴に追記。**W-R3 S4 (docs/adr 整合修正)** で消化。
 
-#### R1-048: ADR-0008 が ADR-0004 (security-commands.md 決定元) を全面書き換えしつつ Supersede 明記なし (traceability gap)
-- **severity**: Warning
+#### R1-048 (旧 Warning → Info 降格 / HGA #7 verdict B-1 準拠 / 実務便宜上 R1-046..051 系は番号維持): ADR-0008 が ADR-0004 (security-commands.md 決定元) を全面書き換えしつつ Supersede 明記なし (traceability gap)
+- **severity**: **Info** (HGA #7 verdict B-1 で 2026-07-06 降格 / 初期 Warning → Info / 起票自身の evidence_summary で「決定内容は結果的に維持されているため実害なし」と自認 / ADR 相互参照 1 行の欠落は「コメントの追加提案」級で Green State を block する Warning に置くのは過剰)
+- **severity_history**: initial Warning (2026-07-06) → Info (2026-07-06 HGA #7 verdict B-1)
 - **responsibility_tag**: `superseded-not-noted`
 - **attribution**: `self`
 - **status**: `open`
@@ -663,7 +723,7 @@ _W-R1 S3 T4 (module 8 監査) で起票予定_
 #### R1-049: ADR-0003「結果」節の実装パス `.claude/commands/full-review.md` が現行 `.claude/skills/full-review/SKILL.md` と drift
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
-- **attribution**: `self`
+- **attribution**: `downstream` (HGA #7 verdict C-2 で 2026-07-06 訂正 / 初期 `self` → `downstream` / ADR-0003 module 10 と実装移設先 module 3 skills の cross-module drift)
 - **status**: `open`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0003-context7-vs-webfetch.md`
@@ -712,7 +772,7 @@ _W-R1 S3 T4 (module 8 監査) で起票予定_
 #### R1-050: CHEATSHEET.md の「Reflection」記述複数箇所が ADR-0007 gabriel 置換 (2026-07-02 Accepted) を反映せず
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
-- **attribution**: `self`
+- **attribution**: `downstream` (HGA #7 verdict C-1 で 2026-07-06 訂正 / 初期 `self` → `downstream` / CHEATSHEET.md module 11 × ADR-0007 module 10 の 2 モジュール横断 = 単一モジュール完結ではない / R1-041 / R1-042 と完全同型)
 - **status**: `open`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `CHEATSHEET.md`
@@ -720,8 +780,9 @@ _W-R1 S3 T4 (module 8 監査) で起票予定_
 - **evidence_summary**: ADR-0007 (Accepted 2026-07-02) で Reflection → gabriel 独立 subagent に構造的置換済。`.claude/rules/decision-making.md` L19 も注記済 (旧 Reflection は Wave C で gabriel に置換済)。しかし CHEATSHEET.md 3 箇所で旧 Reflection 記述残存 = ユーザー参照ドキュメントとしての最重要 UI 面で spec drift。
 - **推奨修正方針**: 3 箇所全て「gabriel adversarial probe」に置換 + Step 4 の説明を「gabriel 独立 subagent が 6-fields JSON schema で adversarial verification」に更新。**W-R3 S4 (ルート統治文書一貫性修正)** で消化 (PM 級)。
 
-#### R1-051: CHEATSHEET.md Rules ファイル一覧が 4/11 files 欠落 (36% 未列挙) + auto-generated 3 files 全欠落
-- **severity**: Warning
+#### R1-051 (旧 Warning → Info 降格 / HGA #7 verdict B-2 準拠): CHEATSHEET.md Rules ファイル一覧が 4/11 files 欠落 (36% 未列挙) + auto-generated 3 files 全欠落
+- **severity**: **Info** (HGA #7 verdict B-2 で 2026-07-06 降格 / 初期 Warning → Info / 7/23 skills を Info と判定した R1-I44 との対称化 / CHEATSHEET は定義上「クイックリファレンス (抜粋)」で「抜粋」明示すれば修正不要選択肢がある指摘 = Info 定義に合致)
+- **severity_history**: initial Warning (2026-07-06) → Info (2026-07-06 HGA #7 verdict B-2)
 - **responsibility_tag**: `reference-integrity`
 - **attribution**: `self`
 - **status**: `open`
@@ -760,6 +821,7 @@ _W-R1 S3 T4 (module 8 監査) で起票予定_
 | 2026-07-06 | L1 (Opus 4.7) | W-R1 S3 module 5-8 監査完了 (issue R1-032..R1-043 + R1-I16..R1-I29 起票 / 累計 C=1 W=22 I=29 / NFR-3 閾値超過確定 → S5-T4 条件分岐 sub-task 起票必須) |
 | 2026-07-06 | L1 (Opus 4.7) | **前倒し消化 2 件** (Wave 分離規律の例外 / ユーザー判断 = 実運用リスク優先): R1-042 (gabriel 6 fields drift / decision-making.md 更新 / PM 級) / R1-032 (pre-tool-use.py shell metachar / TDD Red-Green / 10 テスト新規 PASS / 534+14 SKIP 維持) → status open→closed |
 | 2026-07-06 | L1 (Opus 4.7) | W-R1 S4 module 9-11 監査完了 + ヒートマップ 33 セル完成 (issue R1-046..R1-051 + R1-I33..R1-I45 起票 / 全 11 module 累計 C=1 W=28 I=43 / open C=1 W=26 / NFR-3 閾値 2.9 倍超過確定) |
+| 2026-07-06 | L1 (Opus 4.7) + HGA #7 (Fable) | **HGA #7 verdict 反映** (verdict 7/10 / 見落とし Critical 1 / メタ構造欠陥 3): (A-1) R1-052 新規起票 + 前倒し消化 (R1-032 修正が単体 `&` / `\n` / `<(` 素通し / 3 テスト追加 = 全 13 tests PASS + 537 PASS 全体) / (A-2) R1-006 Warning → **Critical 昇格** + evidence 拡張 (ドット含みファイル名 追加漏れ) / (A-3) module 10 heatmap Info 7 → 6 修正 + stale placeholder 削除 / (B-1) R1-048 Warning → Info 降格 / (B-2) R1-051 Warning → Info 降格 / (C-1) R1-050 attribution `self` → `downstream` / (C-2) R1-047 / R1-049 attribution `self` → `downstream` / (C-3) §3 schema に併記形式 + severity 変更履歴フィールド明文化 / **メタ 3 件** = 「修正の再監査」ゲート追加 / tracker SSOT 自己検証チェッカー / Stage 間 severity/attribution 判定規準ドリフト = W-R5 retro 議題化 |
 
 ---
 

@@ -89,10 +89,14 @@ _PG_BLACKLISTED_ARGS = (
     "--ext",
 )
 
-# R1-032: PG コマンドで禁止する shell メタ文字（コマンド連結・置換演算子）。
+# R1-032 + R1-052: PG コマンドで禁止する shell メタ文字（コマンド連結・置換演算子）。
 # `ruff format x.py; rm -rf /tmp` のような合成が settings.json Layer 1 allow の
 # prefix ワイルドカードマッチと hook 側 PG 判定の両方を通過する gap を塞ぐ。
-_SHELL_METACHARACTERS = (";", "&&", "||", "|", "`", "$(")
+#
+# R1-052 (HGA #7 Fable 2026-07-06 検出): 初期修正 (";", "&&", "||", "|", "`", "$(") では
+# 単体 `&` (バックグラウンド区切り) / `\n` (改行連結) / `<(` (プロセス置換) が素通し。
+# 同一 attack class の追加 3 パターンを網羅。
+_SHELL_METACHARACTERS = (";", "&&", "||", "|", "`", "$(", "&", "\n", "<(")
 
 # パス判定パターン（PM 級）
 _PM_PATTERNS = [

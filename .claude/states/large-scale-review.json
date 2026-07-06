@@ -3,7 +3,7 @@
   "milestone": "R-1",
   "description": "B-5 期累積資産（dashboard / MAGI v2 / HGA / TDD 内省 v2 / 3.5 層委譲 等）の独立レビュー & リファクタリング。MAGI 4 Atom + gabriel probe 実運用初発火 + HGA 型 Fable 召喚を意図的に組み込む。",
   "phase": "BUILDING",
-  "current_task": "W-R1 S3 完了 (module 5-8 監査 / tracker 8/11 累計 C=1 W=22 I=29 / NFR-3 閾値超過確定) / 次: W-R1 S4 (module 9-11 + ヒートマップ)",
+  "current_task": "W-R1 COMPLETE (2026-07-06 / HGA #7 verdict 反映 = 前倒し R1-052 消化 + R1-006 昇格 + tracker 補正 / 全 11 module 監査 + ヒートマップ完成 / 実測ベース閾値確定 / open C=2 W=23) / 次: W-R2 S1 開始判断 (P1 = R1-001 + R1-006 消化)",
   "building_entered_at": "2026-07-06T00:00:00Z",
   "status": {
     "requirements": "approved",
@@ -51,7 +51,17 @@
   "completed_tasks": [
     "W-R1 S1 (Green State + inventory + rule-001 前倒し / commits: f2fbf02, 164bca9)",
     "W-R1 S2 (module 1-4 監査 / commit: b89d8cd / tracker 骨組 + module 1-4)",
-    "W-R1 S3 (module 5-8 監査 / commit: a37570a / tracker 4 module 追記 / NFR-3 閾値超過確定)"
+    "W-R1 S3 (module 5-8 監査 / commit: a37570a / tracker 4 module 追記 / NFR-3 閾値超過確定)",
+    "W-R1 前倒し消化 (R1-042 + R1-032 / commit: 8c00786 + 8aee77e / decision-making.md 6 fields 復元 + pre-tool-use.py shell metachar TDD)",
+    "W-R1 S4 (module 9-11 監査 + ヒートマップ完成 / commit: 1f38f9b / 全 11 module 累計 C=1 W=28 I=43 / open C=1 W=26)",
+    "W-R1 S5 = W-R1 COMPLETE (HGA #7 Fable verdict 7/10 反映 / R1-052 新規 closed + R1-006 Critical 昇格 + tracker attribution/severity 補正 / 実測閾値 Critical 3 or C+W 30 確定 / 3 メタ構造欠陥 W-R5 retro 議題化 / hga-summon-log #7 追記)"
   ],
+  "milestone_status": {
+    "W-R1": "COMPLETE (2026-07-06)",
+    "W-R2": "pending (P1 = R1-001 Critical + R1-006 Critical 消化)",
+    "W-R3": "pending",
+    "W-R4": "pending",
+    "W-R5": "pending"
+  },
   "createdAt": "2026-07-05T00:00:00Z"
 }
