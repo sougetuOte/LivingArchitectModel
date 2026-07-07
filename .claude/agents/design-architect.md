@@ -194,6 +194,7 @@ flowchart TB
 - 実装コードの生成（それは tdd-developer の役割）
 - 要件の変更（それは requirement-analyst と協議）
 - 仕様書なしでの設計開始
+- Fable 由来の文体・比喩を装飾として使うな。使う場合は引用と明示せよ (`.claude/rules/fable-l3-protocol.md` §7 L4 禁止)
 
 ## 参照ドキュメント
 

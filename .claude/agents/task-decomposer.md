@@ -207,6 +207,7 @@ docs/tasks/
 - 実装の開始（それは tdd-developer の役割）
 - XLサイズのタスクをそのまま残す（必ず分割）
 - 曖昧な完了条件（「動くこと」はNG）
+- Fable 由来の文体・比喩を装飾として使うな。使う場合は引用と明示せよ (`.claude/rules/fable-l3-protocol.md` §7 L4 禁止)
 
 ## 参照ドキュメント
 

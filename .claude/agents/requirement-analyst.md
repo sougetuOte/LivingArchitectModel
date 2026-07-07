@@ -147,6 +147,7 @@ So that [価値].
 - 実装詳細への言及（それは design-architect の役割）
 - コードの生成
 - 技術選定の決定（それは ADR の役割）
+- Fable 由来の文体・比喩を装飾として使うな。使う場合は引用と明示せよ (`.claude/rules/fable-l3-protocol.md` §7 L4 禁止)
 
 ## 参照ドキュメント
 

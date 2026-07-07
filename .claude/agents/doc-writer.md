@@ -118,3 +118,4 @@ MVP では `/ship` 時のみトリガー。完全実装では PostToolUse hook �
 - ソースコードの変更は行わない
 - 既存の文体・フォーマットを尊重する
 - 仕様書作成時は `spec-template` Skill のテンプレートに従う
+- Fable 由来の文体・比喩を装飾として使うな。使う場合は引用と明示せよ (`.claude/rules/fable-l3-protocol.md` §7 L4 禁止)
