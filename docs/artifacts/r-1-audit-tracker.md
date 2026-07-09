@@ -517,7 +517,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self`
 - **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / 5 term 用語統一 = design-mode→planning / build-mode→building / audit-mode→auditing / session-save→quick-save / session-load→quick-load)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
+- **closed_by_commit**: `12ecd6c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/skills/init-harness/SKILL.md`
 - **evidence_line**: 17, 172 (harness.json 内 enabled_skills), 191, 236, 291-293
@@ -530,7 +530,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self`
 - **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / L390-392 3 行を「完了」に更新 / エージェント定義 3 件 + gd_state.py + Stop hook B-3 節すべて実在確認済)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
+- **closed_by_commit**: `12ecd6c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/skills/goal-driven/SKILL.md`
 - **evidence_line**: 389 (`| エージェント定義 3 件 | 未実装 | W2-T1 |`)
@@ -683,7 +683,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self`
 - **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / sed で 8 files 一括削除 = code-reviewer / design-architect / doc-writer / quality-auditor / requirement-analyst / task-decomposer / tdd-developer / test-runner / gabriel + goal-driven 4 files は元々未記載で統一済)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
+- **closed_by_commit**: `12ecd6c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/agents/code-reviewer.md`, `design-architect.md`, `doc-writer.md`, `quality-auditor.md`, `requirement-analyst.md`, `task-decomposer.md`, `tdd-developer.md`, `test-runner.md`
 - **evidence_line**: 各 L7-L8
@@ -734,7 +734,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self` (併記: `spec_ambiguity` — 両者の優先順位が rules 上で明記されていない)
 - **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / PM 級両側修正 = code-quality-guideline.md L37 に AUDITING 時 Warning 判定 vs BUILDING 実行中規律の分離を明示 + phase-rules.md L145 に相互参照 1 文追加)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
+- **closed_by_commit**: `12ecd6c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/rules/code-quality-guideline.md`, `.claude/rules/phase-rules.md`
 - **evidence_line**: code-quality-guideline.md L37 / phase-rules.md L87
@@ -747,7 +747,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self`
 - **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / PM 級修正 = L96 を「実 $ envelope (月 $10-40) + Opus quota envelope (weekly cap 20% 以内) の両方の外」に統一 + 旧記述の置換履歴を注記)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
+- **closed_by_commit**: `12ecd6c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/rules/hga-summoning.md`
 - **evidence_line**: 94-110
