@@ -925,7 +925,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self` (systematic / Milestone クローズ運用の欠落)
 - **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / 8 spec files ステータス Approved 化: b4-dashboard 2 files + goal-driven-orchestration 4 files + magi-v2-gabriel 2 files / v5-fat-reduction は R1-I34 反証で Draft 維持)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
+- **closed_by_commit**: `80d8c8c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/specs/b4-dashboard/{design,requirements}.md`, `docs/specs/goal-driven-orchestration/{requirements,design,tasks,config}.md`, `docs/specs/magi-v2-gabriel/{requirements,design}.md`
 - **evidence_line**: 各ファイル冒頭 5-7 行目付近「ステータス」フィールド
@@ -975,7 +975,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `downstream` (HGA #7 verdict C-2 で 2026-07-06 訂正 / 初期 `self` → `downstream` / ADR-0001 module 10 と実装 module 5/6 の cross-module drift = 単一モジュール完結ではない)
 - **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / 推奨案 b 採用 = Proposed → Accepted 遷移 + 改訂履歴に「第2層 (prompt/haiku) 不採用 / subagent frontmatter `model:` 個別指定で代替」明記)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
+- **closed_by_commit**: `80d8c8c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0001-model-routing-strategy.md`
 - **evidence_line**: 4, 38-44
@@ -1000,7 +1000,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `downstream` (HGA #7 verdict C-2 で 2026-07-06 訂正 / 初期 `self` → `downstream` / ADR-0003 module 10 と実装移設先 module 3 skills の cross-module drift)
 - **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / L56 パス修正 + commands→skills 移行の経緯を注記併記)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
+- **closed_by_commit**: `80d8c8c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0003-context7-vs-webfetch.md`
 - **evidence_line**: 56
@@ -1051,7 +1051,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `downstream` (HGA #7 verdict C-1 で 2026-07-06 訂正 / 初期 `self` → `downstream` / CHEATSHEET.md module 11 × ADR-0007 module 10 の 2 モジュール横断 = 単一モジュール完結ではない / R1-041 / R1-042 と完全同型)
 - **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / 3 箇所全て置換完了 = L138 skill 表 / L183 SSOT 表 / L205-206 magi クイックガイド Step 4 に「gabriel adversarial probe」+ 「6-fields JSON schema」+ 「ADR-0007 Accepted 2026-07-02 で旧 Reflection から置換」の履歴注記も同時反映)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
+- **closed_by_commit**: `80d8c8c`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `CHEATSHEET.md`
 - **evidence_line**: 138 (skill 表 "MAGI System + Reflection"), 183 (SSOT 表 06_DECISION_MAKING 説明 "AoT + Reflection"), 205-206 (magi クイックガイド Step 4 "Reflection: 結論の致命的見落としを検証（1回限り）")
