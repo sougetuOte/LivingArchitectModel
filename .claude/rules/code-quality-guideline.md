@@ -34,7 +34,7 @@ Layer 3: 設計領域（アーキテクチャ整合 / 仕様乖離 → LAM 固�
 - **Parameter Explosion > 4引数**
 - **Duplication > 3回**（Rule of Three）
 - **Dead Code / Unreachable Branch**: 使われていない関数・変数、到達不能な分岐（上流で既にバリデーション済みの再チェック等）。lint が拾う未使用 import とは別に、ロジック上到達しない経路が対象
-- **テストが存在しない新規ロジック**: BUILDING フェーズの TDD ルール違反でもあるが、保守困難性の観点で Warning
+- **テストが存在しない新規ロジック**: BUILDING フェーズの TDD ルール違反でもあるが、保守困難性の観点で Warning。ただし BUILDING フェーズ実行中の**規律**（`phase-rules.md` BUILDING §禁止）としては絶対禁止 (＝実装作業自体を止める) として別途扱う。本項の Warning 判定は AUDITING 時点の重要度分類として適用する。
 - 不明瞭な命名（意図が読み取れないもの）
 - 不足しているエッジケースのテスト
 

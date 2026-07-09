@@ -387,9 +387,9 @@ full-review（納品前検収）
 | 排他ガード（gd_guard.py） | **完了** | W1-T1 |
 | rubric-tmp.md 削除（gd_guard.py） | **完了** | W1-T1 |
 | 残留リカバリ検知（gd_guard.py） | **完了** | W1-T1 |
-| エージェント定義 3 件 | 未実装 | W2-T1 |
-| bound スクリプト（gd-state.py） | 未実装 | W2-T2 |
-| Stop hook B-3 節 | 未実装（PM-G1 必要） | W2-T3 |
+| エージェント定義 3 件 | **完了** | W2-T1 (`.claude/agents/goal-driven-{grader,l2-foreman,l3-executor}.md` 実在) |
+| bound スクリプト（gd_state.py） | **完了** | W2-T2 (`.claude/scripts/gd_state.py` 実在 / underscore 命名で正) |
+| Stop hook B-3 節 | **完了** | W2-T3 (`.claude/hooks/lam-stop-hook.py` に goal-driven 節統合済) |
 | 実行ループ本体（Plan B） | **完了** | W3-T2 |
 | distill-lessons.py | **完了** | W4-T1 |
 | コスト集計・実測トークン累積（gd_state.py W4-T2 追加 API） | **完了** | W4-T2 |

@@ -142,7 +142,7 @@ PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 
 ### 禁止
 
 - 仕様書なし実装
-- テストなし実装
+- テストなし実装（BUILDING 実行中は絶対禁止 = 作業を止める規律 / AUDITING 時点の重要度判定では `code-quality-guideline.md` §Warning「テストが存在しない新規ロジック」を用いる）
 - ドキュメント未更新
 
 ---

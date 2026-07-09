@@ -50,6 +50,38 @@ Fable HGA #10 (2026-07-07 / W-R2 S2 T2) が R1-053 実装 (L2 Sonnet tdd-develop
 
 **新規起票 4 件** (§module 2 参照): R1-056 (Warning / 多階層参照退化) / R1-057 (Info / regex 非捕捉退化 3 態様) / R1-058 (Info / 走査 scope 外 `.claude/rules`) / R1-059 (Info / gabriel substring 弱検査)
 
+## 0.6. W-R3 S3 消化 (2026-07-10 / rules 相互矛盾解消 + FR-F5 決定実装は skip)
+
+W-R3 S3 で `.claude/skills/` × `.claude/agents/` × `.claude/rules/` にまたがる drift 5 件を消化:
+
+- **R1-017 (W / closed)**: `init-harness/SKILL.md` の dead skill/command 参照 cluster 解消 (5 term 用語統一 = `design-mode`→`planning` / `build-mode`→`building` / `audit-mode`→`auditing` / `session-save`→`quick-save` / `session-load`→`quick-load`) — SKILL.md 全域 + harness.json テンプレ内 enabled_skills も同時更新
+- **R1-018 (W / closed)**: `goal-driven/SKILL.md` L390-392 の実装ステータス表 3 行を「未実装」→「完了」に更新 (エージェント定義 3 件 + `gd_state.py` + Stop hook B-3 節すべて実在確認済)
+- **R1-035 (W / closed)**: 8 agents から `# permission-level: XX` dead comment 一括削除 (context7 検証で公式 sub-agents frontmatter に存在しないフィールド = 完全 dead / LAM の判定は `pre-tool-use.py` パスベース実装済 / 統一済状態に到達)
+- **R1-038 (W / closed / PM 級)**: `code-quality-guideline.md` L37 と `phase-rules.md` L145 に相互参照 1 文追加 = 「BUILDING 実行中は絶対禁止 = 作業を止める規律 / AUDITING 時点の重要度判定では Warning」の使い分けを両側で明示
+- **R1-039 (W / closed / PM 級)**: `hga-summoning.md` L96 の envelope 記述を「月 $40-80 の envelope の外」→「実 $ envelope (月 $10-40) および Opus quota envelope (weekly cap 20% 以内) の両方の外」に統一 (2026-07-04 二軸化との drift 解消 + 旧記述の置換履歴を注記)
+
+**編集 files**: 12 ファイル (skills 2 + agents 8 + rules 3 = 実際は agents 8 は sed 一括なので Edit 経由は skills 2 + rules 3 = 5)
+**Wave 完了ゲート更新**: module 3 open C+W = 3→1 (R1-017/018 closed / R1-016 は W-R1 消化済) / module 6 open C+W = 3→2 (R1-035 closed) / module 7 open C+W = 2→0 (R1-038/039 closed = Wave 完了ゲート「W-R3 module 7 = 0」達成 ✅)
+**FR-F5 決定実装** (auto-generated rule-001 拡張 vs rule-002 新設): 本 S3 内 skip = R1-060/R1-061 W-R5 議題と統合判断 (rule-002 候補が 2 件累積 = 決定実装を独立して確定する必要が高まった / W-R5 で判定)
+
+## 0.5. Q3 β 議題化結論 (2026-07-10 / W-R3 S3 T3)
+
+`requirements.md` §変更履歴 2026-07-05 で保留された **Q3 β: docs/internal/ の権限等級 (SE 級維持 or PM 昇格)** の最終判断。
+
+**議題化結論**: **SE 級維持** (PM 昇格しない)
+
+**根拠**:
+- W-R3 S2 (2026-07-10) で docs/internal/ 3 files (`00_PROJECT_STRUCTURE.md` / `07_SECURITY_AND_AUTOMATION.md` / `02_DEVELOPMENT_FLOW.md`) に対し 4 件の drift 修正 (R1-040/041/043/I25) を **SE 級 = 事前 PM 承認なし** で実施し、いずれも意図通りの drift 解消を達成 (verify_reference_resolution.py --wave w-r3 = total_drifts 0 維持 / pytest 579 PASS 維持)
+- 実運用検証で「SE 級での drift 解消は SSOT 親としての責務を損なわない」ことが確認できた (自主 PM 運用 = 編集計画宣言 + 実施 + tracker closed の 3 段階で十分)
+- PM 昇格すると `docs/internal/` の drift 発見都度に承認ダイアログが発火し、W-R1 監査で 4 件検出済み (module 8) の解消フローに承認 4 回追加 = UX 悪化と drift 修正の実速度低下がトレードオフ
+
+**運用ルール**:
+- 権限等級判定 (`permission-levels.md` L36 「docs/ 配下 (上記以外) = SE」) は不変
+- drift 発生時は tracker Warning/Info 起票 + W-R3/W-R5 で消化 (通常フロー)
+- ただし「SSOT 親としての本質的な再定義」(例: docs/internal/ 節構造の大規模再編) はケースバイケースで PM 級判断を挟む可能性を残す (現時点で該当事例なし)
+
+**関連 requirements 更新**: Q3 β「保留」ステータス → 「確定 (SE 級維持)」への変更は本 tracker 記録で代替 (requirements.md 本文改訂は W-R5 retro で一括 or 現状のまま tracker 参照で足りるかを判断)。
+
 ## 0.4. W-R3 S2 消化 (2026-07-10 / docs/internal SSOT drift 解消)
 
 W-R3 S2 で `docs/internal/` の drift 4 件を消化 (自主 PM 運用 / L1 直進行 / ユーザー指示「私の判断を仰がず、あなたの推奨で進めるように」に基づく承認取得省略):
@@ -136,7 +168,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
 | **合計 (全 11 module / 全期間)** | **2** | **28** | **51** |
-| **open** (closed 15 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003/**R1-040/R1-041/R1-043/R1-I25**) | **0** | **16** | **50** |
+| **open** (closed 20 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003/R1-040/R1-041/R1-043/R1-I25/**R1-017/R1-018/R1-035/R1-038/R1-039**) | **0** | **11** | **50** |
 
 **HGA #7 verdict 反映差分** (2026-07-06 / Fable):
 - (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
@@ -146,10 +178,10 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
 
 **NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
-- 累計 Critical + Warning = **30 件** (open C+W = **16 件** / closed 15 件除外 / R1-056 + R1-060 + R1-061 新規 open)
+- 累計 Critical + Warning = **30 件** (open C+W = **11 件** / closed 20 件除外 / R1-056 + R1-060 + R1-061 新規 open)
 - **暫定閾値 10 の 3.0 倍超過 (累計)**
 - **実測ベース閾値** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
-  - **W-R3 S2 T3 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=**16** (< 30 OK) → 実測ベース閾値では **未超過** (R1-040/041/043 の 3 件 Warning closed で -3)
+  - **W-R3 S3 T3 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=**11** (< 30 OK) → 実測ベース閾値では **未超過** (R1-017/018/035/038/039 の 5 件 Warning closed で -5)
   - ~~S5-T4 の条件分岐 sub-task = R1-001 の即消化を W-R2 S1 で最優先化~~ → **2026-07-06 完了 (open Critical = 0 実現)**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
@@ -483,7 +515,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / 5 term 用語統一 = design-mode→planning / build-mode→building / audit-mode→auditing / session-save→quick-save / session-load→quick-load)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/skills/init-harness/SKILL.md`
 - **evidence_line**: 17, 172 (harness.json 内 enabled_skills), 191, 236, 291-293
@@ -494,7 +528,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / L390-392 3 行を「完了」に更新 / エージェント定義 3 件 + gd_state.py + Stop hook B-3 節すべて実在確認済)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/skills/goal-driven/SKILL.md`
 - **evidence_line**: 389 (`| エージェント定義 3 件 | 未実装 | W2-T1 |`)
@@ -645,7 +681,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `frontmatter`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / sed で 8 files 一括削除 = code-reviewer / design-architect / doc-writer / quality-auditor / requirement-analyst / task-decomposer / tdd-developer / test-runner / gabriel + goal-driven 4 files は元々未記載で統一済)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/agents/code-reviewer.md`, `design-architect.md`, `doc-writer.md`, `quality-auditor.md`, `requirement-analyst.md`, `task-decomposer.md`, `tdd-developer.md`, `test-runner.md`
 - **evidence_line**: 各 L7-L8
@@ -694,7 +732,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `rules-consistency`
 - **attribution**: `self` (併記: `spec_ambiguity` — 両者の優先順位が rules 上で明記されていない)
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / PM 級両側修正 = code-quality-guideline.md L37 に AUDITING 時 Warning 判定 vs BUILDING 実行中規律の分離を明示 + phase-rules.md L145 に相互参照 1 文追加)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/rules/code-quality-guideline.md`, `.claude/rules/phase-rules.md`
 - **evidence_line**: code-quality-guideline.md L37 / phase-rules.md L87
@@ -705,7 +745,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `rules-consistency`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S3 消化 / 2026-07-10 / PM 級修正 = L96 を「実 $ envelope (月 $10-40) + Opus quota envelope (weekly cap 20% 以内) の両方の外」に統一 + 旧記述の置換履歴を注記)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S3-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/rules/hga-summoning.md`
 - **evidence_line**: 94-110

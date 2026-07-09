@@ -5,7 +5,6 @@ description: |
   要件を実装可能な設計に変換する。
   データモデル、API設計、システム構成を担当。
   PLANNINGフェーズでの設計作業で使用推奨。
-# permission-level: SE
 tools: Read, Glob, Grep, Write, Edit, WebSearch
 model: sonnet
 memory: project
