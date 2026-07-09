@@ -24,7 +24,8 @@ _WAVE_PATTERN = re.compile(r"[Ww]ave\s+(\d+(?:\.\d+)?)")
 # Task ID を検出するパターン
 # 形式1: W2-B5-T7 （Wave番号-Milestone-Task番号、末尾にアルファベットも許容）
 # 形式2: W7-T2b （Milestone 省略、短縮形）
-_TASK_PATTERN = re.compile(r"\b(W\d+-(?:[A-Z][0-9]+-)?T\d+[a-z]?)\b")
+# 形式3: W-R3-S1-T1 （R-1 期の Milestone-Stage 拡張形式 / 2026-07-10 追加）
+_TASK_PATTERN = re.compile(r"\b(W-?[A-Z0-9]+(?:-[A-Z][0-9]+)*-T\d+[a-z]?)\b")
 
 
 class GitHistoryParser(BaseParser):

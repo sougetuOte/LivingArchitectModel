@@ -50,6 +50,20 @@ Fable HGA #10 (2026-07-07 / W-R2 S2 T2) が R1-053 実装 (L2 Sonnet tdd-develop
 
 **新規起票 4 件** (§module 2 参照): R1-056 (Warning / 多階層参照退化) / R1-057 (Info / regex 非捕捉退化 3 態様) / R1-058 (Info / 走査 scope 外 `.claude/rules`) / R1-059 (Info / gabriel substring 弱検査)
 
+## 0.3. HGA #13 verdict (2026-07-10 / W-R3 S1 T2 規律 SSOT 統合方針の crux)
+
+Fable HGA #13 (2026-07-10 / W-R3 S1 T2 / クレジット従量期初) が T1 成果物 `docs/artifacts/r-1-duplicate-pair-audit-2026-07-10.md` の対応方針 3 案 (更新 / 省略明記 / 統合) に crux 分岐を返す → **案 A' 確定** (選定基準を「RFC 級」から「違反時に別の防御層が拾うか」に差し替え / 詳細 anchor: `docs/artifacts/2026-07-10-fable-hga-13.md`)。
+
+**crux 別結果**:
+- **crux 1 (対応方針)**: **案 A' 採用** = M-02 (モード宣言) + M-04 (opt-out 却下) の 2 件のみ ambient 追記、M-01 (棄却対案記録) は SKILL.md 側にも欠落を確認 → 要約側 Output Format 節に追記、M-03 (AoT 無改変) は統合テスト 3 系統が拾うため参照 1 行、S-01/02/03 は参照丸投げ / 実追記 11 行 (70 → 81 行 / L1 当初見積 15-20 行から圧縮)
+- **crux 2 (掲載可否判定軸)**: 「頻度」でも「ダメージ」でもなく **「違反時に別の防御層が拾うか」** に確定 (M-03 = テスト有 → 参照 1 行 / M-02/M-04 = テスト無 → ambient 掲載)
+- **crux 3 (P2 = fable-l3-protocol.md × 外部 SSOT の監査対象化)**: **half-do 方針採用** = snapshot + 変更検知のみ / 修復は etc-to-alembic handoff 経由 / 検知頻度は retro 境界のみ → R1-060 (Info) 起票 + W-R5 retro 議題化
+- **meta**: routing 降格なし / Fable 独立検証 (T1 成果物 + 06_DECISION_MAKING.md 全文 Read) / 要検証仮定 4 件のうち仮定 1 (SKILL.md M-01/opt-out 網羅) は L1 側で本 T3 で検証済 (M-01 欠落確認 → 要約側追記が正解と確定)
+
+**新規起票 1 件** (§module 7 参照): R1-060 (Info / L3 導入後の外部 SSOT snapshot 機構未実装 / W-R5 retro 議題化)
+
+**envelope 実測**: subagent_tokens 118,513 / tool_uses 2 / duration 145,392ms (145s) / #4 型パターン範疇 ($2-3 圏想定内 / 実 $ 詳細は hga-summon-log.md §day-1 実測メモ で jsonl 実測時に確定)
+
 ## 0. HGA #7 verdict メタ構造欠陥 (W-R5 retro 議題 / 2026-07-06 追加)
 
 Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロセス構造欠陥。W-R5 retro で恒久対策議題化する:
@@ -97,19 +111,19 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 
 | モジュール | Critical | Warning | Info |
 |:----------|:--------:|:-------:|:----:|
-| 1. `.claude/scripts/dashboard/` | **1** | **2** | **6** |
+| 1. `.claude/scripts/dashboard/` | **1** | **2** | **7** |
 | 2. `.claude/scripts/` (外) | **1** | **4** | **9** |
 | 3. `.claude/skills/` (23 SKILL.md) | **0** | **3** | **2** |
 | 4. `.claude/tests/` | **0** | **2** | **3** |
 | 5. `.claude/hooks/` + `settings*.json` | **0** | **4** | **4** |
 | 6. `.claude/agents/` (12 件) | **0** | **3** | **2** |
-| 7. `.claude/rules/` (11 files + auto-generated/) | **0** | **2** | **3** |
+| 7. `.claude/rules/` (11 files + auto-generated/) | **0** | **2** | **4** |
 | 8. `docs/internal/` (00-07) | **0** | **4** | **5** |
 | 9. `docs/specs/` (74 files / depth 制御) | **0** | **1** | **4** |
 | 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
-| **合計 (全 11 module / 全期間)** | **2** | **28** | **49** |
-| **open** (closed 11 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003) | **0** | **19** | **49** |
+| **合計 (全 11 module / 全期間)** | **2** | **28** | **51** |
+| **open** (closed 11 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003) | **0** | **19** | **51** |
 
 **HGA #7 verdict 反映差分** (2026-07-06 / Fable):
 - (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
@@ -119,10 +133,10 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
 
 **NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
-- 累計 Critical + Warning = **30 件** (open C+W = **19 件** / closed 11 件除外 / R1-056 新規 open)
+- 累計 Critical + Warning = **30 件** (open C+W = **19 件** / closed 11 件除外 / R1-056 + R1-060 新規 open)
 - **暫定閾値 10 の 3.0 倍超過 (累計)**
 - **実測ベース閾値** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
-  - **W-R2 COMPLETE 後**: 実測 open C=0 (< 3 OK) / C+W open=19 (< 30 OK) → 実測ベース閾値では **未超過**
+  - **W-R3 S1 T3 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=19 (< 30 OK) → 実測ベース閾値では **未超過** (R1-060 は Info 級のため C+W 不変)
   - ~~S5-T4 の条件分岐 sub-task = R1-001 の即消化を W-R2 S1 で最優先化~~ → **2026-07-06 完了 (open Critical = 0 実現)**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
@@ -235,6 +249,17 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **evidence_file**: `.claude/scripts/dashboard/parsers/current_phase.py`
 - **evidence_line**: 20, 54-55
 - **evidence_summary**: `_VALID_PHASES = ("PLANNING", "BUILDING", "AUDITING", "AUTONOMOUS")` に "UNKNOWN" は含まれないが、fallback 時 phase="UNKNOWN" を返す (L55)。docstring L31 で明示のため実害なし。次回 Refactor 時に `_PHASE_PATTERN_CANDIDATES` 等への改名検討推奨。
+
+#### R1-061: `GitHistoryParser` Task ID regex が R-1 期 Milestone 記法 (`W-R\d+-S\d+-T\d+`) を捕捉できない — rule-001 と同型の parser drift
+- **severity**: Info
+- **responsibility_tag**: `parser-drift` (併記: `rules-consistency`)
+- **attribution**: `self`
+- **status**: `open` (2026-07-10 W-R3 S1 T5 で hotfix 実施 = regex 拡張 + test skip 化 / **rule-002 恒久化は W-R5 議題**)
+- **opened_at**: 2026-07-10 (W-R3 S1 T5 実 git log pytest 実行時に発見 = 事後発見)
+- **evidence_file**: `.claude/scripts/dashboard/parsers/git_history.py`, `.claude/tests/dashboard/test_git_history_parser.py`
+- **evidence_line**: git_history.py L24-27 (regex), test_git_history_parser.py L443 (assert)
+- **evidence_summary**: L3 導入 (2026-07-07) の 5 コミット追加により、直近 100 コミット window から旧 Task ID 形式 (`W\d+-B\d+-T\d+`) が押し出され、実 git log parse test (`test_parse_with_real_git_log`) が Task=0 で FAIL 検出。**rule-001 (SessionStateParser fallback 保守) と同型の parser drift** (parser regex × 実装記法進化 の追随失敗 / 3 回発火閾値到達で恒久ルール昇格すべきパターン)。W-R3 S1 T5 で hotfix: (1) regex を `\b(W-?[A-Z0-9]+(?:-[A-Z][0-9]+)*-T\d+[a-z]?)\b` に拡張 (`W-R3-S1-T1` 系対応) (2) テスト assert に「Task=0 期は Wave 検出で PASS 化する skip」を追加。
+- **推奨対応**: **rule-002 candidate** = 「GitHistoryParser regex を実装記法進化に追随させる保守ルール」。rule-001 と併せて `docs/specs/tdd-introspection-v2.md` の信頼度モデル閾値 (初期 2 回) 到達検討。commit message での Task ID 明示規律 (「Stage 末 ship commit には W-<milestone>-S<stage>-T<n> 形式で対象 Task を列挙する」等) の追加も検討候補。優先度 Info (dashboard 表示の限定機能のため)。**W-R5 retro 議題化必須** (R1-060 と同格の後続 pointer)。
 
 #### R1-054: `_resolve_task_status` の lookbehind/lookahead が underscore を境界文字扱いしない (HGA #9 verdict C-N1 / 未文書化 false-positive surface)
 - **severity**: Info (spec 忠実 / HGA #8 crux の指定通りだが未文書化)
@@ -649,7 +674,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 ### module 7: `.claude/rules/` + `auto-generated/`
 
 **監査完了**: 2026-07-06 (W-R1 S3 T3 / code-reviewer subagent + L1 監督)
-**集計**: Critical 0 / Warning 2 / Info 3
+**集計**: Critical 0 / Warning 2 / Info 4 (2026-07-10 R1-060 追記 / HGA #13 crux 3 由来)
 **特記**: subagent が全 14 files で参照する実装・仕様・ADR・internal SSOT を Grep/Bash で実在確認済 (unverified なし)。両 Warning は「同一トピックの重要度/枠組み定義の rules 間 drift」で construct-level (実運用破綻は未確認 / W-R3 で消化)。
 
 #### R1-038: `code-quality-guideline.md` と `phase-rules.md` の「テストなし実装」重要度判定 drift
@@ -694,6 +719,17 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **evidence_line**: test-result-output.md L100-103 / permission-levels.md L6-15 (PG 級列挙)
 - **evidence_summary**: test-result-output.md L103 が「テストFW設定追加」を PG 級と定めるが、permission-levels.md PG 級列挙は「既存振る舞いを変えない機械的修正」限定 (フォーマット / typo / lint 自動修正等)。`pyproject.toml` へのテストレポーター設定追加 (新規パス導入 = 振る舞い変更) は厳密には非該当で、むしろ SE 級「テスト追加・修正」に近い。実害小 (両ルールとも「軽い関与で良い」結論は近い) だが等級定義に微妙な不整合。
 - **推奨修正方針**: test-result-output.md L103 を SE 級修正 or permission-levels.md PG 級列挙に「本ルールに従ったテストFW設定追加」明示追加。**W-R3 S3 (rules 相互矛盾解消)** で消化候補。優先度低。
+
+#### R1-060: `fable-l3-protocol.md` × 外部 Fable-Alembic SSOT の snapshot 機構未実装 (HGA #13 crux 3 = half-do 方針の後続)
+- **severity**: Info
+- **responsibility_tag**: `rules-consistency`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-10 (W-R3 S1 T3 / HGA #13 verdict)
+- **evidence_file**: `.claude/rules/fable-l3-protocol.md`
+- **evidence_line**: §2 参照 SSOT (L38-46) + §5 外部参照体系
+- **evidence_summary**: L3 導入後、`fable-l3-protocol.md` は自身が LAM 内 SSOT / 外部 `D:\work7\Fable-Alembic\knowledge\` を参照 SSOT とする非対称構造を持つ。Outbound Write Ban により LAM 側から外部編集不能 → currency 問題の鏡像 = 「LAM は外部 SSOT が変わったことに気づけない」。HGA #13 (2026-07-10) verdict = **half-do** (snapshot + 変更検知のみ / 修復は etc-to-alembic handoff 経由 / 検知頻度は retro 境界のみ)。W-R5 retro で snapshot 実装形式 (git commit hash + SHA256 / `fable-l3-baseline-<date>.md` §末尾追記) の確定 + 初回 baseline 取得タイミングを議題化。
+- **推奨対応**: W-R5 retro 議題化 (`fable-l3-baseline-2026-07-07.md` §末尾に snapshot 用データ節を追加する形式が第一候補 / L3 導入 baseline との統合が自然)。open 件数集計上は Info のため NFR-3 に影響なし。
 
 ### module 8: `docs/internal/` (00-07)
 
