@@ -50,6 +50,19 @@ Fable HGA #10 (2026-07-07 / W-R2 S2 T2) が R1-053 実装 (L2 Sonnet tdd-develop
 
 **新規起票 4 件** (§module 2 参照): R1-056 (Warning / 多階層参照退化) / R1-057 (Info / regex 非捕捉退化 3 態様) / R1-058 (Info / 走査 scope 外 `.claude/rules`) / R1-059 (Info / gabriel substring 弱検査)
 
+## 0.4. W-R3 S2 消化 (2026-07-10 / docs/internal SSOT drift 解消)
+
+W-R3 S2 で `docs/internal/` の drift 4 件を消化 (自主 PM 運用 / L1 直進行 / ユーザー指示「私の判断を仰がず、あなたの推奨で進めるように」に基づく承認取得省略):
+
+- **R1-040 (W / closed)**: 00_PROJECT_STRUCTURE.md §1 ツリーに `docs/design/` 追加 (Phase 1 成果物ディレクトリの地図への反映)
+- **R1-041 (W / closed)**: 07_SECURITY_AND_AUTOMATION.md §5 に「MVP は G1+G2+G5 / G3・G4 は完全実装で段階的追加」+「AUTONOMOUS モードは Wave 2 まで G1 のみ」の段階記述追加 (`green-state-definition.md` §2.1-2.2 との drift 解消)
+- **R1-043 (W / closed)**: 00_PROJECT_STRUCTURE.md §2-E の `.claude/states/*.json` 説明を「フェーズごとの承認ゲート管理」→「機能/Milestone 単位の承認ゲート状態・進捗記録 (例: `<milestone-slug>.json` / `cc-spec-alignment.json`, `large-scale-review.json` 等)」に修正 + フェーズ現在値管理は `.claude/current-phase.md` が担当することを明示
+- **R1-I25 (I / closed / 序で消化)**: 02_DEVELOPMENT_FLOW.md 権限等級節に「フェーズ × 権限等級の全体設計は `.claude/rules/phase-rules.md` 冒頭二軸表参照 (PLANNING は承認ゲートのみで PG/SE 概念適用なし)」の 1 文追加
+
+**編集 files**: 3 ファイル (`00_PROJECT_STRUCTURE.md` / `07_SECURITY_AND_AUTOMATION.md` / `02_DEVELOPMENT_FLOW.md`)
+**Wave 完了ゲート更新**: module 8 open C+W = 4→1 (R1-042 既 closed + R1-040/041/043 今回 closed → R1-I26 Info + R1-I25 closed 分は残る) — 詳細は module 8 個別節参照
+**次工程**: W-R3 S3 = `.claude/rules/` 相互矛盾解消 (R1-017/018/035/038/039) + FR-F5 決定実装
+
 ## 0.3. HGA #13 verdict (2026-07-10 / W-R3 S1 T2 規律 SSOT 統合方針の crux)
 
 Fable HGA #13 (2026-07-10 / W-R3 S1 T2 / クレジット従量期初) が T1 成果物 `docs/artifacts/r-1-duplicate-pair-audit-2026-07-10.md` の対応方針 3 案 (更新 / 省略明記 / 統合) に crux 分岐を返す → **案 A' 確定** (選定基準を「RFC 級」から「違反時に別の防御層が拾うか」に差し替え / 詳細 anchor: `docs/artifacts/2026-07-10-fable-hga-13.md`)。
@@ -123,7 +136,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
 | **合計 (全 11 module / 全期間)** | **2** | **28** | **51** |
-| **open** (closed 11 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003) | **0** | **19** | **51** |
+| **open** (closed 15 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003/**R1-040/R1-041/R1-043/R1-I25**) | **0** | **16** | **50** |
 
 **HGA #7 verdict 反映差分** (2026-07-06 / Fable):
 - (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
@@ -133,10 +146,10 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
 
 **NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
-- 累計 Critical + Warning = **30 件** (open C+W = **19 件** / closed 11 件除外 / R1-056 + R1-060 新規 open)
+- 累計 Critical + Warning = **30 件** (open C+W = **16 件** / closed 15 件除外 / R1-056 + R1-060 + R1-061 新規 open)
 - **暫定閾値 10 の 3.0 倍超過 (累計)**
 - **実測ベース閾値** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
-  - **W-R3 S1 T3 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=19 (< 30 OK) → 実測ベース閾値では **未超過** (R1-060 は Info 級のため C+W 不変)
+  - **W-R3 S2 T3 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=**16** (< 30 OK) → 実測ベース閾値では **未超過** (R1-040/041/043 の 3 件 Warning closed で -3)
   - ~~S5-T4 の条件分岐 sub-task = R1-001 の即消化を W-R2 S1 で最優先化~~ → **2026-07-06 完了 (open Critical = 0 実現)**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
@@ -741,7 +754,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `ssot-parent-child-consistency`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S2 消化 / 2026-07-10)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/internal/00_PROJECT_STRUCTURE.md`
 - **evidence_line**: 9-37 (Directory Structure ツリー)
@@ -752,7 +767,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `downstream` (07 が SSOT 親 `green-state-definition.md` §2.1-2.2 の段階導入情報を反映していない)
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S2 消化 / 2026-07-10)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/internal/07_SECURITY_AND_AUTOMATION.md`
 - **evidence_line**: 111-115 (Stop hook 自律ループ制御節)
@@ -776,7 +793,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S2 消化 / 2026-07-10)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/internal/00_PROJECT_STRUCTURE.md`
 - **evidence_line**: 68
@@ -785,6 +804,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 
 #### R1-I25: 02_DEVELOPMENT_FLOW.md が phase-rules.md の「フェーズ × 権限等級」二軸表 (3x3) 全体像要約を欠く
 - **severity**: Info (境界事例 / subagent 生 Warning → L1 監督で Info 降格 / subagent 自身「Info 昇格でも可」明記)
+- **status**: **`closed`** (W-R3 S2 序で消化 / 2026-07-10 / R1-040/041/043 と同 commit で解消)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
 - **evidence_file**: `docs/internal/02_DEVELOPMENT_FLOW.md`, `.claude/rules/phase-rules.md`
 - **evidence_line**: 02 L100-107 (権限等級に基づく修正制御節 / AUDITING のみ抜粋) / phase-rules.md 冒頭「フェーズとの二軸設計」表
 - **evidence_summary**: 02 Phase 3 節は AUDITING の PG/SE/PM 制御のみ抜粋、子 rules phase-rules.md 冒頭の「PLANNING/BUILDING/AUDITING × PG/SE/PM」3x3 マトリクス (PLANNING 全列 `-` = 承認ゲートのみ) の全体像を欠く。02 Phase 1 (PLANNING) 節も権限等級言及なし → 読者は「PLANNING では PG/SE/PM 適用なし」を 02 単独では読み取れず (phase-rules.md separate 読了必要)。矛盾ではないが親 SSOT が子の全体設計要約を欠く。

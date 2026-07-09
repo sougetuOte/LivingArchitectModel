@@ -104,4 +104,4 @@ AUDITING フェーズでの修正は権限等級に基づく:
 - **SE級**: 修正後に報告（テスト追加、内部リファクタリング等）
 - **PM級**: 指摘のみ、承認ゲート（仕様変更、アーキテクチャ変更等）
 
-詳細は `.claude/rules/permission-levels.md` を参照。
+**フェーズ × 権限等級の全体設計**は `.claude/rules/phase-rules.md` 冒頭の二軸表を参照 (PLANNING は承認ゲートのみで PG/SE 概念は適用されず / BUILDING/AUDITING で PG/SE 自動修正 + PM 承認ゲート)。個別分類基準は `.claude/rules/permission-levels.md` を参照。

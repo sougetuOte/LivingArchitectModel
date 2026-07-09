@@ -13,6 +13,7 @@
 ├── tests/                  # テストコード
 ├── docs/                   # ドキュメント資産
 │   ├── specs/              # 要求仕様書 (Source of Truth)
+│   ├── design/             # 設計書 (Phase 1 成果物 / spec 完成後の実装設計)
 │   ├── adr/                # アーキテクチャ決定記録 (Why)
 │   ├── tasks/              # タスク管理 (Kanban/List)
 │   ├── internal/           # プロジェクト運用ルール (本フォルダ)
@@ -65,7 +66,7 @@
 ### E. State Management (状態管理)
 
 - **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/quick-save` で記録、`/quick-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
-- **.claude/states/*.json**: フェーズごとの承認ゲート管理、タスク進捗の永続的な状態記録。機能開発の進行管理に使用。
+- **.claude/states/*.json**: 機能/Milestone 単位の承認ゲート状態・進捗記録 (例: `<milestone-slug>.json` / `cc-spec-alignment.json`, `large-scale-review.json` 等)。フェーズ (PLANNING/BUILDING/AUDITING) 現在値管理ではなく、各機能開発の進行管理に使用 (フェーズ現在値は `.claude/current-phase.md` が担当)。
 - **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。`/planning`, `/building`, `/auditing` コマンドで更新される。
 
 ## 3. SSOT 3層アーキテクチャ

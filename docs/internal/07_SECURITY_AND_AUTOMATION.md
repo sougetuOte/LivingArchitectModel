@@ -112,6 +112,7 @@ PostToolUse hook はツール実行後に以下を自動処理する:
 
 Stop hook は Claude の応答完了時に発火し、自律ループの収束を判定する:
 - Green State（G1:テスト全パス + G2:lint エラーゼロ + G3:Issue解決 + G4:仕様差分ゼロ + G5:セキュリティチェック通過）達成で停止（詳細は `docs/specs/green-state-definition.md`）
+- **段階導入**: MVP では G1+G2+G5 の 3 条件を自動判定 / G3・G4 は完全実装で段階的追加（詳細: `green-state-definition.md` §2.1）。AUTONOMOUS モードは Wave 2 まで G1 のみで判定（§2.2）
 - 反復上限到達で強制停止
 - コンテキスト圧迫検出（PreCompact 連動）で安全停止
 
