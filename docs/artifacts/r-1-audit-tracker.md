@@ -756,7 +756,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self`
 - **status**: **`closed`** (W-R3 S2 消化 / 2026-07-10)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
+- **closed_by_commit**: `c4628a0`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/internal/00_PROJECT_STRUCTURE.md`
 - **evidence_line**: 9-37 (Directory Structure ツリー)
@@ -769,7 +769,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `downstream` (07 が SSOT 親 `green-state-definition.md` §2.1-2.2 の段階導入情報を反映していない)
 - **status**: **`closed`** (W-R3 S2 消化 / 2026-07-10)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
+- **closed_by_commit**: `c4628a0`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/internal/07_SECURITY_AND_AUTOMATION.md`
 - **evidence_line**: 111-115 (Stop hook 自律ループ制御節)
@@ -795,7 +795,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self`
 - **status**: **`closed`** (W-R3 S2 消化 / 2026-07-10)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
+- **closed_by_commit**: `c4628a0`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/internal/00_PROJECT_STRUCTURE.md`
 - **evidence_line**: 68
@@ -806,7 +806,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info (境界事例 / subagent 生 Warning → L1 監督で Info 降格 / subagent 自身「Info 昇格でも可」明記)
 - **status**: **`closed`** (W-R3 S2 序で消化 / 2026-07-10 / R1-040/041/043 と同 commit で解消)
 - **closed_at**: 2026-07-10
-- **closed_by_commit**: `<TBD-in-W-R3-S2-T4-ship>`
+- **closed_by_commit**: `c4628a0`
 - **evidence_file**: `docs/internal/02_DEVELOPMENT_FLOW.md`, `.claude/rules/phase-rules.md`
 - **evidence_line**: 02 L100-107 (権限等級に基づく修正制御節 / AUDITING のみ抜粋) / phase-rules.md 冒頭「フェーズとの二軸設計」表
 - **evidence_summary**: 02 Phase 3 節は AUDITING の PG/SE/PM 制御のみ抜粋、子 rules phase-rules.md 冒頭の「PLANNING/BUILDING/AUDITING × PG/SE/PM」3x3 マトリクス (PLANNING 全列 `-` = 承認ゲートのみ) の全体像を欠く。02 Phase 1 (PLANNING) 節も権限等級言及なし → 読者は「PLANNING では PG/SE/PM 適用なし」を 02 単独では読み取れず (phase-rules.md separate 読了必要)。矛盾ではないが親 SSOT が子の全体設計要約を欠く。
