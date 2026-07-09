@@ -4,7 +4,7 @@
 - 作成日: 2026-06-11
 - 改訂日: 2026-06-16（W4-T2 同期: §10 bound 正規ソースを実測 subagent_tokens に明示化・§14 乖離検知ルール追記・§19 P-2 フォールバック定義変更。PM 承認済み）
 - 改訂履歴: 2026-06-16 v0.3.3（W4-T2 同期: §10 bound 正規ソースを実測 subagent_tokens に明示化・§14 累積ソース優先順位・乖離検知ルール追記・§19 P-2 フォールバック定義変更（PM 指示 2026-06-13）） / 2026-06-13 v0.3.2（§10 スキーマに fallback フィールド追加（§11b との矛盾解消）・status 値域を明示化（PM 承認））/ 2026-06-12 v0.3.1（W0-T1 実測結果の反映: §8 Plan B 確定・§18 D1 解決。設計判断の変更なし。PM 承認済み）/ 2026-06-12 v0.3.0（2巡目レビュー R2-C-1〜4 / R2-W-1〜5 / R2-I-1〜2 ほか対応・リファクタリング）/ 2026-06-11 v0.2.0（spec-critic レビュー C-1〜C-4 / W-1〜W-7 / I-1〜I-4 / P-1〜P-4 対応）
-- ステータス: Draft（PM 承認待ち）
+- ステータス: **Approved**（2026-06-18 / B-3 Milestone 完了 / PM-G3 承認 / 2026-07-10 R1-046 W-R3 S4 で親メタ status 同期）
 - 参照要件: `docs/specs/goal-driven-orchestration/requirements.md` v1.2.0
 - 参照ファクト: `docs/specs/goal-driven-orchestration/research/platform-facts-2026-06-11.md`
 

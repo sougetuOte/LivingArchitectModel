@@ -50,6 +50,35 @@ Fable HGA #10 (2026-07-07 / W-R2 S2 T2) が R1-053 実装 (L2 Sonnet tdd-develop
 
 **新規起票 4 件** (§module 2 参照): R1-056 (Warning / 多階層参照退化) / R1-057 (Info / regex 非捕捉退化 3 態様) / R1-058 (Info / 走査 scope 外 `.claude/rules`) / R1-059 (Info / gabriel substring 弱検査)
 
+## 0.7. W-R3 S4 消化 = **W-R3 Wave 完了** (2026-07-10 / docs/specs + docs/adr + CHEATSHEET.md 一貫性修正)
+
+W-R3 S4 で残り 4 件 Warning を消化し、**W-R3 Wave 完了ゲート全達成**:
+
+- **R1-046 (W / closed)**: 実装完了済 spec の親メタ status Rule of Three drift 解消
+  - 8 spec files を Approved 化: `b4-dashboard/{design,requirements}.md` (2026-07-02 / B-5 Milestone 完了) + `goal-driven-orchestration/{requirements,design,tasks,config}.md` (2026-06-18 / B-3 Milestone 完了 / PM-G3 承認) + `magi-v2-gabriel/{requirements,design}.md` (2026-07-02 / Wave C 完了 / gabriel 稼働 6880421)
+  - `v5-fat-reduction` は R1-I34 反証記録により Draft 維持 (未着手正常状態)
+- **R1-047 (W / closed / PM 級)**: ADR-0001 status Proposed → **Accepted** (推奨案 b) + 改訂履歴に「第 2 層 (prompt/haiku) 不採用 / subagent frontmatter `model:` 個別指定で代替」明記 (2026-03-08 提案から 4 ヶ月放置状態解消)
+- **R1-049 (W / closed / PM 級)**: ADR-0003 L56 実装パス修正 (`.claude/commands/full-review.md` → `.claude/skills/full-review/SKILL.md` Step 2) + commands→skills 移行経緯を注記併記
+- **R1-050 (W / closed / PM 級)**: CHEATSHEET.md 3 箇所 Reflection → gabriel 置換
+  - L138 skill 表 / L183 SSOT 表 / L205-206 magi クイックガイド Step 4
+  - 「6-fields JSON schema」+ 「ADR-0007 Accepted 2026-07-02 で旧 Reflection から置換」の履歴注記も同時反映
+
+**編集 files**: 12 ファイル (docs/specs 8 + docs/adr 2 + CHEATSHEET.md 1 + tracker 1)
+
+## Wave 完了ゲート達成 (W-R3 全 Stage COMPLETE / 2026-07-10)
+
+| module | open C+W (W-R3 前) | open C+W (W-R3 後) | 達成 |
+|:------:|:---:|:---:|:----:|
+| module 7 (`.claude/rules/`) | 2 | 0 | ✅ |
+| module 8 (`docs/internal/`) | 4 (R1-042 closed 前) | 0 | ✅ |
+| module 9 (`docs/specs/`) | 1 | 0 | ✅ |
+| module 10 (`docs/adr/`) | 2 | 0 | ✅ |
+| module 11 (`CHEATSHEET.md`) | 1 | 0 | ✅ |
+| R-G7 W-R3 drift | 0 | 0 | ✅ |
+| HGA #13 消化 | - | 済 | ✅ |
+
+**W-R3 Wave 完了ゲート = 全達成** (2026-07-10)
+
 ## 0.6. W-R3 S3 消化 (2026-07-10 / rules 相互矛盾解消 + FR-F5 決定実装は skip)
 
 W-R3 S3 で `.claude/skills/` × `.claude/agents/` × `.claude/rules/` にまたがる drift 5 件を消化:
@@ -168,7 +197,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 | 10. `docs/adr/` (10 files) | **0** | **2** | **7** |
 | 11. `CLAUDE.md` + `CHEATSHEET.md` | **0** | **1** | **4** |
 | **合計 (全 11 module / 全期間)** | **2** | **28** | **51** |
-| **open** (closed 20 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003/R1-040/R1-041/R1-043/R1-I25/**R1-017/R1-018/R1-035/R1-038/R1-039**) | **0** | **11** | **50** |
+| **open** (closed 24 件 除外: R1-032/R1-042/R1-052/R1-001/R1-006/R1-053/R1-007/R1-008/R1-031/R1-002/R1-003/R1-040/R1-041/R1-043/R1-I25/R1-017/R1-018/R1-035/R1-038/R1-039/**R1-046/R1-047/R1-049/R1-050**) | **0** | **7** | **50** |
 
 **HGA #7 verdict 反映差分** (2026-07-06 / Fable):
 - (A) R1-006 Warning → **Critical 昇格** (監査インフラ false negative は R-G7 ゲート判定を偽 Green 化 / R1-001 と同一 bug class)
@@ -178,10 +207,11 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - (C) R1-047 / R1-049 / R1-050 attribution `self` → **`downstream`** 訂正 (単一モジュール完結でない cross-module drift)
 
 **NFR-3 閾値確定 (最終 / spec-critic W5 対応)**:
-- 累計 Critical + Warning = **30 件** (open C+W = **11 件** / closed 20 件除外 / R1-056 + R1-060 + R1-061 新規 open)
+- 累計 Critical + Warning = **30 件** (open C+W = **7 件** / closed 24 件除外 / R1-056 + R1-060 + R1-061 新規 open)
 - **暫定閾値 10 の 3.0 倍超過 (累計)**
 - **実測ベース閾値** (S5-T4): **Critical 単独 3 件 or Critical + Warning 30 件**
-  - **W-R3 S3 T3 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=**11** (< 30 OK) → 実測ベース閾値では **未超過** (R1-017/018/035/038/039 の 5 件 Warning closed で -5)
+  - **W-R3 COMPLETE 後 (2026-07-10)**: 実測 open C=0 (< 3 OK) / C+W open=**7** (< 30 OK) → 実測ベース閾値では **未超過** (R1-046/047/049/050 の 4 件 Warning closed で -4)
+  - **W-R3 Wave 完了ゲート全達成**: module 7/8/9/10/11 の open C+W = 0 全達成 ✅
   - ~~S5-T4 の条件分岐 sub-task = R1-001 の即消化を W-R2 S1 で最優先化~~ → **2026-07-06 完了 (open Critical = 0 実現)**
 
 **進捗履歴** (参考): W-R1 S2 module 1-4 (2026-07-06 前半) / S3 module 5-8 (2026-07-06 中盤) / S4 module 9-11 + ヒートマップ完成 (2026-07-06 後半) → 11 モジュール監査完了
@@ -893,7 +923,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `self` (systematic / Milestone クローズ運用の欠落)
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / 8 spec files ステータス Approved 化: b4-dashboard 2 files + goal-driven-orchestration 4 files + magi-v2-gabriel 2 files / v5-fat-reduction は R1-I34 反証で Draft 維持)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/specs/b4-dashboard/{design,requirements}.md`, `docs/specs/goal-driven-orchestration/{requirements,design,tasks,config}.md`, `docs/specs/magi-v2-gabriel/{requirements,design}.md`
 - **evidence_line**: 各ファイル冒頭 5-7 行目付近「ステータス」フィールド
@@ -941,7 +973,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: **Warning** (優先度高 / 「決定と実装の乖離」)
 - **responsibility_tag**: `adr-status`
 - **attribution**: `downstream` (HGA #7 verdict C-2 で 2026-07-06 訂正 / 初期 `self` → `downstream` / ADR-0001 module 10 と実装 module 5/6 の cross-module drift = 単一モジュール完結ではない)
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / 推奨案 b 採用 = Proposed → Accepted 遷移 + 改訂履歴に「第2層 (prompt/haiku) 不採用 / subagent frontmatter `model:` 個別指定で代替」明記)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0001-model-routing-strategy.md`
 - **evidence_line**: 4, 38-44
@@ -964,7 +998,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `downstream` (HGA #7 verdict C-2 で 2026-07-06 訂正 / 初期 `self` → `downstream` / ADR-0003 module 10 と実装移設先 module 3 skills の cross-module drift)
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / L56 パス修正 + commands→skills 移行の経緯を注記併記)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0003-context7-vs-webfetch.md`
 - **evidence_line**: 56
@@ -1013,7 +1049,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `downstream` (HGA #7 verdict C-1 で 2026-07-06 訂正 / 初期 `self` → `downstream` / CHEATSHEET.md module 11 × ADR-0007 module 10 の 2 モジュール横断 = 単一モジュール完結ではない / R1-041 / R1-042 と完全同型)
-- **status**: `open`
+- **status**: **`closed`** (W-R3 S4 消化 / 2026-07-10 / 3 箇所全て置換完了 = L138 skill 表 / L183 SSOT 表 / L205-206 magi クイックガイド Step 4 に「gabriel adversarial probe」+ 「6-fields JSON schema」+ 「ADR-0007 Accepted 2026-07-02 で旧 Reflection から置換」の履歴注記も同時反映)
+- **closed_at**: 2026-07-10
+- **closed_by_commit**: `<TBD-in-W-R3-S4-T3-ship>`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `CHEATSHEET.md`
 - **evidence_line**: 138 (skill 表 "MAGI System + Reflection"), 183 (SSOT 表 06_DECISION_MAKING 説明 "AoT + Reflection"), 205-206 (magi クイックガイド Step 4 "Reflection: 結論の致命的見落としを検証（1回限り）")

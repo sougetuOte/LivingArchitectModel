@@ -3,7 +3,7 @@
 - バージョン: 0.2.7
 - 作成日: 2026-06-20
 - 更新日: 2026-06-28（v0.2.7 = 最終クリーニング / Green State 完全達成）
-- ステータス: Draft（Wave 9 設計反映 / PM 承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / Wave 1-9 全 Approved 済 / B-5 Milestone 完了 / 2026-07-10 R1-046 W-R3 S4 で親メタ status 同期）
 - 根拠文書: `docs/specs/b4-dashboard/requirements.md`（FR-1〜FR-11 / NFR-1〜6 / AC-1〜8）
 - 参照文書: `docs/specs/b4-dashboard/glossary-draft.md`（v0.2.0）
 - 参照文書: `docs/specs/b4-dashboard/wave8/requirements.md`（FR-W8-1〜 / Wave 8 追加要件）

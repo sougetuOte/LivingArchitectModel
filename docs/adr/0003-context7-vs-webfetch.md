@@ -53,5 +53,5 @@ WebFetch は対話モードではユーザーが手動キャンセルできる�
 ## 結果
 
 - `.claude/rules/upstream-first.md` — 確認手順を context7 優先に更新済み
-- `.claude/commands/full-review.md` — Phase 0.5 として context7 検出 + 警告ロジック追加済み
+- `.claude/skills/full-review/SKILL.md` — Step 2 として context7 MCP 検出 + 警告ロジック追加済み (旧記述 `.claude/commands/full-review.md` は commands → skills 全プロジェクト移行に伴い 2026-07-10 R1-049 W-R3 S4 でパス更新 / 決定 B の内容は不変)
 - README — 推奨環境に context7 MCP セットアップを記載（後続タスク）

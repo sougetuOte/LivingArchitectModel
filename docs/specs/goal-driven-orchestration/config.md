@@ -3,7 +3,7 @@
 - バージョン: 1.0.1
 - 作成日: 2026-06-12
 - 改訂日: 2026-06-13（§5 スキーマに fallback フィールド追加・status 値域を明示化。design v0.3.2 追従。PM 承認済み）
-- ステータス: Draft（tasks.md v1.2.0 の PM 承認に包含）
+- ステータス: **Approved**（tasks.md PM-G3 承認 2026-06-18 に包含 / B-3 Milestone 完了 / 2026-07-10 R1-046 W-R3 S4 で親メタ status 同期）
 - 参照設計: `design.md` v0.3.2
 - 参照要件: `requirements.md` v1.2.0
 - 対応タスク: W1-T2

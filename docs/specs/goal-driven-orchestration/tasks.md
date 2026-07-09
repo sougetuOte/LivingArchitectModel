@@ -4,7 +4,7 @@
 - 作成日: 2026-06-11
 - 改訂日: 2026-06-18（W7-T2b 完了チェック記入 + PM-G3 承認反映。B-3 マイルストーン完了。参照: 09ddd05 / PM-G3 承認 2026-06-18）
 - 改訂履歴: 2026-06-18 v1.4.6（W7-T2b 完了チェック記入 + PM-G3 承認反映。B-3 マイルストーン完了。根拠: 09ddd05（W7-T2b 大タスク三層実機 / grader 7/7 Pass / Critical=0 / fallback=null / cost total 196,139 (bound 400k の 49%)）/ PM-G3 承認（2026-06-18 / W7-T1 検収 25/25 + W7-T2 evidence + W7-T2b evidence で最終合格判定））/ 2026-06-18 v1.4.5（W5-T1 / W5-T2 / W7-T1 / W7-T2 完了チェック記入。根拠: 5a7f856（W5-T1）/ ccbf6ea（W5-T2）/ ed75140 + 3380d74（W7-T1 / rubric + grader 25/25 Pass）/ 新規 docs/artifacts/goal-driven-demo/W7-T2-acceptance-evidence.md（W7-T2 / AC-3/4/5/11 全 Pass））/ 2026-06-17 v1.4.4（W4-T3 中タスク実機リハーサル 7 項目完了チェック記入。参照: rehearsal-results.md / retro-w4-t3.md）/ 2026-06-17 v1.4.3（W6-T1 / W6-T2 完了チェック記入。参照: handoff-format.md (FR-10 / AC-15), W6-T2-dw-exclusion-report.md (FR-8 / AC-10)）/ 2026-06-16 v1.4.2（W4-T2 完了チェック記入（Phase 1+2/3/4 完了・pytest 348 passed・design v0.3.3 同期））/ 2026-06-13 v1.4.1（W4-T1 完了チェック・フロー[7]→[8] 誤記修正。PM 承認済み）/ 2026-06-13 v1.4.0（W4-T3 / W7-T2b 起票・W4-T2 実測正規化追記。PM 承認済み）/ 2026-06-13 v1.3.0（PM-G1 承認記録・W2-T1 スモーク行修正（DW プローブ撤回））/ 2026-06-12 v1.2.0（W0 結果反映: W0-T2 起票・W2-T1 検証手段追記・DW 置き換え見送り記録・Plan B 確定反映。PM 承認済み）/ 2026-06-12 v1.1.0（design v0.3.0 / requirements v1.2.0 整合対応）
-- ステータス: Draft（PM 承認待ち）
+- ステータス: **Approved**（2026-06-18 / B-3 Milestone 完了 / PM-G3 承認 = 09ddd05 / 2026-07-10 R1-046 W-R3 S4 で親メタ status 同期）
 - 参照要件: `requirements.md` v1.2.0
 - 参照設計: `design.md` v0.3.3
 - 参照分析: `research/full-review-analysis.md`

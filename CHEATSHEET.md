@@ -135,7 +135,7 @@ Memory 列: `auto` = `.claude/agent-memory/<name>/` に知見を自発的に蓄�
 
 | スキル | 用途 | 呼び出し例 |
 |--------|------|-----------|
-| `magi` | 構造化意思決定（AoT + MAGI System + Reflection） | `/magi <議題>` |
+| `magi` | 構造化意思決定（AoT + MAGI System + gabriel adversarial probe） | `/magi <議題>` |
 | `clarify` | 文書精緻化（曖昧さ・矛盾・欠落検出） | `/clarify docs/specs/foo.md` |
 | `lam-orchestrate` | タスク分解・並列実行 + `/magi` 統合 | 「lam-orchestrateで実行して」 |
 | `skill-creator` | スキル作成ガイド | 「新しいスキルを作りたい」 |
@@ -180,7 +180,7 @@ Memory 列: `auto` = `.claude/agent-memory/<name>/` に知見を自発的に蓄�
 | `docs/internal/03_QUALITY_STANDARDS.md` | 品質基準 |
 | `docs/internal/04_RELEASE_OPS.md` | リリース・デプロイ・緊急対応 |
 | `docs/internal/05_MCP_INTEGRATION.md` | MCP 連携・MEMORY.md 運用ポリシー |
-| `docs/internal/06_DECISION_MAKING.md` | 意思決定（MAGI System + AoT + Reflection） |
+| `docs/internal/06_DECISION_MAKING.md` | 意思決定（MAGI System + AoT + gabriel adversarial probe） |
 | `docs/internal/07_SECURITY_AND_AUTOMATION.md` | コマンド安全基準（Allow/Deny List） |
 | `docs/internal/99_reference_generic.md` | 汎用リファレンステンプレート |
 
@@ -202,7 +202,7 @@ CASPAR（女/調停者）     — Synthesis, Balance, Decision
 ```
 0. Decomposition: 議題を Atom に分解
 1-3. MAGI Debate: 各 Atom で MELCHIOR/BALTHASAR/CASPAR 合議
-4. Reflection: 結論の致命的見落としを検証（1回限り）
+4. gabriel adversarial probe: 独立 subagent が 6-fields JSON schema で adversarial verification（AoT 適用時のみ / ADR-0007 Accepted 2026-07-02 で旧 Reflection から置換）
 5. Synthesis: 統合結論 → Action Items
 ```
 

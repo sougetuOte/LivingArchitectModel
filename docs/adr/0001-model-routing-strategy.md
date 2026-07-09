@@ -1,8 +1,12 @@
 # ADR-0001: モデルルーティング戦略
 
 **日付**: 2026-03-08
-**ステータス**: Proposed
+**ステータス**: **Accepted** (2026-07-10 / R1-047 W-R3 S4 で正式遷移)
 **関連要件**: NFR-1〜5, DP-4, DP-6
+
+## 改訂履歴
+
+- **2026-07-10** (W-R3 S4 R1-047 消化): Proposed → **Accepted**。同時に「第2層 (prompt/haiku ハンドラ) は不採用」を明示 (下記「決定」§注記参照)。実装は `.claude/agents/*.md` frontmatter の `model:` 個別指定 (12 agents で `command|sonnet|haiku|fable` 混在指定) で決定 B の意図 (Opus 枠温存 + 分類精度確保 + コスト最小化) を達成しているため、3 層構造の第 2 層 (prompt/haiku) は「未実装のまま不要」として結論。
 
 ---
 
@@ -42,6 +46,14 @@ hooks と subagents でどのモデルを使用するか。
 | 第3層: 深い検証 | `agent` | `sonnet` | ファイル内容を読む必要がある場合（agent は tool access あり） |
 
 **Opus は hooks/subagents で使用しない。** メインセッション専用。
+
+### 注記 (2026-07-10 Accepted 遷移時追加 / R1-047)
+
+第 2 層 (prompt/haiku ハンドラ) は**不採用**とする。実装は `.claude/agents/*.md` frontmatter の `model:` 個別指定 (subagent 別に `command|sonnet|haiku|fable` を明示) で決定 B の意図 (Opus 枠温存 + 分類精度確保 + コスト最小化) を達成しているため、hooks 内 3 層カスケードは第 1 層 (`.claude/hooks/pre-tool-use.py` パスベース) + 第 3 層 (subagent frontmatter model 指定) の 2 段構成で足りる。従って以下のように読み替える:
+
+- **hooks (第 1 層)**: 全 5 件 `type: command` = 純粋 Python 実装 = 追加 LLM コストなし
+- **第 2 層 (グレーゾーン LLM 判定)**: 不採用 = subagent 個別指定で代替 (実運用で判定不能ケース未観測)
+- **subagents (第 3 層)**: `model:` フィールドで agent 毎に指定 (12 agents 実測 / gabriel = sonnet / goal-driven-l3-executor = haiku / 等)
 
 ## 補足事項
 

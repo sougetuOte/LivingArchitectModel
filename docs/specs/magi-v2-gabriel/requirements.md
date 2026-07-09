@@ -2,7 +2,7 @@
 
 - バージョン: 0.4.0
 - 作成日: 2026-06-29
-- ステータス: Draft（PM 承認待ち）
+- ステータス: **Approved**（2026-07-02 Phase 6 PM 一括承認 / Wave C 完了 / gabriel subagent 稼働確認済 = commit `6880421` / 2026-07-10 R1-046 W-R3 S4 で親メタ status 同期）
 - 対応フェーズ: PLANNING（requirements）
 - 関連 Milestone: B-5（Wave C / 骨子 ②）
 - 起草者: design-architect subagent
