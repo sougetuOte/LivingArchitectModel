@@ -32,6 +32,7 @@ if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 from _hook_utils import (  # noqa: E402
+    _PM_PATH_PATTERNS,
     get_project_root,
     get_tool_input,
     get_tool_name,
@@ -99,13 +100,20 @@ _PG_BLACKLISTED_ARGS = (
 _SHELL_METACHARACTERS = (";", "&&", "||", "|", "`", "$(", "&", "\n", "<(")
 
 # パス判定パターン（PM 級）
-_PM_PATTERNS = [
-    (re.compile(r"^__out_of_root__/"), "out-of-root path"),
-    (re.compile(r"^docs/specs/.*\.md$"), "specs/ path"),
-    (re.compile(r"^docs/adr/.*\.md$"), "adr/ path"),
-    (re.compile(r"^\.claude/rules/.*\.md$"), "rules/ path"),
-    (re.compile(r"^\.claude/settings.*\.json$"), "settings path"),
-]
+# R1-034: path-only 部分（out-of-root を除く）は _hook_utils._PM_PATH_PATTERNS に
+# 一本化されている（post-tool-use.py の _PM_PATH_PATTERNS_FOR_CACHE と共有）。
+# out-of-root pattern はここでのみローカル定義する（R1-I18 / 理由は下記コメント）。
+#
+# R1-I18 non-symmetry: なぜ pre 側だけ out-of-root を持つのか。
+# out-of-root（project_root 外のパス）は信頼度が低いため、承認後も
+# セッションスコープ降格キャッシュ（.session-pm-edit-cache.json）の対象にしない
+# 設計判断（安全側維持）。post-tool-use.py 側のキャッシュ記録判定
+# （_PM_PATH_PATTERNS_FOR_CACHE）が out-of-root を含まないのはこのため。
+# 結果として out-of-root パス書込は同一セッション内でも毎回 PM ダイアログが
+# 再表示される（実害なし・意図的な非対称設計）。
+_PM_OUT_OF_ROOT_PATTERN = (re.compile(r"^__out_of_root__/"), "out-of-root path")
+_PM_PATH_REASONS = ("specs/ path", "adr/ path", "rules/ path", "settings path")
+_PM_PATTERNS = [_PM_OUT_OF_ROOT_PATTERN] + list(zip(_PM_PATH_PATTERNS, _PM_PATH_REASONS))
 
 # パス判定パターン（SE 級）
 _SE_PATTERNS = [

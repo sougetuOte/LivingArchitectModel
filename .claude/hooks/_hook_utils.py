@@ -12,6 +12,7 @@ import datetime
 import json
 import os
 import pathlib
+import re
 import sys
 import tempfile
 import time
@@ -45,6 +46,32 @@ def build_allowlisted_env(extra: dict[str, str] | None = None) -> dict[str, str]
     if extra:
         env.update(extra)
     return env
+
+
+# R1-034: PM 級パス判定パターン（path-only / out-of-root マーカーを含まない）。
+# pre-tool-use.py の `_PM_PATTERNS`（PM 級判定）と post-tool-use.py の
+# `_PM_PATH_PATTERNS_FOR_CACHE`（セッションスコープ降格キャッシュ対象判定）が
+# 手書きで別々に複製されていたため、ここに一本化して両モジュールから import する。
+#
+# out-of-root pattern（`^__out_of_root__/`）は意図的にここへ含めない（R1-I18）。
+# out-of-root 経由の PM 判定はキャッシュ機構の対象外とし、承認後も同一セッション内で
+# 毎回 PM ダイアログを再表示させる（安全側維持 / root 外パスは信頼度が低いため
+# セッションスコープ降格の対象にしない設計判断）。pre-tool-use.py 側では
+# `^__out_of_root__/` を別途ローカルで維持する。
+_PM_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"^docs/specs/.*\.md$"),
+    re.compile(r"^docs/adr/.*\.md$"),
+    re.compile(r"^\.claude/rules/.*\.md$"),
+    re.compile(r"^\.claude/settings.*\.json$"),
+)
+
+
+def is_pm_path_pattern(path_str: str) -> bool:
+    """正規化済みパス文字列が PM 級パスパターンのいずれかに一致するかを判定する。
+
+    out-of-root マーカーは含まない（`_PM_PATH_PATTERNS` の docstring 参照）。
+    """
+    return any(p.match(path_str) for p in _PM_PATH_PATTERNS)
 
 
 def now_utc_iso8601() -> str:

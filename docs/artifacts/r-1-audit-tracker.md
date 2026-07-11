@@ -50,6 +50,136 @@ Fable HGA #10 (2026-07-07 / W-R2 S2 T2) が R1-053 実装 (L2 Sonnet tdd-develop
 
 **新規起票 4 件** (§module 2 参照): R1-056 (Warning / 多階層参照退化) / R1-057 (Info / regex 非捕捉退化 3 態様) / R1-058 (Info / 走査 scope 外 `.claude/rules`) / R1-059 (Info / gabriel substring 弱検査)
 
+## 0.11. W-R4 S3-T4 消化 + R1-016 序で消化 = **module 5 + module 3 Wave 完了ゲート達成** (2026-07-11)
+
+W-R4 S3-T4 (hooks 統合 / L2 Sonnet TDD) と序で R1-016 消化 (L1) を完走。**module 5 open C+W = 0** + **module 3 open C+W = 0** 達成。
+
+### R1-033 (Warning / PM 級 = closed)
+
+- **closed_at**: 2026-07-11
+- **closed_by_commit**: (本セッション Stage 末 ship で埋める)
+- **修正内容**: `.claude/settings.json` L74/80/86/91/96 の hook 起動コマンド 5 箇所を `bash -c 'command -v python3 >/dev/null 2>&1 && python3 <path> || python <path>'` fallback 形式に統一。Windows portability リスク解消 (Windows 標準 Python installer で `python3` alias が提供されないケースへの対応)
+- **TDD**: `.claude/tests/hooks/test_settings_hook_portability.py` 新規 4 tests / 全 PASS
+
+### R1-034 (Warning / SE 級 = closed)
+
+- **closed_at**: 2026-07-11
+- **修正内容**: `_PM_PATH_PATTERNS_FOR_CACHE` (post-tool-use.py L55-61) と `_PM_PATTERNS` (pre-tool-use.py L92-99) の重複を `.claude/hooks/_hook_utils.py` に一本化。両側で `from _hook_utils import _PM_PATH_PATTERNS` に置換
+- **TDD**: `.claude/tests/hooks/test_pm_patterns_unified.py` 新規 7 tests / 全 PASS + regression 24/24 PASS
+
+### R1-I18 (Info = closed / R1-034 一体消化)
+
+- **closed_at**: 2026-07-11
+- **修正内容**: pre-tool-use.py のみが保持する out-of-root pattern (`^__out_of_root__/`) について、「キャッシュ非対象で毎回 PM 再表示する安全側設計」の意図明示コメントを追加。R1-034 統合実装内で完了
+
+### R1-016 (Warning / SE 級 = closed / 序で消化)
+
+- **closed_at**: 2026-07-11
+- **修正内容**: 3 skill (`adr-template` / `spec-template` / `ui-design-guide`) の frontmatter から `model: sonnet` 行を削除 (context7 検証で Skills 側非公式フィールドと確認済 = dead config)。`allowed-tools:` は正当のため維持
+- **注記**: `ui-design-guide` は delete_candidate 対象だが frontmatter drift は削除 defer と独立に消化可能なため実施
+
+### module 5 / module 3 Wave 完了ゲート状況
+
+| module | open C+W (W-R4 前) | open C+W (W-R4 S3-T4 後) | 達成 |
+|:------:|:---:|:---:|:----:|
+| module 3 (`.claude/skills/`) | 1 (R1-016) | **0** | ✅ |
+| module 5 (`.claude/hooks/` + `settings*.json`) | 3 (R1-033/034/I18 相当) | **0** | ✅ |
+| module 6 (`.claude/agents/`) | 2 (R1-035 W-R3 closed / 残 = 0) | 0 | ✅ (W-R3 で達成済 / 本 Wave 変化なし) |
+
+**注記**: 上記は skills 削除 (S3-T2/T3/T5) を defer した状態でも module 3 Wave 完了ゲート達成が成立することを意味する (R1-016 のみが Warning で、delete_candidate 8 件は Info 級の drift ではなく issue ゼロの状態)。
+
+### 副次発見 (L2 Sonnet より)
+
+- 同名モジュールの pytest 衝突: `.claude/tests/hooks/test_pre_tool_use.py` と `.claude/hooks/tests/test_pre_tool_use.py` が同名で、両 dir 同時 pytest 実行時 `import file mismatch`。各 dir 個別実行では両方全 PASS。本 Task 由来ではないが記録 (W-R5 議題候補 = pytest 設定改善)
+
+### Wave 完了ゲート全体状況 (W-R4 S3-T4 後時点)
+
+| module | open C+W | 達成 |
+|:------:|:---:|:----:|
+| module 1 (`.claude/scripts/dashboard/`) | 0 | ✅ |
+| module 2 (`.claude/scripts/` 外) | 0 | ✅ |
+| module 3 (`.claude/skills/`) | 0 | ✅ (本 Stage) |
+| module 4 (`.claude/tests/`) | 0 | ✅ |
+| module 5 (`.claude/hooks/` + `settings*.json`) | 0 | ✅ (本 Stage) |
+| module 6 (`.claude/agents/`) | 0 | ✅ (W-R3 達成済) |
+| module 7 (`.claude/rules/`) | 0 | ✅ (W-R3 達成済) |
+| module 8 (`docs/internal/`) | 0 | ✅ (W-R3 達成済) |
+| module 9 (`docs/specs/`) | 0 | ✅ (W-R3 達成済) |
+| module 10 (`docs/adr/`) | 0 | ✅ (W-R3 達成済) |
+| module 11 (`CLAUDE.md` + `CHEATSHEET.md`) | 1 (未 module 11 では未確認 / W-R5 議題) | 未達 |
+
+**進捗率**: 10/11 module で Wave 完了ゲート達成。W-R4 の残作業は skills 削除 (S3-T2/T3/T5 defer) と S4 (Warning 消化 + agent-memory 空 Stage) のみ。
+
+### 次工程
+
+1. **本 Stage 末 ship** (S3-T4 + R1-016 消化 / S2 empty + S3-T1 defer 記録も含める)
+2. **次セッション**: S3-T2/T3/T5 (skills 削除 L2 Sonnet 委譲) + S4 (agent-memory 空 Stage + module 11 の残 Warning + Wave 完了 ship)
+
+---
+
+## 0.10. W-R4 S2 空 Stage 判定 + S3-T1 削除候補確定 + skills 削除 defer (2026-07-11)
+
+**S2 (agents 削除/改名) = 空 Stage 判定** — usage-baseline `docs/artifacts/r-1-usage-baseline-2026-07-11.md` §3 で確定:
+
+- agent delete_candidate = **0 件** (12/12 全て keep_recent_modified / 30d hit>0)
+- agent rename_history = **0 件** (S1-T2 全 12 agent の rename_history 列が "-")
+- → S2-T1 (候補確定) = 空 / S2-T2 (承認取得) = 不要 / S2-T3 (git rm) = skip / S2-T4 (git mv) = skip / S2-T5 (突合) = 0 vs 0 で trivially 完全一致 / S2-T6 (Stage 末 ship) = S3-T6 に併合
+
+**S3-T1 (skills 削除候補確定)**:
+
+usage-baseline delete_candidate 9 件から `.claude/rules/hga-summoning.md` 未参照 tier 確認より **orchestrator 5 件 (`magi` / `full-review` / `lam-orchestrate` / `autonomous` / `goal-driven`) 除外** (requirements.md §42 準拠 = 中核制御フロー保護維持)。
+
+→ **実削除候補 8 件** (lam-orchestrate 除外):
+1. `.claude/skills/auditing/SKILL.md`
+2. `.claude/skills/clarify/SKILL.md`
+3. `.claude/skills/pattern-review/SKILL.md`
+4. `.claude/skills/planning/SKILL.md`
+5. `.claude/skills/project-status/SKILL.md`
+6. `.claude/skills/skill-creator/SKILL.md`
+7. `.claude/skills/ui-design-guide/SKILL.md`
+8. `.claude/skills/wave-plan/SKILL.md`
+
+### skills 削除 (S3-T2/T3/T5) の defer 判断 (2026-07-11)
+
+**判断**: 本 Wave では削除**実施しない** (deferred_reason = `FR-4 grep 条件精査に別セッションが最適`)
+
+**根拠**:
+
+1. **FR-4 の 3 条件 AND の grep 精査規模が大きい**: 削除候補 8 件の skill 名は LAM の phase 名 (`planning` / `auditing` / `building`) や汎用語 (`clarify` / `pattern-review` / `wave-plan` / `project-status` / `skill-creator` / `ui-design-guide`) と衝突。単純 grep hit を精査した実測:
+
+   | skill | 単純 grep hit 数 | 精査必要理由 |
+   |:---|---:|:---|
+   | planning | 74 | phase 名としての参照が大多数 |
+   | auditing | 33 | phase 名参照多 |
+   | project-status | 24 | CHEATSHEET/README/phase-rules 記載 |
+   | clarify | 23 | rules/planning-quality-guideline 記載 |
+   | wave-plan | 16 | CHEATSHEET/README 記載 |
+   | pattern-review | 16 | CLAUDE.md/README 記載 |
+   | skill-creator | 15 | hga-summoning 記載 (subagent 混同注意) |
+   | ui-design-guide | 14 | cc-spec-alignment 記載 |
+
+   → 各 hit を「実行可能な slash command 指示」vs「歴史的記述」に分類する精査工程が必要 (100+ locations)
+
+2. **第 0 原則の判断**: 可逆性=有 / 復旧コスト=中〜高 (依存が生じている場合の連鎖修正 + 文書全域更新) / 確認コスト=セッション断→ (削除は不可逆判定の連鎖リスク)。低確度の一括削除より、次セッションで **L2 Sonnet 委譲 (tight brief 5-slot / 各 SKILL.md 読み + grep hit 分類 + drift 起票 + 削除実行)** が最適
+
+3. **依存タスクへの影響なし**: S4 の agent-memory 更新 (S4-T1) は「削除された agent の memory 無効化」が対象で、agent delete = 0 のため S4-T1 も同時に空 Stage 判定可能。skill 削除の delay は S4 進行を妨げない
+
+**S3-T2/T3/T5 → defer** (tracker で `deferred / next-session-l2-sonnet` として保留 / 次セッションで S3 再開)。
+
+### S3-T4 (hooks 統合) の消化方針
+
+S3 全体 defer にせず、**同 Stage 内の hooks 統合 (R1-033 / R1-034 / R1-I18)** は本セッションで消化 (L2 Sonnet 委譲予定):
+
+- R1-033 (Warning / PM 級 = settings.json 修正): python3 hardcode の環境非依存化
+- R1-034 (Warning / SE 級 = hooks/*.py 修正): `_PM_PATTERNS` 重複を `_hook_utils.py` 一本化
+- R1-I18 (Info): out-of-root 非対称設計を R1-034 と一体消化
+
+module 5 open C+W 3 件 → 3 件全て closed 見込 (Wave 完了ゲート「module 5 Critical+Warning=0」達成条件を満たす)。
+
+**次工程**: S3-T4 消化 → S3-T6 部分 Stage 末 ship → 次セッション S3-T2/T3/T5 (skills 削除 L2 Sonnet 委譲) → S4 (agent-memory 空 Stage + 残 Warning 消化)
+
+---
+
 ## 0.9. W-R4 S1 消化 = **FR-F4 データソース確定 verdict=success** (2026-07-11 / T1-T5 完走 / T6 = Stage 末 ship 目前)
 
 W-R4 Stage S1 の T1-T5 を消化し、**FR-F4 データソース確定判定 = success**。W-R4-S1-T5b (deferred fallback) は不発火。W-R4 S2/S3 通常進行が確定。

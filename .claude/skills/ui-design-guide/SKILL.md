@@ -11,7 +11,6 @@ version: 1.0.0
 paths:
   - "docs/specs/ui-*.md"
 when_to_use: "UI/UX 仕様を策定するとき、アクセシビリティ・レスポンシブ・状態設計・フォーム UX を検討するとき。docs/specs/ui-*.md を作成する場面で活用する。"
-model: sonnet
 allowed-tools: Read, Write, Edit
 ---
 

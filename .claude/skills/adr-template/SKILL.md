@@ -9,7 +9,6 @@ version: 1.0.0
 paths:
   - "docs/adr/*.md"
 when_to_use: "ADR を新規作成するとき、技術選定・アーキテクチャ決定・設計方針を記録するとき。docs/adr/ にファイルを作成する場面で活用する。"
-model: sonnet
 allowed-tools: Read, Write, Edit
 ---
 

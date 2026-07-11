@@ -36,6 +36,7 @@ if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 from _hook_utils import (  # noqa: E402
+    _PM_PATH_PATTERNS,
     atomic_write_json,
     get_project_root,
     get_tool_input,
@@ -52,13 +53,11 @@ _MAX_TOOL_EVENTS = 500
 # セッションスコープ PM 級降格キャッシュ（案 A / pre-tool-use.py と対）
 _PM_CACHE_FILENAME = ".session-pm-edit-cache.json"
 
-# PM 級パターン（pre-tool-use.py の _PM_PATTERNS と同等 / キャッシュ対象判定用）
-_PM_PATH_PATTERNS_FOR_CACHE = [
-    re.compile(r"^docs/specs/.*\.md$"),
-    re.compile(r"^docs/adr/.*\.md$"),
-    re.compile(r"^\.claude/rules/.*\.md$"),
-    re.compile(r"^\.claude/settings.*\.json$"),
-]
+# R1-034: PM 級パターン（キャッシュ対象判定用）は _hook_utils._PM_PATH_PATTERNS に
+# 一本化されている（pre-tool-use.py の _PM_PATTERNS と共有元は同一）。
+# out-of-root は意図的に含まない（R1-I18 / pre-tool-use.py 側コメント参照 — root 外
+# パスはキャッシュ機構の対象外とし、承認後も毎回 PM ダイアログを再表示する安全側設計）。
+_PM_PATH_PATTERNS_FOR_CACHE = _PM_PATH_PATTERNS
 
 # キャッシュの最大保持パス件数（同一セッション内で異常肥大化を防止）
 _PM_CACHE_MAX_PATHS = 200
