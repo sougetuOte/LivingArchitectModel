@@ -50,6 +50,68 @@ Fable HGA #10 (2026-07-07 / W-R2 S2 T2) が R1-053 実装 (L2 Sonnet tdd-develop
 
 **新規起票 4 件** (§module 2 参照): R1-056 (Warning / 多階層参照退化) / R1-057 (Info / regex 非捕捉退化 3 態様) / R1-058 (Info / 走査 scope 外 `.claude/rules`) / R1-059 (Info / gabriel substring 弱検査)
 
+## 0.9. W-R4 S1 消化 = **FR-F4 データソース確定 verdict=success** (2026-07-11 / T1-T5 完走 / T6 = Stage 末 ship 目前)
+
+W-R4 Stage S1 の T1-T5 を消化し、**FR-F4 データソース確定判定 = success**。W-R4-S1-T5b (deferred fallback) は不発火。W-R4 S2/S3 通常進行が確定。
+
+**成果物 4 本** (SE 級 / `docs/artifacts/` 配下):
+
+1. **S1-T1** (L1): `r-1-jsonl-fields-2026-07-11.md` (jsonl 4 種類の起動記録フィールド名確定 / §4.5 に Stop-hook 第 2 event shape 追補)
+2. **S1-T2** (L2 Sonnet / 152.6k tokens / 39 tool_uses): `r-1-git-log-usage-2026-07-11.md` + `.claude/scripts/r-1-git-log-usage.py`
+3. **S1-T3** (L2 Sonnet / 169.5k tokens / 43 tool_uses): `r-1-session-log-usage-2026-07-11.md` + `.claude/scripts/r-1-session-log-usage.py`
+4. **S1-T4** (L2 Sonnet / 135.0k tokens / 3 tool_uses): `r-1-usage-baseline-2026-07-11.md` (統合 + verdict 付与)
+
+**verdict 集計** (S1-T4 §3):
+
+| verdict | agent | skill | hook | 合計 |
+|:---|---:|---:|---:|---:|
+| delete_candidate | 0 | **9** | 0 | 9 |
+| keep_recent_modified | 12 | 14 | 3 | 29 |
+| hold_low_confidence | 0 | 0 | 4 | 4 |
+
+**delete_candidate 9 件全て skill** (S2/S3 で個別承認取得対象):
+- 高確信度 (>40 日前 last commit): `auditing` / `clarify` / `pattern-review` / `planning` / `project-status` / `skill-creator` / `ui-design-guide` / `wave-plan` (8 件)
+- 境界ケース (cutoff 1 日差): `lam-orchestrate` (1 件 / S3-T2 承認提示時に確信度差を明記予定)
+
+**hold_low_confidence 4 件全て hook** (削除フロー除外 = agent-memory の対象外でもある):
+- `pre-compact.py` (PreCompact event shape 未確認 / logging gap 疑い)
+- `_hook_utils.py` / `_incident_patterns.py` / `autonomous_state.py` (非 entrypoint helper module / import 参照解析が別途必要 = W-R4-S3-T4 hook 統合の判断材料に別途走査)
+
+**副次発見**:
+- S1-T2 実装中、L2 Sonnet が `fnmatch.fnmatch` の path segment cross bug を自主発見・修正 (segment-wise matching に切替)
+- S1-T3 実装中、L2 Sonnet が Stop-hook の第 2 event shape (`type=="system"` + `subtype=="stop_hook_summary"` + `hookInfos[].command`) を発見 → S1-T1 メモに §4.5 として追補済
+- `.claude/commands/*.md` は 2026-05-29 一括改名で全て skills へ移行済 (S1-T2 §4 / command resource_type の現存 target = 0)
+
+**Alembic 2026-07-10 changelog §1 由来「経路アンカー点検」**: S1-T3 で発見した `/quick-save` 2 経路並存 = 「Skill tool 経由」と「`<command-name>` 直入力」の非対称は、まさに「経路で発火点を定義するとカバレッジ穴が生じる」実例。W-R5 議題の `fable-l3-protocol.md` §5.1 発火点 2 経路アンカー明示化と接続する材料。
+
+**次工程**: S1-T6 Stage 末 ship (本 Task) → W-R4 S2/S3 (削除実施 / L1) + S4 (agent-memory + Warning 消化 / L2 Sonnet)
+
+---
+
+## 0.8. W-R4 S1-T1 消化 (2026-07-11 / jsonl 起動記録フィールド名確定 = HGA #6 Crux 5-1 要検証仮定解消)
+
+W-R4 Stage S1 の T1「実 jsonl 1 本を開いて skills 起動記録のフィールド名確定」を実施。実測対象を「1 本」から拡張し `~/.claude/projects/D--work7-LivingArchitectModel/*.jsonl` **全 76 セッション**を横断走査 (`<scratchpad>/jsonl_probe_all.py`)。
+
+**確定結果** (詳細: `docs/artifacts/r-1-jsonl-fields-2026-07-11.md`):
+
+| リソース種別 | 起動判定パターン | 実測件数 (76 sessions) |
+|:------|:--------|---:|
+| skills (Skill tool 経由) | `tool_use.name == "Skill"` + `input.skill` | 76 起動 |
+| slash commands (`/name` 直入力) | user message text 内 `<command-name>/([^<]+)</command-name>` | 117 出現 (9 種類) |
+| agents (subagent) | `tool_use.name == "Agent"` + `input.subagent_type` | 532 起動 |
+| hooks | `attachment.type == "hook_success"` + `hookName` + `hookEvent` | 12,421 発火 |
+
+**Crux 5-1 の実測反証・追認**: design.md §7.2 の主張「skills を subagent_type で grep すると全 skills が偽陽性削除の直行便になる」を実測で追認。全 76 セッションで skills が subagent_type フィールドに現れた実例は 0 件。3 分岐 (agents / skills / hooks) の独立パターン実装が必要。
+
+**S1-T3 実装者への引継ぎ**: skills 検出は **`tool_use.name == "Skill"` 経路 + `<command-name>` タグ経路の OR** が必須 (実測: `/quick-save` は 2 経路が並存)。単一経路だと skill 起動の約半数を取り逃す偽陰性リスク。
+
+**S1-T5 データソース確定判定へのインプット**: フィールド名確定 = **成功** / 種別別パターン分岐 = **確定** / 30 日窓 grep 実装可能性 = **成功 verdict の見込み** (S1-T2/T3/T4 の実装で最終確定予定)。
+
+**編集 files**: 1 ファイル (`docs/artifacts/r-1-jsonl-fields-2026-07-11.md` 新規 / SE 級)
+**次工程**: W-R4 S1-T2 (git log スクリプト / L2 Sonnet) + S1-T3 (session log 30 日窓 grep / L2 Sonnet) — 依存が S1-T1 のみのため並列実施可能
+
+---
+
 ## 0.7. W-R3 S4 消化 = **W-R3 Wave 完了** (2026-07-10 / docs/specs + docs/adr + CHEATSHEET.md 一貫性修正)
 
 W-R3 S4 で残り 4 件 Warning を消化し、**W-R3 Wave 完了ゲート全達成**:
