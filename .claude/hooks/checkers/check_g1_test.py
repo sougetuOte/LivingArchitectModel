@@ -94,6 +94,36 @@ def _to_exec_command(cmd: list[str]) -> list[str]:
     return cmd
 
 
+def _pytest_module_available() -> bool:
+    """現在の interpreter で pytest module が起動可能かを実測する。
+
+    HGA #14 F2 対策: hook interpreter が bare .venv (pytest 未導入) を指した場合、
+    `python -m pytest` は subprocess としては起動するが `No module named pytest` で
+    exit != 0 となり G1 が FAIL 常発する。これは「テスト実施不能」であって
+    「テスト失敗」ではないため PASS-skip 側に倒すのが意味論的に正しい。
+
+    QUICKSTART.md は requirements-dev を「テストを実行する場合のみ」と optional
+    扱いにしており、pytest 未導入の contributor 環境は正当な運用形態である。
+    """
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "pytest", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            shell=False,
+        )
+    except (FileNotFoundError, OSError):
+        # interpreter バイナリ自体が起動不能 = pytest 判定不能
+        return False
+    except subprocess.TimeoutExpired:
+        # timeout は「起動したが応答が遅い」= モジュール存在は否定できない。
+        # 下流の run_check 本体が同じ subprocess.run の timeout を扱うため、
+        # ここでは True (可用) に倒して判断を委ねる。
+        return True
+    return proc.returncode == 0
+
+
 def run_check(project_root: Path, timeout: int = DEFAULT_TIMEOUT) -> tuple[int, str]:
     """G1 を判定する。
 
@@ -104,6 +134,10 @@ def run_check(project_root: Path, timeout: int = DEFAULT_TIMEOUT) -> tuple[int, 
     cmd = detect_test_command(project_root)
     if cmd is None:
         return 0, "no test framework detected (G1 PASS-skip)"
+
+    # HGA #14 F2 対策: bare .venv (pytest 未導入) では PASS-skip に倒す。
+    if cmd == ["pytest"] and not _pytest_module_available():
+        return 0, "pytest module not installed in current interpreter (G1 PASS-skip)"
 
     exec_cmd = _to_exec_command(cmd)
     try:

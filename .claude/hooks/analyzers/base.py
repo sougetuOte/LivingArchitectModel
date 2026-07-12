@@ -27,7 +27,8 @@ def file_path_to_module_name(file_path: str) -> str:
     A-3: card_generator / graph.scc に重複していた純ヘルパーを base に集約。
     依存グラフ系（card_generator / graph.scc / analysis.impact）が共有する。
     """
-    return file_path.replace("/", ".").replace("\\", ".").removesuffix(".py")
+    normalized = file_path.replace("/", ".").replace("\\", ".")
+    return normalized[:-3] if normalized.endswith(".py") else normalized
 
 
 @dataclass

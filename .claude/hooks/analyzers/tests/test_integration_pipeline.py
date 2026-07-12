@@ -397,7 +397,8 @@ class TestPlanDIntegrationPipeline:
         }
         # ファイル名（拡張子なし）から関数名を導出: "src/a.py" → "func_a"
         def _func_name_for(file_path: str) -> str:
-            stem = file_path.split("/")[-1].removesuffix(".py")
+            leaf = file_path.split("/")[-1]
+            stem = leaf[:-3] if leaf.endswith(".py") else leaf
             return f"func_{stem}"
 
         file_cards = {

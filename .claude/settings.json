@@ -28,7 +28,8 @@
       "Bash(python -m ruff check *)",
       "Bash(gitleaks protect *)",
       "Bash(gitleaks detect *)",
-      "Bash(gitleaks version)"
+      "Bash(gitleaks version)",
+      "Bash(bash .claude/scripts/py_invoke.sh *)"
     ],
     "deny": [
       "Bash(rm *)",
@@ -71,29 +72,29 @@
   "hooks": {
     "PreToolUse": [
       {
-        "hooks": [{ "type": "command", "command": "bash -c 'command -v python3 >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use.py || python \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use.py'" }]
+        "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use.py\"" }]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|Bash",
-        "hooks": [{ "type": "command", "command": "bash -c 'command -v python3 >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py || python \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py'" }]
+        "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use.py\"" }]
       }
     ],
     "PostToolUseFailure": [
       {
         "matcher": "Bash",
-        "hooks": [{ "type": "command", "command": "bash -c 'command -v python3 >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py || python \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use.py'" }]
+        "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use.py\"" }]
       }
     ],
     "Stop": [
       {
-        "hooks": [{ "type": "command", "command": "bash -c 'command -v python3 >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lam-stop-hook.py || python \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/lam-stop-hook.py'" }]
+        "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/lam-stop-hook.py\"" }]
       }
     ],
     "PreCompact": [
       {
-        "hooks": [{ "type": "command", "command": "bash -c 'command -v python3 >/dev/null 2>&1 && python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.py || python \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact.py'" }]
+        "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact.py\"" }]
       }
     ]
   }

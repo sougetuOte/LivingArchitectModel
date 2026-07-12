@@ -1,32 +1,40 @@
-"""R1-033: settings.json hook 起動コマンドの python3 hardcode 環境非依存化 TDD.
+"""R1-033: settings.json hook 起動コマンドの portability + shim 回避 TDD.
 
 `.claude/settings.json` の全 5 hook 起動コマンド（PreToolUse / PostToolUse /
-PostToolUseFailure / Stop / PreCompact）が `python3 "$CLAUDE_PROJECT_DIR"/...`
-で固定されていた。CLAUDE.md は「Windows 11 Pro + Git Bash」を明記するが、素の
-Windows Python installer は `python3` エイリアスを提供しない（現環境は
-pyenv-win 経由で解決しているため気づきにくい）。将来環境変更や新規 contributor
-環境で hook 起動自体が silent failure し、permission システム全体が機能しなく
-なるリスクがある（hook 起動失敗は Claude Code 側で気づきにくい）。
+PostToolUseFailure / Stop / PreCompact）は元々 `python3 "$CLAUDE_PROJECT_DIR"/...`
+で固定されていた（R1-033 起票時点）。CLAUDE.md は「Windows 11 Pro + Git Bash」を
+明記するが、素の Windows Python installer は `python3` エイリアスを提供しない
+（旧環境は pyenv-win 経由で解決していたため気づきにくかった）。将来環境変更や
+新規 contributor 環境で hook 起動自体が silent failure し、permission システム
+全体が機能しなくなるリスクがある（hook 起動失敗は Claude Code 側で気づきにくい）。
 
-本テストは:
-- `.claude/settings.json` の hooks.*.command 文字列に `python3` の裸ハードコード
-  （`command -v python3` のような可用性チェック文脈を除く）が存在しないことを assert
+R1-033 は当初「command 内に `command -v python3` fallback を強制」で portability を
+守っていたが、2027 年頃の VBScript 廃止（pyenv-win shim = VBScript 依存）対策として
+`.venv` 直接パス経由の shim 回避へ移行する必要が生じた。
+
+HGA #14 (Fable adversarial review 2026-07-12) F14 の方向修正に従い、本テストは
+「.venv 優先」と「fallback chain 保証」の **AND 強化** で新体制を守る:
+
+- (venv-first) 全 hook command が `.venv` interpreter を優先する呼び出しを持つこと。
+  実装は `.claude/scripts/py_invoke.sh` helper 経由（推奨: 内部で .venv 優先 +
+  fallback + 実起動可能性判定）または `.venv/Scripts/python.exe` /
+  `.venv/bin/python` 直接パスのいずれか。
+- (fallback) 全 hook command が fallback chain を持つこと。py_invoke.sh 経由なら
+  helper 内部の `_resolve_python()` が fallback を保証、直接呼びなら command 文字列
+  内に `command -v python3` fallback を含むこと。
 
 親 issue: `docs/artifacts/r-1-audit-tracker.md` R1-033
+関連: HGA #14 (Fable adversarial review / F11 silent failure 対策 / F14 AND 強化)
 根拠 evidence: `.claude/settings.json` L74, 80, 86, 91, 96
+helper 実体: `.claude/scripts/py_invoke.sh`
 """
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _SETTINGS_PATH = _PROJECT_ROOT / ".claude" / "settings.json"
-
-# `command -v python3` / `which python3` のような可用性チェック文脈は許容する。
-# それ以外の裸の `python3` トークン出現をハードコードとみなす。
-_BARE_PYTHON3_RE = re.compile(r"(?<!-v )(?<!which )python3\b")
 
 
 def _iter_hook_commands(settings: dict) -> list[str]:
@@ -49,35 +57,58 @@ def test_settings_json_has_five_hook_commands():
     assert len(commands) == 5
 
 
-def test_no_bare_python3_hardcode_in_hook_commands():
-    """全 hook command 文字列に裸の `python3` ハードコードが存在しない。
+def test_hook_commands_use_venv_first():
+    """全 hook command が .venv 経由 interpreter を優先する呼び出しを持つ。
 
-    `command -v python3 >/dev/null 2>&1 && python3 ... || python ...` のような
-    fallback 文脈内の `python3` は許容する（可用性チェック済のため portability
-    リスクにならない）。裸で `python3 "$CLAUDE_PROJECT_DIR"/...` のように直接
-    起動している箇所を検出する。
+    HGA #14 F14 の AND 強化 (venv-first 側):
+    - py_invoke.sh 経由なら helper 内部で .venv 優先解決 (実装は helper に閉じる)
+    - 直接呼びなら `.venv/Scripts/python.exe` または `.venv/bin/python` を含むこと
+
+    素の `python3 "$CLAUDE_PROJECT_DIR"/...` 直起動は pyenv-win shim 経由で
+    VBScript を発火させるため禁止 (2027 VBScript 廃止対策)。
     """
     settings = json.loads(_SETTINGS_PATH.read_text(encoding="utf-8"))
     commands = _iter_hook_commands(settings)
     for command in commands:
-        assert "command -v python3" in command, (
-            f"hook command lacks python3 availability fallback: {command!r}"
+        has_helper = "py_invoke.sh" in command
+        has_venv_direct = (
+            ".venv/Scripts/python.exe" in command
+            or ".venv/bin/python" in command
+        )
+        assert has_helper or has_venv_direct, (
+            "hook command lacks .venv-first invocation "
+            "(neither py_invoke.sh helper nor direct .venv path): "
+            f"{command!r}"
         )
 
 
-def test_hook_commands_fallback_to_plain_python():
-    """fallback 文脈は `python` (python3 以外) への切替を含む（Windows 素の python 起動対応）。"""
+def test_hook_commands_have_fallback_chain():
+    """全 hook command が fallback chain を保証する経路を持つ。
+
+    HGA #14 F14 の AND 強化 (fallback 側):
+    - py_invoke.sh 経由なら helper 内部の _resolve_python() が
+      `.venv` 起動不能時に `python3 -> python` fallback へ落ちる (F11 対策)。
+    - 直接 `.venv` パス呼びなら command 文字列内に `command -v python3` fallback
+      を含むこと (R1-033 元趣旨 = bare Windows env 対策)。
+
+    存在チェックのみで .venv に落として fallback を失うと、
+    「存在するが起動不能な .venv」で全 5 hook が silent failure し
+    permission システムが丸ごと落ちる (R1-033 が元々守ろうとしたリスク)。
+    """
     settings = json.loads(_SETTINGS_PATH.read_text(encoding="utf-8"))
     commands = _iter_hook_commands(settings)
     for command in commands:
-        # "|| python " または "|| python\"" のように python3 以外の python 起動を含むこと
-        assert re.search(r"\|\|\s*python(?!3)\b", command), (
-            f"hook command lacks plain `python` fallback branch: {command!r}"
+        has_helper = "py_invoke.sh" in command
+        has_direct_fallback = "command -v python3" in command
+        assert has_helper or has_direct_fallback, (
+            "hook command lacks fallback chain "
+            "(neither py_invoke.sh helper nor direct `command -v python3`): "
+            f"{command!r}"
         )
 
 
 def test_hook_commands_still_reference_correct_script_path():
-    """fallback 化後も各 hook が正しいスクリプトパスを参照し続けている（regression guard）。"""
+    """venv-first 化後も各 hook が正しいスクリプトパスを参照し続けている（regression guard）。"""
     settings = json.loads(_SETTINGS_PATH.read_text(encoding="utf-8"))
     expected_scripts = {
         "pre-tool-use.py",
