@@ -34,10 +34,20 @@ PRICE_OUTPUT = 50.0       # $/MTok  output
 
 # 既知の HGA 召喚一覧. 追加は末尾に append.
 HGA_CALLS = [
-    ("#1 通常 (親tasks敵対検証)", "3f0194fe-b268-4e00-8625-f06f53821de2", "agent-ac30aee520b7db98e"),
-    ("#2 branch (別予算)",       "3f0194fe-b268-4e00-8625-f06f53821de2", "agent-acf3e131b7c3508a3"),
-    ("#3 通常 (タスク3計画)",    "14741519-9450-4df6-a8d5-14009653efe3", "agent-a909577de81bea2cc"),
-    ("#4 通常 (統治設計協議)",   "def0eb3d-1931-44d0-a8e1-a61d320faade", "agent-a86821db391ef7654"),
+    ("#1 通常 (親tasks敵対検証)",       "3f0194fe-b268-4e00-8625-f06f53821de2", "agent-ac30aee520b7db98e"),
+    ("#2 branch (別予算)",              "3f0194fe-b268-4e00-8625-f06f53821de2", "agent-acf3e131b7c3508a3"),
+    ("#3 通常 (タスク3計画)",           "14741519-9450-4df6-a8d5-14009653efe3", "agent-a909577de81bea2cc"),
+    ("#4 通常 (統治設計協議)",          "def0eb3d-1931-44d0-a8e1-a61d320faade", "agent-a86821db391ef7654"),
+    ("#5 通常 (R-1 scope crux)",        "5c5c9c7d-3284-4404-b3d2-20b8b8e631c9", "agent-acea673e64f4085d4"),
+    ("#6 通常 (R-1 design adv review)", "5c5c9c7d-3284-4404-b3d2-20b8b8e631c9", "agent-ac0223b277fd0a674"),
+    ("#7 通常 (W-R1 adv verify)",       "09d5f803-c73a-47b8-b23c-f6b1c738b759", "agent-a3b531327c44ec724"),
+    ("#8 通常 (crux-scoping R1-001+006)","4a38dbbf-5527-457d-9d2e-faa59235c0e0", "agent-a151d2bb93bcc81a0"),
+    ("#9 通常 (verify R1-001+006)",     "4a38dbbf-5527-457d-9d2e-faa59235c0e0", "agent-aec18707a6937ef98"),
+    ("#10 通常 (R1-053 verify)",        "98d911bf-f890-4f15-a03a-781ec6d77de0", "agent-a19bb687a9efb6a0b"),
+    ("#11 通常 (L3 導入設計軸)",        "3d1ccd4a-a312-4959-bfe8-a761d69fbaa8", "agent-a867990302ce1ef86"),
+    ("#12 通常 (案 D 具体化)",          "3d1ccd4a-a312-4959-bfe8-a761d69fbaa8", "agent-a4fb4a67823034c3b"),
+    ("#13 通常 (規律 SSOT 統合 / 従量期初)", "c9cacac9-99aa-45da-bb23-67710145874f", "agent-a0f31d0f355459ac0"),
+    ("#14 通常 (Phase A adv review)",   "6b87cdbe-50b3-46be-bd87-7d9993a45dbd", "agent-aca17a44be8f84ff8"),
 ]
 
 

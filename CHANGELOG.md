@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **feat(shim-avoidance)**: python shim 回避 hook 経路切替 (Phase B 段1 / commit `3f2464d` / 2026-07-12 / **canary 待ち**)
+  - 背景: Windows + pyenv 環境で hooks/skills の `python` 呼び出しが shim 経由になり `.venv` を bypass する問題への対処
+  - `.claude/scripts/py_invoke.sh` 新設 (venv-first + fallback chain + 実起動可能性判定 `-c 'import sys'`)
+    - HGA #14 F11 (silent failure) 対策 = 「存在するが起動不能な .venv」で `[ -x ]` 判定通過リスクを排除
+  - `.claude/settings.json` の全 5 hook (PreToolUse / PostToolUse[matcher] / PostToolUseFailure[matcher] / Stop / PreCompact) を `bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" ...` 経由に変更
+  - `permissions.allow` に `Bash(bash .claude/scripts/py_invoke.sh *)` を明示列挙で追加 (security-commands D4 = ワイルドカード非依存)
+  - `.claude/hooks/checkers/check_g1_test.py` に pytest module 未導入時 G1 PASS-skip 追加 (HGA #14 F2 対策 / bare .venv contributor での G1 FAIL 常発を予防)
+  - `.claude/tests/hooks/test_settings_hook_portability.py` (R1-033 test) を AND 強化 = venv-first AND fallback chain 両方要求 (HGA #14 F14 対策 / OR 緩和でなく AND 強化)
+- **feat(shim-avoidance)**: Python 3.8 互換化の残余修正 (Phase B 段1-0 内)
+  - `.claude/hooks/analyzers/base.py:30` と `.claude/hooks/analyzers/tests/test_integration_pipeline.py:400` の `removesuffix` (3.9+) を `endswith` + slice に置換
+  - 全 84 ファイル (hooks 62 + scripts 22) を段0 で 3.8 互換性検証済み (`from __future__ import annotations` 100% coverage / match / except* / runtime subscript generics / dict merge 全 0 件)
+
+### Documentation
+
+- **docs(hga-log)**: HGA #14 (LAM python shim 回避 Phase A adversarial review) を `docs/artifacts/hga-summon-log.md` に追記
+  - クレジット従量期 (2026-07-08 以降) 2 例目召喚 / brief-heavy loose 型初事例
+  - 実 $ 実測 = **$9.22** (msgs 19 / tool_uses 9 / cache_creation 63.8% 支配)
+  - 従量期累計 (#13 $6.05 + #14 $9.22) = **$15.27** / envelope 月 $10-40 内
+  - Fable 応答 18 finding = 17 反映 (F1/F9/F11/F2 最重大 4 件含む) + 1 別 Task 起票候補 (R1-062)
+- **docs(tracker)**: `docs/artifacts/r-1-audit-tracker.md` module 3 に R1-062 (Info / HGA #14 F18 / quick-load 撤回済機能言及) を追記
+
+### Notes
+
+- **canary 待ち**: 段1-6 (新セッション canary 検証) は commit `3f2464d` push 前の必須ゲート。canary FAIL 時は `git revert 3f2464d` + settings.json 手動 revert を実施
+- **段2 未着手**: 全 skill (`full-review/`, `goal-driven/`, `build-dashboard/`, `ship/`, `quick-save/`, `lam-orchestrate/`, `autonomous/`, `release/`) の python 呼び出しを `bash py_invoke.sh` 統一 + bare pytest/ruff/pip の `python -m X` 化 (HGA #14 F1 対応) は canary 通過後
+- **段3 未着手** (PM 級事前宣言必要): `pyproject.toml` への `requires-python = ">=3.8"` 追加 (HGA #14 F8 = QUICKSTART 3.8+ / Pin 3.11.9 / requires-python 不在の三方向矛盾解消) は段2 完了後
+- **HGA #14 実 $ envelope**: 従量期累計 $15.27 / 月 $10-40 内 (実測 2026-07-12)
+
 ## [v4.8.0] - 2026-06-11
 
 ### 概要

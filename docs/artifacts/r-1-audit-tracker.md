@@ -688,7 +688,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 ### module 3: `.claude/skills/`
 
 **監査完了**: 2026-07-06 (W-R1 S2 T4 / code-reviewer subagent + L1 監督 + context7 upstream 裏取り)
-**集計**: Critical 0 / Warning 3 / Info 2 (R1-016 を subagent 4 件 → 監督修正 3 件に変更)
+**集計**: Critical 0 / Warning 3 / Info 3 (R1-016 を subagent 4 件 → 監督修正 3 件に変更 / 2026-07-12 R1-062 追記 = HGA #14 F18 由来)
 **特記**: **R1-016 は context7 で upstream 裏取り → subagent 誤判定を訂正** (subagent 側の knowledge gap 事例 / Fable→Opus gap の変種 = 委譲層の情報鮮度リスク)
 
 #### tier タグ一覧 (全 23 件)
@@ -767,6 +767,17 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 #### R1-I15: `when_to_use:` フィールドの粒度不統一 (7 skills 使用 / 16 未使用)
 - **severity**: Info
 - **evidence_summary**: `when_to_use:` を持つ skill (magi, lam-orchestrate, clarify, ui-design-guide, adr-template, spec-template, skill-creator の 7 件) と持たない skill が混在。公式必須フィールドではなく実害はない。将来一貫性のため整理候補。
+
+#### R1-062: `quick-load/SKILL.md` L40 注記が撤回済機能 (Step 4 モード認知サマリ表示) への説明のみを保持 (HGA #14 F18)
+- **severity**: Info
+- **responsibility_tag**: `spec-drift`
+- **attribution**: `self`
+- **status**: `open`
+- **opened_at**: 2026-07-12 (HGA #14 finding F18 / Phase A adversarial review)
+- **evidence_file**: `.claude/skills/quick-load/SKILL.md`
+- **evidence_line**: 40 (`> **注記 (ADR-0008 v0.3 / 2026-06-30)**: 旧 Step 4「モード認知サマリ表示」...`)
+- **evidence_summary**: quick-load skill は現行 4 step (SESSION_STATE 読み込み / 関連ドキュメント特定 / 復帰サマリー / ユーザー指示待ち) で完結し、L40 の注記のみが「撤回済 Step 4 = モード認知サマリ表示 (`detect-permission-mode.py` 自動実行)」への説明を保持している。skill 本文には Step 4 の実体がなく (Step 4 = 「ユーザーの指示を待つ」に振り替え済)、L40 は歴史記録・debug 用の温存目的で残されている。HGA #14 (2026-07-12 / Phase A adversarial review) は本注記を「撤回済機能への言及が本文と独立に温存されており、将来の読者が『Step 4 が別途あるはず』と誤読するリスク」として Info 起票を推奨。ただし ADR-0008 v0.3 撤回の意思決定履歴は保存価値があり、削除すべきかは判断分岐あり。
+- **推奨対応**: 3 択で W-R5 議題化: (a) 現状維持 (歴史記録として温存 / 現行 skill 動作に影響なし)、(b) 注記を「削除」として本文から外し、代わりに CHANGELOG.md or ADR-0008 側にのみ残す (SSOT 単一化)、(c) 注記本文を「※本 skill には Step 4 = ユーザー指示待ち のみが存在します (過去の Step 4 モード認知サマリ表示は ADR-0008 v0.3 で撤回)」に書き換えて誤読リスクを排除。優先度 Info (実害なし / L1 の quick-load 動作は現行 4 step で正常)。
 
 ### module 4: `.claude/tests/`
 
