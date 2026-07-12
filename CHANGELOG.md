@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- **feat(shim-avoidance)**: python shim 回避 hook 経路切替 (Phase B 段1 / commit `3f2464d` / 2026-07-12 / **canary 待ち**)
+- **feat(shim-avoidance)**: python shim 回避 hook 経路切替 (Phase B 段1 / commit `3f2464d` / 2026-07-12 / **canary 通過 + push 済**)
   - 背景: Windows + pyenv 環境で hooks/skills の `python` 呼び出しが shim 経由になり `.venv` を bypass する問題への対処
   - `.claude/scripts/py_invoke.sh` 新設 (venv-first + fallback chain + 実起動可能性判定 `-c 'import sys'`)
     - HGA #14 F11 (silent failure) 対策 = 「存在するが起動不能な .venv」で `[ -x ]` 判定通過リスクを排除
@@ -17,6 +17,30 @@ All notable changes to this project will be documented in this file.
 - **feat(shim-avoidance)**: Python 3.8 互換化の残余修正 (Phase B 段1-0 内)
   - `.claude/hooks/analyzers/base.py:30` と `.claude/hooks/analyzers/tests/test_integration_pipeline.py:400` の `removesuffix` (3.9+) を `endswith` + slice に置換
   - 全 84 ファイル (hooks 62 + scripts 22) を段0 で 3.8 互換性検証済み (`from __future__ import annotations` 100% coverage / match / except* / runtime subscript generics / dict merge 全 0 件)
+- **feat(shim-avoidance)**: skill python 呼び出しを py_invoke.sh 経由に統一 + release Windows 専用バグ修正 (Phase B 段2 / commit `47c77f5` / 2026-07-12)
+  - `.claude/skills/` 配下 8 skill (`full-review/`, `goal-driven/`, `build-dashboard/`, `ship/`, `quick-save/`, `lam-orchestrate/`, `autonomous/`, `release/`) の python 呼び出し 26 箇所を `bash py_invoke.sh` 経由に統一 (HGA #14 F1 対応)
+    - full-review: 15 conversions + 1 コメント更新 (heredoc 全保持 / L404 shell 変数捕獲形式含む)
+    - goal-driven: 5 conversions (gd_guard × 3, distill-lessons × 2)
+    - autonomous / lam-orchestrate / quick-save / build-dashboard / ship: 各 1 conversion
+  - **release/SKILL.md L18 Windows 専用バグ修正 (HGA #14 F6)**: `.venv/Scripts/python.exe -m pytest .claude tests` (POSIX 破壊 + test path typo) → `bash .claude/scripts/py_invoke.sh -m pytest .claude/tests`
+  - L2 Sonnet 委譲実施 (`general-purpose` / `model="sonnet"` / tight brief 5-slot + Direct Executor boilerplate + grounding bolt-on + 親検収予告 / subagent_tokens 190,053 / tool_uses 43 / duration 289.7s / 自己申告「境界逸脱なし」)
+- **feat(shim-avoidance)**: Python バージョン SSOT 追加 (Phase B 段3 / 2026-07-12 / **PM 級**)
+  - `pyproject.toml` に `[project]` 節を PEP 621 準拠の最小構成で新設 = `name` / `version` (名目値) + **`requires-python = ">=3.8"`** (HGA #14 F8 対応 / QUICKSTART 3.8+ / Pin 3.11.9 / requires-python 不在の三方向矛盾解消)
+  - `dependencies` は未記載 → pip-audit 監査対象が空 = 従来の pip-audit スキップ設計を維持 (G5 セキュリティ判定は gitleaks 経由 = pip-audit 独立)
+- **feat(shim-avoidance)**: CLAUDE.md に Python Invocation Convention 節を追加 (Phase B 段3 / 2026-07-12 / HGA #14 F5/F15/F17 反映)
+  - Context 別 form 表 (skill 内 = 相対パス / settings.json hook = env var 形式 / docs = 相対 / 手動 = 任意) を SSOT 化
+  - 単一障害点 (SPOF) 認知 = `py_invoke.sh` の位置付け + venv-first fallback chain + 実起動判定
+  - Python バージョン SSOT の pyproject.toml 参照
+  - 3.8 互換性検証結果 (段0 実施済) の記録 + 将来の 3.10+ 構文追加禁止規則
+  - **段2 fixup 教訓** (Bash tool 環境 vs hook 環境の env var context 差異) を明文化
+
+### Fixed
+
+- **fix(shim-avoidance)**: py_invoke.sh 経由呼び出しから `$CLAUDE_PROJECT_DIR` prefix を除去 (Phase B 段2 fixup / commit `0c51ed3` / 2026-07-12 / **push 前 L1 実測で自己検出**)
+  - 段2 で SKILL.md 内 command を `bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh"` (env var 形式) に統一したが、Bash tool 実行環境で `$CLAUDE_PROJECT_DIR` は unset のため exit 127 (no such file) となる問題
+  - 根本原因: settings.json hook 実行環境と Bash tool 実行環境は env var inject が異なる (hook = Claude Code inject / Bash tool = unset)
+  - 修正: 全 8 skill / 26 箇所を `bash .claude/scripts/py_invoke.sh` (相対パス形式) に一括変換 (Edit replace_all)
+  - 教訓を CLAUDE.md § Python Invocation Convention に恒久記録 (context 別 form 表 = SSOT)
 
 ### Documentation
 
@@ -26,12 +50,13 @@ All notable changes to this project will be documented in this file.
   - 従量期累計 (#13 $6.05 + #14 $9.22) = **$15.27** / envelope 月 $10-40 内
   - Fable 応答 18 finding = 17 反映 (F1/F9/F11/F2 最重大 4 件含む) + 1 別 Task 起票候補 (R1-062)
 - **docs(tracker)**: `docs/artifacts/r-1-audit-tracker.md` module 3 に R1-062 (Info / HGA #14 F18 / quick-load 撤回済機能言及) を追記
+- **docs(alembic-handoff)**: `D:/work7/etc-to-alembic/handoff/` に Phase B 段2 fixup 教訓 (env var context 差異 = brief 見落としのローカル自己検出 case = model-delegation 実測 3 例目) を追記 (別 repo 記録)
 
 ### Notes
 
-- **canary 待ち**: 段1-6 (新セッション canary 検証) は commit `3f2464d` push 前の必須ゲート。canary FAIL 時は `git revert 3f2464d` + settings.json 手動 revert を実施
-- **段2 未着手**: 全 skill (`full-review/`, `goal-driven/`, `build-dashboard/`, `ship/`, `quick-save/`, `lam-orchestrate/`, `autonomous/`, `release/`) の python 呼び出しを `bash py_invoke.sh` 統一 + bare pytest/ruff/pip の `python -m X` 化 (HGA #14 F1 対応) は canary 通過後
-- **段3 未着手** (PM 級事前宣言必要): `pyproject.toml` への `requires-python = ">=3.8"` 追加 (HGA #14 F8 = QUICKSTART 3.8+ / Pin 3.11.9 / requires-python 不在の三方向矛盾解消) は段2 完了後
+- **Phase B 完了 (2026-07-12)**: 段1 (hook 経路切替) + 段1 canary + 段2 (skill 統一) + 段2 fixup (env var 除去) + 段3 (pyproject + CLAUDE.md + Alembic handoff) 全完了
+- **HGA #14 finding 消化状況**: 最重大 4 件 (F1/F2/F9/F11) + 方向修正 3 件 (F6/F8/F14) + 設計分岐 2 件 (F10/F13) + F5/F15/F17 (CLAUDE.md 追記) = 全消化。R1-062 (F18) は tracker 起票済 → W-R5 で 3 択判定予定
+- **Q3 判断 (段2 完了後)**: settings.json allow の bare `Bash(pytest *)` / `Bash(ruff *)` 系は **温存**。理由: skill layer SSOT は段2 で達成済 / 手動実行の開発体験を維持 / 削除の実利なし
 - **HGA #14 実 $ envelope**: 従量期累計 $15.27 / 月 $10-40 内 (実測 2026-07-12)
 
 ## [v4.8.0] - 2026-06-11

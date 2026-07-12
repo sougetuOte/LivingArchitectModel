@@ -91,6 +91,52 @@ LAM 規律として残す核（PM 級ファイル / インシデント履歴 / A
 - ディレクトリ走査は Bash より Glob / Grep / Read を優先する
 - **この注意はサブエージェントにも適用する**（Task/Agent で起動する全 Subagent を含む）
 
+## Python Invocation Convention (HGA #14 F5/F15/F17 反映 / 2026-07-12)
+
+LAM の Python 呼び出しは **単一 entry point `.claude/scripts/py_invoke.sh` 経由に統一** する
+（HGA #14 F10 = 「単一 entry point で allowlist prefix 1 本に載せる」設計軸 / security-commands.md §D4 整合）。
+**実行 context によって form が異なる** ため、以下の表を SSOT とする。
+
+### Context 別 form
+
+| context | 使う form | 理由 |
+|---------|-----------|------|
+| **skill 内 bash command** (SKILL.md 内 コードブロック = Claude が Bash tool 経由で実行) | `bash .claude/scripts/py_invoke.sh <script.py>` (**相対パス**) | Bash tool 実行環境で `$CLAUDE_PROJECT_DIR` は unset / CWD = repo root で相対パス resolve |
+| **`.claude/settings.json` hook `command`** (Claude Code が hook として spawn) | `bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" <script.py>` (**env var 形式**) | hook 実行環境で `$CLAUDE_PROJECT_DIR` は Claude Code が inject / CWD 不定のため absolute path 必須 |
+| **docs / README / manual instructions** | 相対パス形式に統一 (skill 内と同じ) | ユーザーが repo root で実行する想定 = 相対パス portable |
+| **手動 CLI / debug** | 任意 (相対または `python` 直) | 開発者裁量 |
+
+### 単一障害点 (SPOF) 認知
+
+`.claude/scripts/py_invoke.sh` は LAM 全体の Python 呼び出しを媒介する **SPOF**。以下で保護:
+
+- **venv-first + fallback chain**: `.venv/Scripts/python.exe` (Windows) / `.venv/bin/python` (POSIX) → `python3` → `python` の順で試行
+- **実起動可能性判定**: `python -c 'import sys'` で「存在するが起動不能」を検出 (HGA #14 F11 対策)
+- **段1 canary で経路検証済み** (2026-07-12): 全 5 hook + 直接呼び出し + pytest 47 tests all pass 確認
+
+py_invoke.sh 変更時は必ず `.claude/tests/hooks/test_settings_hook_portability.py` (R1-033 AND 強化 test 4 件) を回す。
+
+### Python バージョン SSOT
+
+- **`pyproject.toml` `[project]` `requires-python = ">=3.8"`**: PEP 621 準拠の SSOT (HGA #14 F8 対応 / QUICKSTART 3.8+ / Pin 3.11.9 / requires-python 不在の三方向矛盾解消 / 2026-07-12)
+- **実装 pin**: `.venv` は Python 3.11.9 (2026-07-12 時点 / 3.8+ 制約内で最新安定を採用)
+- pin 変更時は `pyproject.toml` の requires-python が >=3.8 制約を満たすか確認
+
+### 3.8 互換性検証 (段0 で実施済 / 2026-07-12)
+
+段1 導入時に hooks 62 + scripts 22 = 全 84 ファイル 100% coverage で以下を確認:
+- `from __future__ import annotations` 100% 追加済 (runtime subscript generics 回避)
+- `match` / `except*` / dict merge (`|`) の 3.10+ 構文使用ゼロ
+- `str.removesuffix` (3.9+) の 2 件を検出 → `endswith` + slice に置換済
+
+将来の 3.10/3.11 専用構文追加は禁止。3.10+ を必要とする場合は `pyproject.toml` の requires-python を先に上げる (**PM 級ダイアログ発生**)。
+
+### 段2 fixup 教訓 (2026-07-12 実測)
+
+段2 (skill python 呼び出しを py_invoke.sh 経由化) で最初 settings.json hook 形式 (`bash "$CLAUDE_PROJECT_DIR/..."`) を SKILL.md にコピペしたが、Bash tool 実行環境で `$CLAUDE_PROJECT_DIR` が unset のため展開結果が `bash "/.claude/scripts/py_invoke.sh"` (exit 127 = no such file) となる問題を **push 前に L1 実測で検出** → 全 8 skill / 26 箇所を相対パス形式に再変換 (fixup commit `0c51ed3`)。
+
+**教訓**: context 別に form を書き分ける。「settings.json hook 形式を全域に適用」ではない。今後の brief 作成時は本節の Context 別 form 表を必ず参照する。
+
 ## 作業体制（3.5 層委譲モデル）
 
 階層・担当（恒久・B-2 retro 反映）。担当モデルは現主力モデルに従って読み替える

@@ -1,4 +1,15 @@
-# [project] セクションなし: テスト専用設定。pip-audit スキップ対象（.claude/hooks/lam-stop-hook.py 参照）
+# [project] は PEP 621 準拠の最小構成: requires-python の SSOT のみが目的。
+# LAM は package として配布しないため name/version は名目値、dependencies は未記載
+# （dependencies 未記載 = pip-audit で監査対象が空 = 事実上のスキップ設計を維持 /
+# G5 セキュリティ判定は gitleaks 経由 = pip-audit 独立 / lam-stop-hook.py L416 参照）。
+#
+# HGA #14 F8 対応: QUICKSTART 3.8+ / 実装 pin 3.11.9 / requires-python 不在の
+# 三方向矛盾を requires-python = ">=3.8" で SSOT 化。
+[project]
+name = "living-architect-model"
+version = "0.0.0"
+requires-python = ">=3.8"
+
 [tool.pytest.ini_options]
 addopts = "--junitxml=.claude/test-results.xml -m 'not e2e_llm and not e2e_convergence'"
 markers = [
