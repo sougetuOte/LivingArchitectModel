@@ -233,7 +233,7 @@ Stage 5 の差分チェックで Green State を達成した場合、フルス�
 
 ```bash
 # Stage 5 で差分チェック Green State 達成時に実行
-bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+bash .claude/scripts/py_invoke.sh -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 フルスキャン発動は Claude の自律制御による（`/full-review` Stage 5 参照）。Stop hook は `fullscan_pending` フラグを直接検出しない。

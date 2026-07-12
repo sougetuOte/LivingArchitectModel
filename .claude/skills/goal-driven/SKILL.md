@@ -44,7 +44,7 @@ effort 設定は明示的に `low` または `default` とすること。
 ### ステップ 0a: 排他ガード（design §10 MUST）
 
 ```bash
-bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/gd_guard.py --check-exclusion
+bash .claude/scripts/py_invoke.sh .claude/scripts/gd_guard.py --check-exclusion
 ```
 
 `autonomous-state.json` または `lam-loop-state.json` が存在する場合は**起動を拒否**する。
@@ -53,7 +53,7 @@ goal-driven スキルは autonomous / lam-orchestrate セッションと同時�
 ### ステップ 0b: 残留リカバリ（design §10 フェイルセーフ）
 
 ```bash
-bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/gd_guard.py --check-residual
+bash .claude/scripts/py_invoke.sh .claude/scripts/gd_guard.py --check-residual
 ```
 
 `gd-session-state.json` が `status: "running"` のまま存在する場合（前回セッションの
@@ -255,14 +255,14 @@ bound 超過・grader 繰り返し不合格・grader エラー等でエスカレ
 ### [8] メモリ蒸留（W4-T1 実装済み）
 
 ```bash
-bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/distill-lessons.py \
+bash .claude/scripts/py_invoke.sh .claude/scripts/distill-lessons.py \
   --task-id <task_id> \
   --grader-log .claude/logs/gd/<task_id>-loop*-grader.json
 ```
 
 小タスクルート（grader ログのみ・design §9.1）:
 ```bash
-bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/distill-lessons.py \
+bash .claude/scripts/py_invoke.sh .claude/scripts/distill-lessons.py \
   --task-id <task_id> \
   --grader-log .claude/logs/gd/<task_id>-loop01-grader.json \
   --small-task
@@ -298,7 +298,7 @@ distill(
 
 1. **rubric-tmp.md の削除**（小タスクルートのみ・design §6 MUST）:
    ```bash
-   bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/gd_guard.py --cleanup-rubric-tmp
+   bash .claude/scripts/py_invoke.sh .claude/scripts/gd_guard.py --cleanup-rubric-tmp
    ```
    合格・エスカレーションを問わず実行する。
 

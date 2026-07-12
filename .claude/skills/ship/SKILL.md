@@ -16,7 +16,7 @@ argument-hint: "[dry-run]"
 2. **gitleaks シークレットスキャン**（staged changes）:
    ```bash
    # Python スクリプトで実行
-   bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
+   bash .claude/scripts/py_invoke.sh -c "
    import sys; sys.path.insert(0, '.claude/hooks')
    from analyzers.gitleaks_scanner import run_protect_staged, is_available, get_install_guide
    if not is_available():

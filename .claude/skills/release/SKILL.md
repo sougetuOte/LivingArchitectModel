@@ -15,7 +15,7 @@ argument-hint: "<version> (例: v4.8.0)"
 
 1. リリース対象以外の未コミット変更がないこと（あれば `/ship` を先に案内）
 2. `git tag` に同名タグが存在しないこと（存在したら中止）
-3. テストが Green であること（例: `bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -m pytest .claude/tests`）
+3. テストが Green であること（例: `bash .claude/scripts/py_invoke.sh -m pytest .claude/tests`）
    - 失敗時は警告し、ユーザーの「承知の上で続行」を得るまで進まない
 
 ## Phase 1: CHANGELOG 版起こし
