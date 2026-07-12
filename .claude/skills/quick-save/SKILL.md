@@ -89,7 +89,7 @@ build_dashboard.py を呼び出してダッシュボードを更新する。
 実行:
 
 ```
-python .claude/scripts/build_dashboard.py
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/build_dashboard.py
 ```
 
 成功時: 完了報告に「Dashboard: docs/artifacts/dashboard/dashboard.html 更新済み」を追記する。

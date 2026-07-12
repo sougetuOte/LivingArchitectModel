@@ -16,7 +16,7 @@ LAM プロジェクトの作業状態を可視化した単一 HTML ファイル�
 `build_dashboard.py` を実行してダッシュボードを生成する。
 
 ```bash
-python .claude/scripts/build_dashboard.py --project-root <PROJECT_ROOT>
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/scripts/build_dashboard.py --project-root <PROJECT_ROOT>
 ```
 
 `<PROJECT_ROOT>` にはプロジェクトのルートディレクトリの絶対パスを指定する。

@@ -127,7 +127,7 @@ full-review 開始時に context7 MCP の利用可否を確認する。
 プロジェクト規模に応じて有効化する Plan セットを自動判定する。
 
 ```bash
-python3 .claude/hooks/analyzers/scale_detector.py "$TARGET"
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" .claude/hooks/analyzers/scale_detector.py "$TARGET"
 ```
 
 判定結果は `.claude/review-state/scale-detection.json` に永続化される。
@@ -178,7 +178,7 @@ Stage 0 完了後、Stage 1 に進む（Plan A 以上の場合）。Plan セッ�
 
 ```bash
 # 静的解析パイプラインを実行
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.run_pipeline import run_phase0
 from _hook_utils import get_project_root
@@ -237,7 +237,7 @@ G5 チェック（Stage 5）でこの Issue が FAIL を引き起こす。
 （上記「実装状況 NOTE」参照）。AST/import-map 生成を実装した時点で有効化される。
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.card_generator import build_topo_order
 from analyzers.state_manager import save_dependency_graph
@@ -281,7 +281,7 @@ Stage 1 完了後、Stage 2 に進む。
 > **⚠️ 現状 no-op（ast-map.json / import-map.json 未生成のため）— 2026-06-19 監査確認**: 現環境では tree-sitter が未インストールのため、本 Step は常に「利用不可」判定となり、Step 2（チャンク分割）とともに従来モードにフォールバックする。実質 19 Run 中 0 回のチャンクモード機能。tree-sitter インストール後、かつ Plan B（30K 行超）が有効化された時点で機能する。（B-4 §3 方針 X 採用）
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys; sys.path.insert(0, '.claude/hooks')
 from analyzers.chunker import chunk_file, TreeSitterNotAvailable
 try:
@@ -304,7 +304,7 @@ except TreeSitterNotAvailable:
 ### Step 2: 全対象ファイルをチャンク分割
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.chunker import chunk_file
 from analyzers.state_manager import save_chunks_index
@@ -400,8 +400,8 @@ Agent 出力から:
 `lam-loop-state.json` の `rubric_path` が空でない場合、Agent プロンプト構築前に以下の手順で rubric 内容を読み込み、各 Agent プロンプトの末尾に注入する。`rubric_path` が空文字または未設定の場合はこの手順をスキップし、Agent プロンプトは従来通り（後方互換）。
 
 ```bash
-# rubric_path を lam-loop-state.json から取得（1行 python3 -c を使用）
-RUBRIC_PATH=$(python3 -c "import json,sys; d=json.load(open('.claude/lam-loop-state.json')); print(d.get('rubric_path',''))")
+# rubric_path を lam-loop-state.json から取得（1行 py_invoke.sh -c を使用）
+RUBRIC_PATH=$(bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "import json,sys; d=json.load(open('.claude/lam-loop-state.json')); print(d.get('rubric_path',''))")
 ```
 
 `RUBRIC_PATH` が非空の場合、rubric ファイルの先頭 200 行を読み込んで `RUBRIC_CONTENT` に格納し、各 Agent プロンプトの末尾に以下のセクションを追記する（既存プロンプト本文は破壊しない・追記のみ）:
@@ -435,7 +435,7 @@ Step 2 でチャンクが生成されている場合（`.claude/review-state/chu
 
 ```bash
 # チャンク一覧を読み込み
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.state_manager import load_chunks_index
 from analyzers.orchestrator import batch_chunks
@@ -526,7 +526,7 @@ Stage 2 の並列監査完了後、Layer 2 → Layer 3 の順で逐次実行す�
 Stage 2 の概要カード生成（C-1a/C-1b）完了後、モジュール境界を検出し要約カードを生成する。
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.card_generator import (
     detect_module_boundaries, generate_module_cards, save_module_card
@@ -554,7 +554,7 @@ Stage 2 のトポロジカル順レビュー中に `parse_contract()` でリア�
 （契約フィールドの抽出・注入自体は Stage 2 のチャンクモード内で実行済み。ここでは永続化のみ。）
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.card_generator import (
     merge_contracts, save_contract_card, detect_module_boundaries,
@@ -588,7 +588,7 @@ print(f'Modules for contracts: {len(module_to_files)}')
 > **⚠️ 現状 no-op（ast-map.json / import-map.json 未生成のため）— 2026-06-19 監査確認**: `import-map.json` が未生成のため `import_map` は常に `{}` に縮退し、`detect_circular_dependencies({})` は常に空リストを返す。循環依存検出・命名違反検出ともに実質 0 件固定。Plan C（100K 行超）および `import-map.json` 生成実装後に機能する。（B-4 §3 方針 X 採用）
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys, json; sys.path.insert(0, '.claude/hooks')
 from analyzers.card_generator import (
     detect_circular_dependencies, detect_module_naming_violations
@@ -613,7 +613,7 @@ all_issues = [{'file': i.file, 'line': i.line, 'severity': i.severity, 'category
 ### Step 4: Layer 3 — LLM 仕様ドリフト検出
 
 ```bash
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import sys; sys.path.insert(0, '.claude/hooks')
 from analyzers.card_generator import collect_spec_drift_context
 from pathlib import Path
@@ -739,12 +739,12 @@ PG/SE級を先に修正した後、以下の手順でユーザーの判断を仰
 
 ```bash
 # PM級 Issue 発見時に実行（通常モード）
-python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['pm_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['pm_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 ```bash
 # PM級修正完了後に実行（通常モード）
-python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['pm_pending']=False;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['pm_pending']=False;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 #### auto_approve=true（サブエージェントモード）
@@ -755,7 +755,7 @@ PM級 Issue がある場合、**pm_pending をセットせず**、構造化 JSON
 # auto_approve=true 時: PM級 Issue 一覧を JSON stdout に出力して終了
 # pm_pending は true にしない（Stop hook 経由ループバック禁止）
 # [PM_ISSUES_JSON] は PM級 Issue を JSON 配列にシリアライズした文字列で置換すること
-python3 -c "
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "
 import json, sys
 pm_issues = [PM_ISSUES_JSON]
 result = {
@@ -877,7 +877,7 @@ Stage 1（静的解析: 変更ファイルのみ）
 
 ```bash
 # 差分チェック Green State 達成時に実行
-python3 -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
+bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh" -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
 Claude が `fullscan_pending=true` を確認し、もう1サイクル（フルスキャン）を Stage 2 から実行する。フルスキャンでも Green State なら Step 4（完了報告）に進む。
