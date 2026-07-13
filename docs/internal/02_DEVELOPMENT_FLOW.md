@@ -21,7 +21,7 @@
     - `docs/internal/06_DECISION_MAKING.md` の **Critical Agent** として振る舞い、「手戻りリスク」と「破壊的変更の有無」を徹底的に洗い出す。
     - 楽観的な予測は排除し、最悪のケースを想定してユーザーに報告する。
 6.  **Implementation Plan**:
-    - 変更内容と検証計画をユーザーに提示し、承認を得ることを必須とする（`/planning` の承認ゲートフロー）。
+    - 変更内容と検証計画をユーザーに提示し、承認を得ることを必須とする（PLANNING フェーズの承認ゲートフロー）。
     - 実装計画書は `docs/tasks/{feature_name}-tasks.md` に保存する。
 
 ### MAGI System（構造化意思決定）との連携
@@ -38,14 +38,6 @@ Phase 1 の各ステップにおいて、`/magi` スキル（AoT + MAGI Debate +
 
 > **Note**: `/magi` は主に Phase 1 で使用するが、Phase 2 での実装中に新たな設計判断が発生した場合や、
 > Phase 3 でのリファクタリング方針決定時にも適用可能である。
-
-### 文書精緻化（/clarify）
-
-Phase 1 で作成した仕様書・設計書は `/clarify` スキルで曖昧さ・矛盾・欠落を検出し精緻化する:
-
-- 仕様書ドラフト完成後に `/clarify docs/specs/<feature>-spec.md` を実行
-- 設計書完成後に `/clarify docs/design/<feature>-design.md` を実行
-- 文書間の横断チェック（spec ↔ design ↔ tasks）にも対応
 
 ## Phase 2: The TDD & Implementation Cycle (実装サイクル)
 

@@ -5,14 +5,14 @@
 > まず [概念説明スライド](docs/slides/index.html) で LAM の全体像を掴み、[クイックスタートガイド](QUICKSTART.md) で環境構築を行うことをお勧めします。
 
 1. Claude Code CLI を起動する（LAM の設定は自動で読み込まれる）
-2. `/planning` で設計フェーズを開始し、要件を定義する
+2. PLANNING フェーズ（手動切替）で設計を開始し、要件を定義する
 3. 要件確定後、LAM をプロジェクトに適応させる（AI に依頼するだけ）
 
 ```
 典型的な流れ:
-  /planning → 要件定義 → [承認] → 設計 → [承認] → タスク分解 → [承認]
+  PLANNING → 要件定義 → [承認] → 設計 → [承認] → タスク分解 → [承認]
   /building → TDD実装（Red → Green → Refactor）→ [承認]
-  /auditing → 品質監査 → [承認] → 完了
+  AUDITING → 品質監査 → [承認] → 完了
 ```
 
 ## ディレクトリ構造
@@ -81,10 +81,7 @@ NFR-14a の計測スクリプトは v5 Phase 1 で実装予定。Wave 1 段階�
 
 | コマンド | 用途 | 禁止事項 |
 |---------|------|---------|
-| `/planning` | 要件定義・設計・タスク分解 | コード生成禁止 |
 | `/building` | TDD実装 | 仕様なし実装禁止 |
-| `/auditing` | レビュー・監査・リファクタ | PM級の修正禁止（PG/SE級は許可） |
-| `/project-status` | 進捗状況の表示 | - |
 
 ## 承認ゲート
 
@@ -136,12 +133,9 @@ Memory 列: `auto` = `.claude/agent-memory/<name>/` に知見を自発的に蓄�
 | スキル | 用途 | 呼び出し例 |
 |--------|------|-----------|
 | `magi` | 構造化意思決定（AoT + MAGI System + gabriel adversarial probe） | `/magi <議題>` |
-| `clarify` | 文書精緻化（曖昧さ・矛盾・欠落検出） | `/clarify docs/specs/foo.md` |
 | `lam-orchestrate` | タスク分解・並列実行 + `/magi` 統合 | 「lam-orchestrateで実行して」 |
-| `skill-creator` | スキル作成ガイド | 「新しいスキルを作りたい」 |
 | `adr-template` | ADR作成テンプレート | ADR 作成時に自動適用 |
 | `spec-template` | 仕様書作成テンプレート | 仕様書作成時に自動適用 |
-| `ui-design-guide` | UI/UX設計チェックリスト | UI仕様策定時に自動適用 |
 
 ## 状態管理
 
@@ -160,15 +154,7 @@ Memory 列: `auto` = `.claude/agent-memory/<name>/` に知見を自発的に蓄�
 | `/ship` | 論理グループ分けコミット（棚卸し -> 分類 -> コミット） |
 | `/full-review <対象>` | 並列監査 + 全修正 + 検証（一気通貫） |
 | `/release <version>` | リリース（CHANGELOG -> commit -> tag -> push） |
-| `/wave-plan [N]` | Wave 計画策定（タスク選定・依存関係・リスク評価） |
 | `/retro [wave\|phase]` | 構造化振り返り（KPT + 定量分析 + アクション抽出） |
-
-## 補助コマンド
-
-| コマンド | 用途 |
-|---------|------|
-| `/pattern-review` | TDD パターン審査 |
-| `/project-status` | プロジェクト進捗表示 |
 
 ## 参照ドキュメント (SSOT)
 
@@ -211,19 +197,6 @@ CASPAR（女/調停者）     — Synthesis, Balance, Decision
 | Atom | 内容 | 依存 | 並列可否(任意) |
 ```
 
-## /clarify（文書精緻化）クイックガイド
-
-**いつ使う？**
-- 仕様書・設計書のドラフト完成後
-- 「適切に」「必要に応じて」等の曖昧表現を検出したいとき
-- 複数文書間の整合性を確認したいとき
-
-**使い方**
-```
-/clarify docs/specs/foo-spec.md            # 1文書を精緻化
-/clarify docs/specs/foo.md docs/design/foo.md  # 横断チェック
-```
-
 ## クイックリファレンス
 
 **PLANNINGで実装を頼まれたら？**
@@ -231,9 +204,6 @@ CASPAR（女/調停者）     — Synthesis, Balance, Decision
 
 **成果物が完成したら？**
 → 承認を求めるメッセージを表示
-
-**進捗を確認したい？**
-→ `/project-status` を実行
 
 **コンテキストが少なくなったら？**
 → `/quick-save` でセーブして `exit`

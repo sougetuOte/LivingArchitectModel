@@ -52,9 +52,7 @@ LAM 規律として残す核（PM 級ファイル / インシデント履歴 / A
 
 | モード | 用途 | ガードレール | 推奨モデル |
 |--------|------|-------------|-----------|
-| `/planning` | 設計・タスク分解 | コード生成禁止 | Opus / Sonnet |
 | `/building` | TDD 実装 | 仕様確認必須 | Sonnet |
-| `/auditing` | レビュー・監査 | PG/SE修正可、PM指摘のみ | Opus |
 
 詳細は `.claude/rules/phase-rules.md` を参照。
 

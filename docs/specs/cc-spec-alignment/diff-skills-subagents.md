@@ -180,4 +180,4 @@ LAM の全 Sub-agents（code-reviewer, design-architect, doc-writer, quality-aud
 ---
 
 *本文書は PLANNING フェーズの成果物（文書突き合わせのみ）。実装・コード修正は一切含まない。*  
-*採否の意思決定は `/planning` または別途の MAGI 合議フローで行うこと。*
+*採否の意思決定は PLANNING フェーズまたは別途の MAGI 合議フローで行うこと。*

@@ -64,7 +64,7 @@ PLANNING 承認状態:
 以下のサブフェーズが未承認です:
 - [未承認サブフェーズ]
 
-/planning で承認を完了してください。
+PLANNING フェーズで承認を完了してください。
 ```
 
 ## TDDサイクル（t-wada style）
@@ -91,7 +91,7 @@ PLANNING 承認状態:
 ## TDD 内省パイプライン v2
 
 BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパターンは PostToolUse hook によって `.claude/tdd-patterns.log` に自動記録される。
-閾値（2回）に達したパターンは `/pattern-review` コマンドで審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
+閾値（2回）に達したパターンは `/retro` Step 2.5 で審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
 詳細: `.claude/rules/auto-generated/trust-model.md`
 
 ## 禁止事項
@@ -103,7 +103,7 @@ BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパ
 
 ## フェーズ終了条件
 
-以下を満たしたら `/auditing` でAUDITINGフェーズに移行:
+以下を満たしたら AUDITING フェーズへ手動移行:
 
 - [ ] 全テストがパス
 - [ ] 仕様書とコードが同期している

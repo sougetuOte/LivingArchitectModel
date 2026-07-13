@@ -141,9 +141,10 @@ K1〜K5 の定義を維持するが集計は任意（オプション）。
 
 ---
 
-## 7. `/project-status` KPI ダッシュボード
+## 7. KPI ダッシュボード（廃止済 `/project-status` skill 向け未実装機能案 / 保留）
 
-`/project-status` コマンドの出力に KPI セクションを追加:
+> 旧 `/project-status` skill の出力拡張として構想されていたが、同 skill は R-1 W-R4 で削除された。
+> KPI 定義自体（K1〜K5）は §6 の集計テンプレートで有効。表示先は今後の再検討課題。
 
 ```
 ## KPI ダッシュボード

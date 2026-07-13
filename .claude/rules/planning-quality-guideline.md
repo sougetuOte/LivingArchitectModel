@@ -1,7 +1,7 @@
 # Planning Quality Guideline — 仕様・設計・タスクの品質基準
 
 PLANNING フェーズで作成する成果物（specs, design, tasks）の品質判断基準。
-`/clarify` スキル、`spec-template`、`design-architect`、`task-decomposer` と併用する。
+`spec-template`、`design-architect`、`task-decomposer` と併用する。
 
 ## 1. Requirements Smells（仕様の曖昧さ検出）
 
@@ -85,7 +85,7 @@ PLANNING フェーズで作成する成果物（specs, design, tasks）の品質
 | 仕様にあるがタスクにない | 実装漏れ（Gap） | タスクを追加 |
 | タスクにあるが仕様にない | 孤児作業（Orphan） | 仕様を追加するか、タスクを削除 |
 
-## 6. Example Mapping（`/clarify` での活用）
+## 6. Example Mapping（要件明確化での活用）
 
 要件の明確化時に、以下の4層構造で整理する:
 

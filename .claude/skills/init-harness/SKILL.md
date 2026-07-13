@@ -1,7 +1,7 @@
 ---
 name: init-harness
 description: |
-  憲法型ハーネスフレームワーク (planning / building / auditing 三フェーズ規律 +
+  憲法型ハーネスフレームワーク (PLANNING / BUILDING / AUDITING 三フェーズ規律 +
   Three Agents Model + セッション継続性) を新規 or 既存プロジェクトに opt-in で適用する
   初期化スキル。規約ディレクトリとテンプレートファイルを生成し、
   .claude/harness.json でハーネスバージョンを管理する。
@@ -14,7 +14,7 @@ description: |
 ## 目的
 
 憲法型ハーネスを単一コマンドでプロジェクトに適用する。
-全ハーネススキル (planning, building, auditing, ship, retro 等) の前提条件を保証する。
+全ハーネススキル (building, ship, retro 等) の前提条件を保証する。
 
 **特殊性**: 本スキルは **CLAUDE.md を生成する側**。他スキルと異なり、対象プロジェクトに
 CLAUDE.md が存在しない状態でも動作する (ブートストラップ責務)。
@@ -155,7 +155,7 @@ done
 ### 4.2 テンプレート配置 (FR-04, FR-06, FR-10)
 
 各テンプレートは下記「テンプレート定義」セクションのインライン文字列を使用。
-`CLAUDE.md` のプロジェクト概要欄は `<!-- /planning で記入 -->` プレースホルダー (FR-06)。
+`CLAUDE.md` のプロジェクト概要欄は `<!-- ユーザーが手動記入 -->` プレースホルダー (FR-06)。
 
 ### 4.3 `.claude/harness.json` 記録
 
@@ -166,10 +166,10 @@ done
   "harness_version": "1.0.0",
   "applied_at": "<ISO 8601 現在時刻>",
   "enabled_skills": [
-    "init-harness", "planning", "building", "auditing",
-    "clarify", "magi", "ship", "retro",
-    "quick-save", "quick-load", "project-status",
-    "spec-template", "adr-template", "ui-design-guide"
+    "init-harness", "building",
+    "magi", "ship", "retro",
+    "quick-save", "quick-load",
+    "spec-template", "adr-template"
   ],
   "notes": ""
 }
@@ -188,12 +188,11 @@ done
 作成されたディレクトリ: 6 件
 
 次のステップ:
-  /planning    — 設計フェーズに入る (推奨)
-  /project-status — 現状確認
+  PLANNING フェーズへ進む (手動 / 推奨)
 
 参考:
   CHEATSHEET.md — スキルコマンド一覧。不明時はここを確認
-  CLAUDE.md     — プロジェクト概要欄は空。/planning 内で記入される
+  CLAUDE.md     — プロジェクト概要欄は空 (手動記入)
 ```
 
 ---
@@ -212,7 +211,7 @@ LLM (Claude Code) 向けプロジェクト規約。**不変に近いルール**�
 
 ## プロジェクト概要
 
-<!-- /planning で記入 -->
+<!-- ユーザーが手動記入 -->
 
 ## ハーネス規律
 
@@ -233,15 +232,11 @@ LLM (Claude Code) 向けプロジェクト規約。**不変に近いルール**�
 
 | やりたいこと | コマンド |
 |:-----------|:--------|
-| 仕様書を書き始める | `/planning` → `spec-template` |
 | 実装フェーズに入る | `/building` |
-| 監査する | `/auditing` |
-| 文書精緻化 | `/clarify <path>` |
 | 重要判断 | `/magi` (LLM提案時) |
 | コミット | `/ship` |
 | 振り返り | `/retro` |
 | 状況保存/復帰 | `/quick-save` / `/quick-load` |
-| 状態確認 | `/project-status` |
 
 ## このプロジェクトのクセ
 
@@ -272,7 +267,7 @@ Keep a Changelog 1.1.0 雛形 + `[Unreleased]` セクション。
   "phase_approved": false,
   "next_recommended": "design",
   "updated_at": "<ISO 8601>",
-  "notes": "Harness initialized. Start with /planning."
+  "notes": "Harness initialized."
 }
 ```
 
@@ -281,7 +276,7 @@ Keep a Changelog 1.1.0 雛形 + `[Unreleased]` セクション。
 ## 禁止事項
 
 - ユーザー承認なしの上書き (NFR-01, NFR-03)
-- `CLAUDE.md` への内容収集 (planning の責務)
+- `CLAUDE.md` への内容収集 (ユーザーによる手動記入)
 - `tasks/` 省略オプションの提示 (常に作成)
 - 自身の SKILL.md への書き込み (ハーネス自己破壊防止)
 - `~/.claude/settings.json` への書き換え (ADR-0008 LAM 側書き換えゼロ原則 / PM 級ファイル + 書き資格なし)
@@ -290,5 +285,4 @@ Keep a Changelog 1.1.0 雛形 + `[Unreleased]` セクション。
 
 - 受け入れ仕様 (プロジェクト側): `docs/specs/init-harness/spec.md`
 - AutoMode 関連 (Advisory のみ / 本 skill は advisory step を含まない): `docs/adr/0008-approval-gate-redesign.md` v0.3
-- 後続スキル: `planning`
 - マルチセッション環境考慮 (ユーザーメモリ領域 `~/.claude/projects/<key>/memory/reference_claude_code_desktop.md` 参照): 並行 init は最後勝ち、ロック機構なし (Open issue)

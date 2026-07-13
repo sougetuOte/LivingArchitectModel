@@ -14,9 +14,9 @@ argument-hint: "<対象ファイル or ディレクトリ> [--rubric-path=<rubri
 > 状態ファイル（`lam-loop-state.json` 等）は固定名のためレース条件が発生する（R-1/R-2 リスク）。
 > 並列対応（invocation_id による状態ファイル分離）はフェーズ 3 で実装予定。
 
-## /auditing との使い分け
+## AUDITING フェーズとの使い分け
 
-- `/auditing`: フェーズ切替。AUDITING モードに入り、手動で段階的に監査
+- AUDITING フェーズ: 手動でフェーズ切替し段階的に監査（skill 廃止済 / `.claude/current-phase.md` を手動更新）
 - `/full-review`: ワンショット実行。並列監査 -> 修正 -> 検証を自動ループで完了
 
 ---
@@ -115,11 +115,11 @@ full-review 開始時に context7 MCP の利用可否を確認する。
 ```
 ⚠️ context7 MCP が未設定のため、仕様確認（G5）をスキップしました。
   最新仕様との整合性確認が必要な場合は、対話モードで
-  /planning または upstream-first ルールを利用してください。
+  PLANNING フェーズまたは upstream-first ルールを利用してください。
   （full-review 内での WebFetch は無応答リスクがあるため使用しません）
 ```
 
-> WebFetch は対話モード（`/planning`, upstream-first）でのみフォールバックとして使用する。
+> WebFetch は対話モード（PLANNING フェーズ, upstream-first）でのみフォールバックとして使用する。
 > 自動フロー内での WebFetch は無応答・無限待機のリスクがあるため使用しない。
 
 ### Step 3: Scale Detection 判定（Plan E: FR-E2）

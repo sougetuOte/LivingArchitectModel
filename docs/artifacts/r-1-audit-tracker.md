@@ -117,6 +117,64 @@ W-R4 S3-T4 (hooks 統合 / L2 Sonnet TDD) と序で R1-016 消化 (L1) を完走
 
 ---
 
+## 0.12. W-R4 S3-T2/T3/T5 消化 = **skills 削除 8 件 + 参照書き換え 16 files 完了** (2026-07-13)
+
+前セッション §0.10 で defer 判定した skills 削除 3 Task を消化。**module 3 Wave 完了ゲート維持** (open C+W=0)。
+
+### 実施内容
+
+**Stage S3-T2** (PM 級一括宣言 + user 承認):
+- 削除計画 (8 SKILL.md `git rm`) + 参照書き換え計画 (CAT-A 82 hits / 16 files) + tracker/deletions.md 更新計画 を L1 で組立、user 承認 1 回 (Q1=4番選択) で全実行フローに移行
+
+**Stage S3-T3** (削除実施 + 参照書き換え + tracker/deletions.md 更新):
+
+Grep 精査結果 (L2 Sonnet grep triage / 前段):
+- **CAT-A** (要書き換え / 実行指示): **82 hits** / 17 files
+- **CAT-B** (歴史記述 / 保持): **153 hits** → 触らない
+- **CAT-C** (self-reference / 削除で自動消滅): 19 hits
+- **CAT-D** (settings.json / allowlist): **0 hits** → 良好
+- **CAT-E** (L1 判断要): 1 hit (`hga-summoning.md:155`)
+- boundary_deviations: 2 (scratchpad 内 / repo 影響なし)
+
+参照書き換え (L2 Sonnet rewriter / 別委譲):
+- **16 files 処置** (`project-status/SKILL.md` は削除で自動消滅で除外) / **81 hits** / **45 unique edits**
+- **6 パターン厳密適用** (P1 表行削除 / P2 slash command → phase 名 / P3 template array 除去 / P4 併用言及削除 / P5 cross-skill 案内書き直し / P6 section 全削除)
+- pattern-uncertain 2 件は L1 承認 (CHEATSHEET.md L202 phase 名 no-op / evaluation-kpi.md §7 KPI 定義保持 = 仕様知識散逸防止)
+- 詳細: `docs/artifacts/r-1-deletions.md` §2
+
+CAT-E 処置 (L1 SE 級):
+- `.claude/rules/hga-summoning.md:155` に「(R-1 W-R4 S3 で削除済 / deletions.md 参照)」注記追記 = incident 例の意味保持
+
+削除実施 (L1 直 / git rm 束ね):
+```bash
+git rm .claude/skills/{auditing,clarify,pattern-review,planning,project-status,skill-creator,ui-design-guide,wave-plan}/SKILL.md
+```
+
+**Stage S3-T5** (L3 Haiku 突合):
+- 宣言 8 path vs `git diff --cached --diff-filter=D` 抽出 path を Haiku で文字単位一致判定
+- verdict: 完全一致 (期待)
+
+### module 3 Wave 完了ゲート状況 (S3-T4 後時点維持)
+
+| module | open C+W (S3-T4 後 → 今回) | 達成 |
+|:------:|:---:|:----:|
+| module 3 (`.claude/skills/`) | 0 → **0** (skill 削除で 8 SKILL.md 消滅 + 参照書き換え 16 files で orphan 参照ゼロ化) | ✅ 継続 |
+
+### 副次成果
+
+- **CAT-B 153 hits 保持成功**: 歴史記述 (retro / rename migration / spec history / test fixture 等) を正しく残せた = Sonnet 5 リテラル特性を tight brief 5-slot + 6 パターン厳密適用で制御 (model-delegation-prompting.md §2 実測 4 例目)
+- **Sonnet 2 段委譲パターン**: (a) grep triage → (b) rewriter を分離することで、L1 は監督工程のみで完結 = 手作業 Edit ゼロ
+- **CAT-E 対策の実効**: 前段 gabriel probe A2 で提案した「CAT-E rubric 拡張」により、82 CAT-A 中 escalate 1 件のみ = うまく機能 (Sonnet が独自判断で誤削除する確率を機構で下げた実例)
+- **HGA 温存**: Fable 定額アクセス期間中 (7/20 まで) だが grep 精査は crux 追及型ではなく分類作業のため HGA 不発動 = 儀式性維持
+
+### 次工程
+
+1. **本 Stage 末 ship** (S3-T6 相当 / commit message に closed IDs = 削除 8 skill + CAT-A 82 references rewritten + CAT-E hga-summoning L155 明記)
+2. **W-R4 S4** (agent-memory 空 Stage / agent delete = 0 のため trivially 空 + module 11 残 Warning + Wave 完了 ship)
+3. **W-R5 未着手** (R-G6/G7/G8 全閉塞確認 + gabriel + code-review ultra + retro + Milestone COMPLETE 判定)
+
+---
+
 ## 0.10. W-R4 S2 空 Stage 判定 + S3-T1 削除候補確定 + skills 削除 defer (2026-07-11)
 
 **S2 (agents 削除/改名) = 空 Stage 判定** — usage-baseline `docs/artifacts/r-1-usage-baseline-2026-07-11.md` §3 で確定:

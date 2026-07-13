@@ -30,9 +30,9 @@ _R-1 BUILDING 遷移 (2026-07-06)。全 3 spec Approved 確認済 (requirements/
 - `AUTONOMOUS` - 自律統治モード（対象 spec を Green State まで自律実装。FR-9 統治ファイル deny が有効化）
 
 ### 更新タイミング
-- `/planning` コマンド実行時 → `PLANNING`
+- `PLANNING` フェーズへの移行時 → 手動更新（skill 廃止済）
 - `/building` コマンド実行時 → `BUILDING`
-- `/auditing` コマンド実行時 → `AUDITING`
+- `AUDITING` フェーズへの移行時 → 手動更新（skill 廃止済）
 - `/autonomous <spec_target>` 実行・承認時 → `AUTONOMOUS`
 
 ### 参照するルール

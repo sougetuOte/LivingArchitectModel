@@ -25,7 +25,7 @@
 │   ├── daily/              # /quick-save Daily 記録
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
 ├── .claude/                # Claude Code用設定・コマンド・状態管理
-│   ├── commands/           # ワークフローコマンド（/ship, /full-review, /wave-plan 等）
+│   ├── commands/           # ワークフローコマンド（/ship, /full-review 等）
 │   ├── rules/              # ガードレール（自動ロード）
 │   ├── hooks/              # PreToolUse/PostToolUse/Stop/PreCompact hooks
 │   ├── skills/             # スキル定義（テンプレート、思考フレームワーク等）
@@ -67,7 +67,7 @@
 
 - **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/quick-save` で記録、`/quick-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
 - **.claude/states/*.json**: 機能/Milestone 単位の承認ゲート状態・進捗記録 (例: `<milestone-slug>.json` / `cc-spec-alignment.json`, `large-scale-review.json` 等)。フェーズ (PLANNING/BUILDING/AUDITING) 現在値管理ではなく、各機能開発の進行管理に使用 (フェーズ現在値は `.claude/current-phase.md` が担当)。
-- **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。`/planning`, `/building`, `/auditing` コマンドで更新される。
+- **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。PLANNING/AUDITING は手動更新、BUILDING は `/building` 実行時に更新される。
 
 ## 3. SSOT 3層アーキテクチャ
 

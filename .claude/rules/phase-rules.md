@@ -27,7 +27,7 @@ requirements / design / tasks の各成果物完成時、ユーザーへ承認�
 - 仕様書: Requirements Smells 検出 + RFC 2119 キーワード統一
 - 設計書: Design Doc チェックリスト（非スコープ・代替案・成功基準）
 - タスク: SPIDR 分割 + WBS 100% Rule（仕様⇔タスクのトレーサビリティ）
-- 明確化: Example Mapping（`/clarify` 併用）
+- 明確化: Example Mapping（構造化インタビュー手法。手動適用）
 
 ### 禁止
 
@@ -135,7 +135,6 @@ PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 
 - パターン詳細: `docs/artifacts/tdd-patterns/`
 - ルール候補: `.claude/rules/auto-generated/draft-*.md`（PM級で起票・承認）
 - パターン分析: `/retro` Step 2.5
-- 審査コマンド: `/pattern-review`
 
 詳細: `.claude/rules/auto-generated/trust-model.md`
 
@@ -174,7 +173,7 @@ PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 
 
 ### F4 (全体検証 5 点 / Fable-Alembic L3 / 実行プロトコル準拠)
 
-`/auditing` フェーズ開始時に**1 箇所固定**で発動 (`/ship` Phase 5 後の発火は禁止 = commit 済で「壊しに行く」検証が遅く、かつ /ship に儀式 2 個載ると両方形骸化する)。
+AUDITING フェーズ開始時に**1 箇所固定**で発動 (`/ship` Phase 5 後の発火は禁止 = commit 済で「壊しに行く」検証が遅く、かつ /ship に儀式 2 個載ると両方形骸化する)。
 
 - [ ] 作った層と別の層で確認する (コード → 実行 / 文章 → 初見の読者として読む = 60 秒実況のコード版)
 - [ ] 壊しに行く (空入力・境界値・変な順に当てる)
@@ -241,6 +240,6 @@ Critical: X件 / Warning: X件 / Info: X件
 ```
 ⚠️ フェーズ警告: 現在は [PHASE] フェーズです。
 1. ルールに沿って続行
-2. フェーズ切替（/planning, /building, /auditing）
+2. フェーズ切替（PLANNING, /building, AUDITING の各フェーズへ手動切替）
 3. 「承知の上で続行」と明示
 ```

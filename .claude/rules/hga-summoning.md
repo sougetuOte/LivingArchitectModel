@@ -153,6 +153,7 @@ subagent が 2021 と 2025 を独立探索し labor division 失敗）を修正�
 
 subagent (Sonnet) は「与えられた一次資料を絶対視する癖」と「context7 等の rich source を能動的に
 引かない癖」を持つ。R-1 W-R1 S2 T4 (module 3 skills 監査) で subagent がローカルの `skill-creator/SKILL.md`
+(R-1 W-R4 S3 で削除済 / `docs/artifacts/r-1-deletions.md` 参照)
 を Claude Code SKILL.md の公式スキーマ一次情報源と誤認し、`allowed-tools:` を「非公式フィールド」と
 誤判定した実測がある (R1-016 / tracker 参照)。L1 (Opus) 側で context7 の `/websites/code_claude`
 を fetch → 公式仕様と判明 → subagent 判定を訂正した。

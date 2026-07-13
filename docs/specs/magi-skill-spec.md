@@ -18,7 +18,7 @@ AoT（Atom of Thought）分解 + MAGI System（MELCHIOR / BALTHASAR / CASPAR）
 現在、AoT + Three Agents は `lam-orchestrate` スキル内に統合されている（Section「構造化思考」）。
 しかし、タスク分解・並列実行が不要な場面では `lam-orchestrate` を呼び出しづらい:
 
-- `/wave-plan` での Wave 構成判断
+- Wave 構成判断（旧 `/wave-plan` 相当 / 現在は手動判断）
 - `/full-review` での Issue 分類・修正方針決定
 - 設計トレードオフ分析（PLANNING フェーズ）
 - 命名・技術選定などの単発判断
@@ -142,7 +142,6 @@ Reflection のルール:
 
 以下のスキルの SKILL.md に「適用条件（FR-M2）に合致する場面で `/magi` を提案せよ」と記述する（SHOULD）:
 
-- `/wave-plan`: Wave 構成の判断時
 - `/planning`: 設計トレードオフ分析時
 - `/full-review`: Issue 分類・修正方針決定時
 
@@ -191,7 +190,7 @@ SSOT への参照（ファイルパス）のみを記述し、実行時に読み
 | 出力に MELCHIOR/BALTHASAR/CASPAR のペルソナ名が使用される | 出力フォーマット確認 |
 | Reflection ステップが実行され、見落とし有無が明示される | 出力に「致命的な見落とし:」行が存在すること |
 | `lam-orchestrate` から `/magi` が参照される | `references/` に SKILL.md が配置されていること |
-| 他スキル（wave-plan, planning, full-review）に提案指示が記述される | 各 SKILL.md に `/magi` 提案の記述があること |
+| 他スキル（planning, full-review）に提案指示が記述される | 各 SKILL.md に `/magi` 提案の記述があること |
 | アンカーファイルが常に生成される | `docs/artifacts/` にファイルが存在すること |
 | SSOT が MAGI 命名に更新されている | `06_DECISION_MAKING.md` のペルソナ名が MELCHIOR/BALTHASAR/CASPAR であること |
 | 既存テストが全 PASSED | 回帰なし |

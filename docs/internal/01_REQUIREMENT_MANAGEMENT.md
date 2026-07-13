@@ -36,7 +36,7 @@
 
 ### F. Clarification（曖昧さの解消）
 
-- 仕様書ドラフト完成後、`/clarify` スキルで曖昧さ・矛盾・欠落を検出する。
+- 仕様書ドラフト完成後、曖昧さ・矛盾・欠落を手動で検出し精緻化する（Requirements Smells 参照）。
 - 「適切に」「必要に応じて」等の曖昧な修飾語を数値・条件に置換する。
 - 詳細は `.claude/rules/planning-quality-guideline.md`（Requirements Smells）を参照。
 
@@ -45,6 +45,6 @@
 実装タスク（Phase 1）へ移行する前に、以下のチェックリストを全て満たさなければならない。
 
 - [ ] **Doc Exists**: `docs/specs/` に仕様書が存在する。
-- [ ] **Unambiguous**: 上記 A〜D の要素が明記され、解釈の揺れがない。`/clarify` で精緻化済みであること。
+- [ ] **Unambiguous**: 上記 A〜D の要素が明記され、解釈の揺れがない。曖昧さ検出（Requirements Smells）で精緻化済みであること。
 - [ ] **Atomic**: タスクが 1 Pull Request で完結するサイズに分割されている。
 - [ ] **Testable**: Acceptance Criteria（完了条件）がテストコードで表現可能である。
