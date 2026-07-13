@@ -10,7 +10,8 @@ disable-model-invocation: true
 ## 注意事項（Dynamic Workflows 禁止宣言）
 
 本スキルは Dynamic Workflows を使用しない。
-effort 設定は明示的に `low` または `default` とすること。
+effort を `xhigh` へ昇格させる指定をしてはならない（MUST NOT。旧「`low` または `default` 明示」は
+2026-07-14 R1-036 で撤回 — `default` は Claude Code EffortLevel の有効値ではない / design §12 参照）。
 `"ultracode"`、`"use a workflow"` 等のキーワードを使用してはならない（MUST NOT）。
 `disableWorkflows: true`（または `CLAUDE_CODE_DISABLE_WORKFLOWS=1`）を推奨設定として適用すること。
 

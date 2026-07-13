@@ -101,7 +101,7 @@ W-R4 S3-T4 (hooks 統合 / L2 Sonnet TDD) と序で R1-016 消化 (L1) を完走
 | module 3 (`.claude/skills/`) | 0 | ✅ (本 Stage) |
 | module 4 (`.claude/tests/`) | 0 | ✅ |
 | module 5 (`.claude/hooks/` + `settings*.json`) | 0 | ✅ (本 Stage) |
-| module 6 (`.claude/agents/`) | 0 | ✅ (W-R3 達成済) |
+| module 6 (`.claude/agents/`) | 0 | ✅ (W-R3 達成済) → **誤集計訂正 (2026-07-14 §0.13)**: R1-036/R1-037 (Warning) が open 残存していた。W-R4 S4-T2 消化で真に 0 化 |
 | module 7 (`.claude/rules/`) | 0 | ✅ (W-R3 達成済) |
 | module 8 (`docs/internal/`) | 0 | ✅ (W-R3 達成済) |
 | module 9 (`docs/specs/`) | 0 | ✅ (W-R3 達成済) |
@@ -172,6 +172,50 @@ git rm .claude/skills/{auditing,clarify,pattern-review,planning,project-status,s
 1. **本 Stage 末 ship** (S3-T6 相当 / commit message に closed IDs = 削除 8 skill + CAT-A 82 references rewritten + CAT-E hga-summoning L155 明記)
 2. **W-R4 S4** (agent-memory 空 Stage / agent delete = 0 のため trivially 空 + module 11 残 Warning + Wave 完了 ship)
 3. **W-R5 未着手** (R-G6/G7/G8 全閉塞確認 + gabriel + code-review ultra + retro + Milestone COMPLETE 判定)
+
+---
+
+## 0.13. W-R4 S4 消化 = **Wave 完了ゲート 11/11 達成 → [R-1 W-R4 COMPLETE]** (2026-07-14)
+
+### S4-T1: agent-memory 更新パス = **空 Stage 判定**
+
+- usage-baseline (`r-1-usage-baseline-2026-07-11.md` §4.1) で agent 12/12 全件 `keep_recent_modified` = **削除された agent は 0 件**
+- FR-F2 の「削除された agent の memory エントリー無効化」は前提集合が空のため trivially 満足 → スクリプト作成 + TDD は対象なしで skip (W-R4 S2 空 Stage 判定と同型)
+
+### S4-T2: module 3/5/6 残 Warning 消化 + module 11 監査 + tracker 内部整合訂正
+
+**R1-036 (Warning / SE 級 = closed)**:
+- `goal-driven-l3-executor.md` から `effort: default` 行削除 (EffortLevel 有効値外の dead config / context7 再裏取り済)
+- 連動更新: design.md §11 frontmatter 例 + §12 3 段目撤回 (2 段化) + goal-driven/SKILL.md L13
+
+**R1-037 (Warning / SE 級 = closed / accept-and-document)**:
+- 推奨方針 (1) の実測実施: foreman 起動 → doc-writer + l3-executor 両方の spawn が**成功** = parametrized 記法は制限として無効 (仮説 b 実証 / overpermission 実態確認)
+- foreman 本文 + design.md §11 に実測注記追記。FR-7 prompt 自制規律 (既存 L113) が唯一の実効ガードと明文化
+- **followup (W-R5)**: tools 行の plain `Agent` 化は AutoMode classifier deny のため user 承認待ち
+
+**tracker 内部整合訂正 (本 Stage で発見)**:
+- R1-016 / R1-033 / R1-034: §0.11 (2026-07-11) で closed 記録済みだが issue 一覧 (§4) の status 行が `open` のまま残存 → closed に同期 (closed_by_commit = `1881195`)
+- **§0.11 の「module 6 = 0 ✅ (W-R3 達成済)」は誤集計だった**: R1-036/R1-037 (Warning) が open のまま残っていた。本 Stage の消化で真に 0 化
+
+### module 11 監査判定
+
+- open issue = R1-051 のみ (HGA #7 verdict B-2 で Warning → **Info 降格済**) + Info 4 件
+- **open C+W = 0** → Wave 完了ゲート達成 ✅ (§0.11 時点の「未確認 / 未達」を確認済に更新)
+
+### Wave 完了ゲート最終状況 (W-R4 S4 後 / 全 11 module)
+
+| module | open C+W | 達成 |
+|:------:|:---:|:----:|
+| module 1-5 / 7-10 | 0 | ✅ (既達成) |
+| module 6 (`.claude/agents/`) | 2 → **0** (R1-036/R1-037 本 Stage 消化) | ✅ |
+| module 11 (`CLAUDE.md` + `CHEATSHEET.md`) | **0** (R1-051 は Info 降格済) | ✅ (本 Stage 確認) |
+
+**11/11 module 達成** = W-R4 Wave 完了ゲート充足 (module 3/5/6 C+W=0 / 削除+改名履歴完備 = deletions.md / agent-memory 整合 = 空 Stage / FR-F4 成功済)
+
+### 次工程
+
+1. **S4-T3 Wave 末 ship** = `[R-1 W-R4 COMPLETE]` (本 §0.13 記録 + R1-036/037 の closed_by_commit 埋め)
+2. **W-R5** (別セッション推奨): R-G6/G7/G8 + gabriel + code-review ultra + retro + Milestone COMPLETE 判定 + followup 判定 (R1-037 tools 表記正常化 / R1-062 3 択 / rule-001 R-1 節削除)
 
 ---
 
@@ -781,7 +825,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning (subagent 誤: `allowed-tools:` も非公式 → 監督訂正: `model:` のみが問題)
 - **responsibility_tag**: `frontmatter`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-11 / W-R4 S3-T4 序で消化 / 3 skill の `model: sonnet` 行削除 / §0.11 参照。issue 一覧側 status の同期漏れを 2026-07-14 W-R4 S4 で訂正)
+- **closed_at**: 2026-07-11
+- **closed_by_commit**: `1881195`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/skills/adr-template/SKILL.md`, `spec-template/SKILL.md`, `ui-design-guide/SKILL.md`
 - **evidence_line**: 各ファイル 12-13 行付近
@@ -904,7 +950,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `settings`
 - **attribution**: `self` (併記: `spec_ambiguity` — hook 起動コマンドのポータビリティ要件が仕様未定義)
-- **status**: `open`
+- **status**: **`closed`** (2026-07-11 / W-R4 S3-T4 消化 / settings.json hook 5 箇所 fallback 形式化 + test 4 件 / §0.11 参照。issue 一覧側 status の同期漏れを 2026-07-14 W-R4 S4 で訂正。※その後 2026-07-12 shim-avoidance Phase B 段2-3 で py_invoke.sh 経由に発展統一)
+- **closed_at**: 2026-07-11
+- **closed_by_commit**: `1881195`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/settings.json`
 - **evidence_line**: 74, 80, 86, 91, 96
@@ -915,7 +963,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `permission-check`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-11 / W-R4 S3-T4 消化 / `_hook_utils.py` に `_PM_PATH_PATTERNS` 一本化 + test 7 件 / R1-I18 一体消化 / §0.11 参照。issue 一覧側 status の同期漏れを 2026-07-14 W-R4 S4 で訂正)
+- **closed_at**: 2026-07-11
+- **closed_by_commit**: `1881195`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/hooks/post-tool-use.py`, `.claude/hooks/pre-tool-use.py`
 - **evidence_line**: post-tool-use.py L55-61 / pre-tool-use.py L92-99
@@ -985,7 +1035,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `frontmatter`
 - **attribution**: `self` (併記: `spec_ambiguity`)
-- **status**: `open`
+- **status**: **`closed`** (2026-07-14 / W-R4 S4-T2 消化 / 推奨方針 (b) 採用 = `effort: default` 行を frontmatter から削除。context7 再裏取りで `default` が EffortLevel 有効値外を再確認。design §12 の 3 段目撤回 + frontmatter 例 + goal-driven/SKILL.md L13 も同時更新 = spec drift 同時解消)
+- **closed_at**: 2026-07-14
+- **closed_by_commit**: (W-R4 S4 Wave 末 ship で埋める)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/agents/goal-driven-l3-executor.md`
 - **evidence_line**: 9, 28, 120
@@ -996,7 +1048,9 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `frontmatter`
 - **attribution**: `self` (併記: `spec_ambiguity`)
-- **status**: `open`
+- **status**: **`closed`** (2026-07-14 / W-R4 S4-T2 消化 / 推奨方針 (1) 実測実施: foreman を起動し doc-writer + l3-executor の spawn を両方試行 → **両方成功 = 仮説 (b) 実証** = parametrized 部分は無視され実質全 Agent 起動可。accept-and-document で消化: foreman 本文「制約」節 + design.md §11 frontmatter 例に実測注記追記、既存の FR-7 prompt 自制規律を唯一の実効ガードと明文化。tools 行の plain `Agent` 化は AutoMode classifier deny (permission-widening 見なし) のため user 承認待ち followup として W-R5 へ)
+- **closed_at**: 2026-07-14
+- **closed_by_commit**: (W-R4 S4 Wave 末 ship で埋める)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/agents/goal-driven-l2-foreman.md`
 - **evidence_line**: 7

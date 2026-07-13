@@ -535,6 +535,12 @@ memory: project
 ---
 ```
 
+> **注記 (2026-07-14 / R1-037 実測)**: `Agent(goal-driven-l3-executor)` の parametrized 記法は
+> subagent frontmatter `tools:` allowlist 側では制限として機能しない（実測: 他 agent の spawn も成功 =
+> 実態は plain `Agent` と同等）。l3-executor 以外の spawn 封じは agent 本文の
+> 「自律 spawn 禁止（FR-7）」prompt 規律が唯一の実効ガードである。表記の plain `Agent` への
+> 正常化は user 承認待ち（W-R5 followup）。
+
 ### goal-driven-l3-executor.md
 
 ```yaml
@@ -546,12 +552,14 @@ description: |
   Task ツール（Agent）を持たず、自律 spawn 禁止。
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
-effort: default
 memory: project
 ---
 ```
 
-**重要**: `tools` に `Agent` を含まない（FR-7 MUST）。`effort: default` は §12（FR-8: Dynamic Workflows 排除）対応。
+**重要**: `tools` に `Agent` を含まない（FR-7 MUST）。
+旧 `effort: default` 指定は 2026-07-14 (R1-036) に削除 — `default` は Claude Code の
+EffortLevel 有効値（`low`/`medium`/`high`/`xhigh`/`max`）に存在せず effectively ignored の
+dead config だったため。FR-8（xhigh 封じ）は §12 の残り 2 段（SKILL.md 明示禁止 + 設定文書化）で担保する。
 
 ### goal-driven-grader.md
 
@@ -675,7 +683,7 @@ l3-executor を直接制御（大タスクルートが中タスクルートと�
    ```
    ## 注意事項
    本スキルは Dynamic Workflows を使用しない。
-   effort 設定は明示的に low または default とすること。
+   effort を xhigh へ昇格させる指定をしてはならない（MUST NOT）。
    "ultracode"、"use a workflow" 等のキーワードを使用してはならない（MUST NOT）。
    ```
 
@@ -691,8 +699,11 @@ l3-executor を直接制御（大タスクルートが中タスクルートと�
 
    config.md には requirements §0 の運用前提（Settings > Usage でのハードキャップ確認 MUST）も記載する。
 
-3. **effort 設定の明示化**: l3-executor フロントマターに `effort: default` を明記し、
-   `ultracode`（xhigh）になることを防ぐ。
+3. ~~**effort 設定の明示化**~~（2026-07-14 R1-036 で撤回）: 旧設計は l3-executor フロントマターに
+   `effort: default` を明記して xhigh 昇格を防ぐとしていたが、`default` は Claude Code の
+   EffortLevel 有効値（`low`/`medium`/`high`/`xhigh`/`max`）に存在せず effectively ignored の
+   dead config と判明（context7 upstream 裏取り / R1-036）。フロントマターから削除し、
+   xhigh 封じは上記 1（SKILL.md 明示禁止）+ 2（設定文書化）の 2 段で担保する。
 
 ### 将来の「特大」タスクルートへの対応（OQ-4）
 

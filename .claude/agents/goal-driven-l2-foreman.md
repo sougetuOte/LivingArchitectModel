@@ -110,7 +110,10 @@ L1 への報告は以下の JSON スキーマに従う（design §7 構造化報
 
 ## 制約
 
-- **自律 spawn 禁止**: l3-executor 以外の Agent を自律起動してはならない（FR-7）
+- **自律 spawn 禁止**: l3-executor 以外の Agent を自律起動してはならない（FR-7）。
+  frontmatter の `tools: Agent(goal-driven-l3-executor)` parametrized 記法は実測で制限無効
+  （2026-07-14 R1-037 実測: doc-writer の spawn も成功 = 実態は全 agent 起動可）と
+  判明したため、本規律（prompt 自制）が唯一の実効ガードである
 - **rubric 起動時再読み込み**: 起動時に必ず rubric.md を Read で再読み込みする（design §6 P-4）
 - **Dynamic Workflows 禁止**: `"ultracode"`、`"use a workflow"` 等のキーワードを使用しない（MUST NOT）
 
