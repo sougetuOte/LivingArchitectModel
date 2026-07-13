@@ -1037,7 +1037,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self` (併記: `spec_ambiguity`)
 - **status**: **`closed`** (2026-07-14 / W-R4 S4-T2 消化 / 推奨方針 (b) 採用 = `effort: default` 行を frontmatter から削除。context7 再裏取りで `default` が EffortLevel 有効値外を再確認。design §12 の 3 段目撤回 + frontmatter 例 + goal-driven/SKILL.md L13 も同時更新 = spec drift 同時解消)
 - **closed_at**: 2026-07-14
-- **closed_by_commit**: (W-R4 S4 Wave 末 ship で埋める)
+- **closed_by_commit**: `3c81acf`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/agents/goal-driven-l3-executor.md`
 - **evidence_line**: 9, 28, 120
@@ -1050,7 +1050,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **attribution**: `self` (併記: `spec_ambiguity`)
 - **status**: **`closed`** (2026-07-14 / W-R4 S4-T2 消化 / 推奨方針 (1) 実測実施: foreman を起動し doc-writer + l3-executor の spawn を両方試行 → **両方成功 = 仮説 (b) 実証** = parametrized 部分は無視され実質全 Agent 起動可。accept-and-document で消化: foreman 本文「制約」節 + design.md §11 frontmatter 例に実測注記追記、既存の FR-7 prompt 自制規律を唯一の実効ガードと明文化。tools 行の plain `Agent` 化は AutoMode classifier deny (permission-widening 見なし) のため user 承認待ち followup として W-R5 へ)
 - **closed_at**: 2026-07-14
-- **closed_by_commit**: (W-R4 S4 Wave 末 ship で埋める)
+- **closed_by_commit**: `3c81acf`
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/agents/goal-driven-l2-foreman.md`
 - **evidence_line**: 7
