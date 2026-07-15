@@ -175,6 +175,49 @@ git rm .claude/skills/{auditing,clarify,pattern-review,planning,project-status,s
 
 ---
 
+## 0.14. W-R5 S1 消化 = **R-G6 全閉塞達成 + R-G7/R-G8 pre-run 全達成** (2026-07-15)
+
+### 消化内訳 (12 issue)
+
+**closed 4 件**:
+- R1-030 (Warning): `os.remove` で 5 debug スクリプト削除 (W-R4 S2 空 Stage 判定で束ね消化が skip されていた置き去り分を回収)
+- R1-062 (Info): `quick-load/SKILL.md` L40 撤回済機能注記削除 (SE 級)
+- R1-048 (Info 降格済): Wave ゲート影響なし → 純粋 close (実施は retro 引継)
+- R1-051 (Info 降格済): 同上
+
+**deferred 8 件** (R-G7 drift=0 実測で影響顕在化なし):
+- R1-054/055/056/057/058: verify_reference_resolution.py 系 residual (retro 議題 = rule-002 化 or 再設計)
+- R1-059: gabriel 契約 substring 弱検査 (実運用 abort 損失 0 件)
+- R1-060: fable-l3 × Fable-Alembic snapshot 統合 (R-1 scope 外)
+- R1-061: GitHistoryParser dashboard 系 (R-G7/G8 対象外)
+
+### R-G6/G7/G8 実測結果
+
+| ゲート | 判定 | 実測 |
+|:------|:-----|:-----|
+| **R-G6** | ✅ | open=0 wip=0 (`grep -cE "^- \*\*status\*\*: \`(open|wip)\`"` = 0/0) |
+| **R-G7** | ✅ | `verify_reference_resolution.py --wave all` → total_drifts=0 |
+| **R-G8** | ✅ | `r1_cycle_detect.py` → cycle_count=0 (file=96 edge=109 / baseline file=93 edge=109) |
+
+### 副次発見・対処
+
+- **pytest regression 修復 (SE 級)**: `test_cli_help_exits_zero` が Windows cp932 環境で em dash `—` により FAIL。`_utf8_env()` helper + `encoding="utf-8"` に変更で修復 (27 PASS)。前セッションは system python 実行だったため潜在化 → .venv Python 3.11.9 で表面化。
+- **W-R4 §0.13 「11/11 module 達成」検証**: R1-030 (module 4 Warning) が open のまま残存していた矛盾を発見 → W-R5 S1 消化で **真の 11/11 module 達成**。
+
+### 生成 artifacts
+
+- `docs/artifacts/r-1-tracker-closure-report-2026-07-15.md` (closure report)
+- `docs/artifacts/r-1-inventory-2026-07-15.json` (inventory 再生成 = R-G8 pre-run 材料)
+- `docs/artifacts/r-1-deletions.md` に R1-030 5 件追記
+
+### 次工程
+
+1. **S1-T2 ship** = commit + push (本 §0.14 記録 + 12 issue status 更新 + closure report + test 修復 + SKILL.md L40 削除 + debug 5 件削除)
+2. **W-R5 S2**: R-G7/G8 は本 §0.14 で pre-run 済 → S2-T3 検証レポート統合 + S2-T4 ship に圧縮可能
+3. **W-R5 S3-S4**: gabriel + code-review ultra + retro + Milestone COMPLETE 判定
+
+---
+
 ## 0.13. W-R4 S4 消化 = **Wave 完了ゲート 11/11 達成 → [R-1 W-R4 COMPLETE]** (2026-07-14)
 
 ### S4-T1: agent-memory 更新パス = **空 Stage 判定**
@@ -623,7 +666,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info
 - **responsibility_tag**: `parser-drift` (併記: `rules-consistency`)
 - **attribution**: `self`
-- **status**: `open` (2026-07-10 W-R3 S1 T5 で hotfix 実施 = regex 拡張 + test skip 化 / **rule-002 恒久化は W-R5 議題**)
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = GitHistoryParser dashboard 系 Task ID regex は R-G7 対象外 (R-G7 は spec 参照 drift / R-G8 は module 循環依存)。dashboard 表示品質の課題として retro 議題化。W-R4 R1-034 の regex 統一パターン適用が第一候補)
 - **opened_at**: 2026-07-10 (W-R3 S1 T5 実 git log pytest 実行時に発見 = 事後発見)
 - **evidence_file**: `.claude/scripts/dashboard/parsers/git_history.py`, `.claude/tests/dashboard/test_git_history_parser.py`
 - **evidence_line**: git_history.py L24-27 (regex), test_git_history_parser.py L443 (assert)
@@ -634,7 +677,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info (spec 忠実 / HGA #8 crux の指定通りだが未文書化)
 - **responsibility_tag**: `dashboard-ui`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = HGA #9 verdict C-N1 の未文書化 false-positive surface。R-G7 (verify --wave all) は total_drifts=0 で影響顕在化なし。rule-001 と同型の parser drift 予防 rule 化候補として retro 議題に送り)
 - **opened_at**: 2026-07-06 (HGA #9 verdict C-N1)
 - **evidence_file**: `.claude/scripts/dashboard/builder.py`
 - **evidence_line**: 713-714 (regex `(?<![A-Za-z0-9-])<task_id>(?![A-Za-z0-9])`)
@@ -736,7 +779,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info (residual risk / live corpus で 0 実例)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self` (併記: `spec_ambiguity` — 検出器 portability 要件が未定義)
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = win32 portability residual。R-1 in-scope 全 module で cycle=0 / drift=0 実測、実害顕在化なし。仕様検出器 portability 要件の明文化を retro 議題化)
 - **opened_at**: 2026-07-06 (HGA #9 verdict C-N4)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 100-104, 138-144 (存在検査ロジック全般)
@@ -747,7 +790,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning (silent false negative surface / live corpus で 0 実例のため非 blocking)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = R1-053/R1-006 と同 bug class residual。R-G7 全 wave 実測 drift=0 で live corpus に該当実例なし。verify_w_r3 pattern 3 一括再設計を retro 議題化)
 - **opened_at**: 2026-07-07 (HGA #10 verdict 軸 B)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 51 (group3 文字クラス `[A-Za-z0-9._-]+\.md` に `/` を含まない)
@@ -758,7 +801,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info (residual / 実例可能性は極小)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = R1-056 と同一 verify_w_r3 pattern 3 再設計 cluster。R-G7 実測 drift=0 で影響顕在化なし。retro 一括議題化)
 - **opened_at**: 2026-07-07 (HGA #10 verdict 軸 B/C 付随)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 50-52 (IGNORECASE なし / `\.md` 固定), 153-157 (else 分岐 candidate 1)
@@ -769,7 +812,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info (design §5.1 の scope 定義通り / 記録価値)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self` (併記: `spec_ambiguity` — 検査 scope 拡張の要否が未定義)
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = pattern 3 走査対象 scope 拡張要否は spec_ambiguity。R-G7 drift=0 で現状 scope 内 Green State 達成。scope 定義を retro 議題化)
 - **opened_at**: 2026-07-07 (HGA #10 verdict meta)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 138 (走査対象 = docs/internal)
@@ -780,7 +823,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info (R1-053 と無関係の既存事項 / HGA #10 が scope 外検出)
 - **responsibility_tag**: `audit-script`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = gabriel 契約チェック substring 弱検査。実運用で gabriel abort 判定損失 0 件 (R1-062 前身の前倒し closed で対処済 / gabriel-metrics.log 参照)。厳密検査への昇格を retro 議題化)
 - **opened_at**: 2026-07-07 (HGA #10 verdict 付随)
 - **evidence_file**: `.claude/scripts/verify_reference_resolution.py`
 - **evidence_line**: 233
@@ -876,7 +919,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info
 - **responsibility_tag**: `spec-drift`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-15 / W-R5 S1 / SE 級 = `quick-load/SKILL.md` L40 撤回済機能注記削除)
 - **opened_at**: 2026-07-12 (HGA #14 finding F18 / Phase A adversarial review)
 - **evidence_file**: `.claude/skills/quick-load/SKILL.md`
 - **evidence_line**: 40 (`> **注記 (ADR-0008 v0.3 / 2026-06-30)**: 旧 Step 4「モード認知サマリ表示」...`)
@@ -893,7 +936,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Warning
 - **responsibility_tag**: `test-hygiene`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-15 / W-R5 S1 / `os.remove` 5 件 = `debug_regex.py` `debug_regex2.py` `debug_regex3.py` `verify_git_history.py` `_check_tasks.py` 全削除。W-R4 S2 空 Stage 判定で束ね消化が skip されていた置き去り分を W-R5 S1 で回収)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `.claude/tests/dashboard/debug_regex.py`, `debug_regex2.py`, `debug_regex3.py`, `verify_git_history.py`, `_check_tasks.py`
 - **evidence_line**: 全ファイル (5 件)
@@ -1124,7 +1167,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity**: Info
 - **responsibility_tag**: `rules-consistency`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`deferred`** (2026-07-15 / W-R5 S1 / `deferred_reason` = fable-l3-protocol.md × Fable-Alembic SSOT snapshot 機構は R-1 scope 外の設計判断。導入 retro での snapshot 統合方針が第一候補 = retro 議題化)
 - **opened_at**: 2026-07-10 (W-R3 S1 T3 / HGA #13 verdict)
 - **evidence_file**: `.claude/rules/fable-l3-protocol.md`
 - **evidence_line**: §2 参照 SSOT (L38-46) + §5 外部参照体系
@@ -1302,7 +1345,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity_history**: initial Warning (2026-07-06) → Info (2026-07-06 HGA #7 verdict B-1)
 - **responsibility_tag**: `superseded-not-noted`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-15 / W-R5 S1 / Info 降格済 = Wave 完了ゲート影響なし。ADR-0008/0004 supersede 明記の実施は W-R5 retro 議題として引継 = closed with retro-followup)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `docs/adr/0008-approval-gate-redesign.md`, `docs/adr/0004-bash-read-commands-allow-list.md`
 - **evidence_line**: 0008 L10 (関連 ADR: 0005/0006/0007 のみ), L185 (Phase A-6 `security-commands.md` 書き換え記述) / 0004 全文 (34 行 / 0008 前方参照なし)
@@ -1378,7 +1421,7 @@ Fable HGA #7 (2026-07-06) が実測ベースで検出した 3 件の監査プロ
 - **severity_history**: initial Warning (2026-07-06) → Info (2026-07-06 HGA #7 verdict B-2)
 - **responsibility_tag**: `reference-integrity`
 - **attribution**: `self`
-- **status**: `open`
+- **status**: **`closed`** (2026-07-15 / W-R5 S1 / Info 降格済 = Wave 完了ゲート影響なし。CHEATSHEET Rules 一覧完全化は W-R5 retro 議題として引継 = closed with retro-followup)
 - **opened_at**: 2026-07-06
 - **evidence_file**: `CHEATSHEET.md`
 - **evidence_line**: 38-49

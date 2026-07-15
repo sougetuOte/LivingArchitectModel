@@ -135,12 +135,22 @@ def test_gabriel_contract_fields_present_in_agent_md():
 # ---- CLI (エントリーポイント) ----
 
 
+def _utf8_env():
+    """Windows cp932 の em dash / 全角文字 UnicodeEncodeError 回避 (W-R5 S1 追加)."""
+    import os
+
+    env = os.environ.copy()
+    env["PYTHONIOENCODING"] = "utf-8"
+    return env
+
+
 def test_cli_help_exits_zero():
     """--help は rc=0."""
     result = subprocess.run(
         [sys.executable, str(SCRIPTS_DIR / "verify_reference_resolution.py"), "--help"],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        env=_utf8_env(),
     )
     assert result.returncode == 0
     assert "verify_reference_resolution" in result.stdout
@@ -156,7 +166,8 @@ def test_cli_all_wave_runs():
             "all",
         ],
         capture_output=True,
-        text=True,
+        encoding="utf-8",
+        env=_utf8_env(),
     )
     assert result.returncode == 0
     assert "total_drifts" in result.stdout

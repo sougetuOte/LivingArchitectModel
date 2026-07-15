@@ -36,5 +36,3 @@ SESSION_STATE.md の「コンテキスト情報」セクションに記載され
 
 ドキュメントの読み込みは、実際に作業を開始するタイミングで行う。
 **先回りして大量のファイルを読み込まないこと。**
-
-> **注記 (ADR-0008 v0.3 / 2026-06-30)**: 旧 Step 4「モード認知サマリ表示」(`detect-permission-mode.py` 自動実行) は承認 prompt ノイズ過大により撤回。AutoMode 認知は `CLAUDE.md` 冒頭 `## Execution Permission Modes (Advisory)` 等の文書で代替する。ユーザーが手動確認したい場合は `python .claude/scripts/detect-permission-mode.py` を直接実行できる (スクリプト本体は debug 用に温存)。

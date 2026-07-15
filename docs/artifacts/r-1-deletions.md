@@ -114,6 +114,22 @@ boundary_deviations: 2 (scratchpad 内 tmp file / repo 影響なし)
 
 ---
 
+## 4.5. W-R5 S1 追加削除 (R1-030 消化 / 2026-07-15)
+
+W-R4 S2 空 Stage 判定で束ね消化が skip されていた module 4 debug scripts 5 件を W-R5 S1 で回収削除:
+
+- `.claude/tests/dashboard/debug_regex.py`
+- `.claude/tests/dashboard/debug_regex2.py`
+- `.claude/tests/dashboard/debug_regex3.py`
+- `.claude/tests/dashboard/verify_git_history.py`
+- `.claude/tests/dashboard/_check_tasks.py`
+
+**削除経緯**: 未 track (git rm 対象外) → `os.remove` 5 件で削除 → tracker R1-030 closed。
+
+**根拠**: R1-030 evidence_summary (Dead Code cluster / pytest 収集対象外命名だが同ディレクトリ常駐でテスト資産の見通し悪化)。
+
+---
+
 ## 5. 参照
 
 - `docs/artifacts/r-1-usage-baseline-2026-07-11.md` §5 (delete_candidate 9 件 / lam-orchestrate 除外根拠)
