@@ -36,18 +36,20 @@ grep -cE "^- \*\*status\*\*: `wip`"  docs/artifacts/r-1-audit-tracker.md → 0
 
 ### 2.2 deferred 8 件
 
-| ID | severity | deferred_reason 要約 |
-|:---|:-----|:-----|
-| R1-054 | Warning | HGA #9 verdict C-N1 の未文書化 false-positive surface / R-G7 drift=0 で影響顕在化なし / rule-001 と同型の parser drift 予防 rule 化候補 |
-| R1-055 | Warning | win32 portability residual / R-1 in-scope で cycle=0/drift=0 実測 / 検出器 portability 要件の明文化を retro |
-| R1-056 | Warning | R1-053/R1-006 と同 bug class residual / R-G7 全 wave drift=0 / verify_w_r3 pattern 3 一括再設計を retro |
-| R1-057 | Warning | R1-056 と同一 cluster / R-G7 drift=0 |
-| R1-058 | Warning | pattern 3 走査対象 scope 拡張要否は spec_ambiguity / R-G7 scope 内 Green State 達成 |
-| R1-059 | Warning | gabriel 契約 substring 弱検査 / 実運用で abort 判定損失 0 件 (gabriel-metrics.log) |
-| R1-060 | Warning | fable-l3-protocol.md × Fable-Alembic SSOT snapshot 機構は R-1 scope 外の設計判断 |
-| R1-061 | Warning | GitHistoryParser dashboard 系 Task ID regex は R-G7/R-G8 対象外 / dashboard 表示品質の課題として retro |
+**severity 表記修正** (2026-07-18 追記 / gabriel S3-T1 指摘反映): 起票時の主観的重要度予測ではなく **tracker 実測** の severity を SSOT とする。実 tracker では Warning は R1-056 のみ / 他 7 件は Info。
 
-**deferred 昇格条件** (design.md §6.5 準拠): 上記全件、in-scope module の Green State 条件 (Critical / Warning) を block していない (実測 drift=0 / cycle=0) → deferred 適格。
+| ID | severity (実 tracker) | deferred_reason 要約 |
+|:---|:---------------------:|:---------------------|
+| R1-054 | **Info** | HGA #9 verdict C-N1 の未文書化 false-positive surface / R-G7 drift=0 で影響顕在化なし / rule-001 と同型の parser drift 予防 rule 化候補 |
+| R1-055 | **Info** | win32 portability residual / R-1 in-scope で cycle=0/drift=0 実測 / 検出器 portability 要件の明文化を retro |
+| R1-056 | **Warning** | R1-053/R1-006 と同 bug class residual / R-G7 全 wave drift=0 / verify_w_r3 pattern 3 一括再設計を retro |
+| R1-057 | **Info** | R1-056 と同一 cluster / R-G7 drift=0 |
+| R1-058 | **Info** | pattern 3 走査対象 scope 拡張要否は spec_ambiguity / R-G7 scope 内 Green State 達成 |
+| R1-059 | **Info** | gabriel 契約 substring 弱検査 / 実運用で abort 判定損失 0 件 (gabriel-metrics.log) |
+| R1-060 | **Info** | fable-l3-protocol.md × Fable-Alembic SSOT snapshot 機構は R-1 scope 外の設計判断 |
+| R1-061 | **Info** | GitHistoryParser dashboard 系 Task ID regex は R-G7/R-G8 対象外 / dashboard 表示品質の課題として retro |
+
+**deferred 昇格条件** (`requirements.md` L283 準拠 / **2026-07-18 修正**: `design.md §6.5` は存在せず / gabriel S3-T1 指摘 #2 反映): 上記全件、in-scope module の Green State 条件 (Critical / Warning) を block していない (実測 drift=0 / cycle=0) → deferred 適格。Warning 1 件 (R1-056) も drift=0 で block 該当せず。
 
 ---
 

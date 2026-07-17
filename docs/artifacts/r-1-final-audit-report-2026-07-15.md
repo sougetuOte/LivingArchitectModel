@@ -15,6 +15,18 @@
 
 ---
 
+## 0.1. gabriel adversarial verify 結果 (W-R5 S3-T1 / 2026-07-18 追記)
+
+- **verdict**: `refuted` / **severity**: `warning` / **recommended_action**: `proceed` / **confidence**: 0.78
+- **affected_atoms**: `[R-G6, deferred-adequacy, issue-count-drift]`
+- **resolved_action**: `annotate_warning` (下記 3 件の記述精度修正で対応 / **Milestone COMPLETE 判定への影響なし** / gabriel reasoning より "these are 記述精度と仕様トレーサビリティに実害" = §1 の PASS 判定自体は堅い)
+  1. **R-G7 再現性の永続化**: verify 出力を `docs/artifacts/r-1-verify-references-2026-07-18.json` に保存 (§3.2 + §8 参照)
+  2. **§3.6 / §4.1 の仕様参照修正**: `design.md §6.1/§6.5` は存在しないため `requirements.md NFR-1 (L296) / L283` に修正
+  3. **§4.1 deferred severity 表記修正**: 実 tracker 実測 = Warning 1 (R1-056) + Info 7 (旧記述の "全 8 件 Warning" は SESSION_STATE 起点の誤伝播)
+- gabriel-metrics.log 追記済 (§6.2 参照)
+
+---
+
 ## 1. Executive Summary
 
 | 判定条件 | 状況 | 参照 |
@@ -69,7 +81,7 @@
 
 ### 3.2 R-G7 (SSOT 参照解決 = 0 drift)
 
-**再現性確認** (2026-07-18):
+**再現性確認 (永続化アーティファクト)** — `docs/artifacts/r-1-verify-references-2026-07-18.json` (2026-07-18 gabriel S3-T1 併記対応で追加):
 
 ```json
 {
@@ -82,7 +94,7 @@
 }
 ```
 
-W-R5 S1 pre-run (2026-07-15 = SESSION_STATE 記録) と完全一致。
+W-R5 S1 pre-run (2026-07-15 = SESSION_STATE 記録) と完全一致。**JSON アーティファクトを commit することで gabriel 指摘「R-G7 の 2026-07-18 再現性確認が永続化アーティファクトを持たず本セッションから直接裏取り不能」を解消**。
 
 **推移**:
 - R-1 開始時 (2026-07-06): **1 件** (template placeholder 由来 = 実 drift ではない / green-state-baseline.md §R-G7)
@@ -125,7 +137,7 @@ file_count=96 edge_count=109 cycle_count=0
 
 ### 3.6 R-G6 (tracker 全閉塞)
 
-**達成** (W-R5 S1 で確認 / [closure-report §1](./r-1-tracker-closure-report-2026-07-15.md) 参照)
+**達成** (W-R5 S1 で確認 / [closure-report §1](./r-1-tracker-closure-report-2026-07-15.md) 参照 / **定義: `requirements.md` NFR-1 L296 "全 issue が closed または deferred (理由付き) / wip 残存は不可 (FR-2 W-R5 時点扱い準拠)"**)
 
 ```
 open status 残存件数 = 0 ✅
@@ -140,31 +152,34 @@ wip status 残存件数 = 0 ✅
 
 | status | 件数 | 内訳 |
 |:-------|:----:|:-----|
-| **closed** | **73 件** | W-R1〜W-R4 消化 24 件 + Info 45 件相当 (初期 Info の判定除外) + W-R5 S1 消化 4 件 |
-| **deferred** | **8 件** | W-R5 S1 で defer 判断 (deferred_reason 全件付与) |
-| **open** | **0 件** ✅ | R-G6 達成 |
+| **closed (status カラム明示)** | **28 件** | W-R1〜W-R4 消化 24 件 + W-R5 S1 消化 4 件 (tracker §2 脚注 = "closed 24 件除外" + W-R5 S1 追加) |
+| **deferred (deferred_reason 付き)** | **8 件** | W-R5 S1 で defer 判断 (全件 deferred_reason 付与 / §4.1 参照) |
+| **status カラム未使用の Info** | **45 件相当** | tracker §2 「open (closed 24 件除外)」脚注が示す Info 集計対象。Info は `code-quality-guideline.md` により Green State を阻害しない (Critical/Warning のみ blocker) ため status 明示不要 |
+| **open (Critical/Warning)** | **0 件** ✅ | R-G6 達成 |
 | **wip** | **0 件** ✅ | R-G6 達成 |
 
-> **註**: tracker §2 「open (closed 24 件除外)」表記は W-R4 COMPLETE 時点の集計。W-R5 S1 で残 12 issue (Warning 4 + Info 8) が closed 4 + deferred 8 に整理され、open=0 実現。
+> **註 1**: 81 = 28 (closed) + 8 (deferred) + 45 (Info 集計のみ) の内訳。tracker §2 脚注「open (closed 24 件除外)」は W-R4 COMPLETE 時点の集計 (**W-R2 COMPLETE 2026-07-07 の状態を tracker §2 冒頭で表明 → W-R3/R4 進捗を経て W-R5 S1 時点で残 12 issue が消化**)。
+>
+> **註 2** (gabriel S3-T1 指摘反映): W-R5 S1 で消化された残 12 issue の実 severity 内訳は **Warning 2 (R1-030 closed / R1-056 deferred) + Info 10 (R1-062/R1-048/R1-051 closed + R1-054/R1-055/R1-057/R1-058/R1-059/R1-060/R1-061 deferred)** = Warning 2 + Info 10 (旧記述「残 12 = Warning 4 + Info 8」は誤り。tracker 実測を SSOT とする)。
 
 ### 4.1 W-R5 S1 消化内訳 (12 issue = [closure-report §2](./r-1-tracker-closure-report-2026-07-15.md) 参照)
 
 **closed 4 件**: R1-030 (Warning / debug script 5 件削除) / R1-062 (Info / quick-load 撤回済節削除) / R1-048 (Info 降格 / retro 引継) / R1-051 (Info 降格 / retro 引継)
 
-**deferred 8 件** (全件 deferred_reason 付与 / R-G7 drift=0 で影響顕在化なし):
+**deferred 8 件** (全件 deferred_reason 付与 / R-G7 drift=0 で影響顕在化なし / **severity は tracker 実測に修正 = gabriel S3-T1 指摘 #3 反映**):
 
-| ID | severity | deferred_reason 要約 |
-|:---|:---------|:---------------------|
-| R1-054 | Warning | HGA #9 verdict C-N1 未文書化 false-positive surface / R-G7 drift=0 |
-| R1-055 | Warning | win32 portability residual / cycle=0/drift=0 実測 |
-| R1-056 | Warning | R1-053/R1-006 と同 bug class residual / R-G7 全 wave drift=0 |
-| R1-057 | Warning | R1-056 と同一 cluster / R-G7 drift=0 |
-| R1-058 | Warning | pattern 3 走査 scope 拡張は spec_ambiguity / Green State 達成 |
-| R1-059 | Warning | gabriel 契約 substring 弱検査 / 実運用 abort 損失 0 件 (gabriel-metrics.log) |
-| R1-060 | Warning | fable-l3 × Fable-Alembic snapshot 統合は R-1 scope 外 |
-| R1-061 | Warning | GitHistoryParser Task ID regex は R-G7/G8 対象外 / dashboard 表示品質 |
+| ID | severity (実 tracker) | deferred_reason 要約 |
+|:---|:---------------------:|:---------------------|
+| R1-054 | **Info** | HGA #9 verdict C-N1 未文書化 false-positive surface / R-G7 drift=0 |
+| R1-055 | **Info** | win32 portability residual / cycle=0/drift=0 実測 |
+| R1-056 | **Warning** | R1-053/R1-006 と同 bug class residual / R-G7 全 wave drift=0 |
+| R1-057 | **Info** | R1-056 と同一 cluster / R-G7 drift=0 |
+| R1-058 | **Info** | pattern 3 走査 scope 拡張は spec_ambiguity / Green State 達成 |
+| R1-059 | **Info** | gabriel 契約 substring 弱検査 / 実運用 abort 損失 0 件 (gabriel-metrics.log) |
+| R1-060 | **Info** | fable-l3 × Fable-Alembic snapshot 統合は R-1 scope 外 |
+| R1-061 | **Info** | GitHistoryParser Task ID regex は R-G7/G8 対象外 / dashboard 表示品質 |
 
-**deferred 適格判定** (design.md §6.5): 全 8 件 in-scope module の Green State 条件 (Critical / Warning) を block していない (実測 drift=0 / cycle=0) → deferred 適格。
+**deferred 適格判定** (**`requirements.md` L283**: 「`deferred` から Wave 内 `open` への昇格は "in-scope モジュールの Green State 条件 (Critical / Warning) を block する場合" のみ (二値・機械判定 / MAGI 呼ぶ余地なし)」): 全 8 件 in-scope module の Green State 条件を block していない (実測 drift=0 / cycle=0) → deferred 適格。**Warning 1 件 (R1-056) も drift=0 実測で block 該当せず**。
 
 ### 4.2 W-R5 S4 retro 議題引継リスト
 
@@ -264,6 +279,7 @@ W-R5 S4 で処理予定 (closure-report §7 と一致):
 | 5 | `docs/artifacts/r-1-deletions.md` | 削除履歴 (skills 8 件 + W-R5 S1 debug script 5 件) |
 | 6 | `docs/artifacts/r-1-inventory-2026-07-15.json` | inventory 最新 (R-G8 入力) |
 | 7 | `docs/artifacts/r-1-cycles-2026-07-18.json` | 循環依存検出結果 (S2 再現性確認) |
+| 7b | `docs/artifacts/r-1-verify-references-2026-07-18.json` | R-G7 SSOT 参照 drift 検出結果 (S3-T1 gabriel 指摘反映で追加) |
 | 8 | `docs/specs/large-scale-review/{requirements,design,tasks}.md` | R-1 仕様 SSOT |
 | 9 | `docs/artifacts/retro-R1-W1-S1S2-2026-07-06.md` / `retro-R1-W4-S3-2026-07-13.md` | Wave 別 retro (S4 集計素材) |
 | 10 | `docs/artifacts/hga-summon-log.md` | HGA 召喚記録 (§6.1 集計元) |
@@ -277,3 +293,4 @@ W-R5 S4 で処理予定 (closure-report §7 と一致):
 | 日付 | 変更者 | 内容 |
 |:-----|:-------|:-----|
 | 2026-07-15 | L1 (Opus 4.7) | 初版起票 (W-R5 S2-T3 / verify 再現性確認 = 2026-07-18) |
+| 2026-07-18 | L1 (Opus 4.7) + gabriel | S3-T1 gabriel verdict=refuted×warning×proceed 反映: §0.1 追記 / §3.2 R-G7 永続化 JSON 参照 / §3.6 R-G6 定義参照を requirements.md NFR-1 に訂正 / §4 内訳表を tracker 実測に整合 / §4.1 deferred severity 表を tracker 実測 (Warning 1 + Info 7) に訂正 / §8 参照 7b 追加 |
