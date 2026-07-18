@@ -56,13 +56,6 @@ python -m pytest \
 - 対象操作: `Edit` / `Write`
 - 適用者: L1 / L2 (Sonnet 委譲経路含む)
 
-### R-1 期のみの追加項目 (2026-07-05〜R-1 完了 / design §8.2 準拠)
-
-- セッション断絶時の復旧チェックリストに以下を追加:
-  - `docs/artifacts/r-1-audit-tracker.md` の存在確認 (破損時は requirements.md §4.1 手順で git log から復元)
-  - `.claude/gabriel-metrics.log` の JSONL 整合性確認 (retry_count 連番の欠損確認)
-- R-1 Milestone COMPLETE 後に本節を削除 (PM 級承認要 / W-R5 S4 T3 で最終操作として順序固定)
-
 ## 権限等級
 
 - 本ルールの改訂・削除: **PM 級**（`trust-model.md` 準拠）
