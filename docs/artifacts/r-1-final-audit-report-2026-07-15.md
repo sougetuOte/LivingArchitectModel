@@ -158,7 +158,7 @@ wip status 残存件数 = 0 ✅
 | **open (Critical/Warning)** | **0 件** ✅ | R-G6 達成 |
 | **wip** | **0 件** ✅ | R-G6 達成 |
 
-> **註 1**: 81 = 28 (closed) + 8 (deferred) + 45 (Info 集計のみ) の内訳。tracker §2 脚注「open (closed 24 件除外)」は W-R4 COMPLETE 時点の集計 (**W-R2 COMPLETE 2026-07-07 の状態を tracker §2 冒頭で表明 → W-R3/R4 進捗を経て W-R5 S1 時点で残 12 issue が消化**)。
+> **註 1**: 81 = 28 (closed) + 8 (deferred) + 45 (Info 集計のみ) の内訳。tracker §2 脚注「open (closed 24 件除外)」は **W-R2 COMPLETE 時点 (2026-07-07)** の集計 (tracker §2 冒頭表明)。以降 W-R3/R4 で追加 closed が積み上がり、W-R5 S1 時点で残 12 issue が closed 4 + deferred 8 に整理された。**(engineering /code-review W1 訂正 2026-07-18: 旧記述「W-R4 COMPLETE 時点」は tracker 冒頭表記と不整合)**。
 >
 > **註 2** (gabriel S3-T1 指摘反映): W-R5 S1 で消化された残 12 issue の実 severity 内訳は **Warning 2 (R1-030 closed / R1-056 deferred) + Info 10 (R1-062/R1-048/R1-051 closed + R1-054/R1-055/R1-057/R1-058/R1-059/R1-060/R1-061 deferred)** = Warning 2 + Info 10 (旧記述「残 12 = Warning 4 + Info 8」は誤り。tracker 実測を SSOT とする)。
 
