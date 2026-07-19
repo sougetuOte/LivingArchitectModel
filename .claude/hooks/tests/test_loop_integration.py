@@ -12,12 +12,12 @@ import datetime
 import json
 from pathlib import Path
 
-from conftest import make_default_state, write_state as _write_state
+from loop_state_helpers import make_default_state, write_state as _write_state
 
 # テスト対象フックのパス
 STOP_HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 
-# 状態ファイルのデフォルト構造（共通定義は conftest.make_default_state に集約・W2-6）
+# 状態ファイルのデフォルト構造（共通定義は loop_state_helpers.make_default_state に集約・W2-6）
 DEFAULT_STATE = make_default_state(command="full-review", target="src/")
 
 DEFAULT_INPUT = {

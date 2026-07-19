@@ -330,18 +330,30 @@ class TestSmallTaskRoute:
         content = lessons_file.read_text(encoding="utf-8")
         assert "gd-small-001" in content
 
-    def test_small_task_grader_only_input_flag(self, tmp_path: Path) -> None:
-        """--small-task フラグで grader ログのみ処理できる（SKILL.md フロー[8] 対応）。"""
+    def test_small_task_route_has_no_is_small_task_param(self, tmp_path: Path) -> None:
+        """distill() に is_small_task パラメータが存在しないこと（R1-007 regression guard）。
+
+        小タスクルート分岐は distill() 内部ではなく caller 側（SKILL.md フロー[8] の
+        コマンド組み立て = grader ログのみを渡す）で完結する（design §9.1）。
+        R1-007 で dead code の is_small_task パラメータは除去済み。
+        再導入は同 issue の再発なので、シグネチャに含まれないことを guard する。
+        """
+        import inspect
+
+        sig = inspect.signature(distill_lessons.distill)
+        assert "is_small_task" not in sig.parameters, (
+            "distill() に is_small_task が再導入されている（R1-007 で dead code として"
+            "除去済み / 小タスクルートは caller 側で完結する: design §9.1）"
+        )
+
+        # 小タスクルートの実体 = grader ログのみを入力にしても正常動作する
         lessons_dir = _make_lessons_dir(tmp_path)
         log_path = _write_grader_log(tmp_path, task_id="gd-small-002", overall="pass")
-
-        # is_small_task=True でも正常動作する
         distill_lessons.distill(
             task_id="gd-small-002",
             grader_log_paths=[str(log_path)],
             lessons_path=lessons_dir / "lessons.md",
             verified=None,
-            is_small_task=True,
         )
 
         lessons_file = lessons_dir / "lessons.md"

@@ -8,6 +8,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -17,6 +19,7 @@ from r1_cycle_detect import (  # noqa: E402
     build_file_registry,
     build_graph,
     detect_cycles,
+    resolve_inventory_path,
 )
 
 
@@ -147,6 +150,53 @@ def test_build_graph_resolves_absolute_dotted():
     graph = build_graph(fake_inv, reg)
     deps = graph[".claude/scripts/build_dashboard.py"]
     assert ".claude/scripts/dashboard/builder.py" in deps
+
+
+def test_resolve_inventory_path_returns_explicit_when_given(tmp_path):
+    """--inventory 明示指定時はそのパスをそのまま返す (glob/today探索なし)."""
+    explicit = str(tmp_path / "custom-inventory.json")
+    result = resolve_inventory_path(
+        explicit, today_str="2026-07-18", artifacts_dir=str(tmp_path)
+    )
+    assert result == explicit
+
+
+def test_resolve_inventory_path_returns_today_file_when_exists(tmp_path):
+    """today 日付のファイルが存在すればそれを優先して返す."""
+    today_file = tmp_path / "r-1-inventory-2026-07-20.json"
+    today_file.write_text("{}", encoding="utf-8")
+    older_file = tmp_path / "r-1-inventory-2026-07-18.json"
+    older_file.write_text("{}", encoding="utf-8")
+
+    result = resolve_inventory_path(
+        None, today_str="2026-07-20", artifacts_dir=str(tmp_path)
+    )
+    assert result == str(today_file)
+
+
+def test_resolve_inventory_path_falls_back_to_latest_when_today_missing(tmp_path):
+    """today 日付のファイルがない場合、最新日付の inventory に fallback する."""
+    (tmp_path / "r-1-inventory-2026-07-14.json").write_text("{}", encoding="utf-8")
+    latest_file = tmp_path / "r-1-inventory-2026-07-18.json"
+    latest_file.write_text("{}", encoding="utf-8")
+    (tmp_path / "r-1-inventory-2026-07-16.json").write_text("{}", encoding="utf-8")
+
+    result = resolve_inventory_path(
+        None, today_str="2026-07-20", artifacts_dir=str(tmp_path)
+    )
+    assert result == str(latest_file)
+
+
+def test_resolve_inventory_path_raises_clear_error_when_no_candidates(tmp_path):
+    """候補が 1 件もない場合、探索パターンと --inventory 指定を促すエラーを送出する."""
+    with pytest.raises(FileNotFoundError) as exc_info:
+        resolve_inventory_path(
+            None, today_str="2026-07-20", artifacts_dir=str(tmp_path)
+        )
+    message = str(exc_info.value)
+    assert "r-1-inventory-2026-07-20.json" in message
+    assert "r-1-inventory-*.json" in message
+    assert "--inventory" in message
 
 
 def test_build_graph_ignores_stdlib():

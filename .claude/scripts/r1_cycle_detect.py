@@ -15,6 +15,7 @@ Refs:
 from __future__ import annotations
 
 import argparse
+import glob
 import json
 import os
 import sys
@@ -192,15 +193,57 @@ def detect_cycles(graph: dict[str, set[str]]) -> list[list[str]]:
     return cycles
 
 
+def resolve_inventory_path(
+    explicit: Union[str, None],
+    today_str: str,
+    artifacts_dir: str = "docs/artifacts",
+) -> str:
+    """--inventory 未指定時のデフォルト解決.
+
+    1. explicit が指定されていればそのまま返す（探索なし）
+    2. today 日付の inventory ファイルが存在すればそれを返す
+    3. 存在しなければ artifacts_dir 内の r-1-inventory-*.json を glob し、
+       ファイル名の日付（YYYY-MM-DD、辞書順 = 時系列順）が最新のものを返す
+    4. 候補が 1 件もなければ、探索パターンと --inventory 指定を促す
+       FileNotFoundError を送出する
+    """
+    if explicit:
+        return explicit
+
+    today_path = os.path.join(artifacts_dir, f"r-1-inventory-{today_str}.json")
+    if os.path.exists(today_path):
+        return today_path
+
+    pattern = os.path.join(artifacts_dir, "r-1-inventory-*.json")
+    candidates = glob.glob(pattern)
+    if not candidates:
+        raise FileNotFoundError(
+            f"No R-1 inventory file found. Tried '{today_path}' and "
+            f"fallback pattern '{pattern}', but no matches exist. "
+            f"Specify --inventory explicitly to point at an inventory JSON."
+        )
+
+    prefix = "r-1-inventory-"
+
+    def _inventory_date_key(path: str) -> str:
+        stem = Path(path).stem
+        return stem[len(prefix):] if stem.startswith(prefix) else stem
+
+    candidates.sort(key=_inventory_date_key)
+    return candidates[-1]
+
+
 def main(argv: Union[list[str], None] = None) -> int:
     parser = argparse.ArgumentParser(description="R-1 W-R1 S1 T3 cycle detector")
     parser.add_argument("--inventory", default=None,
-                        help="Path to inventory JSON (default: today's)")
+                        help="Path to inventory JSON (default: today's file, "
+                             "falling back to the most recent "
+                             "docs/artifacts/r-1-inventory-*.json)")
     parser.add_argument("--output", default=None,
                         help="Output JSON path (default: docs/artifacts/r-1-cycles-<today>.json)")
     args = parser.parse_args(argv)
 
-    inv_path = args.inventory or f"docs/artifacts/r-1-inventory-{date.today().isoformat()}.json"
+    inv_path = resolve_inventory_path(args.inventory, date.today().isoformat())
     inv = load_inventory(inv_path)
 
     registry = build_file_registry(inv)

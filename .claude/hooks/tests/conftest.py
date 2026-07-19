@@ -98,34 +98,6 @@ def hook_runner(project_root: Path, hook_utils):
     return run_hook
 
 
-def make_default_state(
-    *,
-    command: str = "test_command",
-    target: str = "test_target",
-    active: bool = True,
-    iteration: int = 0,
-    max_iterations: int = 5,
-    started_at: str = "2026-03-10T00:00:00Z",
-) -> dict:
-    """テスト用 lam-loop-state.json のデフォルト構造を生成するファクトリ（W2-6）。
-
-    共通フィールド（active/iteration/max_iterations/started_at/log）を集約し、
-    テスト固有の command/target のみ呼び出し側で指定する。各テストファイルに
-    重複していた DEFAULT_STATE 定義を一本化するための共有ヘルパー。
-    """
-    return {
-        "active": active,
-        "iteration": iteration,
-        "max_iterations": max_iterations,
-        "command": command,
-        "target": target,
-        "started_at": started_at,
-        "log": [],
-    }
-
-
-def write_state(project_root: Path, state: dict) -> Path:
-    """テスト用の lam-loop-state.json を書き込む共通ヘルパー。"""
-    state_file = project_root / ".claude" / "lam-loop-state.json"
-    state_file.write_text(json.dumps(state), encoding="utf-8")
-    return state_file
+# make_default_state / write_state は loop_state_helpers.py へ移動 (2026-07-20)。
+# `from conftest import ...` は統合 pytest 実行時に他 test root の conftest に
+# shadow されるため、一意 basename モジュールからの import に統一した。

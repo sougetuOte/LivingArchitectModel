@@ -16,7 +16,7 @@ if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 from _hook_utils import build_allowlisted_env  # noqa: E402
-from conftest import write_state  # noqa: E402  # I-4: モジュールトップレベルへ移動
+from loop_state_helpers import write_state  # noqa: E402  # I-4: モジュールトップレベルへ移動
 
 HOOK_PATH = Path(__file__).resolve().parent.parent / "lam-stop-hook.py"
 

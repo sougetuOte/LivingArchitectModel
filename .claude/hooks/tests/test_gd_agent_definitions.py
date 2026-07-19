@@ -225,20 +225,22 @@ class TestGraderModelHaiku:
 
 
 class TestL3ExecutorEffortDefault:
-    """W2-T1 完了条件 [9][=W6-T2 確認]: l3-executor のフロントマターに effort: default が含まれる（design §11 / §12）。"""
+    """R1-036 regression guard: l3-executor のフロントマターに effort フィールドが存在しないこと。
 
-    def test_l3_executor_effort_default(self):
-        """l3-executor のフロントマターに effort: default があること。"""
+    旧 W2-T1 完了条件 [9] は `effort: default` の存在を要求していたが、`default` は
+    Claude Code の有効値ではないため 2026-07-14 (R1-036) に指定自体が撤回された
+    （design §12 の撤回注記参照）。本テストは撤回後の状態を guard する。
+    """
+
+    def test_l3_executor_effort_absent(self):
+        """l3-executor のフロントマターに effort フィールドが無いこと（R1-036 撤回準拠）。"""
         content = _L3_EXECUTOR_PATH.read_text(encoding="utf-8")
         fm = _parse_frontmatter(content)
 
-        assert "effort" in fm, (
-            "l3-executor のフロントマターに effort フィールドが存在しない\n"
-            "design §12 の FR-8 対応として effort: default が必要"
-        )
-        assert fm["effort"] == "default", (
-            f"l3-executor の effort は default でなければならない（design §11 / §12）。\n"
-            f"effort フィールドの値: {fm['effort']!r}"
+        assert "effort" not in fm, (
+            "l3-executor のフロントマターに effort フィールドが再導入されている。\n"
+            "R1-036 (2026-07-14) で `effort: default` は無効値として撤回済み"
+            "（design §12 撤回注記）。再導入する場合は design 側の更新が先。"
         )
 
 

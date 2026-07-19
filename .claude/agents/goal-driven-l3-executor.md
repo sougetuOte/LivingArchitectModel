@@ -24,7 +24,8 @@ rubric.md に示された検証項目を満たすよう実装・テストを行�
 ## 注意事項（Dynamic Workflows 禁止）
 
 本エージェントは Dynamic Workflows を使用しない。
-`effort: default` が明示されており、`ultracode`（xhigh）への自動昇格を防ぐ（design §12 / FR-8）。
+effort の明示指定は行わない（旧 `effort: default` は無効値のため R1-036 / 2026-07-14 に撤回 —
+design §12 撤回注記参照）。xhigh への昇格指定をしないこと自体が防御となる（design §12 / FR-8）。
 
 `"ultracode"`、`"use a workflow"` 等のキーワードを使用してはならない（MUST NOT）。
 
@@ -116,7 +117,7 @@ rubric.md の検証項目に従い、以下を実施する:
 - **自律 spawn 禁止**: tools に Agent を持たないため、他エージェントを起動できない（FR-7 / AC-6）
 - **rubric 起動時再読み込み**: 起動時に必ず rubric.md を Read で再読み込みする（design §6 P-4）
 - **自己申告禁止**: grader 種別の rubric 項目は「完了」と自己申告しない。grader が判定する
-- **Dynamic Workflows 禁止**: `effort: default` 設定済み。xhigh への昇格禁止（design §12）
+- **Dynamic Workflows 禁止**: xhigh への昇格指定禁止（design §12 / effort 明示指定は R1-036 で撤回済み）
 
 ---
 
