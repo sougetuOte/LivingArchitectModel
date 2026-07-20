@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING** (**R-1 BUILDING 着手 / W-R1 S1 開始判断待ち**)
+**PLANNING** (**R-2 起票 / requirements 起草中**)
 
-_R-1 BUILDING 遷移 (2026-07-06)。全 3 spec Approved 確認済 (requirements/design/tasks)。W-R1 S1 (T1..T6) から開始予定 = inventory + G1-G5 baseline + rule-001 拡張前倒し + verify script + 循環依存 baseline。開始 task はユーザー判断待ち。_
+_R-2 PLANNING 遷移 (2026-07-20 / ユーザー起票指示)。素材 = `docs/artifacts/r-2-planning-material-2026-07-20.md` (retro-R1 Try 23 件)。HGA #15 (spec 初期無条件召喚 / 2 段召喚) → requirements 起草 → spec-critic → 承認ゲートの順。T15 は R-2 スコープ内 PM 級判定として組込 (ユーザー同意済 2026-07-20)。_
 
 ## 履歴
 
@@ -15,7 +15,8 @@ _R-1 BUILDING 遷移 (2026-07-06)。全 3 spec Approved 確認済 (requirements/
 | PLANNING | 2026-06-28 | 2026-07-02 | Wave 8+ PLANNING（D → B → A → C 順 / 4 件 design + tasks 全て Phase 6 PM 一括承認） |
 | BUILDING | 2026-07-04 | 2026-07-05 | B-5 BUILDING 完走（Wave 8 全 Stage + gabriel Wave C 全 Stage / 487 PASS + 14 SKIP / retro 完了 / B-5 Milestone COMPLETE / HEAD 93032da） |
 | PLANNING | 2026-07-05 | 2026-07-05 | R-1 PLANNING 完了（大規模レビュー & リファクタリング / requirements + design + tasks 全 Approved / MAGI+gabriel+HGA+spec-critic 3 段 adversarial 検証済 / 5 Wave × 87 Task 展開） |
-| **BUILDING** | **2026-07-06** | **-** | **R-1 BUILDING 遷移（W-R1 S1 T1..T6 開始判断待ち / Fable-authored spec を Opus が実装する最初の実測機会 → Fable→Opus 実装ギャップ観測対象）** |
+| BUILDING | 2026-07-06 | 2026-07-18 | R-1 BUILDING〜AUDITING 完走（5 Wave / 589 PASS / Milestone COMPLETE 2026-07-18 / retro 済） |
+| **PLANNING** | **2026-07-20** | **-** | **R-2 PLANNING 起票（retro-R1 Try 23 件素材 / HGA #15 crux-scoping から開始）** |
 
 ---
 
