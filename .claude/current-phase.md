@@ -1,8 +1,8 @@
 # Current Phase
 
-**PLANNING** (**M-1 PLANNING 着手 / requirements 起票中**)
+**BUILDING** (**M-1 W0 着手 / 計器較正 → ベースライン測定**)
 
-_R-2 Wave 1 完走 (2026-07-25 / `2ac4e91` / pytest 1043 PASS / W1 末ゲート FR-15 全クリア) を受け、ユーザー決定 3 (W2/W3 に入る前に M-1 統合再スコープ) に従い M-1 PLANNING へ遷移。M-1 = 条項トリアージ + モデルロスター SSOT + 3 層安全網 (ADR-0011 Accepted / 決定 5 件 + Wave 骨子 W0-W4)。requirements → design → tasks の順に承認ゲートを通す。R-2 W2/W3 は M-1 W1 トリアージ表の承認後に再スコープ。_
+_M-1 PLANNING 完了 (2026-07-25 / requirements + design + tasks 全 Approved / 33 Task + 安定性ゲート 1)。M-1 = 条項トリアージ + モデルロスター SSOT + 3 層安全網 (ADR-0011 Accepted / 決定 5 件 + Wave 骨子 W0-W4)。W0 は **W0-M1-T1 (委譲 TDD 記録盲点の probe) → T2 (機構修正) → T3 (ベースライン 6 項目)** の順序制約を厳守する (計器が盲目のまま測ると W0 と W4 の差分が委譲率の副産物になる / tasks.md §2 制約 2)。R-2 W2/W3 は M-1 W1 トリアージ表の承認後に再スコープ。_
 
 ## 履歴
 
@@ -18,7 +18,8 @@ _R-2 Wave 1 完走 (2026-07-25 / `2ac4e91` / pytest 1043 PASS / W1 末ゲート 
 | BUILDING | 2026-07-06 | 2026-07-18 | R-1 BUILDING〜AUDITING 完走（5 Wave / 589 PASS / Milestone COMPLETE 2026-07-18 / retro 済） |
 | PLANNING | 2026-07-20 | 2026-07-21 | R-2 PLANNING 完了（requirements + design + tasks 全 Approved / HGA #15/#16 + spec-critic 3 段検証 / 22 Task + 最終検証 1） |
 | BUILDING | 2026-07-21 | 2026-07-25 | R-2 BUILDING Wave 1 完走（T4〜T8 / 5 commit / pytest 1043 PASS / W1 末ゲート FR-15 全クリア / HEAD `2ac4e91`）。W2/W3 は M-1 統合再スコープ待ちで中断 |
-| **PLANNING** | **2026-07-25** | **-** | **M-1 PLANNING 着手（ADR-0011 Accepted 起点 / requirements 起票中）** |
+| PLANNING | 2026-07-25 | 2026-07-25 | M-1 PLANNING 完了（ADR-0011 Accepted 起点 / requirements + design + tasks 全 Approved / 33 Task + 安定性ゲート 1 / Red 7 件クローズ） |
+| **BUILDING** | **2026-07-25** | **-** | **M-1 W0 着手（計器較正 → ベースライン測定 6 項目 → 台帳スケルトン / upstream 裏取り / ADR-0001 突合）** |
 
 ---
 
