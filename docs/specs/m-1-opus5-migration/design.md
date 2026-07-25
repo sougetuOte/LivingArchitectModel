@@ -5,7 +5,7 @@
 | 項目 | 内容 |
 |:-----|:-----|
 | Milestone | M-1 |
-| ステータス | Draft (承認待ち) |
+| ステータス | **Approved** (2026-07-25 / ユーザー承認 / 承認前修正 2 点 + 承認前レビュー 4 点を反映後) |
 | 作成日 | 2026-07-25 |
 | 更新日 | 2026-07-25 |
 | 親仕様 | `docs/specs/m-1-opus5-migration/requirements.md`（Approved 2026-07-25） |
@@ -13,6 +13,8 @@
 | SSOT | 本ファイル |
 | 起草者 | design-architect subagent（L1 委譲） |
 | L1 検収 | 2026-07-25 / 3 点修正: §4.1 項目 4 の gabriel verdict 集計を実スキーマ（`gabriel_output.verdict` / `invoked=false` は null）に合わせ既存 jq 集計例へ差替 / §4.1 項目 2 の Green State プロキシを Wave 末ゲート記録の Critical・Warning 件数へ変更 / §8.3 に配布実行の承認ゲートを追加 |
+| 承認前修正 | 2026-07-25 / retro（`docs/artifacts/retro-R2-W1-M1-PLANNING-2026-07-25.md`）反映 2 点: (a) §5.3 をトリアージ入力の 2 カテゴリ構成へ拡張し retro 由来の新規条項候補 3 件を明示入力化 / (b) §4.1 項目 3 に計器盲点の注記を追加し §4.5（TDD パターン記録機構の較正）を W0 に新設。波及同期: §3.1 / §3.3 / §10.1 / §10.2 |
+| 承認前レビュー | 2026-07-25 / **design 記載のコマンドを実行して検証**（F4 #1「作った層と別の層で確認する」）。Critical 2 件・Warning 2 件を修正: **C1** §7.2 の判定式が最優先対象 `full-review`（951 行）を取りこぼす欠陥 → `references/` ディレクトリ実在判定へ変更し実測 9 件を記載、W3 スコープを上位 4 件に確定 / **C2** §7.3 の代理指標が言及数 ≠ 起動実績（盲目の計器）かつ実行前に分岐が確定 → `agent-memory` 証跡 + 責務重複度の 2 指標へ差替 / **W1** §4.4 が引き継いでいた requirements FR-20 の実測値誤り（sonnet 8 / 不明 1 → 実測は sonnet 9 / 不明 0）を訂正 / **W2** §5.1 に条項数の参考実測（51 行ヒット = 数十条項オーダー）を追加 |
 
 ---
 
@@ -50,7 +52,8 @@ requirements.md §1.3 の Non-Goals をそのまま設計視点で継承する:
 
 ```
 W0 準備
-  ベースライン測定(6項目) → 削減台帳の器（空スケルトン）作成
+  TDD パターン記録機構の較正（計器の盲点修正 / §4.5）  ← ベースライン測定に先行
+  → ベースライン測定(6項目) → 削減台帳の器（空スケルトン）作成
   → upstream 一次資料の裏取り（Opus 5 / Fable 5）→ ADR-0001 突合
       ↓（第 1 層＝ベースライン測定の完了が W2 着手の前提条件 / FR-8）
 W1 トリアージ（判定のみ・適用しない）
@@ -127,7 +130,10 @@ W1 は PM 級ファイルの編集を伴わないため、K5 一括宣言の対�
     └──▶ [trust-model.md への接続]（削減台帳の条項を検出イベント対象に含める / §6.6 / FR-9）
 ```
 
-R-2 W2/W3 の予定条項 3 件（§5.3）は「条項抽出」段階の追加入力としてトリアージ表に組み込まれ、同一パイプラインを通過する。判定結果の 3 分岐（実施 / 圧縮形で実施 / スキップ）への写像は §6.5 で定義する。
+「条項抽出」段階には、上記 3 ファイルの既存条項に加えて **2 つの追加入力カテゴリ**（いずれも §5.3 / 未執筆条項）が合流し、同一パイプラインを通過する。
+
+- **(i) R-2 W2/W3 の予定条項 3 件**（FR-21 前段）— 判定結果の 3 分岐（実施 / 圧縮形で実施 / スキップ）への写像は §6.5 で定義する
+- **(ii) retro 由来の新規条項候補 3 件** — 対象ファイルが W1 主対象 3 ファイルの外にあるため明示入力とする
 
 ### §3.4 Wave 末ベースライン測定（FR-8 全 Wave 適用）
 
@@ -154,7 +160,7 @@ bash .claude/scripts/py_invoke.sh -m pytest
 |:-:|:-----|:---------|
 | 1 | pytest 全数 | `bash .claude/scripts/py_invoke.sh -m pytest` を実行し、出力末尾の PASS/FAIL/SKIP 件数をそのまま記録する。W0 起点は NFR-3 が既に確定した R-2 W1 末実績（commit `2ac4e91` / 1043 passed + 14 skipped）であり、W0 ではこの値を同一コマンドで再実測し確定させる |
 | 2 | Green State 件数 | 直近の Wave 末ゲート記録に記載された Critical / Warning の件数を転記する（`code-quality-guideline.md` の Green State = Critical 0 かつ Warning 0）。W0 起点は R-2 W1 末ゲート（2026-07-25 / commit `2ac4e91`）の記録を用いる。Green State 判定を一元集計する既存機構は存在しないため、各 Wave 末ゲート記録を唯一の情報源とし、新規の集計機構を追加しない（NFR-2 準拠） |
-| 3 | `tdd-patterns.log` FAIL→PASS 率 | `.claude/tdd-patterns.log` を対象に、`trust-model.md` §パターン照合ロジックと同一の手順（`/retro` Step 2.5 のペアリングロジック: 同一テスト名・時系列順で FAIL 直後の PASS を遷移として数える）を手動実行し、全 FAIL エントリ数に対する遷移ペア数の比率を記録する。新規スクリプトは追加しない（NFR-2 準拠） |
+| 3 | `tdd-patterns.log` FAIL→PASS 率 | `.claude/tdd-patterns.log` を対象に、`trust-model.md` §パターン照合ロジックと同一の手順（`/retro` Step 2.5 のペアリングロジック: 同一テスト名・時系列順で FAIL 直後の PASS を遷移として数える）を手動実行し、全 FAIL エントリ数に対する遷移ペア数の比率を記録する。新規スクリプトは追加しない（NFR-2 準拠）。**計器の既知の盲点（2026-07-25 retro §3 で実測確定）**: 本ログは委譲 TDD（Sonnet subagent 内の Red-Green）を記録しない。同日 4 つの TDD Task に対し記録は 0 件だった。M-1 の各 Wave も委譲で進むため、盲点を残したまま W0 と W4 を比較しても差分は条項トリアージの効果ではなく委譲率の副産物になる。よって **§4.5 の計器較正を本項目の測定に先行させる**。§4.5 で盲点が解消しない場合、本項目は参考値扱いとし DoD-4 の判定条件から除外する（除外の判断と理由を `docs/artifacts/m-1-baseline-w0.md` に記録する） |
 | 4 | gabriel verdict 分布 | `docs/artifacts/gabriel-metrics-environment-2026-07-05.md` §集計例が既に定義している jq コマンド（`jq -c 'select(.gabriel_output.verdict=="refuted")' .claude/gabriel-metrics.log \| wc -l` の形式）をそのまま用い、`confirmed` / `refuted` / `inconclusive` の 3 値の件数と `invoked=true` の総数を記録する。**`verdict` は最上位キーではなく `gabriel_output` 配下にネストしており、`invoked=false`（`skip_lightweight` / `skip_opt_out`）の entry では `gabriel_output=null` となる**（同文書 §2 gate 経路別 nullable 判定）ため、`invoked=true` の entry のみを母数とする。新規集計スクリプトは追加しない（NFR-2 準拠） |
 | 5 | PM 級ダイアログ発火数 | 自動集計機構が存在しない（`.claude/.session-pm-edit-cache.json` はセッションスコープで gitignore 対象のため永続比較に使えない）。各 Wave の K5 宣言・承認記録（FR-3 が要求する `SESSION_STATE.md` 上の記録、Wave 完了後は Milestone retro に永続化）から手動集計する。W0 時点は M-1 着手前のためゼロを記録する |
 | 6 | `CLAUDE.md` + `rules` トークン数 | `cat CLAUDE.md .claude/rules/*.md .claude/rules/*/*.md \| wc -m` の文字数をそのまま近似値として記録する。真のトークナイザ値ではなく、W0 と W4 で同一手法（文字数ベース）を用いた相対比較にのみ使用する |
@@ -182,9 +188,32 @@ grep -n "^model:" .claude/agents/*.md
 ```
 
 1. 上記コマンドで `.claude/agents/*.md` 全 12 ファイルの `model:` frontmatter 値を一覧化する
-2. ADR-0001 §改訂履歴の記述（「12 agents で `command|sonnet|haiku|fable` 混在指定」）と実測値を突合する。requirements.md FR-20 に記載された直近実測（2026-07-25 時点: sonnet 8 / haiku 3 / 不明 1、`fable` 指定は未検出）は W0 実行時点で再確認し、ファイル変更による差分がないかを確かめる
+2. ADR-0001 §改訂履歴の記述（「12 agents で `command|sonnet|haiku|fable` 混在指定」）と実測値を突合する。
+
+   **design レビュー時の実測（2026-07-25 / 上記コマンドを実行）**: `.claude/agents/*.md` は 12 ファイル、うち 12 ファイルすべてが `^model:` を持ち、内訳は **`sonnet` 9 / `haiku` 3 / 不明 0**。`command` および `fable` の指定は未検出。
+
+   この実測は 2 つの不一致を示す。(i) requirements.md FR-20 の説明にある「sonnet 8 / haiku 3 / **不明 1**」は実測と一致しない（`sonnet` が 1 件少なく、実在しない「不明 1」を含む）。(ii) ADR-0001 §改訂履歴が記述する `command` / `fable` の混在は現在の実ファイルに存在しない（= ADR-0001 側の drift）。W0 実行時に本実測を再確認した上で、requirements FR-20 説明文の訂正と ADR-0001 の扱いを併せて PM 級判断へ上げる
 3. 不一致が確認された場合、ADR-0001 への時点注記追加、または実ファイル修正のいずれかを PM 級判断で決定する
 4. 判定結果を `docs/artifacts/m-1-baseline-w0.md` に記録する
+
+### §4.5 TDD パターン記録機構の較正（FR-8 前提作業 / §4.1 項目 3 に先行）
+
+**背景**: 2026-07-25 の retro（`docs/artifacts/retro-R2-W1-M1-PLANNING-2026-07-25.md` §3）で、`.claude/tdd-patterns.log` が委譲 TDD を記録しないことが観測で確定した。同日 4 つの TDD Task（W1-R2-T4 / T5 / T6 / T8）が Red-Green サイクルを回したにもかかわらず記録は 0 件であり、原因は次の 2 経路のいずれか（または両方）に絞られたが、既存の成果物からは切り分けできていない（寄与は未確認）。
+
+- **経路 (a)**: subagent の Bash 呼び出しで PostToolUse hook が発火しない
+- **経路 (b)**: 並列 subagent が `-o addopts=""`（`docs/daily/2026-06-02.md` で共有 XML の clobber 回避として規約化済）を使うため JUnit XML が更新されず、hook が前回の green XML を読む
+
+経路 (b) が成立する場合、記録の欠落だけでなく**古い XML に残る失敗を当該コマンドの FAIL として記録する汚染**も起こりうる。
+
+**本作業を M-1 に含める理由**: M-1 は「規律が実際に発火しているか」を 4 軸（特に軸 4 = 実測発火の有無）で判定する Milestone である。発火実績を測る計器が盲目のまま条項を削ると、軸 4 の判定入力そのものが汚染される。
+
+**手順（3 手）**:
+
+1. **probe（切り分け）**: subagent に意図的に 1 件失敗する pytest を実行させ、`.claude/tdd-patterns.log` への追記有無と `.claude/test-results.xml` の mtime 変化を観測する。`-o addopts=""` の有無で 2 通り実行し、経路 (a) と (b) を切り分ける
+2. **修正**: probe 結果に応じて、hook 側（subagent 実行時の JUnit XML パス分離等）または規約側（`-o addopts=""` 運用の見直し）を修正する。**既存機構の修正であり、新規の帳簿・新規ログファイル・新規集計スクリプトは追加しない**（NFR-2 準拠）
+3. **記録**: probe 結果（どちらの経路だったか）と修正内容を `docs/artifacts/m-1-baseline-w0.md` に記録する
+
+**不成立時の扱い**: 3 手で盲点が解消しない場合、修正を M-1 のスコープ外へ送り、§4.1 項目 3 を参考値扱い（DoD-4 の判定条件から除外）とする。この判断は **W0 完了時に確定させ、W1 以降へ持ち越さない**。
 
 ---
 
@@ -213,6 +242,8 @@ grep -cE "MUST NOT|MUST|SHOULD NOT|SHOULD|MAY|禁止|必須|してはならな�
 ```
 
 上記コマンドは行単位の粗い一次スクリーニングであり、正確な条項数は各ヒット行を Read で確認し「規範文か文脈か」を個別判定した上で確定する（`subprocess-encoding-convention.md` §grep baseline と同型の「一次スクリーニング + 個別確認」手順）。
+
+**2026-07-25 時点の参考実測（design レビュー時に実行）**: `fable-l3-protocol.md` 22 行 / `phase-rules.md` 18 行 / `CLAUDE.md` 11 行 = **計 51 行ヒット**。`grep -c` が返すのはマッチ**行数**であり条項数そのものではない（1 行に複数条項があれば過小、説明文中の「〜すること」を拾えば過大）。したがって確定値ではないが、**W1 のトリアージ対象が数十条項のオーダーであり数百ではない**ことは確認できる。本参考値は `tasks.md` 起票時の Task 分割量の見積りにのみ用い、確定値は W1 着手時の個別判定で得る。
 
 ### §5.2 4 軸・決定木・不変制約と veto 先行スクリーニング手順（FR-4, FR-5, FR-6）
 
@@ -278,15 +309,41 @@ Phase B（残り精査 / Phase A で veto されなかった条項のみ）:
 
 「決定木の出力」列は「保全」「圧縮」「削減」「SSOT退避」「対象外」の 5 値の閉集合とする。「対象外」は不変制約 4 対象に該当し 4 軸評価を経ていない条項に用いる。
 
-### §5.3 R-2 W2/W3 予定条項のトリアージ入力への組込み（FR-21 前段）
+### §5.3 トリアージ入力の追加カテゴリ（未執筆条項の組込み / FR-21 前段）
 
-requirements.md FR-21 が定める R-2 W2/W3 の予定条項 3 件を、トリアージ表に「未執筆条項（追加予定の規範文）」として行を追加し、既存条項と同一の Phase A/B パイプラインで判定する。
+W1 の主入力は §5.1 が定める 3 ファイル（≈750 行）の既存条項だが、これに加えて**まだ本文に書かれていない条項候補**を 2 カテゴリ、トリアージ表に「未執筆条項（追加予定の規範文）」として行追加し、既存条項と同一の Phase A/B パイプラインで判定する。**両カテゴリとも閉集合とし、W1 着手後の追加は行わない**（トリアージ表の PM 級一括承認の対象範囲を確定させるため）。
+
+#### (i) R-2 W2/W3 の予定条項 3 件（FR-21）
+
+requirements.md FR-21 が定める閉集合。
 
 1. `terminology.md` §4.5 の 3 小節（T9「文書内相互参照は § 見出し表記を用いる」/ T12「表・節番号の挿入規則」/ T13「成果物ファイル命名規則」/ R-2 tasks.md W2-R2-T9・T12・T13 相当）
 2. `planning-quality-guideline.md` §1.5「暗黙前提明示化リスト」（R-2 tasks.md W2-R2-T13b 相当）
 3. `model-delegation-prompting.md` の scratchpad 書込禁止節（R-2 tasks.md W3-R2-T24 相当）
 
 W3-R2-T23（`evaluation-kpi.md` §7 削除）は条項の削除でありトリアージ入力に含めない（requirements.md FR-21 説明準拠）。判定結果を実施 / 圧縮形で実施 / スキップの 3 分岐へ写像する手続きは §6.5 で定義する（本節は W1 トリアージ表への入力組込みのみを扱う）。
+
+#### (ii) retro 由来の新規条項候補 3 件
+
+2026-07-25 の retro（`docs/artifacts/retro-R2-W1-M1-PLANNING-2026-07-25.md` §5.1）が起票した Try のうち、**規律に条項を追加・改訂する方向**の 3 件。いずれも対象ファイルが §5.1 の W1 主対象 3 ファイル（`fable-l3-protocol.md` / `phase-rules.md` / `CLAUDE.md`）の外にあるため、本カテゴリとして明示的に入力する。
+
+| # | 内容 | 対象ファイル | 由来 Problem |
+|:-:|:-----|:------------|:-------------|
+| A2 | 既存ログ・既存出力形式を読むコマンドを書かせる委譲では、そのスキーマ文書を `primary_sources` に含める | `.claude/rules/hga-summoning.md` §primary_sources | subagent への一次資料未提供（同型再発） |
+| A3 | MAGI Phase 0 Grounding に「`docs/adr/` の既存 ADR 一覧走査」を追加 | `.claude/skills/magi/SKILL.md` | AoT 前提検証の穴 |
+| A6 | NFR-W-C-1 の gabriel タイムアウト目安（60 秒 SHOULD）を実測ベースで見直す | `docs/internal/06_DECISION_MAKING.md` | 規約と運用の乖離（294 秒実測） |
+
+**判定の写像**: 本カテゴリは既存文書への追加・改訂であるため、決定木の出力を次の 3 分岐へ写像する。
+
+| 決定木の出力 | 写像 |
+|:-------------|:-----|
+| 保全 | 原案通り追加する |
+| 圧縮 | 既存条項への例追加・書式例追記など、**規範文を増やさない形**で追加する |
+| 削減 | 追加しない |
+
+3 件はいずれも「既存条項への吸収で規範文を増やさずに済むか」を W1 で判定する（retro §4 Try 表の「条項増減見込み」欄が判定の入力）。
+
+**M-1 の目的との整合**: M-1 は条項の削減を目的とする Milestone ではない（§2 Non-Goals 1 / ADR-0011 Option C）ため、retro 由来の追加候補をトリアージにかけること自体は目的と矛盾しない。一方で、判定を経ずに条項を足すことは 4 軸トリアージの意義を損なうため、**本カテゴリの 3 件を W1 の判定を経ずに直接適用してはならない**（MUST NOT）。
 
 ### §5.4 トリアージ表の PM 級一括承認（FR-6, FR-3 接続）
 
@@ -450,34 +507,66 @@ ADR-0011 決定 4 の内容を `hga-summoning.md` §召喚ゲート節に反映�
 
 ### §7.2 優先対象の特定方法（FR-16）
 
-100 行超かつ外部参照ゼロの skill を grep 実測で列挙する:
+軸 S2（参照到達性）の判定は、**`references/` ディレクトリへの実体分離の有無**で行う。本文中に他ファイルへの Markdown リンクが 1 本あることと、手順本体が外部ファイルへ分離されていることは別事象であり、progressive disclosure と呼べるのは後者のみである。
 
 ```bash
 for f in .claude/skills/*/SKILL.md; do
   lines=$(wc -l < "$f")
-  # 外部参照ゼロの判定基準: references/ ディレクトリへの相対パス言及、または
-  # 他ファイルへの Markdown リンク [text](path) が本文中に一切出現しないこと
-  refs=$(grep -cE "references/|\]\([^)]+\)" "$f")
-  if [ "$lines" -gt 100 ] && [ "$refs" -eq 0 ]; then
-    echo "$f: $lines lines, 0 external refs"
+  refdir="$(dirname "$f")/references"
+  if [ "$lines" -gt 100 ] && [ ! -d "$refdir" ]; then
+    printf "%5s  %s\n" "$lines" "$f"
   fi
-done
+done | sort -rn
 ```
 
-design 時点で判明している事実は、requirements.md FR-16 説明が示す「対象は 100 行超かつ外部参照ゼロの 4 skill（`full-review`（951 行）を含む）」のみである。実際の対象 4 件の完全な一覧は W3 着手時に上記コマンドを実行して確定する（design 時点では列挙しない）。
+**2026-07-25 時点の実測結果（design レビュー時に実行 / W3 着手時に再実測して確定する）**:
+
+| 行数 | skill |
+|---:|:---|
+| 951 | `full-review` |
+| 419 | `goal-driven` |
+| 288 | `init-harness` |
+| 268 | `spec-template` |
+| 234 | `adr-template` |
+| 185 | `autonomous` |
+| 180 | `ship` |
+| 136 | `building` |
+| 135 | `retro` |
+
+対象外（`references/` へ実体分離済）: `lam-orchestrate`（280 行）/ `magi`（329 行）。
+
+**旧判定式の欠陥（design レビューで検出・修正済）**: 当初案は `refs=$(grep -cE "references/|\]\([^)]+\)" "$f")` が 0 であることを条件としていた。この式は Markdown リンクを外部参照とみなすため、**951 行でありながらリンクが 1 本あるだけの `full-review` を「分離済み」と誤判定して対象から外す**。旧式の実測 HIT は `building` / `init-harness` / `retro` / `ship` の 4 件であり、最優先対象であるはずの `full-review` を含まない。これは `subprocess-encoding-convention.md` §grep baseline の既知の限界と同型の、測定式が対象の構造をまたげない欠陥である。
+
+**requirements FR-16 との不一致（W3 着手時に PM 級で訂正）**: requirements.md FR-16 は説明・受け入れ条件 2 の双方で「優先対象 **4 件**（`full-review` を含む）」を要求している。しかし新判定式の実測は **9 件**であり、旧判定式では `full-review` が対象外になる。すなわち requirements の「4 件」と「`full-review` を含む」は、**どちらの判定式でも同時には成立しない**。
+
+**本設計の扱い**: 上表の実測（9 件 / 行数降順）を正とし、**W3 のスコープは行数降順の上位 4 件**（`full-review` / `goal-driven` / `init-harness` / `spec-template`）とする。これにより requirements の「4 件」という件数と「`full-review` を含む」という要求の双方を満たす。残り 5 件は対象として認識した上で M-1 スコープ外へ送り、**W3 の Wave 完了記録に「未着手 5 件」を明記する**（silent な打ち切りにしない）。requirements FR-16 の説明文および受け入れ条件 2 の内訳表記は、W3 着手時に本実測へ更新する（PM 級）。
 
 progressive disclosure 化の実施後は、対象 skill の主要な発火条件・振る舞いに変更がないことを動作確認で検証する（FR-16 受け入れ条件 3）。
 
 ### §7.3 quality-auditor × code-reviewer の重複（Red-3 の扱い）
 
-`quality-auditor`（328 行）と `code-reviewer`（97 行）の守備範囲重複は W3 で扱うが、判断材料の収集を先行させる。呼び出し実績データが存在しないため、W3 の先頭に集計 Task を置く。
+`quality-auditor`（328 行）と `code-reviewer`（97 行）の守備範囲重複は W3 で扱うが、判断材料の収集を先行させる（行数は 2026-07-25 実測）。
+
+**当初案の破棄（design レビューで検出・修正済）**: 当初案は `grep -rl "<agent 名>" docs/artifacts/*.md | wc -l` を「呼び出し実績」の代理指標としていたが、これは 2 重に成立しない。(i) 文書内での**言及**であって**起動実績**ではない（本日の retro §3 が検出した「盲目の計器」と同型）。(ii) 実測値は `quality-auditor` 10 件 / `code-reviewer` 11 件で**両方とも非ゼロ**であり、当初案の分岐規則（「一方がゼロなら統廃合を提案、両方非ゼロなら現状維持」）は**収集 Task を実行する前に結論が「現状維持」で確定してしまう**。以下 2 指標へ差し替える。
+
+#### 指標 1: 起動実績の直接証跡
 
 ```bash
-grep -rl "quality-auditor" docs/artifacts/*.md | wc -l
-grep -rl "code-reviewer" docs/artifacts/*.md | wc -l
+ls -ld .claude/agent-memory/quality-auditor .claude/agent-memory/code-reviewer
 ```
 
-**分岐**: 集計結果が「一方の呼び出し実績ゼロ」を示した場合のみ統廃合を提案する。両方に非ゼロの呼び出し実績がある場合は現状維持とする（統廃合そのものを目的化しない）。
+`memory: project` 機構により、subagent は起動され知見を書いたときにのみ当該ディレクトリを更新する（`CLAUDE.md` §Subagent Persistent Memory）。**2026-07-25 時点の実測**: 両ディレクトリとも存在し、最終更新は `code-reviewer` 2026-06-11 / `quality-auditor` 2026-06-19。すなわち**どちらも死んでいない**が、**どちらも 1 か月以上更新されていない**。
+
+**限界の明示**: 本指標が示すのは「起動されたことがあるか」と「最後に知見を書いた日」のみであり、起動回数は測れない。起動しても memory へ書かなければ更新されない。回数の集計機構は追加しない（NFR-2 準拠）。
+
+#### 指標 2: 責務定義の重複度（Red-3 の本題）
+
+指標 1 により「一方が未使用だから統合する」という筋は実測で否定された。よって Red-3 の判断材料を**責務定義そのものの重複度**へ移す。`.claude/agents/quality-auditor.md` と `.claude/agents/code-reviewer.md` の frontmatter `description` および本文の守備範囲記述を並置し、W3 で次の 2 点を判定する。
+
+1. 両者の `description` が指す起動条件に重なりがあるか（重なりがあると、呼び出す側がどちらを選ぶべきか判断できない）
+2. 一方の守備範囲が他方の真部分集合になっているか
+
+**分岐**: 上記 1 と 2 の**両方が成立する場合にのみ**統廃合を提案する。それ以外は現状維持とし、`description` の書き分け（起動条件の排他化）のみを行う。統廃合そのものを目的化しない。
 
 ### §7.4 ADR-0010 I-1〜I-6 適合確認（FR-17）
 
@@ -564,7 +653,7 @@ Milestone retro（`docs/artifacts/retro-M1-<date>.md`）に以下を記録する
 | DoD-1 | 全 5 Wave（W0〜W4）が Green State で完了（Opus 5 安定性ゲート合格またはフォールバック手順を経て通過） | §3.4, §5.5, §8.1 |
 | DoD-2 | トリアージ表が PM 級一括承認済みで、削減台帳が全圧縮・削減対象条項を網羅 | §5.4, §6.3 |
 | DoD-3 | `model-roster.md` 新設 + `verify_model_reference` 機構（3 分岐処理）+ `update-model` skill（薄い順序表）の 3 点が成立し pytest で検証可能 | §6.1, §6.2, §8.2 |
-| DoD-4 | W0 と W4 のベースライン測定 6 項目を比較し、pytest regression ゼロかつ NFR-1 の発火点・承認ゲート・宣言イベント数が不変であることを確認 | §8.1, §3.4 |
+| DoD-4 | W0 と W4 のベースライン測定 6 項目を比較し、pytest regression ゼロかつ NFR-1 の発火点・承認ゲート・宣言イベント数が不変であることを確認 | §8.1, §3.4, §4.5（項目 3 の計器較正 / 不成立時は項目 3 を判定条件から除外） |
 | DoD-5 | 配布 2 経路が完了し、ADR-0010 I-1〜I-6 適合確認（R-3）が記録されている | §8.3, §7.4 |
 | DoD-6 | Milestone retro が実施され、R-2 W2/W3 の再スコープ結果が `docs/specs/r-2-consolidation/tasks.md` に反映されている | §8.4, §6.5 |
 
@@ -579,7 +668,7 @@ Milestone retro（`docs/artifacts/retro-M1-<date>.md`）に以下を記録する
 | FR-5 | §5.2 |
 | FR-6 | §5.2, §5.4 |
 | FR-7 | §6.3 |
-| FR-8 | §3.4, §4.1, §8.1 |
+| FR-8 | §3.4, §4.1, §4.5, §8.1 |
 | FR-9 | §6.6 |
 | FR-10 | §6.1 |
 | FR-11 | §6.1 |
@@ -618,7 +707,7 @@ requirements.md §7 の未解決質問（7 件）について、本設計での�
 
 ### W3 で扱う（1 件）
 
-6. **Red-3（`quality-auditor` と `code-reviewer` の守備範囲重複）**: §7.3 で手続きを確定（呼び出し実績データの収集を W3 先頭で先行させ、結果次第で統廃合提案または現状維持を判断する。統廃合の是非自体は design 段階で確定しない）
+6. **Red-3（`quality-auditor` と `code-reviewer` の守備範囲重複）**: §7.3 で手続きを確定。design レビュー時の実測（両 agent とも `agent-memory` 存在 = どちらも未使用ではない）により「一方が死んでいるから統合する」という筋は**否定済**。判断材料を責務定義の重複度へ移し、「起動条件の重なり」×「真部分集合関係」の 2 条件がともに成立する場合にのみ統廃合を提案する。統廃合の是非自体は design 段階で確定しない
 
 ### 手続きのみ確定（1 件）
 
