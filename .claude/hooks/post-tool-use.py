@@ -132,6 +132,48 @@ def _parse_junit_xml(xml_path: Path) -> dict | None:
         return None
 
 
+def _xml_sentinel(xml_path: Path) -> str | None:
+    """JUnit XML の「世代」を表すセンチネル文字列を返す。
+
+    W0-M1-T2（方式 A）: mtime(ns) とサイズの組で「同じ XML かどうか」を識別する。
+    時刻の閾値を持たないため時計ずれの影響を受けず、判定が決定論的になる。
+
+    Returns:
+        "<mtime_ns>:<size>" 形式の文字列。XML が存在しない/読めない場合は None。
+    """
+    try:
+        st = xml_path.stat()
+    except OSError:
+        return None
+    return "{0}:{1}".format(st.st_mtime_ns, st.st_size)
+
+
+def _read_prev_xml_sentinel(last_result_file: Path) -> str | None:
+    """前回参照した XML のセンチネルを last-test-result から読む。
+
+    センチネル行を持たない旧形式（`pass pytest` の 1 行のみ）の場合は None を返し、
+    呼び出し側は従来動作（XML を採用する）にフォールバックする（後方互換）。
+    """
+    try:
+        lines = last_result_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    for line in lines[1:]:
+        if line.startswith("xml="):
+            return line[len("xml="):].strip() or None
+    return None
+
+
+def _write_last_result(
+    last_result_file: Path, status: str, test_cmd: str, sentinel: str | None,
+) -> None:
+    """last-test-result を書き出す（1 行目=判定 / 2 行目=XML センチネル）。"""
+    body = "{0} {1}\n".format(status, test_cmd)
+    if sentinel is not None:
+        body += "xml={0}\n".format(sentinel)
+    last_result_file.write_text(body, encoding="utf-8")
+
+
 def _read_prev_result(last_result_file: Path, log_file: Path) -> bool:
     """前回のテスト結果を読み取り、失敗だったか返す。
 
@@ -150,6 +192,7 @@ def _read_prev_result(last_result_file: Path, log_file: Path) -> bool:
 def _record_fail(
     tdd_log: Path, last_result_file: Path, timestamp: str,
     test_cmd: str, tests: int, failures: int, failed_names: list[str],
+    sentinel: str | None = None,
 ) -> None:
     """テスト失敗を記録する。"""
     summary = ", ".join(failed_names[:5])[:120].replace("\t", " ")
@@ -157,12 +200,13 @@ def _record_fail(
         tdd_log,
         f'{timestamp}\tFAIL\t{test_cmd}\ttests={tests} failures={failures}\t"{summary}"',
     )
-    last_result_file.write_text(f"fail {test_cmd}\n", encoding="utf-8")
+    _write_last_result(last_result_file, "fail", test_cmd, sentinel)
 
 
 def _record_pass(
     tdd_log: Path, last_result_file: Path, timestamp: str,
     test_cmd: str, tests: int, prev_was_fail: bool,
+    sentinel: str | None = None,
 ) -> str | None:
     """テスト成功を記録する。FAIL→PASS 遷移時は通知メッセージを返す。"""
     if prev_was_fail:
@@ -170,12 +214,12 @@ def _record_pass(
             tdd_log,
             f'{timestamp}\tPASS\t{test_cmd}\ttests={tests} failures=0\t"{test_cmd} (previously failed)"',
         )
-        last_result_file.write_text(f"pass {test_cmd}\n", encoding="utf-8")
+        _write_last_result(last_result_file, "pass", test_cmd, sentinel)
         return (
             "TDD パターンが記録されました（FAIL→PASS 遷移）。"
             "セッション終了時に /retro でパターン分析を推奨します。"
         )
-    last_result_file.write_text(f"pass {test_cmd}\n", encoding="utf-8")
+    _write_last_result(last_result_file, "pass", test_cmd, sentinel)
     return None
 
 
@@ -210,7 +254,20 @@ def _handle_test_result(
             tdd_log,
             f'{timestamp}\tFAIL\t{test_cmd}\ttests=? failures=?\t"PostToolUseFailure event"',
         )
-        last_result_file.write_text(f"fail {test_cmd}\n", encoding="utf-8")
+        # XML は読まないが、現時点の世代は記録しておく（次回の鮮度判定の基準にする）
+        _write_last_result(last_result_file, "fail", test_cmd, _xml_sentinel(test_results_xml))
+        return None
+
+    # XML 鮮度判定（W0-M1-T2 / 方式 A）
+    # 前回参照した XML と同一世代なら、当該コマンドは XML を更新していない。
+    # 他人（前回実行）の結果を自分の結果として採用すると、失敗が pass として
+    # 上書きされる（2026-07-25 実測 / docs/artifacts/m-1-baseline-w0.md）。
+    sentinel = _xml_sentinel(test_results_xml)
+    prev_sentinel = _read_prev_xml_sentinel(last_result_file)
+    if sentinel is not None and prev_sentinel is not None and sentinel == prev_sentinel:
+        log_entry(log_file, "WARN", "post-tool-use",
+                  f"{test_cmd}: test-results.xml unchanged since last check "
+                  f"(stale, not this command's result) - skipped")
         return None
 
     # JUnit XML 結果ファイルを読み取る
@@ -228,8 +285,10 @@ def _handle_test_result(
     prev_was_fail = _read_prev_result(last_result_file, log_file)
 
     if failures > 0:
-        return _record_fail(tdd_log, last_result_file, timestamp, test_cmd, tests, failures, failed_names)
-    return _record_pass(tdd_log, last_result_file, timestamp, test_cmd, tests, prev_was_fail)
+        return _record_fail(tdd_log, last_result_file, timestamp, test_cmd, tests,
+                            failures, failed_names, sentinel)
+    return _record_pass(tdd_log, last_result_file, timestamp, test_cmd, tests,
+                        prev_was_fail, sentinel)
 
 
 def _handle_doc_sync_flag(

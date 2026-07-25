@@ -238,6 +238,103 @@ class TestTDDPatternDetection:
         assert not tdd_log.exists(), "前回失敗なしでの成功時は tdd-patterns.log が作成されてはいけない"
 
 
+class TestStaleXmlFreshness:
+    """XML 鮮度判定（W0-M1-T2 / 方式 A = mtime センチネル）
+
+    対応仕様:
+      - docs/artifacts/m-1-baseline-w0.md § W0-M1-T1 判定（根本原因 C2）
+      - docs/specs/m-1-opus5-migration/tasks.md W0-M1-T2
+
+    通常経路（PostToolUse）は `.claude/test-results.xml` が当該コマンドの産物か
+    どうかを検査していなかった。そのため次の 2 条件が同時に成立すると、
+    失敗したテスト実行が `pass` として上書き記録される（2026-07-25 実測）:
+      (i)  コマンドが XML を更新しない（`-o addopts=""` / テスト未実行）
+      (ii) tool exit が 0（パイプ等）で PostToolUseFailure の安全網が発火しない
+    """
+
+    _RUN_CMD = {
+        "tool_name": "Bash",
+        "tool_input": {"command": 'pytest tests/ -o addopts="" | tail -2'},
+        "tool_response": {"stdout": "1 failed", "stderr": ""},
+    }
+
+    @staticmethod
+    def _log_text(project_root: Path) -> str:
+        log = project_root / ".claude" / "logs" / "post-tool-use.log"
+        return log.read_text(encoding="utf-8") if log.exists() else ""
+
+    @staticmethod
+    def _tdd_text(project_root: Path) -> str:
+        tdd = project_root / ".claude" / "tdd-patterns.log"
+        return tdd.read_text(encoding="utf-8") if tdd.exists() else ""
+
+    def test_unchanged_xml_is_not_readopted(self, hook_runner, project_root):
+        """XML が前回から一切更新されていなければ、その結果を再採用しない。"""
+        _write_junit_xml(project_root, tests=5, failures=1, failed_names=["test_bar"])
+        hook_runner(HOOK_PATH, self._RUN_CMD)
+        first = self._tdd_text(project_root)
+        assert "FAIL" in first, "1 回目は fresh XML なので FAIL が記録されるべき"
+
+        # XML を触らずに 2 回目を実行（= このコマンドは XML を更新していない）
+        result = hook_runner(HOOK_PATH, self._RUN_CMD)
+        assert result.returncode == 0
+        assert self._tdd_text(project_root) == first, (
+            "更新されていない XML の結果を再採用して追記してはならない"
+        )
+        assert "stale" in self._log_text(project_root).lower(), (
+            "スキップは post-tool-use.log に WARN として可視化されるべき"
+        )
+
+    def test_command_merely_mentioning_pytest_does_not_record(self, hook_runner, project_root):
+        """`pytest` の語を含むだけでテストを実行しないコマンドが結果を作らない。
+
+        2026-07-25 に実環境で観測したケース（`echo` に語が含まれるだけで
+        5 時間前の XML が読まれ `last-test-result` が書き換わった）の回帰テスト。
+        """
+        _write_junit_xml(project_root, tests=5, failures=1, failed_names=["test_bar"])
+        hook_runner(HOOK_PATH, self._RUN_CMD)
+        before = self._tdd_text(project_root)
+        assert "FAIL" in before
+
+        mention_only = {
+            "tool_name": "Bash",
+            "tool_input": {"command": 'echo "the word pytest appears here"'},
+            "tool_response": {"stdout": "the word pytest appears here", "stderr": ""},
+        }
+        result = hook_runner(HOOK_PATH, mention_only)
+        assert result.returncode == 0
+        assert self._tdd_text(project_root) == before, (
+            "テストを実行していないコマンドが過去の XML から結果を作ってはならない"
+        )
+
+    def test_updated_xml_is_recorded_after_skip(self, hook_runner, project_root):
+        """スキップ後でも、XML が実際に更新されれば通常どおり記録される。"""
+        _write_junit_xml(project_root, tests=5, failures=1, failed_names=["test_bar"])
+        hook_runner(HOOK_PATH, self._RUN_CMD)
+        hook_runner(HOOK_PATH, self._RUN_CMD)  # スキップされる
+
+        # XML が更新された（内容が変わる = センチネルが変わる）
+        _write_junit_xml(project_root, tests=5, failures=0)
+        result = hook_runner(HOOK_PATH, self._RUN_CMD)
+        assert result.returncode == 0
+        assert "PASS" in self._tdd_text(project_root), (
+            "スキップ状態が固着せず、更新後の XML は記録されるべき"
+        )
+
+    def test_legacy_last_result_without_sentinel_falls_back(self, hook_runner, project_root):
+        """センチネル欄を持たない旧形式の last-test-result でも動作する（後方互換）。"""
+        (project_root / ".claude" / "last-test-result").write_text(
+            "fail pytest\n", encoding="utf-8"
+        )
+        _write_junit_xml(project_root, tests=5, failures=0)
+
+        result = hook_runner(HOOK_PATH, self._RUN_CMD)
+        assert result.returncode == 0
+        assert "PASS" in self._tdd_text(project_root), (
+            "前回センチネル不明のときは従来動作（採用）にフォールバックすべき"
+        )
+
+
 class TestPostToolUseFailure:
     """PostToolUseFailure イベント分岐テスト（監査 B4）。
 
