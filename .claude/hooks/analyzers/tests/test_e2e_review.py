@@ -276,7 +276,7 @@ class TestFixtures:
     def test_fixtures_contain_issue_markers(self) -> None:
         """全フィクスチャに FIXTURE-ISSUE- マーカーが含まれること。"""
         for fixture in FIXTURES_DIR.glob("*.py"):
-            content = fixture.read_text()
+            content = fixture.read_text(encoding="utf-8")
             assert "FIXTURE-ISSUE-" in content, (
                 f"{fixture.name} lacks FIXTURE-ISSUE markers"
             )
@@ -500,11 +500,18 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent  # .claude/hooks
 
-        env = build_allowlisted_env({"PYTHONPATH": str(hooks_dir)})
+        # scale_detector.py の出力は cp932 非対応記号（✓/✗ 等）を含むため、
+        # PYTHONIOENCODING を注入し子プロセス自身の stdout を UTF-8 に固定する
+        # （subprocess-encoding-convention.md の _utf8_env() パターン）。
+        env = build_allowlisted_env(
+            {"PYTHONPATH": str(hooks_dir), "PYTHONIOENCODING": "utf-8"}
+        )
         result = subprocess.run(
             [sys.executable, str(scale_detector_path), str(project_root)],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             env=env,
             timeout=30,
         )
@@ -528,11 +535,18 @@ class TestCLIEntryPoint:
         )
         hooks_dir = scale_detector_path.parent.parent
 
-        env = build_allowlisted_env({"PYTHONPATH": str(hooks_dir)})
+        # scale_detector.py の出力は cp932 非対応記号（✓/✗ 等）を含むため、
+        # PYTHONIOENCODING を注入し子プロセス自身の stdout を UTF-8 に固定する
+        # （subprocess-encoding-convention.md の _utf8_env() パターン）。
+        env = build_allowlisted_env(
+            {"PYTHONPATH": str(hooks_dir), "PYTHONIOENCODING": "utf-8"}
+        )
         result = subprocess.run(
             [sys.executable, str(scale_detector_path), str(project_root)],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             env=env,
             timeout=30,
         )
@@ -551,6 +565,8 @@ class TestCLIEntryPoint:
             [sys.executable, str(scale_detector_path)],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             env=env,
             timeout=30,
         )

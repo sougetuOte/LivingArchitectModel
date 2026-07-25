@@ -91,6 +91,8 @@ def hook_runner(project_root: Path, hook_utils):
             input=stdin_input,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             env=merged_env,
             timeout=30,
         )

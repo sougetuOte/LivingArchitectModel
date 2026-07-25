@@ -59,6 +59,7 @@ def _tracked_files() -> set[str]:
         result = subprocess.run(
             ["git", "ls-files"],
             capture_output=True, text=True, check=True,
+            encoding="utf-8", errors="replace",
         )
         _TRACKED_FILES_CACHE = {_normalize(line) for line in result.stdout.splitlines()}
     return _TRACKED_FILES_CACHE

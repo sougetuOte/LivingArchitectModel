@@ -349,6 +349,8 @@ def _run_g1_checker(project_root: Path, log_file: Path) -> int:
             cwd=str(project_root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=CHECKER_TIMEOUT,
             env=build_allowlisted_env({"LAM_PROJECT_ROOT": str(project_root)}),
         )
