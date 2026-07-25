@@ -4,11 +4,77 @@
 
 | 項目 | 内容 |
 |------|------|
-| ステータス | **Accepted**（2026-07-02） |
-| 日付 | 2026-07-02 |
+| ステータス | **Accepted**（2026-07-02）/ **追補 Accepted**（2026-07-25 / 下記「追補」節参照） |
+| 日付 | 2026-07-02（追補: 2026-07-25） |
 | 意思決定者 | sougetuOte（最終承認）/ Living Architect（起草）/ Fable 5（§9 上申への回答） |
-| 関連 ADR | [ADR-0008](./0008-approval-gate-redesign.md)（承認ゲート再設計 / 3.5 層委譲モデルとの整合） |
+| 関連 ADR | [ADR-0008](./0008-approval-gate-redesign.md)（承認ゲート再設計 / 3.5 層委譲モデルとの整合）, [ADR-0011](./0011-clause-triage-and-model-generation-governance.md)（**本 ADR の追補元 / 決定 4**） |
 | 関連資産 | `docs/artifacts/hga-approach-2026-07-01.md`（討議録・原本 / ローカル限定・gitignore 済）, `docs/artifacts/hga-summon-log.md`（召喚記録）, `.claude/rules/hga-summoning.md`（運用規律）, `CLAUDE.md` §作業体制 |
+
+---
+
+## 追補（2026-07-25 / **Accepted** / 根拠: [ADR-0011](./0011-clause-triage-and-model-generation-governance.md) 決定 4）
+
+> **本 ADR は Superseded ではない。** コア原則 8 か条・不変核・漏れ回収 3 経路・召喚記録の義務・
+> ステートレス規律・Outbound Write Ban・下調べパイプラインはすべて**維持**される。
+> 変更されるのは**召喚ゲートの発動条件のみ**である。
+
+### 追補の契機（争点 E スコープ規定への適合）
+
+本 ADR §争点 E は「条件変化（**価格レジーム変化・サブスク復帰・Fable 能力の大幅変化**）まで再論しない」と定めた。2026-07-25 の **Claude Opus 5 リリース**は、Opus 側の能力・単価の両面が変化する事象であり、この「条件変化」に該当する。
+
+ただし**再論の対象は召喚ゲートの閾値であって、HGA 型という枠組みではない**。ユーザーは 2026-07-25 に「HGA を**廃止ではなく格下げ**（Opus 5 でも詰まった時のみ）」を選択済であり、**争点 E（枠棄却）自体は再論しない**。
+
+### 変更内容: 事前条件 → 事後条件への転換
+
+#### 廃止される条件
+
+| 旧ゲート | 扱い |
+|----------|------|
+| **spec/design 初期 → 無条件召喚** | **廃止**。下記・新ゲート条件 2 の判定材料に格下げ |
+| **不可逆な設計コミット → 無条件召喚** | **廃止**。同上 |
+| 新規／複数ドメイン統合 → 既定で召喚 | **廃止**。同上 |
+
+#### 新召喚ゲート
+
+いずれかに該当する場合に召喚する。**1・2 はいずれも「Opus 5 で試行した結果」を要する事後条件**である。
+
+| # | 条件 | 種別 |
+|:-:|------|------|
+| **1** | MAGI（AoT + gabriel）を実施し、gabriel が `verdict=refuted & severity=critical` を **2 回**出した（= `AC-W-C-7` 再 MAGI 上限到達 / 人間エスカレーション経路への到達） | 事後条件 |
+| **2** | 第 0 原則 3 変数で「**不可逆 かつ 復旧コスト極大**」と判定され、**かつ Opus 5 の結論に L1 自身が確信を持てない** | 事後条件 |
+| **3** | ユーザーが明示的に召喚を指示 | 明示 |
+
+**設計上の要点**: 条件 1 は既存の MAGI 人間エスカレーション経路（`docs/internal/06_DECISION_MAKING.md` §6.6 / `AC-W-C-7`）への**接続**であり、新規の判定機構を作らない。従来「人間に投げる」で終端していた経路に「**または HGA 召喚**」を追加する形を取る（`fable-l3-protocol.md` §3 帳簿単一原則との整合）。
+
+#### 維持される規律（変更なし）
+
+- 全召喚の `docs/artifacts/hga-summon-log.md` への記録（**MUST**）
+- コア原則 8 か条（Opus が媒体 / 正本は Opus / Fable は使い捨て leaf / currency は push / 完全ステートレス化）
+- 2 段召喚の crux-scoping・索引 push・hedge 指示
+- 漏れ回収の 3 経路・Outbound Write Ban・下調べパイプライン（research 委譲パターン）
+- 別予算 2 枠（対話モード召喚 / branch モード）
+
+### 移行期の扱い（自己言及の回避 / MUST）
+
+**M-1（`docs/specs/m-1-opus5-migration/`）の実施中は、旧ゲートを適用する。** 新ゲートは **M-1 完了（W4 retro）後に発効**する。
+
+理由: M-1 自体が「spec/design 初期の不可逆な設計コミット」であり、新ゲートを M-1 に適用すると**新ゲートの妥当性検証を新ゲート自身に委ねる**構造になる。これを避けるため、新ゲートの初回適用は M-1 完了後とする。
+
+なお M-1 の PLANNING は Opus 5 + MAGI + gabriel 単独で回し、gabriel が `critical` refute を出した場合に召喚を再検討する。**この運用自体が新ゲート条件 1 の最初の実測**となる。
+
+**ユーザー決定（2026-07-25）**: 旧ゲートでは M-1 PLANNING は「無条件召喚」対象に該当するが、ユーザーは **Fable 召喚を行わない**ことを明示的に決定した。したがって M-1 PLANNING は Opus 5 単独で進行する。この決定は Hierarchy of Truth §User Intent（最上位）に基づく旧ゲートの個別免除であり、旧ゲートの規定自体を変更するものではない（旧ゲートは M-1 完了時に新ゲートへ置換される）。
+
+### 単価・envelope の扱い
+
+- 本 ADR §コンテキストの単価記述（Fable $10/$50 vs Opus 4.8 $5/$25）は **2026-07-02 時点の記録**である。Opus 5 の単価は 2026-07-25 時点で一次資料未確認
+- **単価・envelope の断定は M-1 W0 の upstream 裏取り後**に行う（`upstream-first.md` 準拠）
+- 確定後、単価・envelope 情報は `.claude/rules/model-roster.md`（ADR-0011 決定 2）へ退避し、`hga-summoning.md` からは参照に置き換える
+
+### 反映先
+
+- [ ] `.claude/rules/hga-summoning.md` §召喚ゲート の改訂（M-1 W2）
+- [ ] `.claude/rules/hga-summoning.md` の単価・envelope の `model-roster.md` への退避（M-1 W2）
+- [ ] `docs/internal/06_DECISION_MAKING.md` §6.6 への「または HGA 召喚」経路の追記（M-1 W2）
 
 ---
 
