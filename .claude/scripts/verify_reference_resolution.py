@@ -90,6 +90,12 @@ _STRICT_ENUM_LINE_PAT = re.compile(
 )
 _ENUM_VALUE_TOKEN_PAT = re.compile(r"[A-Za-z][A-Za-z-]*")
 
+# ---- パターン 4: gabriel-metrics mode enum 検査 (r-2-consolidation design §4.7) ----
+
+# .claude/gabriel-metrics.log の mode フィールドが許可 enum に含まれるか検査。
+# ファイル不在（gitignore 対象・環境依存）の場合は skip（T7 の設計通り log 本体は commit しない）。
+_GABRIEL_MODE_ENUM = {"aot", "lightweight", "widescan_verify"}
+
 
 def _normalize(p: str) -> str:
     return p.replace("\\", "/")
@@ -319,11 +325,45 @@ def verify_w_r4() -> list[dict]:
     return drifts
 
 
+def verify_mode_enum() -> list[dict]:
+    """パターン 4: gabriel-metrics.log の mode フィールドが許可 enum に含まれるか検査する.
+
+    r-2-consolidation design.md §4.7 準拠。`.claude/gabriel-metrics.log` は
+    gitignore 対象・環境依存のため、ファイル不在時は skip し drift ゼロで正常終了する
+    (D3: 不在を drift として報告してはならない)。
+    """
+    drifts: list[dict] = []
+    log_path = REPO_ROOT / ".claude/gabriel-metrics.log"
+    if not log_path.exists():
+        return drifts
+
+    source = _normalize(str(log_path.relative_to(REPO_ROOT)))
+    for lineno, line in enumerate(_read(log_path).splitlines(), start=1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        mode = entry.get("mode")
+        if mode is not None and mode not in _GABRIEL_MODE_ENUM:
+            drifts.append(
+                {
+                    "pattern": "gabriel-metrics-mode-enum",
+                    "source": source,
+                    "referenced": mode,
+                    "match": f"line {lineno}: mode={mode!r}",
+                }
+            )
+    return drifts
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument(
         "--wave",
-        choices=["w-r3", "w-r4", "all"],
+        choices=["w-r3", "w-r4", "mode-enum", "all"],
         default="all",
         help="実行対象 Wave (既定: all)",
     )
@@ -340,6 +380,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         result["w-r3"] = verify_w_r3()
     if args.wave in ("w-r4", "all"):
         result["w-r4"] = verify_w_r4()
+    if args.wave in ("mode-enum", "all"):
+        result["mode-enum"] = verify_mode_enum()
 
     total = sum(len(v) for v in result.values())
     payload = {

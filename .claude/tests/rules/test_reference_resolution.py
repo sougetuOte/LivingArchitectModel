@@ -9,6 +9,7 @@ R-G7 drift 検出ロジックの層 3 unittest。design §5.3 準拠。
 """
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -566,3 +567,113 @@ def test_verify_w_r4_strict_enum_excludes_magi_dispatch_py(monkeypatch, tmp_path
     assert strict_drifts == [], (
         f"magi_dispatch.py が strict enum 検査対象に含まれています (D4 違反): {strict_drifts}"
     )
+
+
+# ---- W1-R2-T8: gabriel-metrics.log mode enum 検査 (パターン 4 / design §4.7) ----
+#
+# 根拠: docs/specs/r-2-consolidation/design.md §4.7 / requirements.md FR-7
+# 許可 enum: {"aot", "lightweight", "widescan_verify"}
+# D3: ファイル不在時は skip (drift ゼロ) — .claude/gabriel-metrics.log は
+#     gitignore 対象・環境依存のため、不在を drift として報告してはならない。
+
+
+def test_gabriel_mode_enum_defines_three_values():
+    """_GABRIEL_MODE_ENUM は design §4.7 の 3 値のみを許可 enum として持つ."""
+    assert vr._GABRIEL_MODE_ENUM == {"aot", "lightweight", "widescan_verify"}
+
+
+def test_verify_mode_enum_no_drift_on_real_repo_log_if_present():
+    """正例: 実 .claude/gabriel-metrics.log の全 entry が enum 準拠であること.
+
+    実ファイルは環境依存 (gitignore 対象) のため、存在しない環境では検査自体を skip する。
+    """
+    log_path = vr.REPO_ROOT / ".claude/gabriel-metrics.log"
+    if not log_path.exists():
+        return  # skip: 環境依存ファイル不在
+    result = vr.verify_mode_enum()
+    assert result == [], f"実 log entry に enum 外の mode 値が検出されました: {result}"
+
+
+def test_verify_mode_enum_skips_when_log_file_absent(monkeypatch, tmp_path):
+    """D3: .claude/gabriel-metrics.log 不在時は skip し drift ゼロで正常終了する."""
+    # tmp_path は空ディレクトリ (.claude/gabriel-metrics.log を作らない)
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_mode_enum()
+    assert result == [], f"ファイル不在時に drift が報告されています (D3 違反): {result}"
+
+
+def test_verify_mode_enum_detects_drift_for_out_of_enum_value(monkeypatch, tmp_path):
+    """誤例 (Red 実証): enum 外の mode 値 (unknown_mode) を含む entry が drift として検出される.
+
+    実 .claude/gabriel-metrics.log を書き換えず、tmp_path に一時ファイルを生成して検査する。
+    """
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir(parents=True)
+    log_path = claude_dir / "gabriel-metrics.log"
+    log_path.write_text(
+        '{"timestamp":"2026-07-25T00:00:00+09:00","mode":"aot"}\n'
+        '{"timestamp":"2026-07-25T00:01:00+09:00","mode":"unknown_mode"}\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_mode_enum()
+
+    matches = [d for d in result if d["pattern"] == "gabriel-metrics-mode-enum"]
+    assert len(matches) == 1, (
+        f"enum 外の mode 値 (unknown_mode) が drift として検出されていません: {result}"
+    )
+    assert matches[0]["referenced"] == "unknown_mode"
+
+
+def test_verify_mode_enum_no_drift_when_all_values_in_enum(monkeypatch, tmp_path):
+    """regression 保護: enum 準拠の mode 値のみの合成 log は drift ゼロ."""
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir(parents=True)
+    log_path = claude_dir / "gabriel-metrics.log"
+    log_path.write_text(
+        '{"timestamp":"2026-07-25T00:00:00+09:00","mode":"aot"}\n'
+        '{"timestamp":"2026-07-25T00:01:00+09:00","mode":"lightweight"}\n'
+        '{"timestamp":"2026-07-25T00:02:00+09:00","mode":"widescan_verify"}\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_mode_enum()
+
+    assert result == [], f"enum 準拠の mode 値が誤って drift 報告されています: {result}"
+
+
+def test_cli_mode_enum_wave_runs():
+    """--wave mode-enum で実行完了 (drift 検出は許容 / rc=0)."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_DIR / "verify_reference_resolution.py"),
+            "--wave",
+            "mode-enum",
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        env=_utf8_env(),
+    )
+    assert result.returncode == 0
+    assert "total_drifts" in result.stdout
+
+
+def test_cli_all_wave_includes_mode_enum_key():
+    """--wave all の結果に mode-enum キーが含まれる (件数非依存 / grep baseline 用)."""
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPTS_DIR / "verify_reference_resolution.py"),
+            "--wave",
+            "all",
+        ],
+        capture_output=True,
+        encoding="utf-8",
+        env=_utf8_env(),
+    )
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert "mode-enum" in payload["drifts_by_wave"]
