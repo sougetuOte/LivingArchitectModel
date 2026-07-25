@@ -39,7 +39,7 @@ Wave C（骨子 ②）で導入した gabriel probe の実運用状況を **月�
 {
   "timestamp": "2026-07-05T14:30:00+09:00",
   "session_id": "84742b87-3779-4b16-b6e6-37614a6b20a7",
-  "mode": "aot" | "lightweight",
+  "mode": "aot" | "lightweight" | "widescan_verify",
   "gate_decision": "run" | "skip_lightweight" | "skip_opt_out" | "reject_opt_out",
   "invoked": true | false,
   "gabriel_output": {
@@ -59,7 +59,10 @@ Wave C（骨子 ②）で導入した gabriel probe の実運用状況を **月�
     "reason": "...",
     "declarer": "user" | "L1" | "autonomous"
   } | null,
-  "phase": "standard" | "AUTONOMOUS"
+  "phase": "standard" | "AUTONOMOUS",
+  "subject": "...",
+  "anchor": "docs/artifacts/...",
+  "hga_summon_ref": "docs/artifacts/hga-summon-log.md#N" | null
 }
 ```
 
@@ -143,6 +146,7 @@ jq -c 'select(.gate_decision=="reject_opt_out")' .claude/gabriel-metrics.log | w
 - [ ] `.claude/scripts/magi_metrics.py` の実装（将来 Wave / 本 Wave では設計のみ）
 - [ ] MAGI 合議実施時のフロー整備（L1 が合議終了時に metrics 書き込み手順を踏む / hook 化検討は future-candidates）
 - [ ] 月次 retro テンプレートに集計手順追加 (`.claude/skills/retro/` 配下 / 別 Wave)
+- [ ] スキーマ文書の全フィールド網羅を実 log entry との突合で確認 (`docs/specs/r-2-consolidation/design.md` §4.6 / W1-R2-T7)
 
 ## §6 実運用開始まで暫定運用
 
