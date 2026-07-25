@@ -54,6 +54,33 @@
 
 ---
 
+## E. 外部パターンからの改良候補（セッション継続機構）
+
+出典: [Memory tool — Claude Docs](https://platform.claude.com/docs/en/agents-and-tools/tool-use/memory-tool) §Multisession software development pattern / [Effective harnesses for long-running agents](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)（2026-07-26 調査）。
+
+**前提**: 公式パターン（initializer session → progress log → feature checklist → end-of-session update）は **LAM が独立に到達済み**である。以下は対応物の突合で見つかった**欠落 3 点**のみを挙げる。パターン全体の導入は不要。
+
+| 公式パターンの要素 | LAM の対応物 | 状態 |
+|:---|:---|:---|
+| progress log | `SESSION_STATE.md` | あり |
+| feature checklist（pass/fail 状態つき） | `tasks.md` の `- [ ]` | あり |
+| subsequent session が読んで開始 | `/quick-load` | あり |
+| end-of-session update | `/quick-save` | あり |
+| **startup / initialization script への参照** | — | **欠落 → E1** |
+| **各セッション冒頭の health check** | — | **欠落 → E1** |
+| **完了マークは end-to-end 検証後** | Green State はあるが Task 単位の規律が曖昧 | **部分的 → E2** |
+
+| # | 改良候補 | 根拠・実害 | 想定反映先 | 等級 |
+|:-:|:---------|:-----------|:-----------|:----:|
+| E1 | **`/quick-load` にセッション冒頭の health check を追加**（pytest 1 回 + 現行 Milestone の検証コマンドへの参照を `SESSION_STATE.md` に持たせる） | 公式ハーネスは「各セッションは開発サーバ起動と基本動作テストから始める」。**実害が出ている**: 2026-07-26 セッションは pytest を一度も回さず、Opus 5 安定性ゲートの条件 2（regression ゼロ）が「本セッション未実行」のまま宙に浮いた。冒頭で 1 回回せばゲート材料が毎セッション自動で貯まる | `.claude/skills/quick-load/SKILL.md`（SE）+ `SESSION_STATE.md` テンプレ | SE |
+| E2 | **完了マークの規律を明文化** — 「コードを書いた時点ではなく **end-to-end 検証が済んだ時点で**完了とマークする」。`tasks.md` checkbox の更新タイミングを規定 | 公式の Key principle。LAM には F0 の「検証方法」があり原理は揃っているが、checkbox 更新の時点が未規定。**B-5 W8 で L2 が T100-T106 完了時に §3.5 checkbox を `[ ]` のまま残した**（`retro-B5-W8-WC-2026-07-05.md`）のと同じ穴 | `.claude/rules/phase-rules.md` BUILDING §F0 近傍 or `model-delegation-prompting.md` | PM |
+| E3 | **ASSUME INTERRUPTION の原則を L1 自身に適用** — 「context はいつリセットされてもおかしくない。記録していない進捗は失う前提で逐次書く」 | memory tool の system prompt に明文（"ASSUME INTERRUPTION: Your context window might be reset at any moment, so you risk losing any progress that is not recorded in your memory directory"）。LAM の `/quick-save` は 180K/200K の**閾値発火**であり逐次記録の原則がない。**2026-07-26 に subagent の boundaries へ入れた「N 件ごとに進捗を追記せよ」と同型のものを、L1 自身には適用していない** | `CLAUDE.md` §Context Management | PM |
+
+> **E1 を先に**。SE 級で単独完結し、E2/E3 の効果測定にも使える（health check が入れば「セッションごとの regression 有無」が実データで残る）。
+> **E3 は §8.5 の帰結と同じ構造**（親が subagent に課した規律を親自身が守っていない）。knowledge §8 の昇格（A4）とまとめて扱うと重複を避けられる。
+
+---
+
 ## D. 本リストの対象外（重複防止のため明記）
 
 | 項目 | 理由 |
