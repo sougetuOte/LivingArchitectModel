@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING** (**R-2 BUILDING W1 着手前 / K5 一括宣言 #1 承認待ち**)
+**PLANNING** (**M-1 PLANNING 着手 / requirements 起票中**)
 
-_R-2 BUILDING 遷移 (2026-07-21 / tasks.md Approved)。requirements + design + tasks 全 Approved (HGA #15/#16 + spec-critic 3 段検証済)。W1 先頭は T20 (verify_import_availability.py) だが、W1 内 K5 一括宣言 #1 (rule-002.md 新規 / subprocess-encoding-convention.md 新規 / large-scale-review/design.md §5.2 追記) の PM 級承認が先行必要。承認後 W1-(2) trust-model 単独承認 → rule-002 起票コミット直列依存 (FR-6)。_
+_R-2 Wave 1 完走 (2026-07-25 / `2ac4e91` / pytest 1043 PASS / W1 末ゲート FR-15 全クリア) を受け、ユーザー決定 3 (W2/W3 に入る前に M-1 統合再スコープ) に従い M-1 PLANNING へ遷移。M-1 = 条項トリアージ + モデルロスター SSOT + 3 層安全網 (ADR-0011 Accepted / 決定 5 件 + Wave 骨子 W0-W4)。requirements → design → tasks の順に承認ゲートを通す。R-2 W2/W3 は M-1 W1 トリアージ表の承認後に再スコープ。_
 
 ## 履歴
 
@@ -17,7 +17,8 @@ _R-2 BUILDING 遷移 (2026-07-21 / tasks.md Approved)。requirements + design + 
 | PLANNING | 2026-07-05 | 2026-07-05 | R-1 PLANNING 完了（大規模レビュー & リファクタリング / requirements + design + tasks 全 Approved / MAGI+gabriel+HGA+spec-critic 3 段 adversarial 検証済 / 5 Wave × 87 Task 展開） |
 | BUILDING | 2026-07-06 | 2026-07-18 | R-1 BUILDING〜AUDITING 完走（5 Wave / 589 PASS / Milestone COMPLETE 2026-07-18 / retro 済） |
 | PLANNING | 2026-07-20 | 2026-07-21 | R-2 PLANNING 完了（requirements + design + tasks 全 Approved / HGA #15/#16 + spec-critic 3 段検証 / 22 Task + 最終検証 1） |
-| **BUILDING** | **2026-07-21** | **-** | **R-2 BUILDING W1 着手前（K5 一括宣言 #1 承認待ち）** |
+| BUILDING | 2026-07-21 | 2026-07-25 | R-2 BUILDING Wave 1 完走（T4〜T8 / 5 commit / pytest 1043 PASS / W1 末ゲート FR-15 全クリア / HEAD `2ac4e91`）。W2/W3 は M-1 統合再スコープ待ちで中断 |
+| **PLANNING** | **2026-07-25** | **-** | **M-1 PLANNING 着手（ADR-0011 Accepted 起点 / requirements 起票中）** |
 
 ---
 
