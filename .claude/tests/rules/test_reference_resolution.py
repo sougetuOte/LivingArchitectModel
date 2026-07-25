@@ -392,3 +392,177 @@ def test_verify_w_r3_slug_only_reference_unaffected_by_fix(monkeypatch, tmp_path
 
     matches = [d for d in result if d["pattern"] == "w-r3-spec-ref"]
     assert matches == [], f"実在する flat adr 参照が誤って drift 報告されています: {matches}"
+
+
+# ---- W1-R2-T6: gabriel 契約検査の strict enum 化 (R1-059 是正) ----
+#
+# 根拠: docs/artifacts/r-1-audit-tracker.md §R1-059 (evidence_line 233)
+# 修正方針 (design.md §4.5 / docs/specs/large-scale-review/design.md §5.2):
+#   - D1: enum 値を持つ 3 フィールド (verdict/severity/recommended_action) を
+#         行頭 key:value 構造化 regex で strict 検査に昇格
+#   - D2: 自由記述系 3 フィールド (affected_atoms/reasoning/confidence) は
+#         既存の presence (substring) 検査を維持
+#   - D3/D4: strict 検査対象は文書系 2 ファイル (gabriel.md / SKILL.md) に限定。
+#         magi_dispatch.py は Python ソースのため対象外 (enum 整合性は pytest で別途担保)
+
+
+def test_gabriel_enum_fields_defines_three_fields_with_canonical_values():
+    """_GABRIEL_ENUM_FIELDS は D1 の 3 フィールドのみを enum 値集合として持つ."""
+    assert set(vr._GABRIEL_ENUM_FIELDS.keys()) == {
+        "verdict",
+        "severity",
+        "recommended_action",
+    }
+    assert vr._GABRIEL_ENUM_FIELDS["verdict"] == {"confirmed", "refuted", "inconclusive"}
+    assert vr._GABRIEL_ENUM_FIELDS["severity"] == {"critical", "warning", "info"}
+    assert vr._GABRIEL_ENUM_FIELDS["recommended_action"] == {"proceed", "re-magi", "abort"}
+
+
+def test_gabriel_presence_fields_excludes_enum_fields():
+    """D2: 自由記述系 3 フィールドは enum 3 フィールドを除いた残り (集合演算の整合性)."""
+    assert vr._GABRIEL_PRESENCE_FIELDS == {"affected_atoms", "reasoning", "confidence"}
+
+
+# ---- 正例: 実ファイルの行頭 key-value 表記が strict 検査を通ること ----
+
+
+def test_has_valid_enum_value_true_for_real_gabriel_md_verdict():
+    """正例: .claude/agents/gabriel.md 176行目 `"verdict": "confirmed"` で strict 検査を通る."""
+    text = (vr.REPO_ROOT / ".claude/agents/gabriel.md").read_text(encoding="utf-8")
+    assert vr._has_valid_enum_value(text, "verdict", vr._GABRIEL_ENUM_FIELDS["verdict"]) is True
+
+
+def test_has_valid_enum_value_true_for_real_gabriel_md_recommended_action():
+    """正例: .claude/agents/gabriel.md 180行目 `"recommended_action": "proceed"` で strict 検査を通る."""
+    text = (vr.REPO_ROOT / ".claude/agents/gabriel.md").read_text(encoding="utf-8")
+    assert (
+        vr._has_valid_enum_value(
+            text, "recommended_action", vr._GABRIEL_ENUM_FIELDS["recommended_action"]
+        )
+        is True
+    )
+
+
+def test_has_valid_enum_value_true_for_real_skill_md_verdict_and_severity():
+    """正例: .claude/skills/magi/SKILL.md 211/222行目 `- verdict: confirmed` / `- severity: critical`."""
+    text = (vr.REPO_ROOT / ".claude/skills/magi/SKILL.md").read_text(encoding="utf-8")
+    assert vr._has_valid_enum_value(text, "verdict", vr._GABRIEL_ENUM_FIELDS["verdict"]) is True
+    assert vr._has_valid_enum_value(text, "severity", vr._GABRIEL_ENUM_FIELDS["severity"]) is True
+
+
+# ---- 誤例: 散文中の言及のみでは strict 検査を通らない (substring 検査との対比が主眼) ----
+
+
+def test_has_valid_enum_value_false_when_field_name_appears_only_in_prose():
+    """誤例: フィールド名が行頭 key:value を伴わない散文中の言及のみ → strict 検査は False.
+
+    対比 (substring 検査では検出されない): 同じテキストに対し素朴な `f in text` 判定を
+    行うと、フィールド名の文字列自体は含まれるため「充足」と誤判定される (R1-059 の弱点)。
+    strict 化後は行頭 key:value 構造を要求するため、この誤判定が解消されることを示す。
+    """
+    prose_text = (
+        "gabriel の verdict は MAGI 合議全体の判定であり、重要な概念である。\n"
+        "severity についても同様に、深刻度を表す指標として言及される。\n"
+        "recommended_action という語もこの文書内で使われている。\n"
+    )
+
+    # 旧 substring 検査であれば「充足」と誤判定されることの確認 (対比)
+    for field in ("verdict", "severity", "recommended_action"):
+        assert field in prose_text, (
+            f"{field} は散文中に substring として出現しているはず (対比の前提)"
+        )
+
+    # 新 strict 検査は行頭 key:value 構造を要求するため、いずれも False (drift 相当)
+    for field, allowed in vr._GABRIEL_ENUM_FIELDS.items():
+        assert vr._has_valid_enum_value(prose_text, field, allowed) is False, (
+            f"{field} が散文中の言及のみで strict 検査を通過してしまっています (R1-059 未是正)"
+        )
+
+
+def test_has_valid_enum_value_false_for_placeholder_without_real_value():
+    """誤例: `- verdict: [任意]` のようなプレースホルダのみでは strict 検査を通らない.
+
+    実値を伴わないプレースホルダ表記 (CJK) はトークン抽出されず、
+    enum 値の実定義とはみなされない。
+    """
+    placeholder_text = "- verdict: [任意]\n- severity: [任意]\n"
+    for field in ("verdict", "severity"):
+        allowed = vr._GABRIEL_ENUM_FIELDS[field]
+        assert vr._has_valid_enum_value(placeholder_text, field, allowed) is False
+
+
+# ---- E2E: verify_w_r4() 経由の drift 検出 (実データ + 合成 fixture) ----
+
+
+def test_verify_w_r4_no_strict_enum_drift_on_real_repo_docs():
+    """正例 (E2E): 実 gabriel.md / SKILL.md は strict enum 検査で 0 drift (design §4.5 は 0 想定)."""
+    result = vr.verify_w_r4()
+    strict_drifts = [d for d in result if d["pattern"] == "w-r4-gabriel-contract-strict"]
+    assert strict_drifts == [], f"実ドキュメントで strict enum drift が検出されました: {strict_drifts}"
+
+
+def test_verify_w_r4_detects_strict_enum_drift_for_prose_only_mention(monkeypatch, tmp_path):
+    """誤例 (E2E / Red 実証): enum フィールド名が散文中の言及のみの合成 gabriel.md → drift 検出.
+
+    strict 化前 (substring 検査) ではこの合成ファイルは drift 非検出 (誤って充足扱い) になる
+    ことを併せて確認し、strict 化の効果を対比で示す。
+    """
+    agents_dir = tmp_path / ".claude" / "agents"
+    agents_dir.mkdir(parents=True)
+    gabriel_md = agents_dir / "gabriel.md"
+    prose_only_text = (
+        "gabriel の verdict は MAGI 合議全体の判定であり、重要な概念である。\n"
+        "severity についても同様に、深刻度を表す指標として言及される。\n"
+        "recommended_action という語もこの文書内で使われている。\n"
+        "affected_atoms / reasoning / confidence もここに記載されている。\n"
+    )
+    gabriel_md.write_text(prose_only_text, encoding="utf-8")
+
+    # SKILL.md は用意しない (exists() チェックで skip される既存仕様と整合)
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_w_r4()
+
+    strict_drifts = [d for d in result if d["pattern"] == "w-r4-gabriel-contract-strict"]
+    assert len(strict_drifts) == 1, (
+        f"散文中の言及のみの gabriel.md で strict enum drift が検出されていません: {result}"
+    )
+    assert set(strict_drifts[0]["referenced"]) == {"verdict", "severity", "recommended_action"}
+
+    # 対比: 旧 substring 検査 (presence 用) は「充足」と誤判定し drift を出さない
+    presence_drifts = [d for d in result if d["pattern"] == "w-r4-gabriel-contract"]
+    assert presence_drifts == [], (
+        "presence(substring) 検査は affected_atoms/reasoning/confidence の文字列が "
+        f"散文中に含まれているため drift を出さないはず: {presence_drifts}"
+    )
+
+
+def test_verify_w_r4_strict_enum_excludes_magi_dispatch_py(monkeypatch, tmp_path):
+    """D4: 合成 magi_dispatch.py (f-string 由来の enum 値) は strict enum 検査の対象外.
+
+    Python ソースは「行頭 key:value」構造を持たないため strict 検査対象から除外される。
+    合成ファイルは enum フィールド名を f-string としてのみ含み、構造化 key:value を持たない
+    ため、strict 検査対象に含まれていれば drift 化するはずだが、対象外のため drift は出ない。
+    """
+    scripts_dir = tmp_path / ".claude" / "scripts"
+    scripts_dir.mkdir(parents=True)
+    magi_dispatch_py = scripts_dir / "magi_dispatch.py"
+    magi_dispatch_py.write_text(
+        'f"- verdict: {verdict}\\n"\n'
+        'gabriel_output["severity"]\n'
+        'gabriel_output.get("recommended_action")\n',
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    result = vr.verify_w_r4()
+
+    strict_drifts = [
+        d
+        for d in result
+        if d["pattern"] == "w-r4-gabriel-contract-strict"
+        and d["source"] == ".claude/scripts/magi_dispatch.py"
+    ]
+    assert strict_drifts == [], (
+        f"magi_dispatch.py が strict enum 検査対象に含まれています (D4 違反): {strict_drifts}"
+    )

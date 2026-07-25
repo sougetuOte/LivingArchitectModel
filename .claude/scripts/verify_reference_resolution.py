@@ -70,6 +70,26 @@ _GABRIEL_CONTRACT_FIELDS = {
     "confidence",
 }
 
+# enum 値を持つ 3 フィールド (design §5.2 strict enum 化 / r-2-consolidation design §4.5 D1)。
+# 値は gabriel.md JSON schema (design §3) 準拠の enum そのもの。
+_GABRIEL_ENUM_FIELDS: dict[str, set[str]] = {
+    "verdict": {"confirmed", "refuted", "inconclusive"},
+    "severity": {"critical", "warning", "info"},
+    "recommended_action": {"proceed", "re-magi", "abort"},
+}
+
+# 自由記述系 3 フィールド (D2 / 既存の presence(substring) 検査を維持 = 構造化検査の対象外)
+_GABRIEL_PRESENCE_FIELDS = _GABRIEL_CONTRACT_FIELDS - set(_GABRIEL_ENUM_FIELDS)
+
+# 行頭 "- key: value" (Markdown 箇条書き) または "key": "value" (JSON) 形式を捕捉する。
+# `"verdict": {` のようなスキーマ開始行は値部分に英字トークンを含まないため、
+# _has_valid_enum_value() 側でトークン抽出結果が空集合になり自然に無効判定される。
+_STRICT_ENUM_LINE_PAT = re.compile(
+    r'^\s*[-*]?\s*"?(verdict|severity|recommended_action)"?\s*:\s*(.+?)\s*$',
+    re.MULTILINE,
+)
+_ENUM_VALUE_TOKEN_PAT = re.compile(r"[A-Za-z][A-Za-z-]*")
+
 
 def _normalize(p: str) -> str:
     return p.replace("\\", "/")
@@ -184,6 +204,80 @@ def _resolve_agent(name: str) -> bool:
     return (REPO_ROOT / ".claude/agents" / f"{name}.md").exists()
 
 
+def _has_valid_enum_value(text: str, field: str, allowed: set[str]) -> bool:
+    """`field: value` 形式の行に allowed のいずれかの値が実際に出現するかを検査する.
+
+    フィールド名が散文中に単独出現するだけでは充足しない (strict enum 化 / R1-059 是正)。
+    """
+    for m in _STRICT_ENUM_LINE_PAT.finditer(text):
+        if m.group(1) != field:
+            continue
+        tokens = set(_ENUM_VALUE_TOKEN_PAT.findall(m.group(2)))
+        if tokens & allowed:
+            return True
+    return False
+
+
+def _check_gabriel_contract_drifts() -> list[dict]:
+    """gabriel 契約 6 フィールドの検査 (パターン 3 / design §5.2).
+
+    D1: enum 値を持つ 3 フィールド (verdict/severity/recommended_action) は
+        文書系ファイル限定の strict 構造化検査。
+    D2: 自由記述系 3 フィールド (affected_atoms/reasoning/confidence) は
+        既存の presence (substring) 検査を維持する。
+    D4: strict enum 検査は Python ソース (magi_dispatch.py) を対象外とする
+        (f-string / dict アクセスで regex が未定義動作になるため)。
+    """
+    drifts: list[dict] = []
+
+    presence_targets = [
+        REPO_ROOT / ".claude/agents/gabriel.md",
+        REPO_ROOT / ".claude/skills/magi/SKILL.md",
+        REPO_ROOT / ".claude/scripts/magi_dispatch.py",
+    ]
+    for tgt in presence_targets:
+        if not tgt.exists():
+            # magi_dispatch.py は未実装の可能性あり (Wave C 起源) → 存在しない場合 skip
+            continue
+        text = _read(tgt)
+        missing = sorted(f for f in _GABRIEL_PRESENCE_FIELDS if f not in text)
+        if missing:
+            drifts.append(
+                {
+                    "pattern": "w-r4-gabriel-contract",
+                    "source": _normalize(str(tgt.relative_to(REPO_ROOT))),
+                    "referenced": missing,
+                    "match": f"missing_fields={missing}",
+                }
+            )
+
+    # strict enum 検査は文書系 2 ファイルに限定 (D3/D4)
+    strict_targets = [
+        REPO_ROOT / ".claude/agents/gabriel.md",
+        REPO_ROOT / ".claude/skills/magi/SKILL.md",
+    ]
+    for tgt in strict_targets:
+        if not tgt.exists():
+            continue
+        text = _read(tgt)
+        invalid = sorted(
+            field
+            for field, allowed in _GABRIEL_ENUM_FIELDS.items()
+            if not _has_valid_enum_value(text, field, allowed)
+        )
+        if invalid:
+            drifts.append(
+                {
+                    "pattern": "w-r4-gabriel-contract-strict",
+                    "source": _normalize(str(tgt.relative_to(REPO_ROOT))),
+                    "referenced": invalid,
+                    "match": f"missing_or_invalid_enum_fields={invalid}",
+                }
+            )
+
+    return drifts
+
+
 def verify_w_r4() -> list[dict]:
     """W-R4 用 grep パターンを Python 側で再現し、drift を返す."""
     drifts: list[dict] = []
@@ -219,27 +313,8 @@ def verify_w_r4() -> list[dict]:
                     }
                 )
 
-    # パターン 3: gabriel 契約 6 フィールド (欠落 = drift)
-    gabriel_targets = [
-        REPO_ROOT / ".claude/agents/gabriel.md",
-        REPO_ROOT / ".claude/skills/magi/SKILL.md",
-        REPO_ROOT / ".claude/scripts/magi_dispatch.py",
-    ]
-    for tgt in gabriel_targets:
-        if not tgt.exists():
-            # magi_dispatch.py は未実装の可能性あり (Wave C 起源) → 存在しない場合 skip
-            continue
-        text = _read(tgt)
-        missing = sorted(f for f in _GABRIEL_CONTRACT_FIELDS if f not in text)
-        if missing:
-            drifts.append(
-                {
-                    "pattern": "w-r4-gabriel-contract",
-                    "source": _normalize(str(tgt.relative_to(REPO_ROOT))),
-                    "referenced": missing,
-                    "match": f"missing_fields={missing}",
-                }
-            )
+    # パターン 3: gabriel 契約 6 フィールド (D1: enum 3 フィールドは strict / D2: 残り 3 は presence)
+    drifts.extend(_check_gabriel_contract_drifts())
 
     return drifts
 

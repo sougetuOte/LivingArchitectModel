@@ -28,6 +28,7 @@ resolve_action() + render_log_entry() で検証する。
 
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 
@@ -485,4 +486,110 @@ class TestSkillMdConsistency:
         content = self.SKILL_MD_PATH.read_text(encoding="utf-8")
         assert "magi_dispatch.py" in content, (
             "SKILL.md が実装 SSOT である magi_dispatch.py を参照していません。"
+        )
+
+
+# ---------------------------------------------------------------------------
+# W1-R2-T6 (D5): magi_dispatch.py の enum リテラル集合 vs gabriel.md 契約 enum の
+# 静的整合性検証。
+#
+# 背景: strict enum 化 (design.md §5.2 パターン 3) は文書系ファイル (gabriel.md /
+# SKILL.md) のみを対象とし、magi_dispatch.py は Python ソースのため対象外とする
+# (行頭 key:value regex が f-string / dict アクセスに対して未定義動作になるため)。
+# 代わりに、magi_dispatch.py が verdict/severity/recommended_action の比較に用いる
+# リテラル文字列が gabriel.md の JSON schema (design §3) で定義された enum の
+# 部分集合であることを、ソーステキストの静的抽出で検証する。
+# 型チェック (typing.Literal) は実行時に強制されないため、本テストが
+# 実質的な enum drift 検出手段となる。
+# ---------------------------------------------------------------------------
+
+
+class TestMagiDispatchEnumConsistency:
+    """magi_dispatch.py の enum リテラル使用が gabriel.md 契約 enum と乖離していないか検証."""
+
+    MAGI_DISPATCH_PATH = (
+        Path(__file__).resolve().parent.parent.parent / "scripts" / "magi_dispatch.py"
+    )
+    GABRIEL_MD_PATH = (
+        Path(__file__).resolve().parent.parent.parent / "agents" / "gabriel.md"
+    )
+
+    @staticmethod
+    def _extract_compared_literals(source: str, field: str) -> set:
+        """`<field> == "value"` (verdict/severity) または
+
+        `"<field>") == "value"` (recommended_action の dict.get 比較) 形式の
+        リテラル値を抽出する。
+        """
+        bare_pat = re.compile(rf'\b{re.escape(field)}\s*==\s*"([a-z-]+)"')
+        dict_get_pat = re.compile(rf'"{re.escape(field)}"\)\s*==\s*"([a-z-]+)"')
+        return set(bare_pat.findall(source)) | set(dict_get_pat.findall(source))
+
+    @staticmethod
+    def _extract_schema_enum(source: str, field: str) -> set:
+        """gabriel.md の JSON schema ブロックから `<field>` の enum 配列を抽出する."""
+        pat = re.compile(
+            rf'"{re.escape(field)}":\s*\{{[^}}]*?"enum":\s*\[([^\]]+)\]', re.DOTALL
+        )
+        m = pat.search(source)
+        assert m is not None, f"gabriel.md JSON schema に {field} の enum が見つかりません"
+        return {v.strip().strip('"') for v in m.group(1).split(",")}
+
+    def test_magi_dispatch_path_exists(self):
+        assert self.MAGI_DISPATCH_PATH.is_file(), (
+            f"magi_dispatch.py が見つかりません: {self.MAGI_DISPATCH_PATH}"
+        )
+
+    def test_verdict_literals_are_subset_of_gabriel_contract_enum(self):
+        dispatch_src = self.MAGI_DISPATCH_PATH.read_text(encoding="utf-8")
+        gabriel_src = self.GABRIEL_MD_PATH.read_text(encoding="utf-8")
+
+        used = self._extract_compared_literals(dispatch_src, "verdict")
+        canonical = self._extract_schema_enum(gabriel_src, "verdict")
+
+        assert used, "magi_dispatch.py から verdict 比較リテラルが抽出できませんでした"
+        unknown = used - canonical
+        assert not unknown, (
+            f"magi_dispatch.py が gabriel.md 契約に存在しない verdict 値を"
+            f"比較に使用しています (enum drift): {unknown}"
+        )
+
+    def test_severity_literals_are_subset_of_gabriel_contract_enum(self):
+        dispatch_src = self.MAGI_DISPATCH_PATH.read_text(encoding="utf-8")
+        gabriel_src = self.GABRIEL_MD_PATH.read_text(encoding="utf-8")
+
+        used = self._extract_compared_literals(dispatch_src, "severity")
+        canonical = self._extract_schema_enum(gabriel_src, "severity")
+
+        assert used, "magi_dispatch.py から severity 比較リテラルが抽出できませんでした"
+        unknown = used - canonical
+        assert not unknown, (
+            f"magi_dispatch.py が gabriel.md 契約に存在しない severity 値を"
+            f"比較に使用しています (enum drift): {unknown}"
+        )
+
+    def test_recommended_action_literal_is_subset_of_gabriel_contract_enum(self):
+        dispatch_src = self.MAGI_DISPATCH_PATH.read_text(encoding="utf-8")
+        gabriel_src = self.GABRIEL_MD_PATH.read_text(encoding="utf-8")
+
+        used = self._extract_compared_literals(dispatch_src, "recommended_action")
+        canonical = self._extract_schema_enum(gabriel_src, "recommended_action")
+
+        assert used, (
+            "magi_dispatch.py から recommended_action 比較リテラルが抽出できませんでした"
+        )
+        unknown = used - canonical
+        assert not unknown, (
+            f"magi_dispatch.py が gabriel.md 契約に存在しない recommended_action 値を"
+            f"比較に使用しています (enum drift): {unknown}"
+        )
+
+    def test_extract_compared_literals_detects_injected_typo(self):
+        """検出力の実証 (合成 fixture): 誤字混入を含む合成ソースで drift が検出されること."""
+        typo_source = 'if verdict == "cofnirmed":\n    pass\n'
+        used = self._extract_compared_literals(typo_source, "verdict")
+        canonical = {"confirmed", "refuted", "inconclusive"}
+        unknown = used - canonical
+        assert unknown == {"cofnirmed"}, (
+            "誤字リテラルの抽出に失敗しています (検出力の自己検証)"
         )

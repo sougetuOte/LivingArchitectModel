@@ -460,6 +460,39 @@ grep -rE '(verdict|severity|affected_atoms|reasoning|recommended_action|confiden
 
 各出力を実在 agent と照合 → 実在しない agent = drift。
 
+**パターン 3 の strict enum 化 (R1-059 是正 / W1-R2-T6 / r-2-consolidation design.md §4.5)**:
+
+上記パターン 3 (`grep -rE '(verdict|severity|...)'`) は各フィールド**名**が対象ファイル本文に
+substring として出現するかのみを判定しており、無関係な散文中の出現でも充足してしまう弱検査
+だった（R1-059 / `docs/artifacts/r-1-audit-tracker.md` 822-830 行目で deferred 記録）。
+`.claude/scripts/verify_reference_resolution.py` の実装 (`verify_w_r4()` 内 `_check_gabriel_contract_drifts()`)
+は以下の方針で strict 化した:
+
+- **enum 値を持つ 3 フィールド** (`verdict` / `severity` / `recommended_action`) は、
+  行頭 `- key: value`（Markdown 箇条書き）または `"key": "value"`（JSON）形式の構造化
+  regex (`_STRICT_ENUM_LINE_PAT`) でマッチした行から実際の値トークンを抽出し、
+  gabriel.md JSON schema（本設計書 §3 相当）で定義された enum 値集合
+  (`_GABRIEL_ENUM_FIELDS`) との積が非空であることを要求する（`_has_valid_enum_value()`）。
+  フィールド名が単なる散文中の言及としてのみ出現する場合は drift として検出される
+- **自由記述系 3 フィールド** (`affected_atoms` / `reasoning` / `confidence`) は enum を
+  持たないため、既存の presence（substring）検査を維持する（`_GABRIEL_PRESENCE_FIELDS`。
+  構造化検査の対象外）
+- **strict enum 検査の対象は文書系ファイルに限定**する: `.claude/agents/gabriel.md`,
+  `.claude/skills/magi/SKILL.md` の 2 ファイルのみ。`.claude/scripts/magi_dispatch.py` は
+  **Python ソースコード**であり、enum 値が `f"- verdict: {verdict}\n"` のような f-string や
+  `gabriel_output["verdict"]` の dict アクセスとして出現するため、「行頭 key: value」regex は
+  Python ソースに対して未定義動作（誤検出または検出漏れ）になる。同ファイルは presence
+  検査（自由記述系 3 フィールド分）の対象には引き続き含まれるが、enum 3 フィールドの
+  strict 検査対象からは除外する
+- `magi_dispatch.py` の enum 整合性は、strict regex の代わりに **pytest**
+  （`.claude/tests/wave_c/test_wave_c_magi_integration.py` の `TestMagiDispatchEnumConsistency`）
+  で別途担保する。同テストは `resolve_action()` 内の verdict/severity/recommended_action
+  比較リテラルをソーステキストから静的抽出し、gabriel.md の JSON schema `enum` 配列
+  （本設計書 §3 相当）との部分集合関係を検証する
+
+drift パターン名は presence 検査 (`w-r4-gabriel-contract`) と strict enum 検査
+(`w-r4-gabriel-contract-strict`) で区別し、どちらが検出したかを判別可能にしている。
+
 ### 5.3 層 3 unittest (パターン列挙 / HGA #6 Crux 5-2 対応)
 
 `.claude/tests/rules/test_reference_resolution.py` と `.claude/scripts/verify_reference_resolution.py` (**両方 W-R1 S1 で新規作成 / inventory と同時 / HGA #6 Crux 5-2 の宙浮き是正**) — 変数展開・間接参照など grep で捕捉困難なパターンを逐条列挙で検査:
