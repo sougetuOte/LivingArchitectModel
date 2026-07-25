@@ -69,7 +69,17 @@ hooks と subagents でどのモデルを使用するか。
 
 **#1・#2 は drift ではなく本 ADR 内部の自己矛盾である**: 本 ADR の「決定」§表は `command` を「**第 1 層: パスベース / handler type = `command` / model = なし**」と定義している。すなわち `command` は **hooks の handler type** であって `.claude/agents/*.md` の `model:` frontmatter の値ではない。両記述はこれを agents の model 値として列挙しており、**同一文書内で層を取り違えている**。`fable` は実ファイル・hook のいずれにも存在しない。
 
-**#3 について**: 2026-07-10 の注記追加時点で既に誤っていたか、その後に実ファイルが変更されたかは**未確認**（git log の追跡で判別可能だが M-1 W0-M1-T6 の範囲外とした）。
+**#3 について（2026-07-26 追記 / git 実測で確定）**: **2026-07-10 の注記追加時点で既に誤っていた。** 実ファイルは一度も `haiku` だったことがない。
+
+- `.claude/agents/goal-driven-l3-executor.md` の `model:` 行の全変更履歴は **`+model: sonnet` の 1 回のみ**（`ce4acc7` / 2026-06-12 / 新規作成時）
+- 上記注記を追加した commit（`80d8c8c` / 2026-07-10）時点の同ファイルの値も `model: sonnet`
+
+```bash
+git log --follow -p --date=short --pretty=format:"COMMIT %h %ad %s" -- .claude/agents/goal-driven-l3-executor.md | grep -E "^(COMMIT|[+-]model:)"
+git show 80d8c8c:.claude/agents/goal-driven-l3-executor.md | head -8
+```
+
+したがって **#3 も #1・#2 と同じく drift ではなく、注記が書かれた時点からの誤記である**。実ファイル側は一貫しており修正不要という結論は変わらない。
 
 **実ファイル側は一貫しており修正不要**。訂正は本 ADR 側のみで完結する。
 
