@@ -154,7 +154,9 @@ done
 
 ### 4.2 テンプレート配置 (FR-04, FR-06, FR-10)
 
-各テンプレートは下記「テンプレート定義」セクションのインライン文字列を使用。
+各テンプレートは [references/templates.md](references/templates.md) のインライン文字列をそのまま書き出す。
+Step 3 の生成プランに挙げた 5 ファイル (`CLAUDE.md` / `CHEATSHEET.md` / `CHANGELOG.md` /
+`SESSION_STATE.md` / `.claude/current-phase.json`) はすべて同ファイルに本文がある。
 `CLAUDE.md` のプロジェクト概要欄は `<!-- ユーザーが手動記入 -->` プレースホルダー (FR-06)。
 
 ### 4.3 `.claude/harness.json` 記録

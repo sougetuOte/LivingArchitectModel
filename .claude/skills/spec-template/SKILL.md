@@ -27,26 +27,46 @@ allowed-tools: Read, Write, Edit
 - 仕様書、要件定義、機能仕様の作成を求められた
 - API仕様、データモデル定義の作成を求められた
 
-## テンプレート選択ガイド
+## Step 1: 配置を決める
 
-| 目的 | テンプレート | ファイル名規則 |
-|------|-------------|---------------|
-| 機能要件 | 機能仕様書 | `feat-[機能名].md` |
-| API定義 | API仕様書 | `api-[エンドポイント名].md` |
-| データ | データモデル仕様 | `data-[エンティティ名].md` |
-| UI/UX | UI仕様書 | `ui-[画面名].md` |
+配置は「Milestone に属する仕様一式か、単独の仕様書か」で決まる。
 
+| ケース | 配置 | 例 |
+|:--|:--|:--|
+| **Milestone の仕様一式**（既定） | `docs/specs/<milestone-slug>/` に `requirements.md` / `design.md` / `tasks.md` | `docs/specs/m-1-opus5-migration/requirements.md` |
+| **単独の仕様書**（Milestone に属さない機能・機構） | `docs/specs/<topic>.md`（主題を表す slug / prefix 規約なし） | `docs/specs/tdd-introspection-v2.md` |
 
-## テンプレート本体（必要なものだけ読む）
+`<milestone-slug>` の規約は `.claude/rules/terminology.md` §4「命名規則」が SSOT。
+判断に迷う場合は Milestone ディレクトリ形式に倒す（LAM の現行運用の主形）。
 
-上の選択ガイドで決めた 1 種類だけを読むこと。3 つとも読む必要はない。
+## Step 2: テンプレートを選ぶ
 
-| テンプレート | 参照先 |
+`requirements.md` / 単独仕様書 / その他の仕様文書は、**内容の種類**でテンプレートを選ぶ。
+
+| 書く内容 | テンプレート | 参照先 |
+|:--|:--|:--|
+| 機能要件（FR / NFR / スコープ / 受け入れ条件） | 機能仕様書 | [references/template-feature-spec.md](references/template-feature-spec.md) |
+| API エンドポイント定義（リクエスト / レスポンス / エラー） | API 仕様書 | [references/template-api-spec.md](references/template-api-spec.md) |
+| データ構造・エンティティ定義 | データモデル仕様 | [references/template-data-model.md](references/template-data-model.md) |
+
+**選んだ 1 種類だけを読むこと。3 つとも読む必要はない。**
+
+### このスキルが担当しない文書
+
+| 文書 | 担当 |
 |:--|:--|
-| 機能仕様書 | [references/template-feature-spec.md](references/template-feature-spec.md) |
-| API 仕様書 | [references/template-api-spec.md](references/template-api-spec.md) |
-| データモデル仕様 | [references/template-data-model.md](references/template-data-model.md) |
-## Definition of Ready チェック
+| `design.md`（設計・アーキテクチャ） | `design-architect` サブエージェント |
+| `tasks.md`（タスク分解） | `task-decomposer` サブエージェント |
+| ADR | `adr-template` スキル |
+
+### UI 仕様を書く場合
+
+**専用テンプレートは持たない。** 機能仕様書テンプレートの
+「## 5. インターフェース > ### UI（該当する場合）」節に書く。
+画面単位で独立した仕様書にする場合も、同テンプレートを土台にする
+（実例: `docs/specs/ui-lam-slides.md`）。
+
+## Step 3: Definition of Ready チェック
 
 仕様書が完成したら、以下を確認する:
 

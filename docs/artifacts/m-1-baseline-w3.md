@@ -334,3 +334,19 @@ W3 の作業内容を知らない subagent を「これらの skill を初めて
 3. **`spec-template` の UI テンプレートが不在** — 選択ガイドは 4 種を提示するが参照表は 3 種のみ。W3 以前から実体なし
 
 いずれも W3 由来ではないため W4 のスコープに取り込まない（出口宣言 (a) 一回性との整合）。**silent に落とさず本節に記録する**。
+
+> **追記 (2026-07-26 / M-1 スコープ外の別セッションで消化 = 3 件すべて解消)**:
+> 1. `references/templates.md` に `CHANGELOG.md`（Keep a Changelog 1.1.0）と
+>    `SESSION_STATE.md`（見出し 6 種 / `/quick-save` §1 と対応）のインライン本文を追記し、
+>    Step 4.2 の指示文を参照先の実体に合わせた
+> 2. `spec-template/SKILL.md` の選択ガイドを「Step 1 配置を決める（Milestone ディレクトリ形式 /
+>    単独 flat 形式）→ Step 2 内容の種類でテンプレートを選ぶ」に再構成。`<milestone-slug>` の SSOT は
+>    `.claude/rules/terminology.md` §4 を参照する形にした（同ファイルは未変更 = PM 級ダイアログ発生なし）
+> 3. UI テンプレートは**新設せず選択ガイドから行を落とした**。判断根拠は (i) 単独 UI 仕様の実績は
+>    `docs/specs/ui-lam-slides.md` 1 件のみで、当時もテンプレート不在のまま書けている
+>    (ii) 機能仕様書テンプレートに `### UI（該当する場合）` 節が既にある
+>    (iii) 出口宣言 (c) no-net-growth に照らし新ファイル 1 件の純増を避ける。
+>    代替として機能仕様書テンプレートへ誘導する 4 行を置いた
+>
+> 検証: `.claude/tests/rules/` 84 passed / 全 suite **1103 passed + 14 skipped**（W4 末と同値 = regression ゼロ）/
+> `verify_reference_resolution.py --wave all` total_drifts 0。

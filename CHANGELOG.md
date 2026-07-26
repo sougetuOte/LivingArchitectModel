@@ -46,6 +46,12 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 
+- **fix(skills)**: `init-harness` / `spec-template` の既存欠陥 3 件を修正 (2026-07-26 / **M-1 スコープ外** / 検出経緯と裏取り = `docs/artifacts/m-1-baseline-w3.md` 末尾)
+  - **`init-harness` Step 4.2 の実行不能を解消**: `references/templates.md` に `CHANGELOG.md` (Keep a Changelog 1.1.0) と `SESSION_STATE.md` (見出し 6 種 / `/quick-save` §1 の記録項目と対応) のインライン本文が無く、Step 3 の生成プランに挙げた 2 ファイルを**書き出す内容が無い状態で止まっていた**。W3 の progressive disclosure 化ではなく W3 以前からの状態 (`git show 7454629^` で確認)
+  - **`spec-template` の選択ガイドを実配置に整合**: 案内していた命名規則 (`feat-*` / `api-*` / `data-*` / `ui-*`) に一致する実ファイルは `docs/specs/ui-lam-slides.md` の 1 件のみで、主形の `docs/specs/<milestone-slug>/{requirements,design,tasks}.md` が**どの行にも当たらず停止していた** (subagent probe で再現)。「Step 1 配置を決める → Step 2 内容の種類でテンプレートを選ぶ」に再構成し、`<milestone-slug>` は `.claude/rules/terminology.md` §4 を SSOT として参照。担当外文書 (`design.md` / `tasks.md` / ADR) の行き先も明記
+  - **UI テンプレートは新設せず選択ガイドから行を落とした**: 単独 UI 仕様の実績は 1 件のみで当時もテンプレート不在のまま完成しており、機能仕様書テンプレートに `### UI（該当する場合）` 節が既にあるため。出口宣言 (c) **no-net-growth** に照らし新ファイル 1 件の純増を避けた (行 1 削除 + 誘導 4 行 = ほぼ中立)
+  - pytest **1103 passed + 14 skipped** (M-1 W4 末と同値 / regression ゼロ) / `verify_reference_resolution.py --wave all` total_drifts 0
+
 - **fix(shim-avoidance)**: py_invoke.sh 経由呼び出しから `$CLAUDE_PROJECT_DIR` prefix を除去 (Phase B 段2 fixup / commit `0c51ed3` / 2026-07-12 / **push 前 L1 実測で自己検出**)
   - 段2 で SKILL.md 内 command を `bash "$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh"` (env var 形式) に統一したが、Bash tool 実行環境で `$CLAUDE_PROJECT_DIR` は unset のため exit 127 (no such file) となる問題
   - 根本原因: settings.json hook 実行環境と Bash tool 実行環境は env var inject が異なる (hook = Claude Code inject / Bash tool = unset)
