@@ -337,7 +337,7 @@ AoT 適用 MAGI で gabriel をスキップする場合は、以下の形式で�
 > MAGI 結論を「保留」として記録し、人間（L1 統括）の対応を待ちます。
 ```
 
-**timeout（> 60 秒 / NFR-W-C-1）**:
+**timeout（> 360 秒 / NFR-W-C-1 / 2026-07-26 改訂）**:
 ```markdown
 ### gabriel probe
 
@@ -345,7 +345,7 @@ AoT 適用 MAGI で gabriel をスキップする場合は、以下の形式で�
 - (timeout 注記)
 - 処理: タイムアウトにより inconclusive として扱う。MAGI 結論を確定（inconclusive 注記を添付）
 
-> [NOTE]: gabriel がタイムアウト（> 60 秒）しました。inconclusive として処理します。
+> [NOTE]: gabriel がタイムアウト（> 360 秒）しました。inconclusive として処理します。
 > 結論は CASPAR の判断を維持します。再 MAGI は実施しません。
 ```
 
@@ -365,7 +365,7 @@ AoT 適用 MAGI で gabriel をスキップする場合は、以下の形式で�
 
 | 条件 | 挙動 |
 |:-----|:-----|
-| タイムアウト（> 60 秒 / NFR-W-C-1） | `verdict=inconclusive` として扱い、MAGI ログに timeout 注記を記録。再 MAGI は実施しない |
+| タイムアウト（> 360 秒 / NFR-W-C-1） | `verdict=inconclusive` として扱い、MAGI ログに timeout 注記を記録。再 MAGI は実施しない |
 | `recommended_action=abort`（verdict / severity 問わず） | MAGI 結論を保留し、人間エスカレーションを直ちに行う。再 MAGI は実施しない |
 | フォーマット不備（NFR-W-C-2 / 必須フィールド欠損 / 型不一致） | `verdict=inconclusive` として扱い、MAGI ログに `format_error` 注記を記録。再 MAGI は実施しない |
 

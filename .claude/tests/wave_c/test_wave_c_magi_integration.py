@@ -17,7 +17,7 @@ resolve_action() + render_log_entry() で検証する。
     4. info → 記録のみ (record_only)
     5. abort → escalation (escalate_abort / verdict/severity 問わず)
     6. inconclusive → 結論確定 (proceed_inconclusive)
-    7. timeout > 60s → inconclusive 同等 (handle_timeout)
+    7. timeout > 360s → inconclusive 同等 (handle_timeout)
     8. format_error → inconclusive 同等 (handle_format_error)
 
 追加テスト:
@@ -209,7 +209,7 @@ def test_inconclusive_proceeds_with_caspar_conclusion():
 
 
 # ---------------------------------------------------------------------------
-# 7. timeout (> 60 秒) → handle_timeout / inconclusive 同等 (NFR-W-C-1)
+# 7. timeout (> 360 秒) → handle_timeout / inconclusive 同等 (NFR-W-C-1 / 2026-07-26 改訂)
 # ---------------------------------------------------------------------------
 def test_timeout_falls_back_to_inconclusive():
     """gabriel が 60 秒制限を超過した場合、gabriel_output の内容に関わらず timeout 処理。"""

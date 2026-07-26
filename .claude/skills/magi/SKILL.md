@@ -111,7 +111,7 @@ CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作�
 
 **呼び出し方法**: Task ツール経由で `subagent_type=gabriel` を起動する。gabriel は独立コンテキストで動作し、Read/Glob/Grep/Write/Edit のみ利用可（Bash・Agent ツール禁止 / NFR-W-C-3 暴走リスク抑制）。
 
-**タイムアウト**: 60 秒（NFR-W-C-1 / SHOULD）。呼び出し元で経過時間を計測し、超過時は `verdict=inconclusive + timeout 注記` として扱う。
+**タイムアウト**: 360 秒（NFR-W-C-1 / SHOULD / 2026-07-26 改訂）。呼び出し元で経過時間を計測し、超過時は `verdict=inconclusive + timeout 注記` として扱う。
 
 **gabriel 出力**: 6 フィールド JSON（design.md §3 参照）:
 - `verdict`: `confirmed` / `refuted` / `inconclusive`
@@ -134,7 +134,7 @@ gabriel の返り値に応じて以下のいずれかの経路を辿る。**優�
 | `verdict=refuted & severity=info` | **記録のみ** / MAGI 結論不変 | — |
 | `verdict=confirmed` | MAGI 結論を確定（gabriel 補強として記録） | — |
 | `verdict=inconclusive` | MAGI 結論を確定（inconclusive 注記を添付） | — |
-| timeout（> 60 秒 / NFR-W-C-1） | `verdict=inconclusive` として扱う / 再 MAGI なし | NFR-W-C-1 |
+| timeout（> 360 秒 / NFR-W-C-1） | `verdict=inconclusive` として扱う / 再 MAGI なし | NFR-W-C-1 |
 | format_error（JSON 欠損 / 型不一致 / NFR-W-C-2） | `verdict=inconclusive` として扱う / 再 MAGI なし | NFR-W-C-2 |
 
 **再 MAGI カウンター**: 1 ラウンド上限（AC-W-C-7）。2 回目の critical refute で自動的に人間エスカレーション。カウンターは MAGI ログセッション単位で管理する。
@@ -285,7 +285,7 @@ MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体�
 > MAGI 結論を「保留」として記録し、人間（L1 統括）の対応を待ちます。
 ```
 
-**timeout**（> 60 秒 / NFR-W-C-1）:
+**timeout**（> 360 秒 / NFR-W-C-1）:
 ```markdown
 ### gabriel probe
 
@@ -293,7 +293,7 @@ MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体�
 - (timeout 注記)
 - 処理: タイムアウトにより inconclusive として扱う。MAGI 結論を確定。
 
-> [NOTE]: gabriel がタイムアウト（> 60 秒）しました。inconclusive として処理します。
+> [NOTE]: gabriel がタイムアウト（> 360 秒）しました。inconclusive として処理します。
 > 結論は CASPAR の判断を維持します。再 MAGI は実施しません。
 ```
 

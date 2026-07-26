@@ -75,7 +75,7 @@ def resolve_action(
     Args:
         gabriel_output: gabriel が返した 6 フィールド JSON dict / format_error 時は None
         retry_count: 現在の再 MAGI ラウンド数 (0=初回 gabriel 呼出し, 1=1 回リトライ後の 2 回目)
-        is_timeout: gabriel が 60 秒制限 (NFR-W-C-1) を超過した場合 True
+        is_timeout: gabriel が 360 秒制限 (NFR-W-C-1 / 2026-07-26 改訂) を超過した場合 True
 
     Returns:
         ResolvedAction
@@ -193,7 +193,7 @@ def render_log_entry(
             "- verdict: inconclusive\n"
             "- (timeout 注記)\n"
             "- 処理: タイムアウトにより inconclusive として扱う。MAGI 結論を確定。\n\n"
-            "> [NOTE]: gabriel がタイムアウト（> 60 秒）しました。inconclusive として処理します。\n"
+            "> [NOTE]: gabriel がタイムアウト（> 360 秒）しました。inconclusive として処理します。\n"
             "> 結論は CASPAR の判断を維持します。再 MAGI は実施しません。\n"
         )
 

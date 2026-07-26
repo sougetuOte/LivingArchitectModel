@@ -262,15 +262,18 @@ class TestFullLogFormatCoverage:
 
 
 # ═════════════════════════════════════════════════════════════
-# T10 テストケース: 60 秒タイムアウト実機計測 (NFR-W-C-1)
+# T10 テストケース: タイムアウト実機計測 (NFR-W-C-1)
 # ═════════════════════════════════════════════════════════════
 
 
 class TestTimeoutNFRPerformance:
-    """NFR-W-C-1 SHOULD: gabriel probe は 60 秒以内に完了すべき。
+    """NFR-W-C-1 SHOULD: gabriel probe は 360 秒以内に完了すべき (2026-07-26 改訂 / 旧 60 秒)。
 
-    実 gabriel 呼び出しは行わず、dispatch ロジック自体が「経過時間 60s 超過」を
+    実 gabriel 呼び出しは行わず、dispatch ロジック自体が「経過時間の超過」を
     正しく handle_timeout として処理することを確認する。
+
+    下の 60 秒しきい値は NFR の閾値ではなく、dispatch ロジックの perf regression
+    ガードである (NFR 閾値 360 秒とは別物 / 緩めない)。
     """
 
     def test_dispatch_logic_completes_well_under_60s_for_1000_calls(self):
@@ -293,7 +296,7 @@ class TestTimeoutNFRPerformance:
         elapsed = time.perf_counter() - start
 
         assert elapsed < 60.0, (
-            f"dispatch 1000 回で {elapsed:.3f} 秒消費 (60 秒制限 NFR-W-C-1 違反)"
+            f"dispatch 1000 回で {elapsed:.3f} 秒消費 (perf ガード 60 秒を超過)"
         )
         # 実質的には milliseconds 単位で完了するはず (regression ガード)
         assert elapsed < 5.0, (

@@ -253,7 +253,7 @@ CASPAR の統合結論を **そのまま正としてではなく**、結論に�
 ### 6.6. 失敗時挙動（3 段階 + 追加）
 
 - **critical (初回)**: 再 MAGI 1 ラウンド（gabriel.reasoning を Divergence 入力に追加）
-- **critical (2 回目)**: 人間 escalation（AC-W-C-7 / 上限 1 回）
+- **critical (2 回目)**: 人間 escalation（AC-W-C-7 / 上限 1 回）**または HGA 召喚**（ADR-0009 追補の新ゲート条件 1 / **M-1 完了後に発効** / `.claude/rules/hga-summoning.md` §召喚ゲート）
 - **warning**: MAGI 結論に指摘併記 + 警告ラベル
 - **info**: 記録のみ / MAGI 結論不変
 - **abort** (recommended_action=abort): 即時人間 escalation（verdict/severity 問わず）

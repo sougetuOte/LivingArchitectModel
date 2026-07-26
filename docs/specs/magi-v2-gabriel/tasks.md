@@ -167,7 +167,7 @@ terminology.md §3 ペア 3「Wave は整数または「整数.5」形式」の�
 
 | Task ID | 内容 | 規模 | SPIDR 軸 | 担当層 |
 |:--------|:-----|:----|:--------|:------|
-| **WC-B5-T10** | 統合テスト（MAGI 合議エンドツーエンド / gabriel 起動条件・失敗時挙動・ログ記録形式の全パターン / mock/fixture ベースで実 LLM 呼び出しは `pytest -m integration` で分離 / 実 MAGI SKILL.md と gabriel.md を統合実行）。**60 秒制限タイムアウト実機計測含む（NFR-W-C-1）** | L | Paths | Sonnet (L2) |
+| **WC-B5-T10** | 統合テスト（MAGI 合議エンドツーエンド / gabriel 起動条件・失敗時挙動・ログ記録形式の全パターン / mock/fixture ベースで実 LLM 呼び出しは `pytest -m integration` で分離 / 実 MAGI SKILL.md と gabriel.md を統合実行）。**タイムアウト実機計測含む（NFR-W-C-1 / 閾値は 2026-07-26 に 60 秒 → 360 秒へ改訂）** | L | Paths | Sonnet (L2) |
 | **WC-B5-T11** | メトリクス計測環境の検出（NFR-W-C-4 / gabriel 起動回数・refute 率・inconclusive 率の記録手段確認 / .claude/ 内でのログ格納場所決定 / BUILDING 後 retro での使用手順確認） | S | Data | Sonnet (L2) |
 
 #### Stage 5 検証タスク
@@ -275,7 +275,7 @@ FR-W-C Gap: **1** (FR-W-C-7 BUILDING 延期) / Orphan: **0**
 
 | NFR-ID | 内容 | 対応タスク | カバー状態 |
 |:-------|:-----|:----------|:---------|
-| NFR-W-C-1 | レスポンス時間（SHOULD / 60 秒以内） | WC-B5-T1 / WC-B5-T10 | 完全カバー（T1: timeout 検出 / T10: 実機計測）|
+| NFR-W-C-1 | レスポンス時間（SHOULD / 360 秒以内 / 2026-07-26 改訂） | WC-B5-T1 / WC-B5-T10 | 完全カバー（T1: timeout 検出 / T10: 実機計測）|
 | NFR-W-C-2 | 出力フォーマット準拠率（MUST） | WC-B5-T4 / WC-B5-T6 | 完全カバー（T4: schema / T6: format_error 検出） |
 | NFR-W-C-3 | gabriel 暴走リスク抑制（MUST） | WC-B5-T3 / WC-B5-T4 | 完全カバー（T3: rubric 設計 / T4: confidence/affected_atoms 検証） |
 | NFR-W-C-4 | 監視メトリクス（SHOULD） | WC-B5-T11 | 完全カバー（T11: 計測環境） |
@@ -454,7 +454,7 @@ OQ 対応: **OQ-W-C-1 & OQ-W-C-6 = Spike タスク化** / **OQ-W-C-2 = retro 対
 4. info → 記録のみ
 5. abort (verdict / severity 問わず) → escalation
 6. inconclusive
-7. timeout (> 60 秒)
+7. timeout (> 360 秒)
 8. format_error
 
 **検証**:
@@ -535,7 +535,7 @@ OQ 対応: **OQ-W-C-1 & OQ-W-C-6 = Spike タスク化** / **OQ-W-C-2 = retro 対
 - [ ] AoT 適用モードで gabriel が自動起動される
 - [ ] 全失敗時挙動パターン (critical/warning/info/abort/inconclusive/timeout/format_error) が正しく処理される
 - [ ] MAGI ログに gabriel 結果が記録される (AC-W-C-10 / NFR-W-C-4)
-- [ ] **60 秒タイムアウト実機計測** (assert elapsed < 60.0)
+- [ ] **タイムアウト実機計測** (dispatch ロジックの perf ガード = assert elapsed < 60.0 / NFR 閾値 360 秒とは別物)
 
 **テストケース**:
 1. 非 AoT MAGI → gabriel skip

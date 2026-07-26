@@ -195,9 +195,12 @@ ID 体系: `NFR-W-C-N`
 
 ### NFR-W-C-1: レスポンス時間（SHOULD）
 
-gabriel の出力（JSON + reasoning）は Sonnet モデルの通常レスポンスタイム内（60 秒以内）に
-完了するべきである（SHOULD）。
-60 秒を超える場合は timeout として `verdict=inconclusive` と扱う。
+gabriel の出力（JSON + reasoning）は **360 秒（6 分）以内**に完了するべきである（SHOULD）。
+360 秒を超える場合は timeout として `verdict=inconclusive` と扱う。
+
+> **2026-07-26 改訂（M-1 W2-M1-T7 / PM 級承認済）**: 制定時の値は「Sonnet の通常レスポンスタイム内（60 秒以内）」だったが、**実測はすべて 60 秒を超過**しており規約と運用が乖離していた。実測値は `.claude/gabriel-metrics.log` の `invoked=true` 3 件が **74 秒 / 81 秒 / 345 秒**、加えて M-1 PLANNING（2026-07-25）で **294 秒**（`docs/artifacts/retro-R2-W1-M1-PLANNING-2026-07-25.md` P6）。**観測最大 345 秒を包含する 360 秒**へ改める。
+>
+> これは**数値の改訂のみ**であり、timeout 時の挙動（`verdict=inconclusive` / 再 MAGI なし）は変更しない。SHOULD が通常運用で発火し続ける状態を解消することが目的である（発火し続ける閾値は無視されるようになり、本当の異常を検出できなくなる）。
 
 タイムアウト検出は MAGI フロー実行者（gabriel 呼び出し元）が担う。LAM の subagent 基盤が
 タイムアウト機構を提供しない場合、呼び出し元が経過時間を計測し inconclusive として扱う。
