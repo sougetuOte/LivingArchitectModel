@@ -4,26 +4,11 @@
 **対象**: 3.5 層委譲モデル (`CLAUDE.md` §作業体制) の L2 (Sonnet) / L3 (Haiku) 委譲プロンプト全般
 **出典**: 公式 "Prompting Claude Sonnet 5" + "What's new in Claude Sonnet 5" (platform.claude.com / 2026-07-07 取得) / community 実運用報告 (HN launch thread / CodeRabbit 実測 / claudefa.st 他 / 2026-06-30〜07-03)。調査記録は本ファイル制定セッション (2026-07-07) の 2 系統並列調査による。
 
-## §1 Sonnet 5 の挙動デルタ (4.x 比 / 委譲影響順)
+## §1 挙動デルタ → `model-roster.md` §3（SSOT 退避済 / 2026-07-26 W2-M1-T2）
 
-| # | デルタ | 出典 | 委譲への影響 |
-|---|--------|------|------------|
-| 1 | **リテラル解釈**: 指示をアイテム間で暗黙一般化しない / 依頼外を推論しない ("does not silently generalize / does not infer requests you didn't make") | 公式 | 適用範囲の明示が必須 (「最初の 1 件だけでなく全て」式) |
-| 2 | **effort 遵守が厳格** (low/medium は「言われた分だけ」に絞る) / Sonnet 5 の medium ≈ 4.6 の high 相当 | 公式 | 多段推論・TDD 委譲は high 以上 |
-| 3 | **実装詳細の over-delivery** (依頼外 helper・テスト・依存追加 / 「boilerplate だけ書け」無視の報告) | community (2+ 独立源) | 下方向フェンス (do NOT 境界) + 親側 diff 検証 |
-| 4 | **否定形制約の drop-through** (「install するな」が無視された報告複数) | community | 重要制約は task prompt 内に再掲 (CLAUDE.md 頼み禁止) + 親検収 |
-| 5 | adaptive thinking 既定 ON + 新トークナイザで **同一テキスト ~30% トークン増** | 公式 | 予算・max_tokens 見積の再校正 |
-| 6 | **レビュー系で recall 低下**: 「高重要度のみ報告」指示をリテラルに実行し絞り込む (4.6 は低重要度も報告していた) | 公式 + community (CodeRabbit 実測: catch 率 63%→50%) | coverage 目的は loose 指示 (§3) |
-| 7 | sampling params (temperature / top_p / top_k) は **400 エラー** | 公式 | 委譲設定・API 呼び出しに含めない |
+**Sonnet 5 のデルタ 1〜7 と「リテラル × over-delivery の両立解釈」は `.claude/rules/model-roster.md` §3 が正本**（モデル名の束縛は roster 1 枚に集約する / ADR-0011 決定 2）。Haiku 4.5 の挙動（未確認）も同節。
 
-### リテラル × over-delivery の両立解釈 (本指針の核)
-
-デルタ 1 と 3 は矛盾しない: **指示された作業スコープにはリテラル** (明示されない範囲へ広げない) だが、**スコープ内の実装詳細は過剰化しがち** (余計な helper・テスト・防御コード)。よって委譲プロンプトは:
-
-- **上方向 (適用範囲) は明示的に広げる** — 全称・列挙でスコープを書く
-- **下方向 (成果物の種類) は明示的にフェンスする** — 変更可ファイル白リスト + 依頼外成果物の禁止列挙
-
-の両建てで書く。
+本ファイル以降の「**デルタ N**」表記は roster §3 の番号を指す（**移設で番号は変わっていない**）。本ファイルが持つのは**委譲プロンプトの書き方**のみであり、モデル世代交代時に更新するのは roster 側である。
 
 ## §2 Sonnet 5 委譲プロンプト必須 7 項
 
@@ -60,7 +45,7 @@ than to silently drop a real bug.
 
 ## §5 既存規律との整合・未確認事項
 
-- **`hga-summoning.md` の「Sonnet 5 は loose brief で under-deliver するため下調べ用途に不適」**: 公式のリテラル特性からの帰結として妥当。community 実測では「実装詳細の over-delivery」が優勢だが、これは§1 の両立解釈の通り矛盾しない。下調べ不適判定は**当面維持** (retrieval 主体タスクは Opus 優位という独立根拠あり) — W-R5 retro で再評価
+- **`hga-summoning.md` の「Sonnet 5 は loose brief で under-deliver するため下調べ用途に不適」**: 公式のリテラル特性からの帰結として妥当。community 実測では「実装詳細の over-delivery」が優勢だが、これは `model-roster.md` §3 の両立解釈の通り矛盾しない。下調べ不適判定は**当面維持** (retrieval 主体タスクは Opus 優位という独立根拠あり) — W-R5 retro で再評価
 - **「background meta-response 早期終了」(2026-07-04 Wave C 実測)**: community 裏付けゼロ (2026-07-07 調査時点)。Sonnet 5 モデル特性ではなく CC harness (v2.1.198 background 既定) 起因の可能性が高い。対策 (`disallowedTools: [Agent]` + boilerplate) は原因不問で有効なため**継続**
 - **未確認事項** (使用時に要実測): Haiku 4.5 の effort param 可否 / Haiku 4.5 への adaptive thinking 適用有無 / トークナイザ 30% 増のコンテンツ種別ごとの実際値
 
@@ -70,6 +55,7 @@ than to silently drop a real bug.
 
 ## 参照
 
+- `.claude/rules/model-roster.md` §3 (**挙動デルタの正本** / デルタ 1〜7 + 両立解釈 / 2026-07-26 移設)
 - `.claude/rules/hga-summoning.md` (§tight brief 5-slot / §Sonnet L2 委譲時の追加防御 / §loose brief の唯一例外)
 - `CLAUDE.md` §作業体制 (3.5 層委譲モデル) / §担当層の判断基準
 - 公式: https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5

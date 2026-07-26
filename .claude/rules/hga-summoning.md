@@ -93,28 +93,16 @@ Opus が currency sweep を行い、以下をブリーフに畳み込む（**pus
 
 ## 別予算 2 枠
 
-以下は下記 §envelope 定義の**実 $ envelope (月 $10-40) および Opus quota envelope (weekly cap 20% 以内) の両方の外**とする。計上ラベルを分離し、コスト暴発源を切り分ける。（旧記述「月 $40-80」は 2026-07-04 二軸化で置換済）
+以下 2 枠は **envelope 2 軸（実 $ / Opus quota）の両方の外**とする。計上ラベルを分離し、コスト暴発源を切り分ける。
 
 | 枠 | 内容 |
 |----|------|
 | 対話モード召喚 | 真の行き詰まり時のみ、人間を含めた協議を行う召喚 |
 | branch モード | Fable に Sonnet を直接ぶら下げる tight な適応探索のみ（稀・バウンド付き） |
 
-### envelope 定義（2026-07-04 二軸化 / 下調べパイプライン導入後）
+### envelope 定義 / 実測単価 → `model-roster.md` §4（SSOT 退避済 / 2026-07-26 W2-M1-T2）
 
-Fable = credit 従量（実 $）、Opus subagent = subscription quota（weekly cap %）に切り分けて監視する。
-
-| envelope 軸 | 対象 | 目安 |
-|:-----------|:-----|:-----|
-| **実 $ envelope** | Fable brief 分のみ（メーター実 $） | 月 **$10-40**（下調べパイプライン導入後・削減見込） |
-| **Opus quota envelope** | Opus subagent の subscription 消費 | weekly cap **20% 以内**（大型探索 3-5 回/週相当） |
-
-### 実測単価（2026-07-04 #5 実測後の更新）
-
-- Fable 単独召喚（旧型）: **$1.84（tool_uses=0 短答）〜 $12.66（tool_uses 17 大型）** / 平均 ~$5-8/回
-- 下調べパイプライン（Fable brief + Opus 下請け）: Fable brief 分 **~$0.20/回**（未実測 / パイロット #5 で確定予定）
-- **envelope 監視は API 実メータリング（jsonl 集計）基準**（`docs/artifacts/hga-summon-log.md` §day-1 実測メモ #5 参照）
-- branch モード ($13+/回) は別予算枠を維持
+**envelope 2 軸の定義（実 $ 月次枠 / Opus quota weekly cap）と実測単価は `.claude/rules/model-roster.md` §4 が正本**。Fable / Opus subagent の単価、branch モードの単価も同節を参照する。本節が持つのは「**どの枠を envelope の外に置くか**」という運用規律のみ。
 
 ## 下調べパイプライン（research 委譲パターン / 2026-07-04 新設）
 
@@ -125,7 +113,7 @@ Opus の強み」を反映した委譲パターン。
 ### 根拠
 
 - **Fable は doc pull / web 検索が苦手**（X community 定説 / 2026-07 実測でも本体は tool 使用が薄い）
-- **Opus 4.7/4.8 は Fable の半額**（$5/$25 vs $10/$50 / 2026-07-04 公式取得）
+- **Opus は Fable の半額**（単価は `model-roster.md` §4 / Opus 5 世代でも成立を継続）
 - **Opus は Claude Code 上で subscription 吸収**（credit 従量ではなく weekly quota 消費）→ 実 $ には効かない
 - **Anthropic 内部評価**: Opus lead + Sonnet subagent = 単独 Opus 比 **+90.2%**（multi-agent research system 論文）
 - **retrieval 能力**: Opus 4.6 = 76% vs Sonnet 4.5 = 18.5%（8-needle 1M MRCR v2 / emergent.sh）
@@ -264,14 +252,7 @@ Claude Code v2.1.197 では成立しない。公式仕様および実測結果�
 
 ### コスト構造
 
-| 成分 | 支払い形態 | 目安/回 |
-|:-----|:----------|-------:|
-| Fable brief（in + out 少量） | credit 実 $ | **~$0.20** |
-| Opus subagent（retrieval 主体） | subscription quota | weekly cap **3-5%** |
-| **合計 実 $** | | **~$0.20** |
-
-現状の Fable 単独大型探索 $12.66 に対し、下調べパイプライン化で **実 $ は 1/50 以下**（$0.20 圏）。
-ただし subscription quota は消費するため、L1 常用 Opus と合算した weekly cap 監視は必須。
+**`.claude/rules/model-roster.md` §4「下調べパイプラインのコスト構造」が正本**（2026-07-26 / W2-M1-T2 で SSOT 退避）。成分別の目安（Fable brief 分 = credit 実 $ / Opus subagent = subscription quota）と単独召喚との比較は roster 側を参照する。
 
 ### 適用ゲート
 
@@ -294,7 +275,7 @@ envelope 監視の実行基盤となる。
 ## 争点 E（枠棄却）再論禁止規律
 
 「HGA 型そのものを棄却すべきか」という枠外検討（争点 E）は、**プロジェクト立ち上げ／大転換時
-のみ**問う。毎召喚では問わない（$50/MTok 出力の膨張防止）。一度回答を得たら**決定として記録し、
+のみ**問う。毎召喚では問わない（Fable の出力単価は高い / `model-roster.md` §4）。一度回答を得たら**決定として記録し、
 条件変化（価格レジーム変化・サブスク復帰・Fable 能力の大幅変化）まで再論しない**
 （ADR-0009 決定記録を参照）。
 
@@ -324,6 +305,7 @@ input/output 分離を実測完了（新規召喚ゼロ）。結果、cache_crea
 
 ## 参照
 
+- `.claude/rules/model-roster.md` §4（**単価・envelope の正本** / 2026-07-26 移設）/ §1（HGA = Fable 5 の割当）
 - [ADR-0009](../../docs/adr/0009-hga-fable-summoning.md)（HGA 型 Fable 召喚アプローチ / 本規律の根拠）
 - `docs/artifacts/hga-approach-2026-07-01.md`（討議録・原本 / ローカル限定・gitignore 済）
 - `docs/artifacts/hga-summon-log.md`（召喚記録）

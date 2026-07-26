@@ -34,8 +34,16 @@
 
 | 条項ID | 原文 | 出典（ファイル:節） | 判定軸（軸1〜4 + 基質適合） | 判定 | 移動先 / 監視条件 | ロード条件 | 判定日 |
 |:------|:-----|:-------------------|:---------------------------|:-----|:------------------|:-----------|:-------|
+| `model-delegation-prompting.md#1-m01` | Sonnet 5 の挙動デルタ表 7 行 + 「リテラル × over-delivery の両立解釈」 | `model-delegation-prompting.md` §1 | —（W1 トリアージ外 / design §6.1 移行手順） | **SSOT 退避** | `.claude/rules/model-roster.md` §3 | 無条件 | 2026-07-26 |
+| `hga-summoning.md#envelope-m01` | envelope 定義（実 $ 月 $10-40 / Opus quota weekly cap 20%）2 軸表 | `hga-summoning.md` §別予算 2 枠 / §envelope 定義 | 同上 | **SSOT 退避** | `.claude/rules/model-roster.md` §4 | 無条件 | 2026-07-26 |
+| `hga-summoning.md#envelope-m02` | 実測単価 4 項目（Fable 単独 $1.84〜$12.66 / パイプライン ~$0.20 / 監視基準 / branch $13+） | `hga-summoning.md` §実測単価 | 同上 | **SSOT 退避** | `.claude/rules/model-roster.md` §4 | 無条件 | 2026-07-26 |
+| `hga-summoning.md#コスト構造-m01` | 下調べパイプラインのコスト構造表（成分 × 支払い形態 × 目安） | `hga-summoning.md` §下調べパイプライン §コスト構造 | 同上 | **SSOT 退避** | `.claude/rules/model-roster.md` §4 | 無条件 | 2026-07-26 |
 
-*(W0 時点でデータ行はゼロ。記入は W2-M1-T5 で行う)*
+> **上記 4 件は W1 トリアージ表（112 条項）の出力ではない**。design §6.1 の移行手順が指定した SSOT 退避であり、条項 ID は W2-M1-T2 で採番した（サフィックス `-m` = migration）。**W2-M1-T9 の件数突合では、W1 由来 43 件とは別枠として数える**（トリアージ表側に対応行が存在しないため）。
+>
+> **移設の境界（残置した記述）**: `hga-summoning.md` §ステートレス規律の「再送コスト概算 $0.15 / フル召喚 $1-4」は残置した。roster に対応する行が存在しない**召喚運用固有の派生値**であり、移設すると roster が「モデル単価の SSOT」から「HGA 運用コスト帳」へ拡張してしまうため（帳簿単一原則 / NFR-2）。
+
+*(W1 由来 43 件の記入は W2-M1-T5 で行う)*
 
 ---
 

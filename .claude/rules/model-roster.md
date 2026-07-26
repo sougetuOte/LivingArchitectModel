@@ -62,7 +62,7 @@
 
 現行ロスターのモデルが、前世代と比べて**委譲プロンプトの書き方を変える**点。
 
-> **本節の状態**: W2-M1-T1 時点では Opus 5（L1）分のみを記載する。**Sonnet 5 / Haiku 4.5 の挙動デルタは W2-M1-T2 で `model-delegation-prompting.md` §1 から本節へ移設**し、移設元には参照のみを残す。
+> **本節の状態**: Sonnet 5 分は **W2-M1-T2 で `model-delegation-prompting.md` §1 から移設済**（2026-07-26）。移設元には参照のみが残る。**デルタ番号（1〜7）は移設前後で不変**であり、`model-delegation-prompting.md` §2〜§5 の「デルタ N」参照はそのまま本節を指す。
 
 ### Opus 5（L1 / 2026-07-24 GA）
 
@@ -71,6 +71,33 @@
 | 1 | **thinking は既定 ON**、effort は 5 段階（`low` / `medium` / `high` / `xhigh` / `max`）で **default は `high`** | 明示指定しない限り high 相当のコストとレイテンシで動く |
 | 2 | `thinking: {"type": "disabled"}` は **effort `high` 以下でのみ受理**。`xhigh` / `max` と併用すると **400 エラー**（Opus 4.8 では独立していた） | API 直叩き経路での破壊的変更 |
 | 3 | reliable knowledge cutoff = **May 2026** | 2026-05 以前の事実は問い合わせ不要 / 以後は要裏取り |
+
+### Sonnet 5（L1.5 / L2 / 4.x 比 / 委譲影響順）
+
+**出典**: 公式 "Prompting Claude Sonnet 5" + "What's new in Claude Sonnet 5"（platform.claude.com / 2026-07-07 取得）/ community 実運用報告（HN launch thread / CodeRabbit 実測 / claudefa.st 他 / 2026-06-30〜07-03）。
+
+| # | デルタ | 出典 | 委譲への影響 |
+|---|--------|------|------------|
+| 1 | **リテラル解釈**: 指示をアイテム間で暗黙一般化しない / 依頼外を推論しない ("does not silently generalize / does not infer requests you didn't make") | 公式 | 適用範囲の明示が必須 (「最初の 1 件だけでなく全て」式) |
+| 2 | **effort 遵守が厳格** (low/medium は「言われた分だけ」に絞る) / Sonnet 5 の medium ≈ 4.6 の high 相当 | 公式 | 多段推論・TDD 委譲は high 以上 |
+| 3 | **実装詳細の over-delivery** (依頼外 helper・テスト・依存追加 / 「boilerplate だけ書け」無視の報告) | community (2+ 独立源) | 下方向フェンス (do NOT 境界) + 親側 diff 検証 |
+| 4 | **否定形制約の drop-through** (「install するな」が無視された報告複数) | community | 重要制約は task prompt 内に再掲 (CLAUDE.md 頼み禁止) + 親検収 |
+| 5 | adaptive thinking 既定 ON + 新トークナイザで **同一テキスト ~30% トークン増** | 公式 | 予算・max_tokens 見積の再校正 |
+| 6 | **レビュー系で recall 低下**: 「高重要度のみ報告」指示をリテラルに実行し絞り込む (4.6 は低重要度も報告していた) | 公式 + community (CodeRabbit 実測: catch 率 63%→50%) | coverage 目的は loose 指示 (`model-delegation-prompting.md` §3) |
+| 7 | sampling params (temperature / top_p / top_k) は **400 エラー** | 公式 | 委譲設定・API 呼び出しに含めない |
+
+#### リテラル × over-delivery の両立解釈（委譲指針の核）
+
+デルタ 1 と 3 は矛盾しない: **指示された作業スコープにはリテラル**（明示されない範囲へ広げない）だが、**スコープ内の実装詳細は過剰化しがち**（余計な helper・テスト・防御コード）。よって委譲プロンプトは:
+
+- **上方向 (適用範囲) は明示的に広げる** — 全称・列挙でスコープを書く
+- **下方向 (成果物の種類) は明示的にフェンスする** — 変更可ファイル白リスト + 依頼外成果物の禁止列挙
+
+の両建てで書く。**この解釈を委譲プロンプトの書式に落とした実体が `model-delegation-prompting.md` §2 必須 7 項**である。
+
+### Haiku 4.5（L3）
+
+公式ドキュメントに Sonnet 5 型「リテラル解釈」の明記は**ない**（未確認）。挙動デルタは未特定のため、委譲時は Sonnet 5 と同じ明示スコープ・明示出力契約で扱う（`model-delegation-prompting.md` §4）。**未確認事項**: effort param の可否 / adaptive thinking 適用有無。
 
 ---
 
@@ -105,7 +132,33 @@
 - **1M context は追加課金なし**（long-context 割増ではなく standard pricing）。
 - **Fable 5 のトークナイザ**: Opus 4.7 導入のトークナイザを使用し、同一テキストで**約 30% 多いトークン**になる（4.7 より前のモデル比）。HGA ブリーフの実効トークン見積に影響する。
 
-> **envelope（実 $ 月次枠 / Opus quota weekly cap）は W2-M1-T2 で `hga-summoning.md` §envelope 定義から本節へ移設する**。移設完了までは `hga-summoning.md` 側が正本。
+### envelope 定義（2026-07-04 二軸化 / 下調べパイプライン導入後 / W2-M1-T2 で `hga-summoning.md` から移設）
+
+Fable = credit 従量（実 $）、Opus subagent = subscription quota（weekly cap %）に切り分けて監視する。
+
+| envelope 軸 | 対象 | 目安 |
+|:-----------|:-----|:-----|
+| **実 $ envelope** | Fable brief 分のみ（メーター実 $） | 月 **$10-40**（下調べパイプライン導入後・削減見込） |
+| **Opus quota envelope** | Opus subagent の subscription 消費 | weekly cap **20% 以内**（大型探索 3-5 回/週相当） |
+
+**別予算 2 枠（対話モード召喚 / branch モード）は上記 2 軸の両方の外**として計上ラベルを分離する。枠の内容と運用は `hga-summoning.md` §別予算 2 枠。
+
+### 実測単価（2026-07-04 #5 実測後の更新 / 同上移設）
+
+- Fable 単独召喚（旧型）: **$1.84（tool_uses=0 短答）〜 $12.66（tool_uses 17 大型）** / 平均 ~$5-8/回
+- 下調べパイプライン（Fable brief + Opus 下請け）: Fable brief 分 **~$0.20/回**（未実測 / パイロット #5 で確定予定）
+- **envelope 監視は API 実メータリング（jsonl 集計）基準**（`docs/artifacts/hga-summon-log.md` §day-1 実測メモ #5 参照）
+- branch モード（**$13+/回**）は別予算枠を維持
+
+### 下調べパイプラインのコスト構造（同上移設）
+
+| 成分 | 支払い形態 | 目安/回 |
+|:-----|:----------|-------:|
+| Fable brief（in + out 少量） | credit 実 $ | **~$0.20** |
+| Opus subagent（retrieval 主体） | subscription quota | weekly cap **3-5%** |
+| **合計 実 $** | | **~$0.20** |
+
+Fable 単独大型探索 $12.66 に対し、下調べパイプライン化で **実 $ は 1/50 以下**（$0.20 圏）。ただし subscription quota は消費するため、**L1 常用 Opus と合算した weekly cap 監視は必須**。パターンの適用ゲートと構成は `hga-summoning.md` §下調べパイプライン。
 
 ---
 
@@ -135,7 +188,7 @@
 - `docs/adr/0009-hga-fable-summoning.md`（HGA 型召喚 / Fable の位置づけ）
 - `docs/adr/0011-clause-triage-and-model-generation-governance.md`（決定 2 = 本ファイルの根拠）
 - `CLAUDE.md` §作業体制（**層の定義** / モデル名は持たない）
-- `.claude/rules/model-delegation-prompting.md`（委譲プロンプトの書き方 / 挙動デルタは §3 へ移設予定）
-- `.claude/rules/hga-summoning.md`（HGA 召喚規律 / 単価・envelope は §4 へ移設予定）
+- `.claude/rules/model-delegation-prompting.md`（委譲プロンプトの書き方 / 挙動デルタは **§3 へ移設済** 2026-07-26）
+- `.claude/rules/hga-summoning.md`（HGA 召喚規律 / 単価・envelope は **§4 へ移設済** 2026-07-26）
 - `docs/artifacts/m-1-baseline-w0.md` §W0-M1-T5（**単価・スペックの裏取り記録** / 一次資料 URL と取得日）
 - `docs/artifacts/knowledge/l2-delegation-guardrails.md` §8（§2 閾値 1 の実測根拠）
