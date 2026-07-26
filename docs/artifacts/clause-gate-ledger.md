@@ -29,39 +29,43 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 | # | ファイル | 指令数 |
 |:-:|:---------|------:|
 | 1 | `.claude/rules/fable-l3-protocol.md` | 18 |
-| 2 | `.claude/rules/planning-quality-guideline.md` | 12 |
-| 3 | `.claude/rules/phase-rules.md` | 12 |
-| 4 | `.claude/rules/hga-summoning.md` | 9 |
-| 5 | `.claude/rules/model-roster.md` | 8 |
-| 6 | `.claude/rules/model-delegation-prompting.md` | 8 |
-| 7 | `.claude/rules/decision-making.md` | 7 |
-| 8 | `.claude/rules/code-quality-guideline.md` | 5 |
-| 9 | `CLAUDE.md` | 4 |
-| 10 | `.claude/rules/security-commands.md` | 4 |
-| 11 | `.claude/rules/permission-levels.md` | 3 |
-| 12 | `.claude/rules/upstream-first.md` | 2 |
-| 13 | `.claude/rules/auto-generated/trust-model.md` | 2 |
-| 14 | `.claude/rules/auto-generated/README.md` | 2 |
-| 15 | `.claude/rules/core-identity.md` | 1 |
-| 16 | `.claude/rules/auto-generated/rule-001.md` | 1 |
-| 17 | `.claude/rules/terminology.md` | 0 |
+| 2 | `.claude/rules/phase-rules.md` | 12 |
+| 3 | `.claude/rules/hga-summoning.md` | 9 |
+| 4 | `.claude/rules/model-roster.md` | 8 |
+| 5 | `.claude/rules/decision-making.md` | 7 |
+| 6 | `.claude/rules/code-quality-guideline.md` | 5 |
+| 7 | `CLAUDE.md` | 4 |
+| 8 | `.claude/rules/security-commands.md` | 4 |
+| 9 | `.claude/rules/permission-levels.md` | 3 |
+| 10 | `.claude/rules/upstream-first.md` | 3 |
+| 11 | `.claude/rules/auto-generated/trust-model.md` | 2 |
+| 12 | `.claude/rules/auto-generated/README.md` | 2 |
+| 13 | `.claude/rules/core-identity.md` | 1 |
+| 14 | `.claude/rules/auto-generated/rule-001.md` | 1 |
+| 15 | `.claude/rules/terminology.md` | 0 |
 
-**TOTAL: 98**
+**TOTAL: 79**
 
-> 発効時の初回実測は **99**。§B の取引 #2（`fable-l3-protocol.md` §6.7 の削除）で **98** に更新した。
+> 発効時の初回実測は **99**。§B の取引 #2（`fable-l3-protocol.md` §6.7 の削除）で **98**、
+> 取引 #3-#8（`model-delegation-prompting.md` の R2 降格 / 指令 8）で **90**、
+> 取引 #9-#11（`planning-quality-guideline.md` の R2 降格 −12 / §7 を `upstream-first.md` へ移動 +1）で
+> **79** に更新した。**79 で hard ceiling 80 を初めて下回り、net-negative は解除された**。
 > **取引 #1（`phase-rules.md`）は §A を動かしていない** —— 削除した箇条書きが RFC 2119 キーワードを
 > 含まないため。これは代理変数の既知の限界であり（本ファイル冒頭 §2 表の注記）、**実測で確認された**。
+> 逆に取引 #3-#8 は**ファイル 1 枚が R1 集合から外れた**ため、行の消滅として §A に全額現れた。
 
 ### 天井との対比
 
 | 項目 | 値 |
 |:-----|:---|
 | hard ceiling（外部定数 / arXiv:2607.19257 / **物理定数ではない** = 設計 §3.3） | **80** |
-| 現在値 | **98** |
-| 超過 | **+18** |
-| **交換レート** | **net-negative（1 行追加 = 2 行退出）** ← 設計 §3.5 が発動中 |
+| 現在値 | **79** |
+| 超過 | **なし（余裕 1）** |
+| **交換レート** | **1 対 1（no-net-growth）** ← 2026-07-26 取引 #9-#11 で 80 を下回り、net-negative は解除 |
 
-**発動理由**: 80 超過。80 以下に戻ったら 1 対 1 に復帰する。減少は**新規流入が起きた時だけ**起こる（定期棚卸しはしない = 出口宣言 (a)(b) と整合）。
+**net-negative の履歴**: 発効時 99（+19）で発動 → 取引 #3-#11 の配置是正で 79 に到達し解除。再び 80 を超えたら自動的に再発動する（設計 §3.5 / 検査は `test_exchange_rate_matches_ceiling_state`）。減少は**新規流入または配置の是正が起きた時だけ**起こる（定期棚卸しはしない = 出口宣言 (a)(b) と整合）。
+
+> **余裕 1 の脆さ（明示）**: 79 は天井に対して 1 しか余裕がない。**次に R1 条項を 1 件足した時点で 80 に達し、2 件で再び超過する**。したがって「解除された」は「余裕ができた」ではなく「合法手段が 1 対 1 に戻った」だけである。
 
 ### R2（条件ロード / 予算外 / 参考）
 
@@ -70,6 +74,8 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 | `.claude/rules/subprocess-encoding-convention.md` | `paths:` あり = 条件ロード |
 | `.claude/rules/test-result-output.md` | `paths:` あり = 条件ロード |
 | `.claude/rules/auto-generated/rule-002.md` | `paths:` あり = 条件ロード |
+| `.claude/rules/model-delegation-prompting.md` | `paths: .claude/agents/*.md` = 条件ロード（**2026-07-26 に R1 から降格** / 取引 #3-#8）|
+| `.claude/rules/planning-quality-guideline.md` | `paths: docs/specs/**/*.md` + `docs/adr/*.md` + `docs/tasks/**/*.md` = 条件ロード（**2026-07-26 に R1 から降格** / 取引 #11）|
 
 ---
 
@@ -81,6 +87,22 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 |:-:|:-----|:-----|:-------------|:-----|:--------------|:---------|:-----|
 | 1 | 2026-07-26 | **退出** | 「1 サイクル完了ごとにユーザーに報告」 | `phase-rules.md` BUILDING §必須 | **R5（削減）** | ゲート発効の初回取引 | A 型 = 基質適合テスト YES（Opus 5 は指示なしで報告する）/ 保留 ① |
 | 2 | 2026-07-26 | **退出** | 「試行カウントを報告に明示」 | `fable-l3-protocol.md` §6.7 | **R5（削減）** | 同上 | 同上 |
+| 3 | 2026-07-26 | **退出** | 下方向フェンスの恒久列挙（新規依存 / 依頼外 helper / 依頼外ファイル / git 操作 / scratchpad 書込） | `model-delegation-prompting.md` §2-2 後半 | **R2（12 agent 定義 §受領側の恒久制約）** | 不要（**純退出** / 下記注記） | 受領側に無条件配送されるため L1 常駐の必要がない。配送は `test_agent_delegation_fences.py` が固定（§C #3） |
+| 4 | 2026-07-26 | **退出** | Direct Executor（下位へ再委譲しない / 宣言だけで turn を終えない） | 同 §2-5 | **R2（同上）** | 同上 | 同上。**`hga-summoning.md` 側の R1 記述は維持** = 設計 §1.3 の二重化（機構の沈黙を知る規範を残す） |
+| 5 | 2026-07-26 | **退出** | grounding（tool 結果と突合 / 指せないものは「未検証」と明記） | 同 §2-6 | **R2（同上）** | 同上 | 同上 |
+| 6 | 2026-07-26 | **退出** | 親検収の自己申告（変更ファイル一覧 + 境界からの逸脱） | 同 §2-7 | **R2（同上）** | 同上 | 同上。**diff を検証する行為そのものは L1 側に残る**（移設不能） |
+| 7 | 2026-07-26 | **退出** | coverage-first（確信度・重要度で絞らない） | 同 §3 | **R2（レビュー系 3 定義 = `code-reviewer` / `gabriel` / `quality-auditor`）** | 同上 | roster §3 デルタ 6 の対策が要るのは監査・レビュー系のみ。全 12 定義への配送は過剰 |
+| 8 | 2026-07-26 | **退出** | 書き手側 4 項（スコープ全称明示 / 肯定形優先 / 出力契約 / Haiku 指針） | 同 §2-1・2-3・2-4 / §4 | **R2（`paths: .claude/agents/*.md`）** | 同上 | 繋留先 = agent 定義の作成・改訂（**ファイル繋留** = R2 要件 (i)）。委譲のたびの入口は R1 の `hga-summoning.md` §tight brief 5-slot が継続して担う |
+
+| 9 | 2026-07-26 | **移動** | 「新機能・外部依存の採用は 2 段階（実在性 + LAM 適合性）を通すことを必須」 | `planning-quality-guideline.md` §7 | **R1 内移動 → `upstream-first.md` §採用可否の二段構え** | 不要（**R1 内移動 = 予算中立** / 常駐集合の要素数が増えない） | 繋留先が「新機能・新依存を採用するか判断するとき」= **行為繋留**のため R2 不可（設計 §1.2）。かつ段階1（実在性の裏取り）は `upstream-first.md` 本文と二重管理だった |
+| 10 | 2026-07-26 | **退出** | 「推測実装禁止」 | 同 §7 判断フロー | **R5（削減 = 重複解消）** | 同上 | `upstream-first.md` §設計フェーズへの適用「裏取り未済なら『未確認（要裏取り）』と明示し確定前に実装へ進まない」と同義。**融合による count 操作ではなく重複の解消**であり、設計 §3.1 の粒度ゲーム禁止に照らして台帳上は独立 1 行として保存する |
+| 11 | 2026-07-26 | **退出** | 仕様・設計・タスクの品質基準 6 節（Requirements Smells / RFC 2119 / Design Doc チェックリスト / SPIDR / WBS 100% / Example Mapping） | 同 §1-§6 | **R2（`paths: docs/specs/**/*.md` + `docs/adr/*.md` + `docs/tasks/**/*.md`）** | 不要（**純退出**） | 繋留先 = 仕様書・ADR・タスク定義を読み書きするとき（**ファイル繋留** = R2 要件 (i)）。存在の告知は `phase-rules.md` PLANNING §品質基準（R1 常駐）が継続して担う |
+
+**取引 #9-#11 の注記**: §A は planning-quality-guideline の行が消滅（−12）し upstream-first が +1 されて **90 → 79**。**#9 を「入場」として扱わない根拠**は、当該条項が移動前から R1 常駐であり、常駐集合の要素数が増えないこと（設計 §3.2 の予算処理は「R1 に**入る**場合のみ」）。#11 の弱点は #8 と同型で、**R2 配送は「触った後」に届く**ため成果物を書き始める瞬間には間に合わない。緩和は (i) PLANNING は既存仕様の読取から始まるため実務上は早期に発火する (ii) `phase-rules.md` の R1 記述が存在を告知する、の 2 点。**(ii) が失われたら R1 へ戻す**。
+
+**取引 #3-#8 の注記（純退出 / 保留 ③ の消化）**: いずれも**入場を伴わない退出のみ**であり、交換相手を要しない（設計 §3.2 / Step 6 の予算処理は「R1 に入る場合のみ」）。したがって**この 6 件は将来の入場の交換相手として再利用できない**（取引 #1-#2 と同じ扱い）。§A は `model-delegation-prompting.md` の行が消滅して **98 → 90**。
+
+> **#8 に残る弱点（設計 §8 WC-1 の該当）**: 書き手側 4 項の真の繋留先は「委譲プロンプトを書くとき」= **行為繋留**であり、`paths:` では捕まえられない。`.claude/agents/*.md` への繋留は「agent 定義を保守するとき」だけを捕まえる**近似**である。この近似を許した根拠は (i) 受領側に効く 5 条項（#3-#7）は agent 定義側で無条件配送に変わったため、書き手が忘れても効果が消えない (ii) 委譲時の入口規律は `hga-summoning.md` §tight brief 5-slot（R1 常駐）が既に持っている、の 2 点。**(ii) が失われたら #8 は R1 へ戻す**（誤配の是正 = 予算を消費しない）。
 
 **初回取引の注記**: ゲート自身の発効は R1 を消費しない（契機は R3 = pytest + hook / 手順本文は R2 = skill / 設計 §4.4）。したがって上記 2 件は「発効と引き換えの退出」ではなく、**保留 ① の消化を初回取引として台帳に載せたもの**である。設計 §3.2 の交換相手制約（「別途の理由で既に削除が決まっている条項を交換相手に使わない」）に照らし、**この 2 件は将来の入場の交換相手として再利用できない**（既に退出済みとして記録されるため）。
 
@@ -92,6 +114,7 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 |:-:|:-----|:---------------------|:-------------|:-------------|
 | 1 | 常駐面ベースライン検査 | 本ファイル §A の表（構造化 markdown 表） | `pytest .claude/tests/rules/test_clause_gate_ledger.py` | **無**（台帳と常駐ファイルは同一 commit で動くのが正常 / 外部の漂流入力を追わない） |
 | 2 | PM 級パス判定への `additionalContext` 1 本 | `pre-tool-use.py` の `tool_input.file_path`（公式スキーマ） | hook の exit 0 + JSON | **無** |
+| 3 | 受領側の恒久制約の配送検査（R2 移設先の omission 検出） | `.claude/agents/*.md`（glob / ファイル集合） | `pytest .claude/tests/rules/test_agent_delegation_fences.py` | **無**（agent 定義とテストは同一 commit で動くのが正常 / 機構 #1 と同型） |
 
 **§1.1 の禁止条項**: 「同時更新義務 = 有」の機構は R3 に置けない（`rule-002` 型の恒常税を新規に作らない）。上記 2 件はいずれも「無」。
 

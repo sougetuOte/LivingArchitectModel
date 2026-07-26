@@ -36,9 +36,27 @@ All notable changes to this project will be documented in this file.
   - **実測された代理変数の限界**: `fable-l3-protocol.md` は 19→18 でカナリアが発火したが、`phase-rules.md` は **12→12 で動かなかった**（削除した箇条書きが RFC 2119 キーワードを含まないため）。§A は天井ゲージ / §B が通貨、という役割分離の必要性が実測で裏づけられた
 - **fix(tests)**: `test_pm_patterns_unified.py` の `len(...) == 4` リテラル assert を**期待パターン集合**に置換（rule-001 と同型の「literal assert 未同期」の恒久解 / 失敗メッセージが増減の中身を直接示す）
 
+- **refactor(clause-gate)**: **`model-delegation-prompting.md` を R1 常駐から R2 条件ロードへ降格**（保留 ③ の消化 / 誕生ゲート取引 #3-#8 / 常駐指令 **98 → 90**）
+  - **降格の条件は「実際の配送先を明記する」**（設計 §1.2 の R2 要件 (ii)）。単に `paths:` を付けるだけでは設計 §8 WC-1 の「R2 沈殿池」= 存在するのに二度と読まれない条項になるため、**受領側に効く 5 条項を実際に配送先へ移設した**
+  - **12 agent 定義（`.claude/agents/*.md`）に §受領側の恒久制約を追加**: Direct Executor（再委譲しない / 宣言だけで turn を終えない）/ 依頼外成果物の禁止列挙（新規依存・helper・ファイル作成・git 操作・scratchpad 書込）/ grounding（指せないものは「未検証」）/ 親検収の自己申告。**L1 が委譲プロンプトに毎回書かなくても届く**形に変わった（従来は 7 項を L1 が記憶して書く前提 = 実測で 12 定義すべてに未配送）
+  - **レビュー・監査系 3 定義**（`code-reviewer` / `gabriel` / `quality-auditor`）に **coverage-first**（確信度・重要度で絞らない / roster §3 デルタ 6 = 「高重要度のみ報告」で recall が落ちる）を追加
+  - **残余ファイルは `paths: .claude/agents/*.md`** = agent 定義を書く・直すときにロード。**削除はしない**（33 ファイルからの参照を温存 / 出典と書き手側の作法を保管）
+  - **`.claude/tests/rules/test_agent_delegation_fences.py` 新設（18 tests / R3 機構 #3）**: glob ベースなので**新規 agent を追加してブロックを入れ忘れると落ちる**。R2 移設の omission 潜伏をこのファイル集合については塞ぐ
+  - **残る弱点を台帳に明記**: 書き手側 4 項の真の繋留先は「委譲プロンプトを書くとき」= **行為繋留**であり `paths:` では捕まえられない。近似を許した根拠は (i) 受領側 5 条項が無条件配送に変わった (ii) 委譲時の入口は `hga-summoning.md` §tight brief 5-slot（R1 常駐）が持つ、の 2 点。**(ii) が失われたら R1 へ戻す**
+  - 検証: pytest **1128 → 1145 passed + 14 skipped**（+18 新規 / −1 = §A の parametrize が 17→16 ファイル / regression ゼロ）/ `verify_reference_resolution.py --wave all` **total_drifts 0** / `verify_model_reference.py` **drift 純増ゼロ**（当該ファイル 20 件のまま = 起草時に増やした 1 件を層名表記に直して回収）
+
+- **refactor(clause-gate)**: **`planning-quality-guideline.md` を R1 常駐から R2 条件ロードへ降格**（誕生ゲート取引 #9-#11 / 常駐指令 **90 → 79** = **hard ceiling 80 を初めて下回り net-negative 解除**）
+  - **繋留先がファイル繋留だったため `paths:` が正当に使える**唯一の大口: 仕様書 / ADR / タスク定義を読み書きするときにのみロード（`docs/specs/**/*.md` + `docs/adr/*.md` + `docs/tasks/**/*.md`）。存在の告知は `phase-rules.md` PLANNING §品質基準（R1 常駐）が継続して担う
+  - **§7（新機能・外部依存の採用評価）のみ `upstream-first.md` へ移動**: 繋留先が「採用するか判断するとき」= **行為繋留**で R2 不可。かつ段階1（実在性の裏取り）は `upstream-first.md` 本文と**二重管理**だった。§7 の節見出しは pointer として残す（ADR-0005 が §7 を指すため）
+  - **「推測実装禁止」1 件は重複解消として削減**: `upstream-first.md`「裏取り未済なら『未確認（要裏取り）』と明示し確定前に実装へ進まない」と同義。**融合による count 操作ではない**ことを示すため台帳 §B には独立 1 行として保存（設計 §3.1 の粒度ゲーム禁止）
+  - **移動を「入場」として扱わない根拠を台帳に明記**: 当該条項は移動前から R1 常駐であり常駐集合の要素数が増えない（設計 §3.2 の予算処理は「R1 に**入る**場合のみ」）。net-negative 下でも交換相手を要しない
+  - **余裕 1 の脆さを台帳に明記**: 79 は天井まで 1。**次に R1 条項を 1 件足せば 80 に達する**ため「解除」は余裕ではなく「合法手段が 1 対 1 に戻った」だけ
+  - 検証: pytest **1144 passed + 14 skipped**（−1 = §A の parametrize が 16→15 ファイル / regression ゼロ）/ `total_drifts 0` / model drift **47 で不変**
+  - **設計通りにカナリアが発火した実測**: 台帳更新前に `test_clause_gate_ledger.py` が 2 件落ち（R1 集合の不一致 + `upstream-first.md` の指令数 2→3）、更新後に Green。主契機が pytest である設計（v0.3 §4.3）が機能することを確認
+
 ### 未処理（本セッションで意図的に保留 / **完了と誤認しないこと**）
 
-- **`model-delegation-prompting.md` の配置**: 中身が Sonnet 5 / Haiku 4.5 向けの階層補償であり L1 が毎セッション読む理由がない。`verify_model_reference.py` の drift 43 件中 **20 件が同ファイルに集中**しており独立に裏づけ
+- **常駐指令 50 を目標とする棚卸し Milestone**（2026-07-26 ユーザー決定 / **現 stream 完了後に起票**）: 「今後の生き残り策としてそれくらいはしないといかん」。現在 **79**。配置是正で動かせる大口は使い切ったため、**50 到達には条項そのものの再採点が必要** = M-1 出口宣言 (a)(b)（consolidation ジャンルを閉じる / 決定木を定期棚卸しとして再実行しない）の改定を伴う。**目標自体が新規条項なので誕生ゲートを通す対象**。残る塊は `fable-l3-protocol.md` 18（= 下記保留）/ `phase-rules.md` 12 / `hga-summoning.md` 9 / `model-roster.md` 8 で、この 47 が動かしにくい
 - **`fable-l3-protocol.md` の層特定し直し**: 60 秒実況・自己監査 14 項目・F0-F4 は 2026-07-07 採用 = **Opus 4.x の既定挙動へのパッチ**であり、現在は Opus 5 上で走っている（「補償層はモデル交代のたびに再監査」に該当）
 
 ### Added

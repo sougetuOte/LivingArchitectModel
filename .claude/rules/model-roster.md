@@ -101,7 +101,7 @@
 - **上方向 (適用範囲) は明示的に広げる** — 全称・列挙でスコープを書く
 - **下方向 (成果物の種類) は明示的にフェンスする** — 変更可ファイル白リスト + 依頼外成果物の禁止列挙
 
-の両建てで書く。**この解釈を委譲プロンプトの書式に落とした実体が `model-delegation-prompting.md` §2 必須 7 項**である。
+の両建てで書く。**この解釈を委譲プロンプトの書式に落とした実体が `model-delegation-prompting.md` §2 必須 7 項**である（同ファイルは 2026-07-26 に **R2 = 条件ロードへ降格**し、受領側に効く 5 条項は `.claude/agents/*.md` の §受領側の恒久制約へ常駐化した）。
 
 ### Haiku 4.5（L3）
 
@@ -214,7 +214,7 @@ Fable 単独大型探索 $12.66 に対し、下調べパイプライン化で **
 - `docs/adr/0009-hga-fable-summoning.md`（HGA 型召喚 / Fable の位置づけ）
 - `docs/adr/0011-clause-triage-and-model-generation-governance.md`（決定 2 = 本ファイルの根拠）
 - `CLAUDE.md` §作業体制（**層の定義** / モデル名は持たない）
-- `.claude/rules/model-delegation-prompting.md`（委譲プロンプトの書き方 / 挙動デルタは **§3 へ移設済** 2026-07-26）
+- `.claude/rules/model-delegation-prompting.md`（委譲プロンプトの書き方 / **R2 = 条件ロード** `paths: .claude/agents/*.md` / 挙動デルタは **§3 へ移設済** 2026-07-26）
 - `.claude/rules/hga-summoning.md`（HGA 召喚規律 / 単価・envelope は **§4 へ移設済** 2026-07-26）
 - `docs/artifacts/m-1-baseline-w0.md` §W0-M1-T5（**単価・スペックの裏取り記録** / 一次資料 URL と取得日）
 - `docs/artifacts/knowledge/l2-delegation-guardrails.md` §8（§2 閾値 1 の実測根拠）

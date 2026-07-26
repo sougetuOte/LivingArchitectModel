@@ -1,4 +1,19 @@
+---
+paths:
+  - ".claude/agents/*.md"
+---
+
 # モデル別委譲プロンプト指針 (Sonnet 5 / Haiku 4.5)
+
+> **条件ロード（R2 / 2026-07-26 に R1 常駐から降格）**: 本ファイルは **agent 定義を書く・直すとき**
+> にのみロードされる。受領側に効く条項（下方向フェンスの恒久列挙 / Direct Executor / grounding /
+> 親検収の自己申告 / coverage-first）は **`.claude/agents/*.md` の各定義へ移設済**であり、
+> L1 が毎セッション読む必要はなくなった。移設の検査は
+> `.claude/tests/rules/test_agent_delegation_fences.py`、取引記録は
+> `docs/artifacts/clause-gate-ledger.md` §B #3-#8。
+>
+> 委譲のたびに参照する入口は **`hga-summoning.md` §tight brief 5-slot（R1 常駐 / 継続）** である。
+> 本ファイルに残るのは、その 5-slot に対する **L2 / L3 固有の上積み（書き手側の作法）** と出典。
 
 **制定日**: 2026-07-07
 **対象**: 3.5 層委譲モデル (`CLAUDE.md` §作業体制) の L2 (Sonnet) / L3 (Haiku) 委譲プロンプト全般
@@ -14,15 +29,20 @@
 
 `hga-summoning.md` §tight brief 5-slot (objective / output format / tool guidance / task boundaries / primary_sources) を基底とし、以下を追加・強化する:
 
-1. **スコープ全称明示**: 広く適用させたい範囲は列挙または全称で明示 (公式例: "Apply this formatting to every section, not just the first one")
-2. **下方向フェンス**: 変更してよいファイルの白リスト + 「新規依存追加禁止 / 依頼外 helper 禁止 / 依頼外ファイル作成禁止 / git 操作禁止 / **scratchpad ディレクトリ（`AppData/Local/Temp/claude/...`）への成果物書込禁止**」を明記
-3. **肯定形優先**: 「やること」を肯定形で書く (公式: positive > negative)。ただしデルタ 4 により否定形フェンスも併記し、遵守は親側検収で担保する (二重化)
-4. **出力契約**: 返却形式を構造で指定 (JSON / 表 / セクション構成)。「まとめて報告して」は書かない
-5. **Direct Executor boilerplate**: `hga-summoning.md` §Sonnet L2 委譲時の追加防御 (A + C) — 継続有効
-6. **grounding bolt-on**: 同上 — 継続有効
-7. **親側検収の予告**: 「diff は親 (L1) が検証する。変更ファイル一覧と境界からの逸脱を自己申告せよ」を明記 (デルタ 3/4 対策の最終防衛線)
+**凡例**: **[書き手]** = 委譲のたびに L1 が書く（task 依存のため移設不能）/ **[配送済]** = agent 定義側に
+常駐化したので**プロンプトに書かなくても届く**（`.claude/agents/*.md` §受領側の恒久制約）。
+
+1. **[書き手] スコープ全称明示**: 広く適用させたい範囲は列挙または全称で明示 (公式例: "Apply this formatting to every section, not just the first one")
+2. **下方向フェンス**: **[書き手]** 変更してよいファイルの白リスト + **[配送済]** 「新規依存追加禁止 / 依頼外 helper 禁止 / 依頼外ファイル作成禁止 / git 操作禁止 / **scratchpad ディレクトリ（`AppData/Local/Temp/claude/...`）への成果物書込禁止**」
+3. **[書き手] 肯定形優先**: 「やること」を肯定形で書く (公式: positive > negative)。ただしデルタ 4 により否定形フェンスも併記し、遵守は親側検収で担保する (二重化)
+4. **[書き手] 出力契約**: 返却形式を構造で指定 (JSON / 表 / セクション構成)。「まとめて報告して」は書かない
+5. **[配送済] Direct Executor**: `hga-summoning.md` §Sonnet L2 委譲時の追加防御 (A + C) の実体。**R1 側の記述は維持**（機構の沈黙を知る規範を残す = 誕生ゲート §1.3 の二重化）
+6. **[配送済] grounding bolt-on**: 同上
+7. **[配送済] 親側検収の予告**: 「diff は親 (L1) が検証する。変更ファイル一覧と境界からの逸脱を自己申告せよ」(デルタ 3/4 対策の最終防衛線)。**[書き手]** 実際に diff を検証するのは L1 の作業であり、これは移設できない
 
 ## §3 coverage 型 (敵対レビュー) の唯一例外
+
+**[配送済]**: `code-reviewer` / `gabriel` / `quality-auditor` の 3 定義に「coverage 段階では確信度で絞らない」を常駐化した（2026-07-26）。以下は**それ以外の agent にレビューを委譲するとき**に書き手が使う原文。
 
 デルタ 6 により、Sonnet 5 に監査・レビューを委譲する際に「重要なものだけ報告せよ」と書くと recall が下がる。coverage 目的の敵対レビューでは公式推奨文をそのまま使う:
 
