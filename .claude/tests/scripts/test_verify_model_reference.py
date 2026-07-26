@@ -2,9 +2,13 @@
 
 design.md §6.2（3 分岐擬似コード）/ requirements.md FR-12, NFR-4, NFR-5 準拠。
 tasks.md W2-M1-T4 の完了条件（10 項目）を検証する。
+
+2026-07-26 追加: (a) cp932 コンソールでの stdout UnicodeEncodeError 回避、
+(b) `_is_layer_assignment` の精度改善（false positive 削減）の回帰テスト。
 """
 from __future__ import annotations
 
+import io
 import json
 import re
 import sys
@@ -13,6 +17,7 @@ from pathlib import Path
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
+import verify_model_reference  # noqa: E402
 from verify_model_reference import (  # noqa: E402
     _MODEL_NAME_PAT,
     _is_layer_assignment,
@@ -126,6 +131,51 @@ def test_is_layer_assignment_false_without_assignment_symbol():
     assert _is_layer_assignment("L1 について Opus 5 が使われている") is False
 
 
+# ---- (b) _is_layer_assignment 精度改善 (2026-07-26 / false positive 削減) ----
+
+
+def test_is_layer_assignment_false_for_inline_code_span_colon():
+    """inline code span 内の `:` を割当指標として誤検出しないこと."""
+    text = (
+        "Fable 5 の judgment heuristics を継承する "
+        "`D:\\work7\\Fable-Alembic\\` を、レベル **L3** で参照する。"
+    )
+    assert _is_layer_assignment(text) is False
+
+
+def test_is_layer_assignment_false_for_table_row_same_cell_fable_l1():
+    """層トークンとモデル名が同一セル内にしか無い表行は False（別セルではない）."""
+    text = "| 2026-07-02 | Living Architect (Fable 5 L1) | 追補 |"
+    assert _is_layer_assignment(text) is False
+
+
+def test_is_layer_assignment_false_for_table_row_same_cell_opus_l1():
+    text = "| **2** | かつ Opus 5 の結論に L1 自身が確信を持てない | 事後条件 |"
+    assert _is_layer_assignment(text) is False
+
+
+def test_is_layer_assignment_true_for_bracket_form():
+    """`L2 (Sonnet)` 形式（層トークン直後の括弧書きモデル名）は True."""
+    text = "**対象**: 3.5 層委譲モデル の L2 (Sonnet) / L3 (Haiku) 委譲プロンプト全般"
+    assert _is_layer_assignment(text) is True
+
+
+def test_is_layer_assignment_true_for_hga_equals_fable():
+    assert _is_layer_assignment("§1（HGA = Fable 5 の割当）") is True
+
+
+def test_is_layer_assignment_true_regression_table_row():
+    assert _is_layer_assignment("| L1 | Opus 5 |") is True
+
+
+def test_is_layer_assignment_true_regression_inline_equals():
+    assert _is_layer_assignment("L1=Opus / L2=Sonnet / L3=Haiku") is True
+
+
+def test_is_layer_assignment_true_regression_japanese_tantou():
+    assert _is_layer_assignment("L3 の担当は Haiku 4.5") is True
+
+
 def test_is_time_stamped_source_true_for_artifacts():
     assert _is_time_stamped_source("docs/artifacts/x.md") is True
 
@@ -230,6 +280,65 @@ def test_main_exit_zero_by_default():
 def test_main_exit_nonzero_on_drift_flag_does_not_raise():
     rc = main(["--exit-nonzero-on-drift"])
     assert rc in (0, 1)
+
+
+# ---- (a) cp932 コンソールでの stdout UnicodeEncodeError 回避 (2026-07-26) ----
+
+
+class _StdoutWithoutReconfigure:
+    """`reconfigure` 属性を持たない stdout 代替（TextIOWrapper 以外の代替実装を模す）."""
+
+    def __init__(self):
+        self._chunks = []
+
+    def write(self, s):
+        self._chunks.append(s)
+        return len(s)
+
+    def flush(self):
+        pass
+
+
+def test_main_stdout_json_survives_cp932_console_encoding(monkeypatch):
+    """--output 無しの stdout 経路が cp932 コンソール上で UnicodeEncodeError を起こさないこと.
+
+    cp932 の文字集合に含まれない文字（絵文字）を drift の match フィールドに含む
+    payload を返す scan() をスタブし、sys.stdout を cp932 encoding の TextIOWrapper に
+    差し替えて main() が例外なく完走することを検証する。
+    """
+    fake_payload = {
+        "total_drifts": 1,
+        "drifts": [
+            {
+                "pattern": "model-name-literal",
+                "source": "x.md",
+                "referenced": "Opus 5",
+                "match": "line 1: \U0001f600 Opus 5 の説明",
+                "classification": "design_property_description",
+            }
+        ],
+        "exempt_count": 0,
+    }
+    monkeypatch.setattr(verify_model_reference, "scan", lambda *a, **k: fake_payload)
+
+    buffer = io.BytesIO()
+    fake_stdout = io.TextIOWrapper(buffer, encoding="cp932", errors="strict")
+    monkeypatch.setattr(sys, "stdout", fake_stdout)
+
+    rc = main([])
+
+    assert rc == 0
+
+
+def test_main_stdout_json_does_not_require_reconfigure_attribute(monkeypatch):
+    """sys.stdout に `reconfigure` 属性が無くても AttributeError を出さないこと."""
+    fake_stdout = _StdoutWithoutReconfigure()
+    assert not hasattr(fake_stdout, "reconfigure")
+    monkeypatch.setattr(sys, "stdout", fake_stdout)
+
+    rc = main([])
+
+    assert rc == 0
 
 
 # ---- 実リポジトリに対する誤例実測（FR-12 受け入れ条件 2 / tasks.md 完了条件）----

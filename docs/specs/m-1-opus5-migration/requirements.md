@@ -263,11 +263,15 @@ FR は ADR-0011「決定」節（決定 1〜5）・「実装計画」節（Wave 
 
 ### FR-16: W3 の skills / agents には規律文書向けの 4 軸とは別の判定軸を定義してから progressive disclosure 化を適用する (MUST)
 
-**説明**: 優先対象は 100 行超かつ外部参照ゼロの 4 skill（`full-review`（951 行）を含む）。
+**説明**: 判定式（100 行超 かつ `references/` へ未分離）による実測は **9 件**（2026-07-26 / W3-M1-T1 再実測 / design §7.2 の 2026-07-25 実測と完全一致）。W3 の対象は**行数降順の上位 4 件**（`full-review` 951 行 / `goal-driven` 419 行 / `init-harness` 288 行 / `spec-template` 268 行）。残り 5 件（`adr-template` 234 / `autonomous` 185 / `ship` 180 / `building` 136 / `retro` 135）は対象として認識したうえで **M-1 スコープ外**とし、W3 完了記録に明記する（silent な打ち切りにしない）。
+
+**スコープ再評価（2026-07-26 / W3-M1-T1 / PM 級承認済）**: 当初の「4 件打ち切り」は「分割の効果が未知数」という前提で置かれたが、その前提は変化した。**件数は拡大しない**。根拠: upstream 一次資料（context7 / `code.claude.com/docs/en/context-window`）で **SKILL.md の body は常時ロードされない**（起動時に載るのは description のみ / `disable-model-invocation: true` の skill は description すら載らない）ことを確認したため、分割は常時ロード量に寄与せず、対象拡大の費用対効果は当初想定より**低い**と判定した。
+
+> **未確認（断定しない）**: W0-M1-T5 記録の「body 約 5,000 tok」という 3 レベル構造の目安値は、2026-07-26 の狙い撃ち 2 クエリでは upstream に確認できなかった。本 FR のスコープ判断の根拠には**用いていない**。
 
 **受け入れ条件**:
 - [ ] `design.md` または W3 の Task 定義に、skills / agents 向けの判定軸（規律文書向け 4 軸とは別の軸）が明記されている
-- [ ] 100 行超かつ外部参照ゼロの skill が grep 実測で列挙され、優先対象 4 件（`full-review` を含む）が `tasks.md` に明記されている
+- [ ] 100 行超かつ `references/` へ未分離の skill が実測で列挙され（**9 件**）、うち優先対象 **4 件**（`full-review` を含む行数降順の上位 4 件）が `tasks.md` に明記されている
 - [ ] progressive disclosure 化の実施後、対象 skill の主要な発火条件・振る舞いに変更がないことが動作確認で検証されている
 
 **優先度**: MUST

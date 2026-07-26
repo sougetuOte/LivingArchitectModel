@@ -62,8 +62,27 @@ _LAYER_TOKEN_PAT = re.compile(
     re.IGNORECASE,
 )
 
-# 割当を表す記号・語（層トークンと同居した場合に layer_assignment と判定する）
-_ASSIGNMENT_INDICATORS = ("=", ":", "|", "担当", "割当")
+# inline code span（`...`）検出パターン（_is_layer_assignment の前処理用）。
+# バッククォート内の `:` 等をコロン指標として誤検出しないよう、同じ長さの空白に
+# 置換してから層トークン・モデル名・指標の探索を行う（2026-07-26 精度改善）。
+_INLINE_CODE_SPAN_PAT = re.compile(r"`[^`]*`")
+
+# 分岐2（表行でない場合）で「あいだ」の文字列に含まれるべき割当指標。
+# `|` は分岐1（表行）の判定へ移したため、こちらには含めない。
+_PROXIMITY_INDICATORS = ("=", ":", "担当", "割当")
+
+# 分岐2の「あいだ」が空白と `(` / `（` のみで構成される（`L2 (Sonnet)` 形式）ことの判定。
+_PROXIMITY_BRACKET_ONLY_PAT = re.compile(r"^[\s(（]*$")
+
+# 分岐2で有効なペアとみなす「あいだ」の最大文字数。
+_PROXIMITY_MAX_GAP = 40
+
+# 旧アルゴリズム（層トークン + 指標語の同居のみで判定）が使っていた指標集合。
+# scan() は _MODEL_NAME_PAT にマッチした行でのみ classify() を呼ぶため、
+# 実運用で _is_layer_assignment がモデル名ゼロ件になることはない。
+# classify()/_is_layer_assignment を直接呼ぶ単体テスト（例: バージョン数字を伴わない
+# 「L1=Opus」直書き）向けの後方互換フォールバックとしてのみ使う。
+_LEGACY_ASSIGNMENT_INDICATORS = ("=", ":", "|", "担当", "割当")
 
 # 時点記録として扱うディレクトリ prefix
 _TIME_STAMPED_DIR_PREFIXES = ("docs/artifacts/", "docs/adr/")
@@ -126,14 +145,91 @@ def _iter_scan_lines(text: str) -> list:
     return [(i + 1, raw_lines[i]) for i in range(start, len(raw_lines))]
 
 
+def _mask_inline_code_spans(text: str) -> str:
+    """inline code span（`...`）を同じ長さの空白に置換する（位置を保つ前処理）."""
+    return _INLINE_CODE_SPAN_PAT.sub(lambda m: " " * len(m.group(0)), text)
+
+
+def _table_cell_index(cell_offsets: list, pos: int) -> int:
+    """`|` 区切りのセル一覧のオフセットから、pos が属するセルの index を返す."""
+    for idx, (start, end) in enumerate(cell_offsets):
+        if start <= pos <= end:
+            return idx
+    return -1
+
+
+def _is_layer_assignment_table_row(context: str, layer_spans: list, model_spans: list) -> bool:
+    """分岐1: Markdown 表行（`|` が 2 個以上）の判定.
+
+    層トークンとモデル名が異なるセルに存在するペアが 1 つでもあれば True（同一セル内
+    にしか共起しないなら False）。
+    """
+    cells = context.split("|")
+    cell_offsets = []
+    pos = 0
+    for cell in cells:
+        cell_offsets.append((pos, pos + len(cell)))
+        pos += len(cell) + 1
+    layer_cells = {_table_cell_index(cell_offsets, start) for start, _ in layer_spans}
+    model_cells = {_table_cell_index(cell_offsets, start) for start, _ in model_spans}
+    return any(lc != mc for lc in layer_cells for mc in model_cells)
+
+
+def _between_text(context: str, span_a: tuple, span_b: tuple) -> str:
+    """2 つの区間の「あいだ」の文字列を返す（順序はどちらが先でもよい）."""
+    start_a, end_a = span_a
+    start_b, end_b = span_b
+    if end_a <= start_b:
+        return context[end_a:start_b]
+    if end_b <= start_a:
+        return context[end_b:start_a]
+    return ""
+
+
+def _is_layer_assignment_proximity(context: str, layer_spans: list, model_spans: list) -> bool:
+    """分岐2: 表行でない場合の判定.
+
+    層トークンとモデル名の「あいだ」が 40 文字以下、かつ割当指標（`=`/`:`/`担当`/`割当`）
+    を含むか、空白と `(`/`（` のみで構成される（`L2 (Sonnet)` 形式）ペアが 1 つでも
+    あれば True。
+    """
+    for layer_span in layer_spans:
+        for model_span in model_spans:
+            between = _between_text(context, layer_span, model_span)
+            if len(between) > _PROXIMITY_MAX_GAP:
+                continue
+            if any(indicator in between for indicator in _PROXIMITY_INDICATORS):
+                return True
+            if _PROXIMITY_BRACKET_ONLY_PAT.match(between):
+                return True
+    return False
+
+
 def _is_layer_assignment(match_context: str) -> bool:
     """マッチ行が層への割当表現かどうかを判定する（design.md §6.2 classify() 準拠）.
 
-    例:「L1 = Opus」「| L1 | Opus 5 |」「L3 の担当は Haiku 4.5」
+    例:「L1 = Opus」「| L1 | Opus 5 |」「L3 の担当は Haiku 4.5」「L2 (Sonnet)」
+
+    2026-07-26 精度改善: inline code span を除去した上で、Markdown 表行（分岐1）は
+    セル単位、それ以外（分岐2）は層トークンとモデル名の近接度で判定する。単に層トークン
+    と指標記号が行のどこかに同居するだけでは True にしない（誤検出対策）。
     """
-    if not _LAYER_TOKEN_PAT.search(match_context):
+    context = _mask_inline_code_spans(match_context)
+    if not _LAYER_TOKEN_PAT.search(context):
         return False
-    return any(indicator in match_context for indicator in _ASSIGNMENT_INDICATORS)
+
+    model_matches = list(_MODEL_NAME_PAT.finditer(context))
+    if not model_matches:
+        # scan() は _MODEL_NAME_PAT にマッチした行でのみ classify() を呼ぶため、
+        # 実運用でこの分岐に入ることはない（下記 _LEGACY_ASSIGNMENT_INDICATORS 参照）。
+        return any(indicator in context for indicator in _LEGACY_ASSIGNMENT_INDICATORS)
+
+    layer_spans = [m.span() for m in _LAYER_TOKEN_PAT.finditer(context)]
+    model_spans = [m.span() for m in model_matches]
+
+    if context.count("|") >= 2:
+        return _is_layer_assignment_table_row(context, layer_spans, model_spans)
+    return _is_layer_assignment_proximity(context, layer_spans, model_spans)
 
 
 def _is_time_stamped_source(source_path: str) -> bool:
@@ -226,6 +322,10 @@ def main(argv: Optional[list] = None) -> int:
             json.dump(payload, f, indent=2, ensure_ascii=False)
         print(f"wrote {args.output} (total_drifts={payload['total_drifts']})")
     else:
+        # cp932 コンソール対策: TextIOWrapper.reconfigure は Python 3.7+ でのみ存在する
+        # ため、存在しない場合（--output 未指定時の代替 stdout 等）は例外を出さず素通しする。
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(encoding="utf-8")
         json.dump(payload, sys.stdout, indent=2, ensure_ascii=False)
         print()
 

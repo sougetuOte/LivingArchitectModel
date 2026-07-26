@@ -313,61 +313,11 @@ distill(
 
 ---
 
-## 三段階ルート詳細（FR-6 / design §9）
 
-```
-L1 指揮者: タスク分析（LLM 呼び出し）
-  ↓
-以下をすべて満たすか？
-  条件 A: rubric 項目数 ≤ 3
-  条件 B: 未解決質問 = 0
-  条件 C: 工程数 ≤ 2
-  ↓
-  YES → [小タスクルート]
-          スキルスクリプトが l3-executor を直接起動
-          L1 はこの後関与しない（MUST NOT）
-          grader 起動主体 = スキルスクリプト（design §9.1）
-  ↓
-  NO → 工程数 ≥ 3 OR 並列分解が必要か？
-        YES → [大タスクルート] L1 → l2-foreman → l3-executor（三層）
-        NO  → [中タスクルート] L1 → l3-executor（二層）
-```
+## 詳細仕様（必要になった時点で読む）
 
----
-
-## bound 機構（FR-4 / design §10）
-
-### 二段防衛線
-
-| 防衛線 | 主体 | 方式 |
-|--------|------|------|
-| **第一（主）** | スキルスクリプト（L1 コンテキスト） | spawn 前に残予算チェック（spawn-time enforcement） |
-| **第二（バックストップ）** | Stop hook B-3 節 | セッション状態ファイルを読み、bound 超過なら exit 0 + additionalContext |
-
-### 打ち切り制御（Plan B / AC-7 読み替え）
-
-Plan B（自前ループ）では `/goal` を使用しないため、`or stop after N turns` は不使用。
-代替として:
-- `max_loop_count`（差し戻し回数上限・外部化設定・FR-4 MUST）でループ打ち切り
-- エージェントフロントマターの `max_turns`（小:10 / 中:20 / 大:15）でターン打ち切り
-- グローバル bound（tokens + time）でセッション全体を打ち切り
-
----
-
-## LAM フェーズ整合（NFR-4）
-
-本スキルは BUILDING フェーズで使用する。
-
-```
-lam-orchestrate（PLANNING 並列実行）
-     ↓ 成果物受け渡し（docs/tasks/<slug>/）
-goal-driven スキル（BUILDING 自己修正ループ）  ← 本スキル
-     ↓ 最終成果物
-full-review（納品前検収）
-```
-
----
-
+- 三段階ルートの詳細 / bound 機構: [references/route-and-bound.md](references/route-and-bound.md)（フロー [3] と [6] で参照）
+- 実装ステータス / Loop Engineering 観点 / 参照文献: [references/background.md](references/background.md)（実行手順ではない）
 ## 禁止事項
 
 - Dynamic Workflows の使用（FR-8 / AC-10）
@@ -379,39 +329,6 @@ full-review（納品前検収）
 - rubric-tmp.md の手動削除（スクリプトが担当）
 
 ---
-
-## 実装ステータス（W1-T1）
-
-| 機能 | 状態 | 対応タスク |
-|------|------|----------|
-| SKILL.md 骨格（フロー[1]〜[9] 記述） | **完了** | W1-T1 |
-| 排他ガード（gd_guard.py） | **完了** | W1-T1 |
-| rubric-tmp.md 削除（gd_guard.py） | **完了** | W1-T1 |
-| 残留リカバリ検知（gd_guard.py） | **完了** | W1-T1 |
-| エージェント定義 3 件 | **完了** | W2-T1 (`.claude/agents/goal-driven-{grader,l2-foreman,l3-executor}.md` 実在) |
-| bound スクリプト（gd_state.py） | **完了** | W2-T2 (`.claude/scripts/gd_state.py` 実在 / underscore 命名で正) |
-| Stop hook B-3 節 | **完了** | W2-T3 (`.claude/hooks/lam-stop-hook.py` に goal-driven 節統合済) |
-| 実行ループ本体（Plan B） | **完了** | W3-T2 |
-| distill-lessons.py | **完了** | W4-T1 |
-| コスト集計・実測トークン累積（gd_state.py W4-T2 追加 API） | **完了** | W4-T2 |
-
----
-
-## Loop Engineering 観点
-
-本スキルは Addy Osmani らが提唱する Loop Engineering の **Stage 2 Loop**（research → draft → evaluate → improve の自律ループ + 独立 verifier による termination 判定）に相当する位置づけを持つ（[ADR-0006](../../../docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md) 参照）。
-
-- **termination 条件**: `rubric.md` の verify コマンドに基づき、`goal-driven-grader` が `overall: "pass"` を返すこと。grader 失敗を合格として扱わない（FR-2 MUST NOT）。
-- **独立 verifier**: `goal-driven-grader`（独立した別コンテキストの Agent として起動・FR-2）。作業者（l3-executor）と同一コンテキストに混在せず、termination 判定の独立性を構造的に保証する。
-
-## 参照
-
-- 仕様: `docs/specs/goal-driven-orchestration/requirements.md` v1.2.0
-- 設計: `docs/specs/goal-driven-orchestration/design.md` v0.3.3
-- タスク: `docs/specs/goal-driven-orchestration/tasks.md` v1.2.0
-- Plan B 確定根拠: `docs/specs/goal-driven-orchestration/research/oq1-goal-subagent-test.md`
-- 設定: `docs/specs/goal-driven-orchestration/config.md`（W1-T2 で作成）
-- ガードスクリプト: `.claude/scripts/gd_guard.py`
 
 ## 権限等級
 
