@@ -8,6 +8,7 @@ description: |
 version: 1.0.0
 paths:
   - "docs/specs/*.md"
+  - "docs/specs/*/*.md"
 when_to_use: "仕様書・要件定義・機能仕様・API 仕様を作成するとき。docs/specs/ にファイルを作成する場面で活用する。"
 allowed-tools: Read, Write, Edit
 ---
