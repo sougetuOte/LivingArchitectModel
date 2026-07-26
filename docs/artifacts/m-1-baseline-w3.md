@@ -290,3 +290,47 @@ design §7.3 が定めた 2 指標（起動実績・責務定義の重複度）�
 | `retro` | 135 | 1,025 | 同上 |
 
 共通の補足理由（W3-M1-T1 §3）: 分割は常時ロード量に寄与しないことが upstream 裏取りで判明しており、対象拡大の費用対効果は当初想定より低い。**silent な打ち切りではなく、対象として認識したうえでの明示的な見送り**である。
+
+---
+
+## 追記: FR-16 受け入れ条件 3（動作確認）の充足記録 — W4 で実施（2026-07-26）
+
+W3 完了時点で **未充足**として W4 に持ち越していた項目（「progressive disclosure 化の実施後、対象 skill の主要な発火条件・振る舞いに変更がないことが動作確認で検証されている」）を、W4 着手時に消化した。**判定: 充足**。
+
+### 方法
+
+W3 の作業内容を知らない subagent を「これらの skill を初めて使う実行者」として起動し、`SKILL.md` を起点に指示を追わせ、**読んだファイルを実測**させた。合否判定は subagent に行わせず、L1 が git 実測で裏取りした（subagent には `git log` / `git show` を禁じ、「今そこにあるファイルだけを読む実行者」に固定した）。
+
+2 ラウンド実施した。第 1 ラウンドは停止条件を「最初の実作業ステップを開始できるまで」としたため `references/` への遷移が 1 度も発生せず、**risk を検証できなかった**（この設計ミスは L1 側にある）。第 2 ラウンドで開始地点を参照先への遷移点（`full-review` = Stage 1 / `goal-driven` = フロー [3] / `init-harness` = Step 4.2 / `spec-template` = 機能仕様書ケース）に設定し直して再実行した。
+
+### 結果
+
+| skill | 参照先への到達 | ハンドオフ | 備考 |
+|:------|:---|:---|:---|
+| `full-review` | `references/stage-1.md` | **成立** | 実行可能なコマンドが参照先に記載され、そのまま Stage 1 を開始できる |
+| `goal-driven` | `references/route-and-bound.md` | **成立** | 本体のフロー [3] だけでも開始可能。参照先は補強 |
+| `init-harness` | `references/templates.md` | **不成立** | CHANGELOG.md / SESSION_STATE.md のテンプレート本文が参照先に無い |
+| `spec-template` | `references/template-feature-spec.md` | **成立** | 完全なインラインテンプレートが揃っている |
+
+### 「不成立 1 件」を W3 の退行としない根拠（git 実測）
+
+| 指摘 | 実測 | 帰属 |
+|:-----|:-----|:-----|
+| `init-harness` の CHANGELOG / SESSION_STATE 本文が無い | W3 **直前版でも**「Keep a Changelog 1.1.0 雛形 + `[Unreleased]` セクション。」の 1 行のみ（`git show 7454629^` で確認） | **既存欠陥** |
+| `goal-driven` の判定条件が本体と参照先で重複 | 「rubric 項目数」の出現回数は W3 前後とも **2 回**で不変 | **既存**（分割で増えていない） |
+| `full-review` 本体が Stage 1 の no-op 制限に触れていない | no-op 注記は W3 直前版にも 6 箇所存在。分割で本体から `stage-1.md` 側へ移動した | **Info**（参照先を読めば見える = ハンドオフは成立） |
+
+### 発火条件と情報量の不変確認
+
+- **frontmatter の W3 前後 diff**: `full-review` / `goal-driven` / `init-harness` の 3 件は**完全同一**。`spec-template` のみ `paths:` に `docs/specs/*/*.md` が 1 行**追加**（付随 commit `de47334` の意図的な実配置整合。発火機会は減らない）
+- **本体 + `references/` の総量**: 4 件すべて W3 直前版**以上**（`full-review` +861 / `goal-driven` +357 / `init-harness` +212 / `spec-template` +521 字）。差分は分割に伴う見出し・参照表の増分であり、**情報の欠落はゼロ**
+
+以上より、W3 の progressive disclosure 化による**発火条件および振る舞いの変更はゼロ**である。
+
+### 本確認で新たに検出した既存欠陥（M-1 スコープ外 / 別途処理）
+
+1. **`init-harness` Step 4.2 が実行不能** — SKILL.md は「参照先のインライン文字列を使用」と指示しているが、CHANGELOG.md / SESSION_STATE.md の本文が `references/templates.md` に存在しない。W3 以前から同じ状態
+2. **`spec-template` のテンプレート選択ガイドが実配置と不一致** — 案内する命名規則（`feat-*` / `api-*` / `data-*` / `ui-*`）に一致する実ファイルは `docs/specs/ui-lam-slides.md` の 1 件のみで、実配置は `docs/specs/<milestone>/{requirements,design,tasks}.md` が主。付随 commit `de47334` は `paths:` のみ整合させ本文は未整合
+3. **`spec-template` の UI テンプレートが不在** — 選択ガイドは 4 種を提示するが参照表は 3 種のみ。W3 以前から実体なし
+
+いずれも W3 由来ではないため W4 のスコープに取り込まない（出口宣言 (a) 一回性との整合）。**silent に落とさず本節に記録する**。
