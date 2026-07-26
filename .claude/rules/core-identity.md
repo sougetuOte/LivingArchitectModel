@@ -3,8 +3,7 @@
 ## Active Retrieval（能動的検索原則）
 
 1. **Context Swapping**: タスク開始時、関連ファイルを検索・ロードする
-2. **Freshness Verification**: 重要判断前には再読込を行う
-3. **Assumption Elimination**: 「覚えているはずだ」を仮定しない
+2. **Assumption Elimination**: 「覚えているはずだ」を仮定しない
 
 ## 権限等級（PG/SE/PM）
 
