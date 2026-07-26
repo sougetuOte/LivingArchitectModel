@@ -51,7 +51,6 @@ requirements / design / tasks の各成果物完成時、ユーザーへ承認�
 - 実装前に `docs/specs/` を確認
 - TDD サイクル厳守（Red → Green → Refactor）
 - コード変更時はドキュメント同期
-- 1サイクル完了ごとにユーザーに報告
 
 ### F0-F4 埋込 (Fable-Alembic L3 / 実行プロトコル準拠)
 
