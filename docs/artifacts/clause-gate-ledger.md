@@ -115,6 +115,7 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 | 1 | 常駐面ベースライン検査 | 本ファイル §A の表（構造化 markdown 表） | `pytest .claude/tests/rules/test_clause_gate_ledger.py` | **無**（台帳と常駐ファイルは同一 commit で動くのが正常 / 外部の漂流入力を追わない） |
 | 2 | PM 級パス判定への `additionalContext` 1 本 | `pre-tool-use.py` の `tool_input.file_path`（公式スキーマ） | hook の exit 0 + JSON | **無** |
 | 3 | 受領側の恒久制約の配送検査（R2 移設先の omission 検出） | `.claude/agents/*.md`（glob / ファイル集合） | `pytest .claude/tests/rules/test_agent_delegation_fences.py` | **無**（agent 定義とテストは同一 commit で動くのが正常 / 機構 #1 と同型） |
+| 4 | 層 → モデルの束縛が roster 外に出ていないこと（ADR-0011 決定 2） | `verify_model_reference.py` の `scan()` 返却 JSON（`classification` フィールド = 既存分類器の構造化出力） | `pytest .claude/tests/scripts/test_verify_model_reference.py::test_no_layer_assignment_drift_in_real_repo` | **無**（`design_property_description` は 0 を求めず / 時点記録は `point_in_time_record` で exempt されるため恒常税にならない） |
 
 **§1.1 の禁止条項**: 「同時更新義務 = 有」の機構は R3 に置けない（`rule-002` 型の恒常税を新規に作らない）。上記 2 件はいずれも「無」。
 

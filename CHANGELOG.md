@@ -54,6 +54,19 @@ All notable changes to this project will be documented in this file.
   - 検証: pytest **1144 passed + 14 skipped**（−1 = §A の parametrize が 16→15 ファイル / regression ゼロ）/ `total_drifts 0` / model drift **47 で不変**
   - **設計通りにカナリアが発火した実測**: 台帳更新前に `test_clause_gate_ledger.py` が 2 件落ち（R1 集合の不一致 + `upstream-first.md` の指令数 2→3）、更新後に Green。主契機が pytest である設計（v0.3 §4.3）が機能することを確認
 
+- **fix(rules)**: **層 → モデルの束縛が roster 外に出ていた 5 箇所を是正し、0 件を機構で固定**（ADR-0011 決定 2 の機構化 / 誕生ゲート台帳 §C 機構 #4）
+  - `verify_model_reference.py` の `layer_assignment` 分類 **5 → 0**（`hga-summoning.md` 3 箇所 = `subagent (Sonnet)` → `(L2)` / `L1 (Opus) 側で` → `L1 側で` / 参照行の `§1（HGA = Fable 5 の割当）` → `§1（HGA の割当）`、`model-delegation-prompting.md` 1 行 = `L2 (Sonnet) / L3 (Haiku)` → `L2 / L3`）。いずれも**層名が既にあるのにモデル名を併記**していた冗長で、意味は落ちていない
+  - **`test_no_layer_assignment_drift_in_real_repo` 新設**: 検査対象は既存分類器の返却 JSON（`classification` フィールド）なので散文ではなく構造化出力に結合している。`design_property_description`（42 件）は許容カテゴリのため 0 を求めず、時点記録は `point_in_time_record` で exempt されるため恒常税にならない（台帳 §1.1 の R3 要件を満たす）
+  - **指令数は不変**（`hga-summoning.md` 9 のまま / 常駐 TOTAL 79 を動かさない = 予算外の R3 機構）
+  - 検証: pytest **1144 → 1145 passed + 14 skipped** / `total_drifts 0`
+
+- **docs(rules)**: `model-roster.md` §4 に Fable 5 / Mythos 5 の運用事実 3 件を追記（upstream 裏取り済 / 2026-07-26 / **未提案のまま保持していた候補 2 件を消化**）
+  - **`/model fable` で Claude Code 内から選択できる**（既定ではない）→ HGA 召喚を API 経由に限定する必要がない
+  - **cybersecurity / bio content は自動で Opus にフォールバックする**（content ベース routing）。**`hga-summoning.md` §hedge 指示の「safety routing で Opus に降格された兆候があれば明示させる」は推測ではなく upstream 挙動が根拠**だと確定した
+  - **Mythos 5 は招待制・非 GA のため LAM 対象外** — §1 のロスター表に行を持たない理由を明記
+  - 一次資料: `code.claude.com/docs/en/communications-kit` + `model-config` + `introducing-claude-fable-5-and-claude-mythos-5`（取得 2026-07-26 / `upstream-first.md` §採用可否の二段構え の段階1）
+  - **指令数は不変**（roster 8 のまま / 事実の記録であり条項ではない = 誕生ゲート Step 0 で対象外）
+
 ### 未処理（本セッションで意図的に保留 / **完了と誤認しないこと**）
 
 - **常駐指令 50 を目標とする棚卸し Milestone**（2026-07-26 ユーザー決定 / **現 stream 完了後に起票**）: 「今後の生き残り策としてそれくらいはしないといかん」。現在 **79**。配置是正で動かせる大口は使い切ったため、**50 到達には条項そのものの再採点が必要** = M-1 出口宣言 (a)(b)（consolidation ジャンルを閉じる / 決定木を定期棚卸しとして再実行しない）の改定を伴う。**目標自体が新規条項なので誕生ゲートを通す対象**。残る塊は `fable-l3-protocol.md` 18（= 下記保留）/ `phase-rules.md` 12 / `hga-summoning.md` 9 / `model-roster.md` 8 で、この 47 が動かしにくい

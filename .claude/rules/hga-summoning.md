@@ -156,11 +156,11 @@ subagent が 2021 と 2025 を独立探索し labor division 失敗）を修正�
 
 #### primary_sources 追加の根拠 (2026-07-06 / R-1 W-R1 S2 retro 事例 #4)
 
-subagent (Sonnet) は「与えられた一次資料を絶対視する癖」と「context7 等の rich source を能動的に
+subagent (L2) は「与えられた一次資料を絶対視する癖」と「context7 等の rich source を能動的に
 引かない癖」を持つ。R-1 W-R1 S2 T4 (module 3 skills 監査) で subagent がローカルの `skill-creator/SKILL.md`
 (R-1 W-R4 S3 で削除済 / `docs/artifacts/r-1-deletions.md` 参照)
 を Claude Code SKILL.md の公式スキーマ一次情報源と誤認し、`allowed-tools:` を「非公式フィールド」と
-誤判定した実測がある (R1-016 / tracker 参照)。L1 (Opus) 側で context7 の `/websites/code_claude`
+誤判定した実測がある (R1-016 / tracker 参照)。L1 側で context7 の `/websites/code_claude`
 を fetch → 公式仕様と判明 → subagent 判定を訂正した。
 
 primary_sources を明示的に指定することで:
@@ -314,7 +314,7 @@ envelope 監視の実行基盤となる。
 
 ## 参照
 
-- `.claude/rules/model-roster.md` §4（**単価・envelope の正本** / 2026-07-26 移設）/ §1（HGA = Fable 5 の割当）
+- `.claude/rules/model-roster.md` §4（**単価・envelope の正本** / 2026-07-26 移設）/ §1（HGA の割当）
 - [ADR-0009](../../docs/adr/0009-hga-fable-summoning.md)（HGA 型 Fable 召喚アプローチ / 本規律の根拠）
 - `docs/artifacts/hga-approach-2026-07-01.md`（討議録・原本 / ローカル限定・gitignore 済）
 - `docs/artifacts/hga-summon-log.md`（召喚記録）

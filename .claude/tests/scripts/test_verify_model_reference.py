@@ -382,3 +382,27 @@ def test_nfr5_no_subprocess_run_without_encoding():
     src = SCRIPT_PATH.read_text(encoding="utf-8")
     if "subprocess.run(" in src:
         assert 'encoding="utf-8"' in src and 'errors="replace"' in src
+
+
+# ---- ADR-0011 決定 2 の機構化（2026-07-26 / 誕生ゲート台帳 §C 機構 #4）----
+
+
+def test_no_layer_assignment_drift_in_real_repo():
+    """層 → モデルの束縛は `model-roster.md` 1 枚のみ（`layer_assignment` は 0 件）。
+
+    `design_property_description`（設計上の性質記述）は許容カテゴリなので 0 を求めない。
+    時点記録（retro / 日付つき観測）は `point_in_time_record` として exempt される。
+
+    落ちた場合の直し方: 層名が既にある箇所のモデル名を落とす（`L2 (Sonnet)` → `L2`）。
+    その層にどのモデルが割り当たっているかは `model-roster.md` §1 が唯一の正本である。
+    """
+    result = scan()
+    offenders = [
+        "{0}: {1}".format(d["source"], d["match"])
+        for d in result["drifts"]
+        if d["classification"] == "layer_assignment"
+    ]
+    assert not offenders, (
+        "層 → モデルの束縛が roster 外に {0} 件ある（ADR-0011 決定 2 / "
+        "model-roster.md §0）:\n  {1}".format(len(offenders), "\n  ".join(offenders))
+    )

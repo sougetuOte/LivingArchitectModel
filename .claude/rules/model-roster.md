@@ -140,6 +140,9 @@
 - **1M context は追加課金なし**（long-context 割増ではなく standard pricing）。
 - **Fable 5 のトークナイザ**: Opus 4.7 導入のトークナイザを使用し、同一テキストで**約 30% 多いトークン**になる（4.7 より前のモデル比）。HGA ブリーフの実効トークン見積に影響する。
 - **Fable 5 の prompt cache 最小長も 512 tokens**（migration guide / 2026-07-26 確認）。
+- **Fable 5 は Claude Code 内で `/model fable` により選択できる**（既定ではない / `code.claude.com/docs/en/communications-kit` + `model-config` / 2026-07-26 確認）。HGA 召喚を API 経由に限定する必要はない。
+- **cybersecurity / bio content は自動で Opus にフォールバックする**（content ベースの routing / 同上）。**HGA ブリーフがこの 2 領域に触れると、応答は Fable ではなく Opus から返る**。`hga-summoning.md` §hedge 指示の「safety routing で Opus に降格された兆候があれば明示させる」は、この upstream 挙動を根拠に持つ（従来は推測だった）。
+- **Mythos 5 は招待制・非 GA のため LAM の対象外**（`introducing-claude-fable-5-and-claude-mythos-5` / 2026-07-26 確認）。ロスター表（§1）に行を持たない理由をここに残す。
 - **Fable 5 は ZDR（Zero Data Retention）が利用不可**: 30 日保持が必須で Covered Model 指定。`claude-fable-5` への ZDR リクエストは 400 を返す。**HGA 召喚のブリーフは 30 日保持される**前提で、載せる内容を選ぶこと（introducing-claude-fable-5-and-claude-mythos-5 / 2026-07-26 確認）。
 
 ### envelope 定義（2026-07-04 二軸化 / 下調べパイプライン導入後 / W2-M1-T2 で `hga-summoning.md` から移設）

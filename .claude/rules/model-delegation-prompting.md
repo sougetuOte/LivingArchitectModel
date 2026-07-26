@@ -16,7 +16,7 @@ paths:
 > 本ファイルに残るのは、その 5-slot に対する **L2 / L3 固有の上積み（書き手側の作法）** と出典。
 
 **制定日**: 2026-07-07
-**対象**: 3.5 層委譲モデル (`CLAUDE.md` §作業体制) の L2 (Sonnet) / L3 (Haiku) 委譲プロンプト全般
+**対象**: 3.5 層委譲モデル (`CLAUDE.md` §作業体制) の L2 / L3 委譲プロンプト全般（層 → モデルの束縛は `model-roster.md` §1）
 **出典**: 公式 "Prompting Claude Sonnet 5" + "What's new in Claude Sonnet 5" (platform.claude.com / 2026-07-07 取得) / community 実運用報告 (HN launch thread / CodeRabbit 実測 / claudefa.st 他 / 2026-06-30〜07-03)。調査記録は本ファイル制定セッション (2026-07-07) の 2 系統並列調査による。
 
 ## §1 挙動デルタ → `model-roster.md` §3（SSOT 退避済 / 2026-07-26 W2-M1-T2）
