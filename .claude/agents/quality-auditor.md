@@ -1,10 +1,12 @@
 ---
 name: quality-auditor
 description: |
-  品質監査に特化したサブエージェント。
-  コード品質、ドキュメント整合性、アーキテクチャ健全性を検証する。
-  3 Agents Model を適用した改善提案を行う。
-  AUDITINGフェーズでの監査作業で使用推奨。
+  リポジトリ横断の品質監査サブエージェント。単一差分では見えない検証を担う:
+  構造整合性（スキーマ / 参照 / データフロー / 設定 / ドキュメント間）、仕様ドリフト、
+  アーキテクチャ健全性。3 Agents Model を適用した改善提案と監査レポートを生成する。
+  AUDITING フェーズの全体監査、および /full-review Stage 2 の QA 枠で使用する。
+  単一の変更差分に対する短距離レビュー（コード品質 / テスト品質 / セキュリティの
+  1 観点）には code-reviewer を使うこと。
 tools: Read, Glob, Grep, Bash
 model: sonnet
 memory: project

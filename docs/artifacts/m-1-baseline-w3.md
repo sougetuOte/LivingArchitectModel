@@ -121,25 +121,43 @@
 
 ### 分岐判定（tasks.md W3-M1-T3 完了条件）
 
-**判定 1 と判定 2 の両方が成立** → **統廃合を提案する**（該当分岐）。
+判定 1・判定 2 はともに成立するため、tasks.md の条文上は「統廃合を提案する」分岐に該当する。**初回はそのとおり一本化を提案したが、参照実態の調査により提案を撤回し、「それ以外」分岐＝`description` の書き分けを採用した**（2026-07-26 / ユーザー承認済）。撤回の経緯を以下に残す。
 
-> **本 Task では提案までとし、agent の削除は実行しない**（tasks.md 明示 / 削除は「機能の削除」＝ PM 級）。
+#### 撤回の根拠: `code-reviewer` は現役の実行部品である
 
-#### 提案内容
+`code-reviewer` への参照を全域走査した結果、**死んだ agent ではなく `/full-review` パイプラインの稼働部品**であることが判明した。
 
-`code-reviewer` を廃し `quality-auditor` に一本化する。理由は上記の真部分集合関係と、起動条件が排他化されていないこと。
+| 参照元 | 実体 |
+|:-------|:-----|
+| `.claude/skills/full-review/references/stage-2.md:70-73` | Stage 2 が **`code-reviewer` を 3 並列**で起動（(1) ソース品質 / (2) テスト品質 / (3) セキュリティ）＋ `quality-auditor` 1 の **4 並列構成** |
+| `.claude/skills/full-review/references/stage-1.md:57` | セキュリティ Issue を `code-reviewer` へ優先的に渡す |
+| `.claude/skills/lam-orchestrate/SKILL.md:157` | 「コードレビュー系 → `code-reviewer`」の分配表 |
+| `.claude/tests/rules/test_reference_resolution.py:93` | `_resolve_agent("code-reviewer") is True` を **assert**（削除すれば FAIL） |
+| `.claude/hooks/tests/test_subagent_boundary.py:57` | `subagent_type` の値として使用 |
+| `.claude/rules/fable-l3-protocol.md:170` | 判定系 subagent として列挙（**PM 級ファイル**） |
 
-#### 反対材料（PM 級判断のために併記する）
+#### 判定軸の欠落（本 Task の方法論上の教訓）
 
-- `code-reviewer` は 97 行と軽量で、コード変更直後の**短距離レビュー**として起動コストが低い。`quality-auditor`（328 行）は full 監査向けであり、毎回これを起動するのは重い
-- ただし両者とも `model: sonnet` であり、差は**プロンプト長のみ**（モデル階層の差ではない）
-- `code-reviewer` の agent-memory には 3 件（hook 構造 / セキュリティ / テスト構造 = 計 14.5KB）が蓄積されており、廃止時は**この知見の移送先を決める必要がある**（`memory: project` スコープのため消失は不可逆）
+**真部分集合であることが、まさに `code-reviewer` を「安い並列ワーカー」たらしめている。** 97 行 vs 328 行であり、`full-review` は 3 並列で起動するため、置換すると 1 回のレビューで **3 × 231 行**ぶんプロンプトが増える。加えて `quality-auditor` の固有部分（構造整合性チェック / 仕様ドリフト / 3 Agents Analysis / レポート形式）は、ソース品質担当のワーカーには不要な積荷である。
 
-#### 統廃合しない場合の代替（tasks.md の「それ以外」分岐に相当）
+design §7.3 が定めた 2 指標（起動実績・責務定義の重複度）は**守備範囲**しか見ておらず、**運用上の役割（軽量並列ワーカーか、横断監査か）を捉える軸を持っていなかった**。「守備範囲が包含関係にある」ことと「統合すべき」は別である。指標 1（agent-memory の最終更新日）も、`full-review` 経由の起動では memory を書かないため**稼働実態を捉えられていなかった**。
 
-`description` の書き分けによる起動条件の排他化。案: `quality-auditor` を「AUDITING フェーズの**全体監査**（構造整合性・仕様ドリフトを含む）」、`code-reviewer` を「**単一の変更差分**に対する短距離レビュー（フェーズ非依存）」と明記し、スコープの広狭で切る。
+> **W4 retro への申し送り**: agent の統廃合判定には「**呼び出し側の実参照**（どの skill / test が subagent_type として指名しているか）」を軸に加えること。memory の更新日と description の重複度だけでは、稼働中の部品を死んだ部品と誤認する。
 
-**PM 級判断待ち**（本 Wave では実施しない）。
+#### 採用: `description` の書き分け（起動条件の排他化 / 実施済）
+
+スコープの広狭と役割で切り、呼ぶ側が迷わないようにした。
+
+| agent | 新しい起動条件 |
+|:------|:---------------|
+| `quality-auditor` | **リポジトリ横断**の品質監査。単一差分では見えない検証（構造整合性 / 仕様ドリフト / アーキテクチャ健全性）＋ 3 Agents Model の改善提案とレポート。AUDITING の全体監査と `/full-review` Stage 2 の QA 枠 |
+| `code-reviewer` | **単一の変更差分**に対する短距離レビュー（軽量・並列ワーカー向け）。コード品質 / テスト品質 / セキュリティのうち呼び出し側が指定した **1 観点**を担当。フェーズ非依存。`/full-review` Stage 2 では観点別に 3 並列 |
+
+両 description に相互参照（「〜には他方を使うこと」）を明記した。`code-reviewer` 側には守備範囲が包含されることと、それでも使い分ける理由（軽量ゆえの並列ワーカー）を明記している。
+
+**agent の削除は行っていない**（tasks.md「本 Task では提案までとし agent の削除を実行しない」を遵守）。`code-reviewer` の agent-memory 14.5KB も現状維持（統廃合しないため移送・破棄の必要が消滅）。
+
+> **訂正記録**: 初回の提案時に「agent-memory の消失は不可逆」と記述したが、`.claude/agent-memory/` は **git 管理下**（`git ls-files` で 42 ファイル確認）であり **可逆**である。
 
 ---
 

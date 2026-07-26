@@ -1,9 +1,13 @@
 ---
 name: code-reviewer
 description: >
-  コードレビューの専門 Subagent。LAM の品質基準
-  (03_QUALITY_STANDARDS.md) に基づいたレビューを実施。
+  単一の変更差分に対する短距離コードレビュー Subagent（軽量・並列ワーカー向け）。
+  LAM の品質基準 (03_QUALITY_STANDARDS.md) に基づき、コード品質 / テスト品質 /
+  セキュリティのうち呼び出し側が指定した 1 観点を担当する。フェーズ非依存。
   Use proactively after code changes to review quality, security, and maintainability.
+  /full-review Stage 2 では本 agent を観点別に 3 並列で起動する。
+  リポジトリ横断の構造整合性・仕様ドリフト検証は quality-auditor を使うこと（守備範囲は
+  quality-auditor に包含されるが、軽量ゆえに並列ワーカーとして使い分ける）。
 model: sonnet
 tools: Read, Grep, Glob, Bash
 memory: project
