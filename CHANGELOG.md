@@ -23,10 +23,21 @@ All notable changes to this project will be documented in this file.
   - crux 3 = **#17 の自己修正 2:「機構は監査面を増やす」を「散文に結合した機構」に限定**する精緻化。構造化イベントに結合した hook はこの病理を持たない
   - 真の crux = **誕生ゲートの出力に「宛先」の軸がない** → 常駐条項 / 条件付きロード先 / 決定的機構 / knowledge 層 / 却下 への routing 拡張（確信度 70%）
 
+- **feat(clause-gate)**: **誕生ゲートに routing 軸を導入し、no-net-growth の通貨を常駐集合建てに改定**（HGA #18 の真の crux → HGA #19 敵対レビュー `revise`/0.75 を反映 / 設計 = `docs/artifacts/clause-gate-routing-design-2026-07-26.md` v0.3）
+  - **5 宛先の routing**: 常駐条項 (R1) / 条件付きロード先 (R2) / 決定的機構 (R3) / knowledge 層 (R4) / 却下 (R5)。**R1 のみが予算を消費する**ため「流入 1 件ごとに削減探しを強制する」構造が解ける。判定順序は既存 4 軸 + 基質適合テスト + 繋留 3 分類の流用で、**新しい軸は追加していない**
+  - **通貨の改定**: 「規範ストック総量」→ **常駐集合**（`paths:` なしで無条件ロードされる面）。単位は判定者の裁量を排して**台帳行**に凍結（HGA #19 2-b: 条項数建ては「3 条項を 1 見出しに融合すれば count が 2 減る」= 粒度操作が支配戦略になる）
+  - **`docs/artifacts/clause-gate-ledger.md` 新設**: §A 常駐面ベースライン（**天井ゲージ**）/ §B 条項取引簿（**通貨**）/ §C R3 台帳 / §D R4 在庫。**§A は通貨ではない**という役割分離を明記
+  - **ベースライン実測 = 常駐 17 ファイル / 指令 99 件** → **hard ceiling 80 を 19 超過**。HGA #19 の WC-2「天井既破算デッドロック」が仮想でないと判明したため、**net-negative 交換レート**（80 超の間は 1 追加 = 2 退出）を新設。Milestone を立てず定期棚卸しもしないため出口宣言 (a)(b) と転落条件 ②④ を破らない
+  - **主契機は pytest（出口の不動点）**: `.claude/tests/rules/test_clause_gate_ledger.py`（21 tests）。**仮定 6 が反証されたため設計を差し替えた** — `additionalContext` は tool result の隣 = **編集後**に届くため事前ゲートになれない（context7 + `pre-tool-use.py:402-403`）。散文の契機（PM 級事前宣言義務）は 3 経路を素通しする（委譲経路 = `core-identity.md` が subagent 経由を宣言不要と明記 / セッションスコープ降格 / `CLAUDE.md`）
+  - **ルート `CLAUDE.md` を PM 級パスに追加**（`_hook_utils._PM_PATH_PATTERNS` / **ユーザー承認済**）: 無条件ロードされる最も常駐性の高い 1 ファイルが PM ダイアログも事前宣言義務も経ていなかった（HGA #19 仮定 5-iii / hook 実装でも確認）。`_PM_PATH_REASONS` の要素数不一致で `zip` が末尾を静かに切り捨てる罠に対する assert を同時に追加
+  - **`.claude/skills/clause-gate/` 新設**: 判定順序と記録先のみを持つ薄い skill（`update-model` と同型 / 判断ロジックを持たない）
+  - pytest **1103 → 1128 passed + 14 skipped**（regression ゼロ）
+- **fix(rules)**: **A 型条項 2 件を削除**（誕生ゲートの初回取引として台帳 §B に記録）— `phase-rules.md` BUILDING「1 サイクル完了ごとにユーザーに報告」/ `fable-l3-protocol.md` §6.7「試行カウントを報告に明示」。いずれも基質適合テスト YES（Opus 5 は指示なしで行う）
+  - **実測された代理変数の限界**: `fable-l3-protocol.md` は 19→18 でカナリアが発火したが、`phase-rules.md` は **12→12 で動かなかった**（削除した箇条書きが RFC 2119 キーワードを含まないため）。§A は天井ゲージ / §B が通貨、という役割分離の必要性が実測で裏づけられた
+- **fix(tests)**: `test_pm_patterns_unified.py` の `len(...) == 4` リテラル assert を**期待パターン集合**に置換（rule-001 と同型の「literal assert 未同期」の恒久解 / 失敗メッセージが増減の中身を直接示す）
+
 ### 未処理（本セッションで意図的に保留 / **完了と誤認しないこと**）
 
-- **A 型条項の残り 2 件**: `phase-rules.md` BUILDING「1 サイクル完了ごとにユーザーに報告」/ `fable-l3-protocol.md` §6.7「試行カウントを報告に明示」。下記の層特定し直しとまとめて処理する前提で保留
-- **HGA #18 の routing 軸 + no-net-growth 通貨改定**: PM 級の設計コミットのため未着手
 - **`model-delegation-prompting.md` の配置**: 中身が Sonnet 5 / Haiku 4.5 向けの階層補償であり L1 が毎セッション読む理由がない。`verify_model_reference.py` の drift 43 件中 **20 件が同ファイルに集中**しており独立に裏づけ
 - **`fable-l3-protocol.md` の層特定し直し**: 60 秒実況・自己監査 14 項目・F0-F4 は 2026-07-07 採用 = **Opus 4.x の既定挙動へのパッチ**であり、現在は Opus 5 上で走っている（「補償層はモデル交代のたびに再監査」に該当）
 

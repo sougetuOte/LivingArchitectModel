@@ -54,10 +54,24 @@ post_tool_use = _load_module("post_tool_use_pm_unified_test", "post-tool-use.py"
 # ---- Red→Green: _hook_utils._PM_PATH_PATTERNS の存在と内容 ----
 
 
+#: PM 級パスパターンの期待集合（`permission-levels.md` §ファイルパスベースの分類 の実装）。
+#: 件数リテラルではなく集合で表現する —— 2026-07-26 に CLAUDE.md を追加した際、
+#: `== 4` のリテラル assert が落ちた（rule-001 と同型の「literal assert 未同期」）。
+#: 集合なら失敗メッセージが「何が増減したか」を直接示すため、恒久解として置換した。
+_EXPECTED_PM_PATH_PATTERNS = {
+    r"^docs/specs/.*\.md$",
+    r"^docs/adr/.*\.md$",
+    r"^\.claude/rules/.*\.md$",
+    r"^\.claude/settings.*\.json$",
+    r"^CLAUDE\.md$",
+}
+
+
 def test_hook_utils_has_pm_path_patterns_constant():
     """_hook_utils に _PM_PATH_PATTERNS（path-only / out-of-root 除外）が定義されている。"""
     assert hasattr(_hook_utils, "_PM_PATH_PATTERNS")
-    assert len(_hook_utils._PM_PATH_PATTERNS) == 4
+    actual = {p.pattern for p in _hook_utils._PM_PATH_PATTERNS}
+    assert actual == _EXPECTED_PM_PATH_PATTERNS
 
 
 def test_hook_utils_has_is_pm_path_pattern_function():

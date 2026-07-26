@@ -112,7 +112,16 @@ _SHELL_METACHARACTERS = (";", "&&", "||", "|", "`", "$(", "&", "\n", "<(")
 # 結果として out-of-root パス書込は同一セッション内でも毎回 PM ダイアログが
 # 再表示される（実害なし・意図的な非対称設計）。
 _PM_OUT_OF_ROOT_PATTERN = (re.compile(r"^__out_of_root__/"), "out-of-root path")
-_PM_PATH_REASONS = ("specs/ path", "adr/ path", "rules/ path", "settings path")
+# 要素数は `_hook_utils._PM_PATH_PATTERNS` と一致させること（zip は末尾を静かに
+# 切り捨てるため、不一致だと追加した pattern が PM 判定に載らない）。
+# 検査: .claude/tests/hooks/test_pm_path_claude_md.py::test_pm_reasons_length_matches_patterns
+_PM_PATH_REASONS = (
+    "specs/ path",
+    "adr/ path",
+    "rules/ path",
+    "settings path",
+    "root CLAUDE.md",
+)
 _PM_PATTERNS = [_PM_OUT_OF_ROOT_PATTERN] + list(zip(_PM_PATH_PATTERNS, _PM_PATH_REASONS))
 
 # パス判定パターン（SE 級）

@@ -63,6 +63,12 @@ _PM_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^docs/adr/.*\.md$"),
     re.compile(r"^\.claude/rules/.*\.md$"),
     re.compile(r"^\.claude/settings.*\.json$"),
+    # ルート CLAUDE.md（2026-07-26 追加 / 誕生ゲート設計 §4.2-4.3 / ユーザー承認済）。
+    # 無条件ロードされる最も常駐性の高い 1 ファイルであり、条項追加が PM ダイアログも
+    # 事前宣言義務も経ないという穴になっていた（HGA #19 仮定 5-iii）。
+    # nested な CLAUDE.md を含めないのは、`/compact` 後に再注入されるのが
+    # プロジェクトルートのみであり、常駐性の根拠がルートに限られるため。
+    re.compile(r"^CLAUDE\.md$"),
 )
 
 
