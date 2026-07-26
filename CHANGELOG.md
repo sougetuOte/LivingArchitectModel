@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **fix(rules)**: 基質が既定で行う挙動を強制していた条項 3 件を削除（2026-07-26 / upstream 突合の第 1 弾 / **A 型 = 能力補償層**）
+  - `.claude/rules/core-identity.md` §Active Retrieval から「**Freshness Verification: 重要判断前には再読込を行う**」を削除（3 項 → 2 項）。Opus 5 公式ガイドが避けるべき例として名指しする "re-verify before responding" クラスに該当
+  - `CLAUDE.md` §委譲の閾値ルール 補足から「規則からの逸脱は**その都度応答内 1 行で可視化**」を削除
+  - `CLAUDE.md` §担当層の判断基準 補足から「**委譲判断は応答内 1 行で可視化**」を削除。上記 2 件は Sonnet 5 ガイド「強制的な中間ステータス出力の scaffolding は外せ」+ Opus 5 の "narrates readily" に該当
+  - 検証: pytest **1103 passed + 14 skipped**（regression ゼロ）/ `verify_reference_resolution.py --wave all` **total_drifts 0**
+  - 同型パターンの全域検索で**隣接 1 件**（`CLAUDE.md`「ユーザー本人にしかできない作業…応答内 1 行で報告」）を検出したが、**中身がプロジェクト事実層のため非着手**
+- **docs(rules)**: `model-roster.md` §4 に Fable 5 の欠落制約 3 件を追記（2026-07-26 一次資料確認）
+  - **(iii) を「Opus 5 の thinking / effort 制約」→「thinking / effort 制約はモデルごとに異なる」に差し替え**: Fable 5 は **effort 段階によらず thinking 無効化が 400**（Opus 5 は `xhigh` / `max` のみ）。Opus 5 の規則を Fable に流用すると HGA 召喚時に 400 になる
+  - Fable 5 の **prompt cache 最小長も 512 tokens**
+  - Fable 5 は **ZDR 利用不可**（30 日保持必須 / Covered Model）→ HGA ブリーフは 30 日保持される前提で載せる内容を選ぶ
+  - `verify_model_reference.py`: `model-roster.md` 由来の drift **0 件**（本編集は drift 中立 / 既存 43 件は informational で exit 0）
+- **docs(hga)**: HGA #18 召喚記録を追加（**新ゲート発効後の初召喚** / tool_uses 0 / subagent_tokens 106,697 / duration 214s）
+  - crux 1 = upstream 突合は**棚卸しの再開ではなく世代交代に伴う一回性の突合**（判定 3 テスト = 起点 / 閉集合 / 対象、転落条件 4 件つき）
+  - crux 2 = **主犯は行数でも条項数でもなく「常駐性」** → **#17 の自己修正 1: 出口宣言 (c) no-net-growth の通貨を「規範ストック総量」から「常駐集合」建てへ改定**（総量建ては (c) 自身が (a)(b) を破らせる構造）
+  - crux 3 = **#17 の自己修正 2:「機構は監査面を増やす」を「散文に結合した機構」に限定**する精緻化。構造化イベントに結合した hook はこの病理を持たない
+  - 真の crux = **誕生ゲートの出力に「宛先」の軸がない** → 常駐条項 / 条件付きロード先 / 決定的機構 / knowledge 層 / 却下 への routing 拡張（確信度 70%）
+
+### 未処理（本セッションで意図的に保留 / **完了と誤認しないこと**）
+
+- **A 型条項の残り 2 件**: `phase-rules.md` BUILDING「1 サイクル完了ごとにユーザーに報告」/ `fable-l3-protocol.md` §6.7「試行カウントを報告に明示」。下記の層特定し直しとまとめて処理する前提で保留
+- **HGA #18 の routing 軸 + no-net-growth 通貨改定**: PM 級の設計コミットのため未着手
+- **`model-delegation-prompting.md` の配置**: 中身が Sonnet 5 / Haiku 4.5 向けの階層補償であり L1 が毎セッション読む理由がない。`verify_model_reference.py` の drift 43 件中 **20 件が同ファイルに集中**しており独立に裏づけ
+- **`fable-l3-protocol.md` の層特定し直し**: 60 秒実況・自己監査 14 項目・F0-F4 は 2026-07-07 採用 = **Opus 4.x の既定挙動へのパッチ**であり、現在は Opus 5 上で走っている（「補償層はモデル交代のたびに再監査」に該当）
+
 ### Added
 
 - **feat(M-1)**: Opus 5 移行 + 規律の条項トリアージ (**Milestone COMPLETE** / 2026-07-25〜26 / 実働 2 日 / W0-W4 全 5 Wave + 安定性ゲート 1 / 34 Task / retro = `docs/artifacts/retro-M1-2026-07-26.md`)
