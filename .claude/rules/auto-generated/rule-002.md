@@ -1,4 +1,15 @@
+---
+paths:
+  - ".claude/scripts/dashboard/parsers/*.py"
+  - ".claude/scripts/dashboard/builder.py"
+  - ".claude/scripts/verify_reference_resolution.py"
+  - ".claude/tests/rules/test_parser_generation_tracking.py"
+---
+
 # Rule 002: parser regex の Milestone/Task 記法追随保守（verify_reference_resolution.py 系 + GitHistoryParser）
+
+> **条件ロード**: 本ルールは上記 frontmatter の parser 実装ファイルを扱うときにのみロードされる
+> （2026-07-26 `/doctor` check 4 / 常時ロードから移行）。
 
 **生成日**: 2026-07-25
 **ステータス**: approved（2026-07-25 / R-2 PLANNING 承認済み `docs/specs/r-2-consolidation/tasks.md` W1-R2-T4 に基づき起票と同時承認）

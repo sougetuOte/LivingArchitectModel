@@ -1,4 +1,12 @@
+---
+paths:
+  - ".claude/**/*.py"
+---
+
 # subprocess Encoding 規約
+
+> **条件ロード**: 本規約は `.claude/` 配下の Python ファイルを扱うときにのみロードされる
+> （2026-07-26 `/doctor` check 4 / 常時ロードから移行）。単一トピックかつファイル繋留のため。
 
 LAM リポジトリ内の Python が `subprocess.run(...)` でテキスト出力を読み取る際の
 `encoding` 指定を統一する規約（W1-R2-T5 / FR-7）。
@@ -175,38 +183,13 @@ grep -rn "subprocess.run(" .claude/scripts .claude/hooks | grep -v "encoding="
 実際、本 Task で 14 件を修正した後も生の行数は 20 件のまま変化しなかった
 （修正後の呼び出しも `encoding="utf-8"` を次行以降に書いているため）。
 
-20 件の内訳（本 Task の実測・個別判定）:
+**未回収の既知ギャップ**: design.md §4.4 の広い grep 式（`.claude/tests` を含む）では
+`.claude/tests` 配下に 6 件（`test_build_dashboard.py` / `test_wave2_integration.py` /
+`test_r1_inventory.py`）が未着手のまま残る。今後の rule 化 Task で回収する。
 
-| 区分 | 件数 | 内容 |
-|---|---:|---|
-| 修正対象（今回 `encoding="utf-8", errors="replace"` を追加） | 14 | 下記「修正対象ファイル」参照 |
-| 対象外（例外規定に該当） | 4 | `detect-permission-mode.py:84`（`--version`）/ `check_g1_test.py:109`（`--version`）/ `gd_state.py:598`（コメント行）/ `gitleaks_scanner.py:203`（stdout をテキスト消費しない） |
-| false positive（複数行呼び出しで既に `encoding=` 済み） | 2 | `r-1-git-log-usage.py:45` / `verify_import_availability.py:123` |
-
-**修正対象ファイル（14 件・9 ファイル）**:
-`.claude/scripts/dashboard/parsers/git_history.py`,
-`.claude/scripts/r1_inventory.py`,
-`.claude/hooks/analyzers/javascript_analyzer.py`（2 箇所: eslint / npm audit）,
-`.claude/hooks/analyzers/python_analyzer.py`（2 箇所: ruff / bandit）,
-`.claude/hooks/analyzers/rust_analyzer.py`（2 箇所: clippy / cargo audit）,
-`.claude/hooks/analyzers/tests/test_e2e_review.py`（3 箇所）,
-`.claude/hooks/checkers/check_g1_test.py`（1 箇所 / `run_check()` 本体呼び出し。
-`--version` 探索呼び出しは対象外のまま）,
-`.claude/hooks/lam-stop-hook.py`,
-`.claude/hooks/tests/conftest.py`。
-
-### 参考: design.md §4.4 が指定するより広い baseline
-
-design.md / tasks.md の grep 式は `.claude/tests` も含む
-（`grep -rn "subprocess.run(" .claude/scripts .claude/hooks .claude/tests | grep -v encoding=`）。
-本 Task 実測ではこの式で **28 件**（本 Task の 20 件 baseline + `.claude/tests`
-配下 8 件）がヒットする。うち 2 件（`test_reference_resolution.py:149,161`）は
-`_utf8_env()` パターンを既に用いた false positive、残り 6 件
-（`test_build_dashboard.py` 4 箇所 / `test_wave2_integration.py` 1 箇所 /
-`test_r1_inventory.py` 1 箇所）は本 Task の判定対象（F4 の 20 件）に
-含まれておらず、**本 Task のスコープ外として未着手のまま残っている**。
-これは今後の rule 化 Task（またはフォローアップ）で回収すべき既知のギャップ
-として記録する。
+> 個別ファイルの内訳（14 件・9 ファイル / 対象外 4 / false positive 2）は
+> W1-R2-T5 の commit 履歴と下記の検証コマンドで再現できるため本文からは削除した
+> （2026-07-26 `/doctor` check 3）。
 
 ## 検証コマンド
 

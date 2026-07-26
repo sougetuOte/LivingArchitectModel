@@ -1,4 +1,17 @@
+---
+paths:
+  - "pyproject.toml"
+  - "package.json"
+  - "**/jest.config*"
+  - "**/vitest.config*"
+  - "go.mod"
+  - "Cargo.toml"
+---
+
 # テスト結果ファイル出力ルール
+
+> **条件ロード**: 本ルールはテストフレームワークの設定ファイルを扱うときにのみロードされる
+> （2026-07-26 `/doctor` check 4 / 常時ロードから移行）。
 
 ## 概要
 

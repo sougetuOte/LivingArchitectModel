@@ -111,16 +111,11 @@ py_invoke.sh 変更時は必ず `.claude/tests/hooks/test_settings_hook_portabil
 
 ### Python バージョン SSOT
 
-- **`pyproject.toml` `[project]` `requires-python = ">=3.8"`**: PEP 621 準拠の SSOT (HGA #14 F8 対応 / QUICKSTART 3.8+ / Pin 3.11.9 / requires-python 不在の三方向矛盾解消 / 2026-07-12)
-- **実装 pin**: `.venv` は Python 3.11.9 (2026-07-12 時点 / 3.8+ 制約内で最新安定を採用)
+- **`pyproject.toml` `[project]` `requires-python = ">=3.8"`**: PEP 621 準拠の SSOT
+- **実装 pin**: `.venv` は Python 3.11.9 (3.8+ 制約内で最新安定を採用)
 - pin 変更時は `pyproject.toml` の requires-python が >=3.8 制約を満たすか確認
 
-### 3.8 互換性検証 (段0 で実施済 / 2026-07-12)
-
-段1 導入時に hooks 62 + scripts 22 = 全 84 ファイル 100% coverage で以下を確認:
-- `from __future__ import annotations` 100% 追加済 (runtime subscript generics 回避)
-- `match` / `except*` / dict merge (`|`) の 3.10+ 構文使用ゼロ
-- `str.removesuffix` (3.9+) の 2 件を検出 → `endswith` + slice に置換済
+### 3.8 互換性の維持
 
 将来の 3.10/3.11 専用構文追加は禁止。3.10+ を必要とする場合は `pyproject.toml` の requires-python を先に上げる (**PM 級ダイアログ発生**)。
 
