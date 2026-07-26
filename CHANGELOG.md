@@ -6,6 +6,16 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- **feat(M-1)**: Opus 5 移行 + 規律の条項トリアージ (**Milestone COMPLETE** / 2026-07-25〜26 / 実働 2 日 / W0-W4 全 5 Wave + 安定性ゲート 1 / 34 Task / retro = `docs/artifacts/retro-M1-2026-07-26.md`)
+  - **`.claude/rules/model-roster.md` 新設**: モデル名の束縛を書いてよい唯一の場所。層 → モデル ID / 層内閾値 / 挙動デルタ / 単価・envelope を集約し、他ファイルはモデル名を持たない。**ADR-0001（ルーティングの構造）とは直交し supersede しない** — モデル世代が変わったとき更新するのは本ファイル 1 枚
+  - **`.claude/scripts/verify_model_reference.py` 新設**: モデル名 drift の 3 分岐分類器 (`layer_assignment` / `design_property_description` / その他) + 48 tests
+  - **`.claude/skills/update-model/` 新設**: 世代交代の 6 ステップ順序表 (判断ロジックを持たない薄い skill) + 整合検証 pytest 8 件
+  - **条項トリアージ**: 4 軸 (帰属 / 形式 / 可逆性 / 根拠) + 基質適合テストで 112 条項を判定。適用 50 件の内訳 = 削減 27 / 圧縮 15 / SSOT 退避 6 / **運用移管 2**（新設の第 6 値 = 機構化せず監視条件 + 失効日つきで運用へ移す判定）
+  - **skills の progressive disclosure 化** (上位 4 件): 初回ロード 21,703 → 8,232 est. tok (**−62%**)
+  - **HGA 召喚ゲートを事後条件へ改訂** (`hga-summoning.md`) — M-1 完了をもって新ゲート発効。旧ゲートの 3 軸は無条件召喚の資格を失う
+  - **出口宣言 3 点を発効** (DoD-7): (a) consolidation 系 Milestone のジャンルをここで閉じる (b) 決定木は今後「新規条項の誕生ゲート」として使い、定期棚卸しとしては再実行しない (c) 規範ストック総量に **no-net-growth**（新条項 1 追加 = 既存から同等量削減）を課す
+  - pytest **1047 → 1103 passed + 14 skipped** (regression ゼロ)
+  - **既知の申し送り**: 規律本体は +11,801 字で増えて終わった (主因 = `model-roster.md` 新設 +17,020 字 / SSOT の器を作ると総量は増える)。配布 2 経路が `verify_model_reference.py` を覆っていないため、カタログ経由で roster パターンを持ち帰っても drift 検査は付いてこない
 - **feat(shim-avoidance)**: python shim 回避 hook 経路切替 (Phase B 段1 / commit `3f2464d` / 2026-07-12 / **canary 通過 + push 済**)
   - 背景: Windows + pyenv 環境で hooks/skills の `python` 呼び出しが shim 経由になり `.venv` を bypass する問題への対処
   - `.claude/scripts/py_invoke.sh` 新設 (venv-first + fallback chain + 実起動可能性判定 `-c 'import sys'`)

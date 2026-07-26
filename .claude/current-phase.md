@@ -1,8 +1,8 @@
 # Current Phase
 
-**BUILDING** (**M-1 W0 着手 / 計器較正 → ベースライン測定**)
+**BUILDING** (**M-1 COMPLETE / 次 Milestone 未定**)
 
-_M-1 PLANNING 完了 (2026-07-25 / requirements + design + tasks 全 Approved / 33 Task + 安定性ゲート 1)。M-1 = 条項トリアージ + モデルロスター SSOT + 3 層安全網 (ADR-0011 Accepted / 決定 5 件 + Wave 骨子 W0-W4)。W0 は **W0-M1-T1 (委譲 TDD 記録盲点の probe) → T2 (機構修正) → T3 (ベースライン 6 項目)** の順序制約を厳守する (計器が盲目のまま測ると W0 と W4 の差分が委譲率の副産物になる / tasks.md §2 制約 2)。R-2 W2/W3 は M-1 W1 トリアージ表の承認後に再スコープ。_
+_M-1 完走 (2026-07-26 / W0-W4 全 5 Wave + 安定性ゲート 1 / 34 Task / retro 済 = `docs/artifacts/retro-M1-2026-07-26.md`)。DoD-1〜7 全充足。pytest 1047 → **1103 passed + 14 skipped** (regression ゼロ)。主要成果物 = `.claude/rules/model-roster.md` (モデル名束縛の単一 SSOT) / `.claude/scripts/verify_model_reference.py` (drift 検査) / `.claude/skills/update-model/` (世代交代の順序表)。**出口宣言 3 点を発効** — (a) consolidation 系 Milestone のジャンルをここで閉じる (b) 決定木は今後「新規条項の誕生ゲート」として使い定期棚卸しでは再実行しない (c) 規範ストック総量に no-net-growth を課す。**HGA 新ゲートが発効**（旧ゲートの 3 軸は無条件召喚の資格を失い条件 2 の判定材料へ格下げ / `hga-summoning.md`）。**M-1 完了後の持ち越し**: upstream 仕様突合 Milestone (出口宣言の対象外 / 入力 = `docs/artifacts/upstream-inventory-input.md`)。_
 
 ## 履歴
 
@@ -18,6 +18,7 @@ _M-1 PLANNING 完了 (2026-07-25 / requirements + design + tasks 全 Approved / 
 | BUILDING | 2026-07-06 | 2026-07-18 | R-1 BUILDING〜AUDITING 完走（5 Wave / 589 PASS / Milestone COMPLETE 2026-07-18 / retro 済） |
 | PLANNING | 2026-07-20 | 2026-07-21 | R-2 PLANNING 完了（requirements + design + tasks 全 Approved / HGA #15/#16 + spec-critic 3 段検証 / 22 Task + 最終検証 1） |
 | BUILDING | 2026-07-21 | 2026-07-25 | R-2 BUILDING Wave 1 完走（T4〜T8 / 5 commit / pytest 1043 PASS / W1 末ゲート FR-15 全クリア / HEAD `2ac4e91`）。W2/W3 は M-1 統合再スコープ待ちで中断 |
+| BUILDING | 2026-07-25 | 2026-07-26 | **M-1 完走**（W0-W4 全 5 Wave + 安定性ゲート合格 / 34 Task / 実働 2 日 / pytest 1103 PASS + 14 SKIP / DoD-1〜7 全充足 / retro 済）。**出口宣言 3 点発効 = consolidation 系 Milestone のジャンルをクローズ**。HGA 新ゲート発効。R-2 W2/W3 は M-1 W2-T7 で 5 件を「圧縮形で実施 / 実施」に写像し反映済み |
 | PLANNING | 2026-07-25 | 2026-07-25 | M-1 PLANNING 完了（ADR-0011 Accepted 起点 / requirements + design + tasks 全 Approved / 33 Task + 安定性ゲート 1 / Red 7 件クローズ） |
 | **BUILDING** | **2026-07-25** | **-** | **M-1 W0 着手（計器較正 → ベースライン測定 6 項目 → 台帳スケルトン / upstream 裏取り / ADR-0001 突合）** |
 
