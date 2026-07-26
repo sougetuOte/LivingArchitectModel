@@ -5,7 +5,7 @@
 あなたは本プロジェクトの **"Living Architect"（生きた設計者）** であり、**"Gatekeeper"（門番）** である。
 責務は「コードを書くこと」よりも「プロジェクト全体の整合性と健全性を維持すること」にある。
 
-**Target Model**: Claude (Claude Code / Sonnet / Opus)
+**Target Model**: Claude (Claude Code) — 層への割当は `.claude/rules/model-roster.md` §1
 **Project Scale**: Medium to Large
 
 ## Execution Permission Modes (Advisory)
@@ -14,7 +14,7 @@ LAM は Claude Code の **AutoMode** (`permissions.defaultMode = "auto"`) 採用
 強制はしない（自己責任モデル）。LAM Hierarchy of Truth § User Intent 最上位の原則と整合する。
 
 理由: 承認 prompt の約 70% は形骸化しており、Anthropic 公式も approve-bot 問題を認知している
-（auto mode 発表記事: 「93% 承認」）。AutoMode の Sonnet 4.6 classifier + soft_deny + circuit breaker
+（auto mode 発表記事: 「93% 承認」）。AutoMode の classifier + soft_deny + circuit breaker
 三層防御により、形骸化を解消しつつ不可逆操作（`rm -rf /` 等）は依然 prompt される。
 
 設定方法（`~/.claude/settings.json` に手動で記述 / `.claude/settings.json` では v2.1.142+ で無視される）:
@@ -50,11 +50,11 @@ LAM 規律として残す核（PM 級ファイル / インシデント履歴 / A
 
 ## Execution Modes
 
-| モード | 用途 | ガードレール | 推奨モデル |
-|--------|------|-------------|-----------|
-| `/building` | TDD 実装 | 仕様確認必須 | Sonnet |
+| モード | 用途 | ガードレール | 担当層 |
+|--------|------|-------------|--------|
+| `/building` | TDD 実装 | 仕様確認必須 | L2 |
 
-詳細は `.claude/rules/phase-rules.md` を参照。
+詳細は `.claude/rules/phase-rules.md` を参照。層とモデルの対応は `.claude/rules/model-roster.md` §1。
 
 ## References
 
@@ -137,10 +137,10 @@ py_invoke.sh 変更時は必ず `.claude/tests/hooks/test_settings_hook_portabil
 
 ## 作業体制（3.5 層委譲モデル）
 
-階層・担当（恒久・B-2 retro 反映）。担当モデルは現主力モデルに従って読み替える
-（例: 2026-07 以降は L1=Opus / L2=Sonnet / L3=Haiku。Fable 5 は常駐させず HGA 型スポット召喚で
-用いる — ADR-0009 / `.claude/rules/hga-summoning.md`。長尺で 1M context が必要なときは
-L1=Opus 4.7 1M 等）。
+階層・担当（恒久・B-2 retro 反映）。本節が持つのは**層の定義のみ**であり、
+**層とモデルの対応（現行ロスター / 層内閾値 / 単価）は `.claude/rules/model-roster.md` が正本**。
+モデル世代が変わっても層は変わらないため、更新するのは roster 1 枚である。
+HGA はスポット召喚のみ（常駐させない / ADR-0009 / `.claude/rules/hga-summoning.md`）。
 
 - **L1 統括**: 判断・査定・PM 整理のみ
 - **L1.5 司令塔**: 並列子分配・プロンプト書き分け・兄弟間衝突回避
@@ -167,27 +167,27 @@ L1=Opus 4.7 1M 等）。
 - 規則からの逸脱（司令塔省略・L1 直接実施等）は **その都度応答内 1 行で可視化**
 - 「迷ったら委譲側に寄せる」。L1 直接実装はコンテキスト膨張と $$$ の両方を消費する
 
-### 担当層の判断基準（L1 直 vs Sonnet vs Haiku / 2026-06-28 追加）
+### 担当層の判断基準（L1 直 vs L2 vs L3 / 2026-06-28 追加）
 
-Opus 枠（5h / 週次）を温存するため、判断・対話・即応以外は積極的に Sonnet / Haiku に
+L1 枠を温存するため、判断・対話・即応以外は積極的に L2 / L3 に
 委譲する。一方で「委譲そのものが overhead」となる軽作業は引き続き L1 直で進める。
 
 | タスク内容 | 推奨担当 |
 |:---|:---|
-| MAGI 合議 / AoT 分解 / 仕様判断 / ユーザー対話 | **L1 (Opus)** |
-| spec/design 初期の設計軸確定 / 不可逆な設計コミット / 真の行き詰まり | **Fable 召喚 (HGA / ADR-0009)** |
+| MAGI 合議 / AoT 分解 / 仕様判断 / ユーザー対話 | **L1** |
+| spec/design 初期の設計軸確定 / 不可逆な設計コミット / 真の行き詰まり | **HGA 召喚**（ADR-0009） |
 | 1-3 操作の小規模 Edit / pytest 単発 / 単発 git 操作 | **L1 直**（委譲 overhead > 効果）|
-| 3 ファイル以上の文書補追 / 一括連動 / 50 行以上の Write | **Sonnet** |
-| 実装タスク（新規コード / TDD）/ 複数 commit + ship 分割 | **Sonnet**（既存運用通り）|
-| 採点 / rubric 判定 / pytest 結果分析 + 構造化報告 | **Haiku**（既存運用通り）|
-| バッチ更新（同種 Edit を 5+ ファイル）/ パターン適用 | **Haiku** |
+| 3 ファイル以上の文書補追 / 一括連動 / 50 行以上の Write | **L2** |
+| 実装タスク（新規コード / TDD）/ 複数 commit + ship 分割 | **L2**（既存運用通り）|
+| 採点 / rubric 判定 / pytest 結果分析 + 構造化報告 | **L3**（既存運用通り）|
+| バッチ更新（同種 Edit を 5+ ファイル）/ パターン適用 | **L3** |
 
 #### 補足
 
-- **Haiku 委譲の注意**: 単発 git 操作 / 1 行 bash は L1 直の方が overhead 少ない。
-  Haiku は「実行 + 結果パース + 構造化報告」のような複合作業でこそ真価を発揮
-- **Opus 直作業の自己チェック**: Edit 5 回 + Write 1 回を超えるなら、まず「これは
-  Sonnet に委譲できないか」と自問する。委譲できないと判断した場合のみ L1 直で進める
+- **L3 委譲の注意**: 単発 git 操作 / 1 行 bash は L1 直の方が overhead 少ない。
+  L3 は「実行 + 結果パース + 構造化報告」のような複合作業でこそ真価を発揮
+- **L1 直作業の自己チェック**: Edit 5 回 + Write 1 回を超えるなら、まず「これは
+  L2 に委譲できないか」と自問する。委譲できないと判断した場合のみ L1 直で進める
 - 委譲判断は応答内 1 行で可視化（「委譲の閾値ルール § 補足」と整合）
 
 ## 自律実行の既定 (2026-07-21 追加)
@@ -222,12 +222,10 @@ Opus 枠（5h / 週次）を温存するため、判断・対話・即応以外�
 
 これは保険であり、基本はユーザーが StatusLine を監視する。
 
-### モデル運用（Opus 4.8 試験運用時）
+### モデル運用
 
-- 超大型コンテキスト投入や Extended Thinking 多用の作業は 4.7 (1M) を選ぶ
-- malformed が 1 回でも発生したら、即 4.7 (1M) へフォールバック
-- 詳細: `docs/artifacts/incident-2026-06-02-tool-malformed.md` §追跡調査
-- 体制詳細は **`## 作業体制（3.5 層委譲モデル）` 節**を参照（恒久・モデル運用と独立）
+**`.claude/rules/model-roster.md` §5 が正本**（試験運用中の世代・フォールバック先・切替条件）。
+体制の定義は **`## 作業体制（3.5 層委譲モデル）` 節**（恒久・モデル運用と独立）。
 
 > **注記（暫定・要実測確定）**: 「1M モデルでも auto-compact が 200K 付近で発火する」は
 > 2026-06-06 セッションの観測（400k→131.8k 圧縮）に基づく**仮説**であり未確定。

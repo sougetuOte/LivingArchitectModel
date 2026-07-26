@@ -39,7 +39,13 @@
 | `hga-summoning.md#envelope-m02` | 実測単価 4 項目（Fable 単独 $1.84〜$12.66 / パイプライン ~$0.20 / 監視基準 / branch $13+） | `hga-summoning.md` §実測単価 | 同上 | **SSOT 退避** | `.claude/rules/model-roster.md` §4 | 無条件 | 2026-07-26 |
 | `hga-summoning.md#コスト構造-m01` | 下調べパイプラインのコスト構造表（成分 × 支払い形態 × 目安） | `hga-summoning.md` §下調べパイプライン §コスト構造 | 同上 | **SSOT 退避** | `.claude/rules/model-roster.md` §4 | 無条件 | 2026-07-26 |
 
-> **上記 4 件は W1 トリアージ表（112 条項）の出力ではない**。design §6.1 の移行手順が指定した SSOT 退避であり、条項 ID は W2-M1-T2 で採番した（サフィックス `-m` = migration）。**W2-M1-T9 の件数突合では、W1 由来 43 件とは別枠として数える**（トリアージ表側に対応行が存在しないため）。
+| `CLAUDE.md#Execution-Modes-01` | `/building` \| TDD 実装 \| 仕様確認必須 \| **Sonnet** | `CLAUDE.md` §Execution Modes | 軸1: ユーザー意思 / Phase B: SSOT 退避判定（§F.7） | **SSOT 退避** | `.claude/rules/model-roster.md` §1「実行モードの担当層」 | 無条件 | 2026-07-26 |
+| `CLAUDE.md#作業体制-model-id-m01` | 「例: 2026-07 以降は L1=Opus / L2=Sonnet / L3=Haiku…長尺で 1M context が必要なときは L1=Opus 4.7 1M 等」 | `CLAUDE.md` §作業体制 リード段落 | —（W1 トリアージ外 / FR-11） | **SSOT 退避** | `.claude/rules/model-roster.md` §1（導線 2 行を残置） | 無条件 | 2026-07-26 |
+| `CLAUDE.md#担当層の判断基準-model-id-m02` | 見出し・リード・表・補足の「Opus / Sonnet / Haiku / Fable」表記（計 9 箇所） | `CLAUDE.md` §担当層の判断基準 | —（同上） | **圧縮** | 層記号（L1 / L2 / L3 / HGA）へ置換 = モデル名を落として意味が通る | 無条件 | 2026-07-26 |
+| `CLAUDE.md#モデル運用-m03` | 「モデル運用（Opus 4.8 試験運用時）」4 行（超大型 context は 4.7 / malformed 1 回で 4.7 へフォールバック / 詳細 incident / 体制詳細は §作業体制） | `CLAUDE.md` §Context Management §モデル運用 | —（同上） | **SSOT 退避** | `.claude/rules/model-roster.md` §5（世代非依存の表形式に再構成 + ゲート記録へリンク） | 無条件 | 2026-07-26 |
+| `CLAUDE.md#AutoMode-classifier-m04` | 「AutoMode の **Sonnet 4.6** classifier + soft_deny + circuit breaker 三層防御」 | `CLAUDE.md` §Execution Permission Modes | —（同上） | **圧縮** | モデル名のみ削除（upstream 実装詳細 / ADR-0008 に記録あり）。三層防御の記述は不変 | 無条件 | 2026-07-26 |
+
+> **上記 4 件（`-m` 系）および CLAUDE.md 5 件は W1 トリアージ表（112 条項）の出力ではない**（`CLAUDE.md#Execution-Modes-01` を除く）。design §6.1 の移行手順が指定した SSOT 退避であり、条項 ID は W2-M1-T2 で採番した（サフィックス `-m` = migration）。**W2-M1-T9 の件数突合では、W1 由来 43 件とは別枠として数える**（トリアージ表側に対応行が存在しないため）。
 >
 > **移設の境界（残置した記述）**: `hga-summoning.md` §ステートレス規律の「再送コスト概算 $0.15 / フル召喚 $1-4」は残置した。roster に対応する行が存在しない**召喚運用固有の派生値**であり、移設すると roster が「モデル単価の SSOT」から「HGA 運用コスト帳」へ拡張してしまうため（帳簿単一原則 / NFR-2）。
 
