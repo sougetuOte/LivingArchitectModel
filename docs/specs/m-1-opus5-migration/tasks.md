@@ -1152,10 +1152,36 @@ design レビュー時（2026-07-25）の実測: 両ディレクトリとも存�
 | 規律の変更 | カタログ（正本 `docs/artifacts/m-1-distribution-catalog.md` / 配布コピーは LAM リポジトリ外） |
 
 **完了条件**:
-- [ ] **配布実行の直前にユーザー承認を得る**（`core-identity.md` §第 0 原則 / `permission-levels.md` §迷った場合）。承認前に version bump・リポジトリ外書き出しを行わない
-- [ ] W3 成果物が `lam-harness` plugin の version bump として配布されている
-- [ ] カタログの配布コピーが LAM リポジトリ外に存在する。**書き出し先パスは 2026-07-21 前例の既存配布運用を W4 着手時に確認して踏襲する**（design §8.3 / 前例のパスは design 時点で未確認）
-- [ ] 配布実行の記録（実行日 / version / 書き出し先）を残す
+- [x] **配布実行の直前にユーザー承認を得る**（`core-identity.md` §第 0 原則 / `permission-levels.md` §迷った場合）。承認前に version bump・リポジトリ外書き出しを行わない
+- [x] **plugin チャネルの配布可否をユーザー判断で確定し、決定と理由を記録する**（2026-07-26 改訂 / 下記「plugin 配布の見送り」参照）
+- [x] カタログの配布コピーが LAM リポジトリ外に存在する。**書き出し先パスは 2026-07-21 前例の既存配布運用を W4 着手時に確認して踏襲する**（design §8.3 / 前例のパスは design 時点で未確認）
+- [x] 配布実行の記録（実行日 / version / 書き出し先）を残す
+
+##### 完了条件改訂の経緯（2026-07-26 / PM 級 / ユーザー承認済）
+
+改訂前の 2 番目の条件は「**W3 成果物が `lam-harness` plugin の version bump として配布されている**」だった。W4 着手時の前提確認で、この条件が**成立しない前提の上に立っていた**ことが判明したため改訂した。
+
+| 実測 | 内容 |
+|:-----|:-----|
+| plugin に対応物がある W3 成果物は **4 件中 2 件** | `lam-harness` v1.0.0 の 15 skills に `full-review` / `goal-driven` は**存在しない**（`init-harness` / `spec-template` のみ）。`code-reviewer` / `quality-auditor` も plugin に `agents/` ディレクトリが無く対象外 |
+| その 2 件も **stale コピーではなく汎化 fork** | plugin 版は `paths:` / `allowed-tools:` / LAM 内部文書への参照を落とし、`docs/specs/` を「仕様書ディレクトリ（例: ...）」に汎化した配布専用の変種。LAM 固有参照の出現数は **plugin 版 0 / LAM 版 5**（`init-harness`）。したがって「version bump」はコピーではなく**汎化版への分割の再適用**という新規作業になる |
+
+**決定: plugin 配布を見送る**（ユーザー判断 / 2026-07-26）。根拠 3 点:
+
+1. **便益が小さい**: SKILL.md の body は常時ロードされないことが upstream 一次資料で確定済（W3-M1-T1）。分割の効果は skill 起動時の一発コストに限られ、他プロジェクトの常時ロードには効かない
+2. **検証手段がない**: plugin 版は LAM の pytest 対象外であり、テストのない変更を外部へ配布することになる（Zero-Regression Policy に反する）
+3. **どちらにせよ不完全**: `full-review` / `goal-driven` が plugin に存在しない以上、再適用しても 4 件中 2 件しか載らない
+
+`.claude/skills/update-model/SKILL.md`（W4-M1-T1 の成果物）も plugin へは追加しない。`model-roster.md` / `verify_model_reference.py` という LAM 固有パスに依存し、他プロジェクトでそのまま動かないため。
+
+> **DoD-5 への影響**: DoD-5「配布 2 経路が完了し、ADR-0010 I-1〜I-6 適合確認（R-3）が記録されている」のうち、**規律側（カタログ）は完了、plugin 側は見送り決定として完了**とする。I-1〜I-6 適合確認は W3-M1-T4 で実施済（適合 4 / 非該当 2 / 不適合ゼロ）。
+
+##### 配布実行の記録（2026-07-26）
+
+| 配布対象 | 経路 | 実施 |
+|:---------|:-----|:-----|
+| 規律の変更（カタログ） | LAM リポジトリ外へ配布コピー | **実行**。`D:\work7\規律の条項トリアージ-他プロジェクト提案-2026-07-26.md`（前例 `自律実行の既定-他プロジェクト提案-2026-07-21.md` の命名・構成を踏襲） |
+| skills / agents の変更 | `lam-harness` plugin の version bump | **見送り**（上記）。plugin は **v1.0.0 のまま据え置き** |
 
 **依存**: W4-M1-T2（regression 確認）完了後
 
