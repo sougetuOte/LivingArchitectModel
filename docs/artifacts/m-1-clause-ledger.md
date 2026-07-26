@@ -93,6 +93,24 @@
 
 ---
 
+## 付表: §B 未執筆条項の追加（W2-M1-T7 / 2026-07-26）
+
+トリアージ表 §B（未執筆条項 6 件）のうち、W2 で**実ファイルに条文を追加**した 5 件。
+
+| 条項ID | 判定 | 写像 | 反映先 | ロード条件 |
+|:-------|:-----|:-----|:-------|:-----------|
+| `terminology.md#4.5-p01` | 圧縮 | 圧縮形で実施 | `terminology.md` §4「文書参照・表記の精度」3 項 | **無条件**（承認値は `条件: docs/**/*.md` だが機構ギャップにより未適用 / 下記注記） |
+| `planning-quality-guideline.md#1.5-p01` | 圧縮 | 圧縮形で実施 | `planning-quality-guideline.md` §1 危険な単語リストへ 1 行追加（§1.5 新設はしない） | 無条件 |
+| `model-delegation-prompting.md#boundary-p01` | 保全 | 実施（原案通り） | `model-delegation-prompting.md` §2 必須 7 項 第 2 項へ追記 | 無条件 |
+| `hga-summoning.md#primary_sources-p01` | 保全 | 実施（原案通り） | `hga-summoning.md` §primary_sources の書式例へ追記 | 無条件 |
+| `magi-SKILL.md#Phase0-Grounding-p01` | 保全 | 実施（原案通り） | `.claude/skills/magi/SKILL.md` Step 0 の既存手順へ 1 行追記 | 無条件 |
+
+**本表を主台帳（8 列）に統合しない理由**: 主台帳の「判定」列は 5 値の閉集合（圧縮 / 削減 / SSOT 退避 / 運用移管 / 保全（ロード条件変更のみ））であり、「**未執筆条項を保全判定で新規追加した**」ケースに対応する値がない。値の追加は design §6.3 の改訂 = **PM 級**であるため、閉集合を壊さずに本付表で記録する（NFR-2 / 列と値を増やさない）。
+
+**未反映 1 件**: `06_DECISION_MAKING.md#NFR-W-C-1-p01`（保全 / gabriel タイムアウト目安の数値改訂）は**未適用**。改訂対象の数値 SSOT は `docs/specs/magi-v2-gabriel/requirements.md` §NFR-W-C-1 にあり、**W2 の K5 一括宣言に含まれない PM 級ファイル**であるため（FR-3 受け入れ条件 3 = 追加宣言 + 承認が必要）。
+
+---
+
 ## 列の定義
 
 ### 「判定」列（5 値の閉集合）

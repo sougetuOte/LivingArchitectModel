@@ -15,7 +15,7 @@
 `hga-summoning.md` §tight brief 5-slot (objective / output format / tool guidance / task boundaries / primary_sources) を基底とし、以下を追加・強化する:
 
 1. **スコープ全称明示**: 広く適用させたい範囲は列挙または全称で明示 (公式例: "Apply this formatting to every section, not just the first one")
-2. **下方向フェンス**: 変更してよいファイルの白リスト + 「新規依存追加禁止 / 依頼外 helper 禁止 / 依頼外ファイル作成禁止 / git 操作禁止」を明記
+2. **下方向フェンス**: 変更してよいファイルの白リスト + 「新規依存追加禁止 / 依頼外 helper 禁止 / 依頼外ファイル作成禁止 / git 操作禁止 / **scratchpad ディレクトリ（`AppData/Local/Temp/claude/...`）への成果物書込禁止**」を明記
 3. **肯定形優先**: 「やること」を肯定形で書く (公式: positive > negative)。ただしデルタ 4 により否定形フェンスも併記し、遵守は親側検収で担保する (二重化)
 4. **出力契約**: 返却形式を構造で指定 (JSON / 表 / セクション構成)。「まとめて報告して」は書かない
 5. **Direct Executor boilerplate**: `hga-summoning.md` §Sonnet L2 委譲時の追加防御 (A + C) — 継続有効

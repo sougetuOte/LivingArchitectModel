@@ -328,6 +328,9 @@ W1 完了時：
 
 **概要**: LAM 内の文書参照を hardcoded 行番号（`L296` 形式）から `§` 見出し番号に置き換え。既存参照修正 + terminology.md ルール化。
 
+> **M-1 W1 判定の反映（2026-07-26 / W2-M1-T7）**: 決定木の出力 = **圧縮** → R-2 側の写像は「**圧縮形で実施**」。`.claude/rules/terminology.md` §4「文書参照・表記の精度」の第 1 項（§ 見出し参照）に**規範文を増やさない形**で反映済み。本 Task の Definition of Done 自体は変更していない（M-1 Non-Goals 4）。
+
+
 **対応仕様**:
 - requirements.md FR-14（文書精度 6 件の一つ）
 - requirements.md FR-8（検証手段 1 つ）
@@ -404,6 +407,9 @@ grep -rE "requirements\.md.*L[0-9]+|L[0-9]+.*requirements\.md" docs/artifacts
 
 **概要**: terminology.md §4.5 に「表・節番号の挿入規則」（末尾追加 / 枝番 / re-numbering の判定基準）を明文化。
 
+> **M-1 W1 判定の反映（2026-07-26 / W2-M1-T7）**: 決定木の出力 = **圧縮** → R-2 側の写像は「**圧縮形で実施**」。`.claude/rules/terminology.md` §4「文書参照・表記の精度」の第 2 項（挿入規則）に**規範文を増やさない形**で反映済み。本 Task の Definition of Done 自体は変更していない（M-1 Non-Goals 4）。
+
+
 **対応仕様**:
 - requirements.md FR-14（文書精度 6 件の一つ）
 - requirements.md FR-8（検証手段 1 つ）
@@ -433,6 +439,9 @@ grep -cE "^### T(9|12|13):" .claude/rules/terminology.md
 #### **W2-R2-T13**: 成果物ファイル命名規則（FR-14, FR-8 / 純規範文書 Task）
 
 **概要**: terminology.md §4.5 に「成果物ファイル命名規則（起草日 vs 実行日）」を明文化。
+
+> **M-1 W1 判定の反映（2026-07-26 / W2-M1-T7）**: 決定木の出力 = **圧縮** → R-2 側の写像は「**圧縮形で実施**」。`.claude/rules/terminology.md` §4「文書参照・表記の精度」の第 3 項（命名日付）に**規範文を増やさない形**で反映済み。本 Task の Definition of Done 自体は変更していない（M-1 Non-Goals 4）。
+
 
 **対応仕様**:
 - requirements.md FR-14（文書精度 6 件の一つ）
@@ -477,6 +486,9 @@ grep -cE "^### T(9|12|13):" .claude/rules/terminology.md
 #### **W2-R2-T13b**: 対策 B（暗黙前提明示化リスト条項）（FR-13 / 純規範文書 Task）
 
 **概要**: `.claude/rules/planning-quality-guideline.md` に「暗黙前提明示化リスト」条項を新設。設計書起草時に、実装者が暗黙裡に補う必要のある前提をリスト化して明示することを求める。
+
+> **M-1 W1 判定の反映（2026-07-26 / W2-M1-T7）**: 決定木の出力 = **圧縮** → R-2 側の写像は「**圧縮形で実施**」。`.claude/rules/planning-quality-guideline.md` §1「危険な単語リスト」への 1 行追加（§1.5 の新設ではない）に**規範文を増やさない形**で反映済み。本 Task の Definition of Done 自体は変更していない（M-1 Non-Goals 4）。
+
 
 **対応仕様**:
 - requirements.md FR-13（Fable→Opus 実装ギャップ対策 / 新規追加）
@@ -626,6 +638,9 @@ T26（Alembic pending 記録）
 #### **W3-R2-T24**: model-delegation-prompting.md scratchpad 禁止明示（専用 FR なし / FR-8 準用）
 
 **概要**: `.claude/rules/model-delegation-prompting.md` に「scratchpad 書込禁止」を明示する新設節を追加。§2「Sonnet 5 委譲プロンプト必須 7 項」直後に配置。
+
+> **M-1 W1 判定の反映（2026-07-26 / W2-M1-T7）**: 決定木の出力 = **保全** → R-2 側の写像は「**実施**（原案通り追加）」。`.claude/rules/model-delegation-prompting.md` §2 必須 7 項の第 2 項「下方向フェンス」への追記（新設節ではなく既存条項への吸収）に反映済み。本 Task の Definition of Done 自体は変更していない（M-1 Non-Goals 4）。
+
 
 **対応仕様**:
 - requirements.md FR-14（個別 Task）
