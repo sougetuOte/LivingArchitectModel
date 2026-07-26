@@ -130,7 +130,7 @@
 
 1. **(i) Sonnet 5 の導入価格は期限付き**: **2026-08-31 まで $2 / $10**、以後は通常価格 $3 / $15。**期限後にコスト見積が 1.5 倍になる**ため、L2 委譲量の試算は期限を跨いで流用しない。
 2. **(ii) Haiku 4.5 の knowledge cutoff は Feb 2025 と古い**: L3（採点・事実突合）に**最新事項の知識判断をさせない**根拠。突合対象の事実は必ずプロンプトまたは一次資料で与える。
-3. **(iii) Opus 5 の thinking / effort 制約**: §3 デルタ 2 のとおり `xhigh` / `max` と thinking 無効化は併用不可（400）。
+3. **(iii) thinking / effort 制約はモデルごとに異なる**: **Opus 5** は §3 デルタ 2 のとおり `xhigh` / `max` と thinking 無効化が併用不可（400）。一方 **Fable 5 は effort 段階によらず、どの水準でも thinking 無効化が 400**。**Opus 5 の規則を Fable に流用しないこと**（migration guide / 2026-07-26 確認）。
 
 ### その他の確定事項
 
@@ -139,6 +139,8 @@
 - **Opus 5 の prompt cache 最小長は 512 tokens**（Opus 4.8 は 1,024）。
 - **1M context は追加課金なし**（long-context 割増ではなく standard pricing）。
 - **Fable 5 のトークナイザ**: Opus 4.7 導入のトークナイザを使用し、同一テキストで**約 30% 多いトークン**になる（4.7 より前のモデル比）。HGA ブリーフの実効トークン見積に影響する。
+- **Fable 5 の prompt cache 最小長も 512 tokens**（migration guide / 2026-07-26 確認）。
+- **Fable 5 は ZDR（Zero Data Retention）が利用不可**: 30 日保持が必須で Covered Model 指定。`claude-fable-5` への ZDR リクエストは 400 を返す。**HGA 召喚のブリーフは 30 日保持される**前提で、載せる内容を選ぶこと（introducing-claude-fable-5-and-claude-mythos-5 / 2026-07-26 確認）。
 
 ### envelope 定義（2026-07-04 二軸化 / 下調べパイプライン導入後 / W2-M1-T2 で `hga-summoning.md` から移設）
 
