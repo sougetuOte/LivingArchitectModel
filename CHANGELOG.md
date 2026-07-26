@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 未処理（v5.0.0 時点の引き継ぎ / **完了と誤認しないこと**）
+
+- **常駐指令 50 を目標とする棚卸し Milestone**（2026-07-26 ユーザー決定 / **v5.0.0 リリース後に起票**）: 現在 **80 = 天井と同値で余裕ゼロ**のため、着手すれば即 net-negative（1 追加 = 2 退出）に入る。配置是正で動かせる大口は使い切っており、**50 到達には条項そのものの再採点が必要** = M-1 出口宣言 (a)(b) の改定を伴う。**目標値自体が新規条項なので誕生ゲートを通す対象**。動かしにくい塊は `fable-l3-protocol.md` 19 / `phase-rules.md` 12 / `hga-summoning.md` 9 / `model-roster.md` 8 = 計 48
+- **HGA #20 の未検証事項 2 件**: 「記録面基準」の更正境界が運用で **WC-4「更正という名の裏口」**に耐えるかは 1-2 回の実運用まで未実測 / 誕生ゲート台帳 §B 取引 #2 の実行セッションが triage row 50 を認知していたかは transcript 未確認（認知の上での無記録なら WC-4 の緊急度が上がる）
+- **D-2 の賭け**: M-1 で削除された 16 件は **Opus 5 の自己申告ベースのまま**。「次回から判定者を基質の外に置く」（`/update-model` ステップ5直後）は据え付けたが、既存 16 件は再審していない（HGA #20 の判断 = 削除誤りは復活経路が拾う）
+- **観測チャンネルの穴 4 件**: `fable-l3-protocol.md` §9 対応表で 9 グループ中 4 グループが「痕跡なし」。特に **`/ship` Phase 3.5 の実況は構造的に残らない**（`ship/SKILL.md` が git 履歴への混入を避ける設計）。次の世代交代でこの 4 つを判定する材料は現時点で存在しない
+- ~~`fable-l3-protocol.md` の層特定し直し~~ → **v5.0.0 でクローズ**（HGA #20 crux 3 = 外延が空 / 再開は次の世代交代時に `/update-model` ステップ5直後が担う）
+
+---
+
+## [v5.0.0] - 2026-07-26
+
+### 概要
+
+**v4.8.0（2026-06-11）から 45 日 / 275 commits。「減量」の世代である。** 柱は 3 本。
+
+1. **Opus 5 への基盤交代**（L1 = `claude-opus-5`）と **`.claude/rules/model-roster.md` 新設** — モデル名の束縛を書いてよい**唯一の場所**を作り、他ファイルからモデル名を排除した。世代交代時に更新するのは 1 枚だけになる（ADR-0011 決定 2 / drift 検査は `verify_model_reference.py`）
+2. **誕生ゲートの導入** — 新規条項を **R1 常駐 / R2 条件ロード / R3 決定的機構 / R4 knowledge 層 / R5 却下** の 5 宛先に routing し、常駐集合に予算（no-net-growth）を課す。**予算を消費するのは R1 のみ**。台帳 = `docs/artifacts/clause-gate-ledger.md` / 手順 = `/clause-gate`
+3. **常駐規範の減量: 指令 99 → 80**（hard ceiling 80 = arXiv:2607.19257 由来の**借用値**であり物理定数ではない）。手段は**配置の是正のみで、条項の再採点はしていない**
+
+### 破壊的変更（ハーネス配布先への影響）
+
+- **`.claude/rules/` の 2 ファイルが条件ロード（`paths:`）へ降格した** — `model-delegation-prompting.md`（`.claude/agents/*.md`）と `planning-quality-guideline.md`（`docs/specs/**` ほか）。**何が常駐ロードされるかが変わる**ため、`.claude/rules/` を持ち帰っている場合は挙動が変わる
+- 前者の受領側条項（Direct Executor / 依頼外成果物の禁止列挙 / grounding / 親検収の自己申告 / coverage-first）は **`.claude/agents/*.md` 12 枚へ移設済み**であり、失われていない
+- hooks の Python 呼び出しが **`.claude/scripts/py_invoke.sh` 経由に統一**された（venv-first + fallback chain）。ルート `CLAUDE.md` が **PM 級パスに追加**された
+
+### 既知の状態（次世代への申し送り）
+
+**常駐指令は 80 = 天井と同値で余裕ゼロ。** 次に R1 条項を 1 件足すと超過し、交換レートが **net-negative（1 追加 = 2 退出）** へ自動復帰する。配置是正で動かせる大口は使い切っており、これ以上の減量は条項の再採点（= M-1 出口宣言の改定）を要する。
+
+### 検証
+
+pytest **1145 passed + 14 skipped** / `verify_reference_resolution.py --wave all` **total_drifts 0** / `verify_model_reference.py` の **`layer_assignment` = 0**（機構で固定）。
+
 ### Changed
 
 - **fix(rules)**: 基質が既定で行う挙動を強制していた条項 3 件を削除（2026-07-26 / upstream 突合の第 1 弾 / **A 型 = 能力補償層**）
@@ -81,13 +115,6 @@ All notable changes to this project will be documented in this file.
   - **④ `/update-model` に「ステップ5直後: 補償条項のバッチ再監査」を新設**（失効時計）: 対象は軸1 = モデル誤り予防のみ / 判定材料は §9 対応表が指す発火痕に限る / **新基質の自己申告を判定材料にしない**（WC-5「世代交代監査の自己申告ループ」への防御 / 前例 2 件を本文に引用）/ 迷う条項は世代境界の HGA 召喚へ / **hard ceiling の再見積り**も同ステップに（D-4 = 80 は借用値で knee はモデル族依存だが、天井の本体機能は希少性の創出なので廃棄しない）
   - **常駐指令 79 → 80**（天井と同値 / **余裕ゼロ**）。増分は復元 1 件のみで、**更正は入場ではないため交換相手を要さない**（誤配の是正に予算を課すと是正が抑止される）。§9 の置換は指令 0 → 0 でゲージ不動、④ は skill 本文 = R2 で予算外
   - 検証: pytest **1145 passed + 14 skipped**（regression ゼロ）/ 台帳検査 19 tests green
-
-### 未処理（本セッションで意図的に保留 / **完了と誤認しないこと**）
-
-- **常駐指令 50 を目標とする棚卸し Milestone**（2026-07-26 ユーザー決定 / **現 stream 完了後に起票**）: 「今後の生き残り策としてそれくらいはしないといかん」。現在 **79**。配置是正で動かせる大口は使い切ったため、**50 到達には条項そのものの再採点が必要** = M-1 出口宣言 (a)(b)（consolidation ジャンルを閉じる / 決定木を定期棚卸しとして再実行しない）の改定を伴う。**目標自体が新規条項なので誕生ゲートを通す対象**。残る塊は `fable-l3-protocol.md` 18（= 下記保留）/ `phase-rules.md` 12 / `hga-summoning.md` 9 / `model-roster.md` 8 で、この 47 が動かしにくい
-- ~~**`fable-l3-protocol.md` の層特定し直し**~~ → **2026-07-26 クローズ**（HGA #20 crux 3 = 外延が空 / 上記 `fix(rules)` 参照）。**再開は次の世代交代時**に `/update-model` ステップ5直後が担う
-- **常駐指令 50 を目標とする棚卸し Milestone は保留のまま**（下記参照 / 現在 **80** = 天井と同値）
-- **HGA #20 の未検証事項 2 件**: 「記録面基準」の更正境界が運用で WC-4 に耐えるかは 1-2 回の実運用まで未実測 / 取引 #2 の実行セッションが triage row 50 を認知していたかは transcript 未確認（認知の上での無記録なら WC-4 の緊急度が上がる）
 
 ### Added
 
