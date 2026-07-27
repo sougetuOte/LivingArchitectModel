@@ -1,6 +1,8 @@
 # Current Phase
 
-**BUILDING** (**M-1 COMPLETE / 次 Milestone 未定 / 診断完了 → 配置是正の実装**)
+**PLANNING** (**Milestone D-1「配布境界の決定」起票 / requirements 承認待ち**)
+
+_2026-07-27 セッション 17 末: **Milestone D-1 を起票**し PLANNING へ切り替えた。M-1 完了（2026-07-26）以降 Milestone 不在のまま診断・配置是正を続けてきたが、セッション 17 の MAGI（Outbound Write Ban）が「複数の詰まりの根は**配布境界が未決であること**」を特定したため、これを Milestone として立てる。**出口宣言 (a) には抵触しない** —— (a) が閉じたのは consolidation 系（規範文書の肥大化を問う棚卸し）のジャンルであり、本 Milestone は**製品定義の変更**である（`CHANGELOG.md` §「次 Milestone の性格の明示」が同じ区別を既に記録している）。**手 4（経路 1 = 埋込統治記録の剥離）は D-1 のスコープに入れない** —— consolidation 寄りであり、製品定義 Milestone に混ぜると (a) の脱法になるため、引き続き Milestone 外の「手」として扱う。_
 
 _2026-07-27 再切替: 同日の PLANNING（診断）が HGA #23 / #24 の裁定をもって完了したため BUILDING へ戻す。着手対象は **HGA #24 の手 2 = `phase-rules.md` PLANNING §禁止 4 項の hook 化**（`pre-tool-use.py` は既に `current-phase.md` を読んでいるが、enforce しているのは AUTONOMOUS の統治ファイル deny と AUDITING の PG allow のみ）。これは実装コード生成であり PLANNING §禁止に該当するため、フェーズ切替が着手の前提となる。Milestone は持たない（配置の是正 = 予算外 / 出口宣言 (a)(b) に抵触しない）。決定の正本は `CHANGELOG.md` `[Unreleased]` §決定: 設計目標を「常駐指令カウントの管理」から「配送の管理」へ置換する。_
 
