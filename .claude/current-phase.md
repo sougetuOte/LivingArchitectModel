@@ -1,6 +1,8 @@
 # Current Phase
 
-**PLANNING** (**M-1 COMPLETE / 次 Milestone 未定 / 現在は Milestone を持たない診断フェーズ**)
+**BUILDING** (**M-1 COMPLETE / 次 Milestone 未定 / 診断完了 → 配置是正の実装**)
+
+_2026-07-27 再切替: 同日の PLANNING（診断）が HGA #23 / #24 の裁定をもって完了したため BUILDING へ戻す。着手対象は **HGA #24 の手 2 = `phase-rules.md` PLANNING §禁止 4 項の hook 化**（`pre-tool-use.py` は既に `current-phase.md` を読んでいるが、enforce しているのは AUTONOMOUS の統治ファイル deny と AUDITING の PG allow のみ）。これは実装コード生成であり PLANNING §禁止に該当するため、フェーズ切替が着手の前提となる。Milestone は持たない（配置の是正 = 予算外 / 出口宣言 (a)(b) に抵触しない）。決定の正本は `CHANGELOG.md` `[Unreleased]` §決定: 設計目標を「常駐指令カウントの管理」から「配送の管理」へ置換する。_
 
 _2026-07-27 更新: M-1 完走（2026-07-26）後も `BUILDING` のまま **stale** で放置されていたのを是正した。M-1 の完了は下記履歴の 2026-07-25→07-26 行に既に記録済みであり、最下行の「M-1 W0 着手」（Approved `-`）はその重複残骸だったためクローズした。**この stale は実害を持っていた** — `pre-tool-use.py` は本ファイルを読んでおり、状態繋留の配送機構を新設する案（HGA #21-B P2）の前提が崩れる omission SPOF として gabriel #1 が指摘した（`docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` §6 死んだ案 4）。現在の作業は Milestone を持たない診断（常駐規範の減量が 5 回連続で壊れた原因の再診断 / HGA #23・#24 の召喚判断）であり、実装・`src/` 変更・設定ファイル変更を伴わないため PLANNING が正しい値である。_
 
@@ -24,7 +26,8 @@ _M-1 完走 (2026-07-26 / W0-W4 全 5 Wave + 安定性ゲート 1 / 34 Task / re
 | PLANNING | 2026-07-25 | 2026-07-25 | M-1 PLANNING 完了（ADR-0011 Accepted 起点 / requirements + design + tasks 全 Approved / 33 Task + 安定性ゲート 1 / Red 7 件クローズ） |
 | BUILDING | 2026-07-25 | 2026-07-26 | M-1 W0 着手（計器較正 → ベースライン測定 6 項目 → 台帳スケルトン / upstream 裏取り / ADR-0001 突合）。**上行と同一 Milestone の重複行**であり、M-1 完走をもってクローズ（2026-07-27 是正） |
 | BUILDING | 2026-07-26 | 2026-07-26 | セッション 13-14: 誕生ゲート実装（HGA #19）+ R2 降格 2 件 + drift 固定（HGA #20）→ **v5.0.0 リリース**（常駐指令 98 → 80 / pytest 1145 PASS + 14 SKIP） |
-| **PLANNING** | **2026-07-27** | **-** | **Milestone なしの診断フェーズ。** 常駐指令の減量案が 5 回連続で壊れた（削ろうとしたものが必ず別機構の入力だった）ことを受け、(a) 系が「減らすな」と言っているのかの再診断 = HGA #23 / (b) **指示を確実に効かせるには何をすべきかの再診断** = HGA #24 を予定。引き継ぎ正本 = `docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` |
+| PLANNING | 2026-07-27 | 2026-07-27 | Milestone なしの診断フェーズ（**同日中に完了**）。常駐指令の減量案が 5 回連続で壊れたことを受け、**HGA #23**（系が「減らすな」と言っているのか / 0.72）+ **HGA #24**（指示を確実に効かせるには何をすべきか / 0.78）を実施。裁定 = **設計目標を「カウントの管理」から「配送の管理」へ置換**。引き継ぎ正本 = `docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` |
+| **BUILDING** | **2026-07-27** | **-** | **HGA #24 の手 2 に着手**（`phase-rules.md` PLANNING §禁止 4 項の hook 化 + Outbound Write Ban の R3 二重化の判定）。**唯一の既知 enforcement ギャップ**を閉じる配置是正であり、予算外・Milestone なし |
 
 ---
 
