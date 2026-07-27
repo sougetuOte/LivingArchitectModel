@@ -17,7 +17,7 @@
 
 ## Loop Engineering 観点
 
-本スキルは Addy Osmani らが提唱する Loop Engineering の **Stage 2 Loop**（research → draft → evaluate → improve の自律ループ + 独立 verifier による termination 判定）に相当する位置づけを持つ（[ADR-0006](../../../docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md) 参照）。
+本スキルは Addy Osmani らが提唱する Loop Engineering の **Stage 2 Loop**（research → draft → evaluate → improve の自律ループ + 独立 verifier による termination 判定）に相当する位置づけを持つ（[ADR-0006](../../../../docs/adr/0006-loop-engineering-vocabulary-and-lam-alignment.md) 参照）。
 
 - **termination 条件**: `rubric.md` の verify コマンドに基づき、`goal-driven-grader` が `overall: "pass"` を返すこと。grader 失敗を合格として扱わない（FR-2 MUST NOT）。
 - **独立 verifier**: `goal-driven-grader`（独立した別コンテキストの Agent として起動・FR-2）。作業者（l3-executor）と同一コンテキストに混在せず、termination 判定の独立性を構造的に保証する。

@@ -8,7 +8,7 @@
 |------|------|
 | ベースURL | `/api/v1/[resource]` |
 | 認証 | Bearer Token / API Key / None |
-| 関連仕様 | [feat-*.md](./feat-*.md) |
+| 関連仕様 | `./feat-*.md` |
 
 ## エンドポイント一覧
 

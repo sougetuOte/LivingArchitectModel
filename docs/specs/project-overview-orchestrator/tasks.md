@@ -383,7 +383,7 @@ Wave 10 Spike を L2 (tdd-developer / Sonnet) に委譲する際、prompt 冒頭
 成果物は spike/README.md §5・§6 への記録更新、または本 tasks.md 内の補記。
 ```
 
-根拠: [knowledge/l2-delegation-guardrails.md](../../../artifacts/knowledge/l2-delegation-guardrails.md)（Wave 6 Stage 3 で実証 / 報告乖離 50% → 5%）
+根拠: [knowledge/l2-delegation-guardrails.md](../../artifacts/knowledge/l2-delegation-guardrails.md)（Wave 6 Stage 3 で実証 / 報告乖離 50% → 5%）
 
 ---
 

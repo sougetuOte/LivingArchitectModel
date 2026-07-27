@@ -1,6 +1,6 @@
 # Milestone D-1 の根拠・背景・訂正記録
 
-**位置づけ**: `docs/specs/d-1-distribution-boundary/requirements.md` の**理由づけを退避した文書**。要件定義が読めない長さになったため、2026-07-27 に分離した（requirements v2.0）。
+**位置づけ**: [requirements.md](../specs/d-1-distribution-boundary/requirements.md) の**理由づけを退避した文書**。要件定義が読めない長さになったため、2026-07-27 に分離した（requirements v2.0）。
 **要件定義本体との関係**: requirements が「**何を決めるか**」、本ファイルが「**なぜそうするか / なぜそう書いてよいか**」を持つ。
 **等級**: SE 級（`docs/artifacts/`）
 
@@ -165,10 +165,10 @@ L1 の「移住は撤回されたがジャンル判定は撤回されていな�
 
 ## §6 参照
 
-- `docs/specs/d-1-distribution-boundary/requirements.md`（**本文書の親** / 何を決めるか）
-- `docs/artifacts/2026-07-27-magi-outbound-ban-path.md`（発端 / 死んだ案 7 件）
-- `docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` §6（死んだ案 16 件）/ §7（WC 索引 18 件 / 次の発番は WC-19 から）
-- `docs/artifacts/retro-M1-2026-07-26.md` §出口宣言
-- `CHANGELOG.md` `[Unreleased]`（決定 2 = 配布可能性の維持 / **「次 Milestone の性格の明示」は §5 訂正 2 のとおり根拠に使わない**）
-- `README.md` §使い方（§2.3 の実測対象）
-- `.claude/skills/init-harness/`（§2.3 の実測対象 / **選別機構は持たない**）
+- [requirements.md](../specs/d-1-distribution-boundary/requirements.md)（**本文書の親** / 何を決めるか）
+- [2026-07-27-magi-outbound-ban-path.md](2026-07-27-magi-outbound-ban-path.md)（発端 / 死んだ案 7 件）
+- [lam-reconstruction-handoff-2026-07-27.md](lam-reconstruction-handoff-2026-07-27.md) §6（死んだ案 16 件）/ §7（WC 索引 18 件 / 次の発番は WC-19 から）
+- [retro-M1-2026-07-26.md](retro-M1-2026-07-26.md) §出口宣言
+- [CHANGELOG.md](../../CHANGELOG.md) `[Unreleased]`（決定 2 = 配布可能性の維持 / **「次 Milestone の性格の明示」は §5 訂正 2 のとおり根拠に使わない**）
+- [README.md](../../README.md) §使い方（§2.3 の実測対象）
+- [.claude/skills/init-harness/](../../.claude/skills/init-harness/SKILL.md)（§2.3 の実測対象 / **選別機構は持たない**）

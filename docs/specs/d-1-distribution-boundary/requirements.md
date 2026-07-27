@@ -1,6 +1,6 @@
 # Milestone D-1: 配布境界の決定 — 要件定義
 
-**版**: **v2.0**（2026-07-27 / 理由づけを `docs/artifacts/d-1-rationale-2026-07-27.md` へ分離し、本文書は「何を決めるか」に絞った）
+**版**: **v2.0**（2026-07-27 / 理由づけを [d-1-rationale-2026-07-27.md](../../artifacts/d-1-rationale-2026-07-27.md) へ分離し、本文書は「何を決めるか」に絞った）
 **状態**: **承認待ち**（v1.0 承認済 → v1.1・v1.2 で 2 件の誤りを訂正 → v2.0 で圧縮。**訂正の中身は rationale §5**）
 **フェーズ**: PLANNING
 
@@ -17,7 +17,7 @@
 > **「この条項は私の環境・予算・他プロジェクト・個人名を参照するか」**
 > （handoff §6「経路 2 の 2 列」の**配布列** / ほぼ機械判定）
 
-背景・発端・なぜこれを Milestone として立てられるのか → **`docs/artifacts/d-1-rationale-2026-07-27.md`**
+背景・発端・なぜこれを Milestone として立てられるのか → **[d-1-rationale-2026-07-27.md](../../artifacts/d-1-rationale-2026-07-27.md)**
 
 ---
 
@@ -89,14 +89,14 @@
 | **WC-12** | 配布物の既定構成が一度も走らず self-hosting が製品を検証しなくなる | FR-6 |
 | **WC-16** | 分類が新しい分類学・メタデータ列・検査群に育つ | FR-1 + FR-2 |
 
-詳細と防御の根拠 → **rationale §4**
+詳細と防御の根拠 → **[rationale §4](../../artifacts/d-1-rationale-2026-07-27.md)**
 
 ---
 
 ## §7 参照
 
-- **`docs/artifacts/d-1-rationale-2026-07-27.md`** —— **背景 / 合法性の根拠 / 代替案 / 訂正記録**（本文書から分離）
-- `docs/artifacts/2026-07-27-magi-outbound-ban-path.md`（発端 / 死んだ案 7 件）
-- `docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` §6（死んだ案 16 件）/ §7（WC 索引）
-- `docs/artifacts/clause-gate-routing-design-2026-07-26.md` v0.4（R1-R5 の定義 / §1.2 の予算規律）
-- `README.md` §使い方 / `.claude/skills/init-harness/`（現在の配布チャネルの実測対象 → rationale §2.3）
+- **[d-1-rationale-2026-07-27.md](../../artifacts/d-1-rationale-2026-07-27.md)** —— **背景 / 合法性の根拠 / 代替案 / 訂正記録**（本文書から分離）
+- [2026-07-27-magi-outbound-ban-path.md](../../artifacts/2026-07-27-magi-outbound-ban-path.md)（発端 / 死んだ案 7 件）
+- [lam-reconstruction-handoff-2026-07-27.md](../../artifacts/lam-reconstruction-handoff-2026-07-27.md) §6（死んだ案 16 件）/ §7（WC 索引）
+- [clause-gate-routing-design-2026-07-26.md](../../artifacts/clause-gate-routing-design-2026-07-26.md) v0.4（R1-R5 の定義 / §1.2 の予算規律）
+- [README.md](../../../README.md) §使い方 / [.claude/skills/init-harness/](../../../.claude/skills/init-harness/SKILL.md)（現在の配布チャネルの実測対象 → rationale §2.3）

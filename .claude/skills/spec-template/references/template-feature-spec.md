@@ -9,7 +9,7 @@
 | ステータス | Draft / Review / Approved |
 | 作成日 | YYYY-MM-DD |
 | 更新日 | YYYY-MM-DD |
-| 関連ADR | [ADR-XXX](../adr/XXX-*.md) |
+| 関連ADR | ADR-XXX (`../adr/XXX-*.md`) |
 
 ## 1. 概要
 

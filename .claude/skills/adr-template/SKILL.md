@@ -51,7 +51,7 @@ docs/adr/
 | ステータス | Proposed / Accepted / Deprecated / Superseded |
 | 日付 | YYYY-MM-DD |
 | 意思決定者 | [名前/ロール] |
-| 関連ADR | [ADR-XXXX](./XXXX-*.md) |
+| 関連ADR | ADR-XXXX (`./XXXX-*.md`) |
 
 ## コンテキスト
 
@@ -204,13 +204,13 @@ Proposed → Accepted → [Deprecated | Superseded]
 旧ADR:
 ```markdown
 ## メタ情報
-| ステータス | Superseded by [ADR-XXXX](./XXXX-*.md) |
+| ステータス | Superseded by ADR-XXXX (`./XXXX-*.md`) |
 ```
 
 新ADR:
 ```markdown
 ## メタ情報
-| 関連ADR | Supersedes [ADR-YYYY](./YYYY-*.md) |
+| 関連ADR | Supersedes ADR-YYYY (`./YYYY-*.md`) |
 ```
 
 ## `/ship` からの自動起票フロー（v4.0.0）

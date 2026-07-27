@@ -579,7 +579,7 @@ PM 承認後、BUILDING 開始。
 - [Wave 9 design.md](design.md) v0.2.7 Draft
 - [Wave 7 tasks.md](../wave7/tasks.md) v0.2.4 Approved（雛形参照）
 - [Wave 8 tasks.md](../wave8/tasks.md)（T100 台採番確認用）
-- [MAGI 議事録 2026-06-28](../../../artifacts/2026-06-28-magi-wave9-planning.md)（Wave 9 スコープ確定）
+- MAGI 議事録 2026-06-28: `docs/artifacts/2026-06-28-magi-wave9-planning.md`（Wave 9 スコープ確定 / **成果物は作成されなかった** —— 2026-07-27 のリンク検査で不在を確認し、リンクを解除した）
 - [retro Wave 7](../../../artifacts/retro-W7-B5-2026-06-28.md)（Problem #10 / Action A10）
 - [L2 委譲ガードレール](../../../artifacts/knowledge/l2-delegation-guardrails.md)
 - [planning-quality-guideline](../../../../.claude/rules/planning-quality-guideline.md)

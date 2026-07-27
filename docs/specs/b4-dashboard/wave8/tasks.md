@@ -486,7 +486,7 @@ graph TD
 - [Wave 8 design.md](./design.md) v0.2.3 Draft
 - [Wave 7 tasks.md](../wave7/tasks.md) v0.2.4 Approved（雛形）
 - [Wave 7 retro](../../../artifacts/retro-W7-B5-2026-06-28.md)（引き継ぎ事項）
-- [MAGI 議事録 Wave 8 Planning](../../../artifacts/2026-06-28-magi-wave8-planning.md)（設計方針確定）
+- MAGI 議事録 Wave 8 Planning: `docs/artifacts/2026-06-28-magi-wave8-planning.md`（設計方針確定 / **成果物は作成されなかった** —— 2026-07-27 のリンク検査で不在を確認し、リンクを解除した）
 - [L2 委譲ガードレール](../../../artifacts/knowledge/l2-delegation-guardrails.md)
 - [planning-quality-guideline](../../../../.claude/rules/planning-quality-guideline.md)
 - [terminology](../../../../.claude/rules/terminology.md)
