@@ -1,6 +1,8 @@
 # Current Phase
 
-**PLANNING** (**Milestone D-1「配布境界の決定」起票 / requirements 承認待ち**)
+**BUILDING** (**Milestone D-1 / PLANNING 完了・承認ゲート 3 件すべて通過 → Wave 1 の T1 から着手**)
+
+_2026-07-27 セッション 17 末: **D-1 の PLANNING が完了**した。requirements v2.0 / design v0.2 / tasks v0.1 の 3 成果物すべてがユーザー承認を得たため BUILDING へ切り替える。**次の着手は W1-D1-T1（証拠表の作成）**。T1 は L1 が実行するが **NFR-2 により P/X/S の下書き・推奨・優先度を一切書いてはならない**（完了条件に明記済）。**T2（判定）はユーザー本人のみが実行し、15 件を 1 セッションで完了させる**（中断すると基準が揺れる）。_
 
 _2026-07-27 セッション 17 末: **Milestone D-1 を起票**し PLANNING へ切り替えた。M-1 完了（2026-07-26）以降 Milestone 不在のまま診断・配置是正を続けてきたが、セッション 17 の MAGI（Outbound Write Ban）が「複数の詰まりの根は**配布境界が未決であること**」を特定したため、これを Milestone として立てる。**出口宣言 (a) には抵触しない** —— (a) が閉じたのは consolidation 系（規範文書の肥大化を問う棚卸し）のジャンルであり、本 Milestone は**製品定義の変更**である（`CHANGELOG.md` §「次 Milestone の性格の明示」が同じ区別を既に記録している）。**手 4（経路 1 = 埋込統治記録の剥離）は D-1 のスコープに入れない** —— consolidation 寄りであり、製品定義 Milestone に混ぜると (a) の脱法になるため、引き続き Milestone 外の「手」として扱う。_
 
