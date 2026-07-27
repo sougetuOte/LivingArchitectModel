@@ -162,6 +162,76 @@ def test_in_repo_paths_are_unaffected(
 # --- drift 検査: 機構と条文の SSOT 整合 ---------------------------------------
 
 
+def _missing_roots(roots) -> list:
+    """実在しないルートを列挙する（純関数 / 下の 2 テストが共有する）。
+
+    テスト本体から分離してあるのは、所有者ゲートつきの検査（`test_..._exist_in_
+    authoring_env`）が **vacuous でないこと**を、ゲートなしの検査
+    （`test_root_existence_check_detects_missing`）で保証するため。
+    """
+    return [r for r in roots if not Path(r).exists()]
+
+
+# 所有者環境の判定シグナル（2026-07-27 / MAGI + gabriel / 循環を避けるための設計）。
+#
+# `SESSION_STATE.md` は **gitignore 済でローカル限定**であるため、clone した配布先には
+# 存在しない。したがって「条文を書いた当の環境か」の代理として使える。
+#
+# **なぜ `not path.exists()` を skip 条件にしないか**: 検出したい事象（ban root が
+# 実在しない）そのものが skip 条件になり、検査として機能しなくなる（循環）。
+# gabriel が MAGI A3 の未検討経路として指摘した点であり、所有者判定を **ban root と
+# 独立なシグナル**に置くことで解消する（`docs/artifacts/2026-07-27-magi-outbound-ban-path.md`）。
+#
+# **なぜ `git remote` を使わないか**: 外部の漂流入力を追うことになり、誕生ゲート設計
+# §1.1 (iii)「同時更新義務ありの機構は R3 に置けない」に触れるため。
+_IS_AUTHORING_ENV = (_REPO_ROOT / "SESSION_STATE.md").exists()
+
+# 既知の弱点（受忍済 / MAGI Synthesis に明記）: 所有者が SESSION_STATE.md を削除すると
+# 本検査は静かに skip される。同ファイルは `/quick-save` の中核成果物であり、所有者
+# 環境での不在は実質的に起こらないと判断した。
+
+
+@pytest.mark.skipif(
+    not _IS_AUTHORING_ENV,
+    reason="所有者環境（SESSION_STATE.md が存在する）でのみ実行する。"
+    "配布先には Fable-Alembic が存在しないため検査が無意味になる",
+)
+def test_outbound_roots_exist_in_authoring_env():
+    """条文を書いた環境では、禁止ルートと許可ルートが**実在**すること。
+
+    `test_banned_root_matches_rule_document`（drift 検査）が守るのは
+    「条文と機構が同じ文字列を持つこと」だけであり、**その文字列が実在するかは
+    検査していない**。リポジトリ群を移動すると条文と機構は仲良く同じ嘘をつき、
+    drift 検査は緑のまま通る —— すなわち **Outbound Write Ban が沈黙して守らなく
+    なっても誰も気づかない**。本テストはその穴を塞ぐ。
+
+    設計 §1.3 は不可逆ガードに R1（条文）+ R3（機構）の二重化を義務づけるが、
+    機構が指す先が消えていれば二重化は名目でしかない（WC-18「層 1 の空手形」と同型）。
+    """
+    ptu = _load_pre_tool_use()
+    roots = list(ptu._OUTBOUND_WRITE_BAN_ROOTS) + list(ptu._OUTBOUND_WRITE_ALLOW_ROOTS)
+    missing = _missing_roots(roots)
+    assert missing == [], (
+        f"Outbound Write Ban の対象が実在しない: {missing}。"
+        "リポジトリ群を移動した場合、`.claude/rules/fable-l3-protocol.md` §2（SSOT）と "
+        "`pre-tool-use.py` の `_OUTBOUND_WRITE_BAN_ROOTS` / `_OUTBOUND_WRITE_ALLOW_ROOTS` "
+        "の**両方**を更新すること。片方だけでは drift 検査が落ちる"
+    )
+
+
+def test_root_existence_check_detects_missing():
+    """`_missing_roots` が実際に不在を検出する（**上のテストが vacuous でないことの保証**）。
+
+    所有者ゲートつきの検査は、ゲートが常に False になれば「常に skip = 常に緑」に
+    退化しうる。本テストはゲートを持たず全環境で走り、検出ロジック自体が生きて
+    いることを固定する。
+    """
+    nonexistent = Path("D:/work7/__lam_nonexistent_root_for_test__")
+    assert not nonexistent.exists(), "テスト前提: このパスは存在しないこと"
+    assert _missing_roots([nonexistent]) == [nonexistent]
+    assert _missing_roots([_REPO_ROOT]) == [], "実在するルートは検出されない"
+
+
 def test_banned_root_matches_rule_document():
     """hook の禁止ルートが `fable-l3-protocol.md` の記載と一致する。
 
