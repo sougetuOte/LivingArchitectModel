@@ -26,6 +26,23 @@
 
 `8fc40f07`（前回の記録時点）の git blob 実測 = **135,848** バイト。当時の R1 行数 2,312 のうち CRLF 行が 1,689 → `135,848 + 1,689 = 137,537` で**記録値と完全一致**。同様に現在は `138,540 + 1,697 = 140,237` で記録値と一致する。したがって、これまでの全記録は**作業ツリーの CRLF バイト**を「文字」と呼んできたことが確定した。
 
+### 根本原因 — 再現コマンドの `wc -m` がこの環境ではバイトを返す
+
+`docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` §13 が指定する再現コマンドは `wc -m`（文字数）を使っている。しかし**この環境ではロケールが設定されていない**ため（`LANG=` が空 / Git Bash）、`wc` は POSIX ロケールで動作し、**`wc -m` は `wc -c`（バイト）と同じ値を返す**。
+
+```bash
+$ locale
+LANG=
+LC_CTYPE="C.UTF-8"      # ← 表示はされるが LANG が空のため実効は POSIX
+
+$ wc -m < .claude/rules/core-identity.md          # 3815  ← バイト数が返る
+$ LC_ALL=C.UTF-8 wc -m < .claude/rules/core-identity.md   # 2011  ← 正しい文字数
+```
+
+**したがってラベルの誤りは記述ミスではなく、計器そのものの欠陥である。** §13 のコマンドをそのまま使う限り、誰が再測定しても同じずれが再生産される。handoff §3 のファイル別「文字数」が本レポートのバイト実測と 1 の位まで一致するのは、この機序による。
+
+**訂正**: 文字数を測る場合は `LC_ALL=C.UTF-8 wc -m`（または Python の `len()`）を使う。§13 の該当コマンドは本レポートと同時に修正した。
+
 ### なぜこのずれが実害を持つか
 
 質量削減の判定が**計器依存**になる。日本語 1 文字 = 3 バイト、ASCII 1 文字 = 1 バイトであるため:
@@ -111,38 +128,43 @@ for sha, date, subj in commits:
 | 行数 | 2,322 | — |
 | **指令数** | **80**（= `HARD_CEILING` ちょうど） | 103 |
 
-### R1 のファイル別内訳（バイト / 指令）
+### R1 のファイル別内訳
 
-| # | ファイル | バイト | 指令 |
-|--:|:---|---:|---:|
-| 1 | `.claude/rules/hga-summoning.md` | 20,324 | 9 |
-| 2 | `.claude/rules/model-roster.md` | 18,824 | 8 |
-| 3 | `.claude/rules/fable-l3-protocol.md` | 18,588 | **19** |
-| 4 | `CLAUDE.md` | 16,011 | 4 |
-| 5 | `.claude/rules/phase-rules.md` | 12,727 | **12** |
-| 6 | `.claude/rules/terminology.md` | 10,441 | **0** |
-| 7 | `.claude/rules/code-quality-guideline.md` | 6,947 | 5 |
-| 8 | `.claude/rules/permission-levels.md` | 6,751 | 3 |
-| 9 | `.claude/rules/upstream-first.md` | 5,413 | 3 |
-| 10 | `.claude/rules/auto-generated/trust-model.md` | 5,105 | 2 |
-| 11 | `.claude/rules/auto-generated/rule-001.md` | 4,720 | 1 |
-| 12 | `.claude/rules/security-commands.md` | 4,634 | 4 |
-| 13 | `.claude/rules/decision-making.md` | 4,287 | 7 |
-| 14 | `.claude/rules/core-identity.md` | 3,815 | 1 |
-| 15 | `.claude/rules/auto-generated/README.md` | 1,650 | 2 |
+**バイト（LF）が本レポートの基準列**。参考として作業ツリー（CRLF）も併記する。両者が一致するのは純 LF の 4 ファイルのみで、**過去の記録はすべて右列を採っていた**。
 
-上位 3 ファイルで **41%**、上位 5 で **61%**。`terminology.md` は 10,441 バイトを占めながら**指令ゼロ**（純粋な定義文書）である。指令密度が最も高いのは `fable-l3-protocol.md`（19 件）。
+| # | ファイル | **バイト（LF）** | 作業ツリー（CRLF） | 指令 |
+|--:|:---|---:|---:|---:|
+| 1 | `.claude/rules/hga-summoning.md` | **20,003** | 20,324 | 9 |
+| 2 | `.claude/rules/model-roster.md` | **18,601** | 18,824 | 8 |
+| 3 | `.claude/rules/fable-l3-protocol.md` | **18,588** | 18,588 | **19** |
+| 4 | `CLAUDE.md` | **15,758** | 16,011 | 4 |
+| 5 | `.claude/rules/phase-rules.md` | **12,502** | 12,727 | **12** |
+| 6 | `.claude/rules/terminology.md` | **10,441** | 10,441 | **0** |
+| 7 | `.claude/rules/code-quality-guideline.md` | **6,801** | 6,947 | 5 |
+| 8 | `.claude/rules/permission-levels.md` | **6,627** | 6,751 | 3 |
+| 9 | `.claude/rules/upstream-first.md` | **5,315** | 5,413 | 3 |
+| 10 | `.claude/rules/auto-generated/trust-model.md` | **4,989** | 5,105 | 2 |
+| 11 | `.claude/rules/auto-generated/rule-001.md` | **4,720** | 4,720 | 1 |
+| 12 | `.claude/rules/security-commands.md` | **4,634** | 4,634 | 4 |
+| 13 | `.claude/rules/decision-making.md` | **4,206** | 4,287 | 7 |
+| 14 | `.claude/rules/core-identity.md` | **3,748** | 3,815 | 1 |
+| 15 | `.claude/rules/auto-generated/README.md` | **1,607** | 1,650 | 2 |
+| | **計** | **138,540** | **140,237** | **80** |
+
+上位 3 ファイルで **41%**、上位 5 で **62%**。`terminology.md` は 10,441 バイト（R1 の 7.5%）を占めながら**指令ゼロ**（純粋な定義文書）である。指令密度が最も高いのは `fable-l3-protocol.md`（19 件）。**指令数と質量は無相関**（指令 1 位の `fable-l3-protocol.md` は質量 3 位、質量 6 位の `terminology.md` は指令 0）。
 
 ### R2（`paths:` 保有 / 条件ロード）の内訳
 
-| ファイル | バイト |
+| ファイル | バイト（LF） |
 |:---|---:|
 | `.claude/rules/subprocess-encoding-convention.md` | 9,969 |
 | `.claude/rules/auto-generated/rule-002.md` | 7,827 |
 | `.claude/rules/model-delegation-prompting.md` | 7,711 |
-| `.claude/rules/planning-quality-guideline.md` | 7,594 |
-| `.claude/rules/test-result-output.md` | 3,558 |
-| **計** | **36,659** |
+| `.claude/rules/planning-quality-guideline.md` | 7,451 |
+| `.claude/rules/test-result-output.md` | 3,437 |
+| **計** | **36,395** |
+
+`138,540 + 36,395 = 174,935` = §4.2 の総量と一致する。
 
 ---
 
@@ -279,16 +301,16 @@ for sha, date, subj in commits:
 
 ---
 
-## §11 申し送り（本レポートでは実施していない）
+## §11 申し送り
 
-以下は他ファイルの修正を伴うため、本レポートでは提案に留める。
+| # | 対象 | 内容 | 等級 | 状態 |
+|:-:|:---|:---|:---|:---|
+| 1 | `lam-reconstruction-handoff-2026-07-27.md` §3・§8・**§13** | 「137,537 **文字**」→ バイトである旨の訂正 + **§13 の再現コマンド `wc -m` の修正** | SE 級 | **✅ 完了**（同セッション） |
+| 2 | `CHANGELOG.md` `[Unreleased]` | 同上（「R1 137,537 文字の 18%」の単位注記 / 比率は不変） | SE 級 | **✅ 完了**（同上） |
+| 3 | `docs/artifacts/clause-gate-ledger.md` §A | 質量の単位定義（LF 正規化 UTF-8 バイト）の明記 | SE 級 | **✅ 完了**（同上 / **質量を §A の計数対象に加えるものではない**旨を併記） |
+| 4 | — | 総量（R1+R2）の並記を計器に加えるか否か | **要判断** | **未決**（帳簿を増やすことになるため / `fable-l3-protocol.md` §3 帳簿単一原則との整合を先に確認すること） |
 
-| # | 対象 | 内容 | 等級 |
-|:-:|:---|:---|:---|
-| 1 | `docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` §R1 の定義 | 「137,537 **文字**」→ バイトである旨の訂正（実文字数は別値） | SE 級 |
-| 2 | `CHANGELOG.md` `[Unreleased]` | 同上（「R1 137,537 文字」の表記） | SE 級 |
-| 3 | `docs/artifacts/clause-gate-ledger.md` §A | 質量を記録する場合の単位定義（LF 正規化 UTF-8 バイト）の明記 | SE 級 |
-| 4 | — | 総量（R1+R2）の並記を計器に加えるか否か | **要判断**（帳簿を増やすことになるため / `fable-l3-protocol.md` §3 帳簿単一原則との整合を先に確認すること） |
+> **#1 の実施範囲が当初案より広がった理由**: 修正作業中に、ラベルの誤りが**記述ミスではなく §13 の再現コマンド `wc -m` の欠陥**であることが判明した（§1 §根本原因）。ラベルだけ直してコマンドを残すと、次の再測定で同じずれが再生産される。したがって §13 の修正を #1 に含めた。
 
 > **#4 についての注意**: 総量の並記は有用だが、**新しい帳簿を作ることでもある**。`fable-l3-protocol.md` §3 は帳簿の二重化を禁じており、`§9` は「対応表の第二帳簿化」を明示的な失敗様態として挙げている。採否は手 4 の設計の中で判断すべきであり、本レポートの存在を根拠に既定化してはならない。
 

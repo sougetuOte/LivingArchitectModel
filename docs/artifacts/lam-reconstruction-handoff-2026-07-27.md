@@ -118,11 +118,17 @@
 
 ### R1 の構成
 
-**R1 の定義**: ルート `CLAUDE.md` + `.claude/rules/**/*.md` のうち `paths:` frontmatter を持たないもの = **15 ファイル / 2,312 行 / 137,537 文字 / 指令 80**。
+**R1 の定義**: ルート `CLAUDE.md` + `.claude/rules/**/*.md` のうち `paths:` frontmatter を持たないもの = **15 ファイル / 2,312 行 / 137,537 バイト / 指令 80**。
+
+> **単位の訂正（2026-07-27 セッション 17 / `r1-mass-measurement-2026-07-27.md` §1）**: 本節が「**文字**」と記していた数値は、すべて **UTF-8 バイト数（作業ツリー / CRLF 込み）** である。実文字数は当時 **約 78,700**（1.75 倍のずれ）。
+>
+> **原因は §13 の再現コマンド `wc -m` にある。** この環境は `LANG=` が空で `wc` が POSIX ロケールで動くため、**`wc -m` が `wc -c`（バイト）と同値を返す**。記述ミスではなく計器の欠陥であり、§13 をそのまま使う限り誰が再測定しても同じずれが再生産される（§13 は修正済）。
+>
+> 下表の値も同様に**バイト（作業ツリー / CRLF 込み）**として読むこと。なお本表はセッション 15 時点のスナップショットであり、`fable-l3-protocol.md`（17,678 → 18,588）と `phase-rules.md`（10,937 → 12,502 / LF 基準）はセッション 16 の手 2 実装で増えている。**現在値は `r1-mass-measurement-2026-07-27.md` §3 が正本**。
 
 > 以前 L1 が報告した「2,645 行」は **R2 ファイルを混入した誤り**（HGA #21-A が検出）。`wc -l .claude/rules/*.md` は R2 も拾う。
 
-| ファイル | 指令数 | 文字数 | 繋留先の型（暫定） |
+| ファイル | 指令数 | バイト | 繋留先の型（暫定） |
 |:---|---:|---:|:---|
 | `hga-summoning.md` | 9 | **20,324** | 行為（HGA 召喚時） |
 | `model-roster.md` | 8 | 18,824 | SSOT 参照 + ファイル（agent 定義） |
@@ -140,7 +146,7 @@
 | `core-identity.md` | 1 | 3,815 | メタ（第 0 原則） |
 | `auto-generated/README.md` | 2 | 1,650 | コマンド（`/retro`） |
 
-**指令数と文字数は無相関**。指令数 1 位の `fable-l3-protocol.md` は文字数 3 位、指令数 **0** の `terminology.md` が文字数 6 位（R1 の 7.6%）。
+**指令数と質量は無相関**。指令数 1 位の `fable-l3-protocol.md` は質量 3 位、指令数 **0** の `terminology.md` が質量 6 位（R1 の 7.6%）。
 
 ### 80 指令の保全理由型別（**下請けの全数分類 / L1・HGA とも全数再検証していない** → §8）
 
@@ -304,8 +310,9 @@ triage 表の同ファイル条項 30 件のうち **軸1 = ユーザー意思�
 
 | 主張 | 検証 |
 |:---|:---|
-| R1 = 15 ファイル / 2,312 行 / 137,537 文字 / 指令 80 | **機械検証済**（`pytest test_clause_gate_ledger.py` 19 passed + L1 の bash 実測） |
-| ファイル別の指令数・文字数（§3 表） | **機械検証済**（L1 の bash 実測 / 台帳 §A と一致） |
+| R1 = 15 ファイル / 2,312 行 / 137,537 **バイト** / 指令 80 | **機械検証済**（`pytest test_clause_gate_ledger.py` 19 passed + L1 の bash 実測）。**ただし単位は「文字」ではなくバイト**（2026-07-27 セッション 17 で判明 / §3 の訂正注記を参照） |
+| ファイル別の指令数・**バイト**（§3 表） | **機械検証済**（L1 の bash 実測 / 台帳 §A と一致）。**単位は同上** |
+| **`wc -m` が文字数を返すこと** | **反証済**（2026-07-27 セッション 17）。`LANG=` が空のため POSIX ロケールで `wc -c` と同値。文字数には `LC_ALL=C.UTF-8 wc -m` または Python `len()` を使う |
 | 埋込統治記録 25,780 文字 / 指令 11 | **機械検証済**（フィルタの妥当性は**未検証** / §9-1 でスコープ修正が要る） |
 | **80 指令の保全理由型別（31/14/11/10/8/5）** | **下請け 1 名の分類 / L1 も HGA も全数再検証していない**。HGA #21-B も「件数自体は未検証」と明記。**下請け自身が「表の行数 79 / 実測 80」の不一致を正直に報告**している |
 | `fable-l3-protocol.md` の軸1=ユーザー意思 8 件 | **L1 が triage 表を直接 grep して確認済** |
@@ -442,11 +449,18 @@ triage 表の同ファイル条項 30 件のうち **軸1 = ユーザー意思�
 R1="CLAUDE.md .claude/rules/fable-l3-protocol.md .claude/rules/phase-rules.md .claude/rules/hga-summoning.md .claude/rules/model-roster.md .claude/rules/decision-making.md .claude/rules/code-quality-guideline.md .claude/rules/security-commands.md .claude/rules/permission-levels.md .claude/rules/upstream-first.md .claude/rules/auto-generated/trust-model.md .claude/rules/auto-generated/README.md .claude/rules/core-identity.md .claude/rules/auto-generated/rule-001.md .claude/rules/terminology.md"
 ```
 
-### 行数・文字数
+### 行数・質量（**2026-07-27 セッション 17 で修正 / 旧版は `wc -m` を使っておりバイトが返っていた**）
 
 ```bash
-wc -l $R1 | tail -1; cat $R1 | wc -m; for f in $R1; do printf "%7d  %s\n" $(wc -m < "$f") "$f"; done | sort -rn
+# バイト（作業ツリー / CRLF 込み）— 過去の全記録がこの値
+wc -l $R1 | tail -1; cat $R1 | wc -c; for f in $R1; do printf "%7d  %s\n" $(wc -c < "$f") "$f"; done | sort -rn
+
+# 実文字数 — LC_ALL を付けないと wc -m はバイトを返す（LANG= が空 = POSIX ロケール）
+cat $R1 | LC_ALL=C.UTF-8 wc -m
 ```
+
+> **バイト（LF 正規化 / git blob 基準）を測る場合**は `git show HEAD:"$f" | wc -c` を使う。作業ツリーとの差は CR のぶん（現在 R1 全体で 1,697 バイト）。
+> **総量（R1+R2）を含む履歴の全数再構成**は `docs/artifacts/r1-mass-measurement-2026-07-27.md` §2 のスクリプトを使う。
 
 ### 指令数（台帳 §A の定義 / `test_clause_gate_ledger.py` の実装と同一）
 
