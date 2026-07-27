@@ -1,6 +1,8 @@
 # Current Phase
 
-**BUILDING** (**M-1 COMPLETE / 次 Milestone 未定**)
+**PLANNING** (**M-1 COMPLETE / 次 Milestone 未定 / 現在は Milestone を持たない診断フェーズ**)
+
+_2026-07-27 更新: M-1 完走（2026-07-26）後も `BUILDING` のまま **stale** で放置されていたのを是正した。M-1 の完了は下記履歴の 2026-07-25→07-26 行に既に記録済みであり、最下行の「M-1 W0 着手」（Approved `-`）はその重複残骸だったためクローズした。**この stale は実害を持っていた** — `pre-tool-use.py` は本ファイルを読んでおり、状態繋留の配送機構を新設する案（HGA #21-B P2）の前提が崩れる omission SPOF として gabriel #1 が指摘した（`docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` §6 死んだ案 4）。現在の作業は Milestone を持たない診断（常駐規範の減量が 5 回連続で壊れた原因の再診断 / HGA #23・#24 の召喚判断）であり、実装・`src/` 変更・設定ファイル変更を伴わないため PLANNING が正しい値である。_
 
 _M-1 完走 (2026-07-26 / W0-W4 全 5 Wave + 安定性ゲート 1 / 34 Task / retro 済 = `docs/artifacts/retro-M1-2026-07-26.md`)。DoD-1〜7 全充足。pytest 1047 → **1103 passed + 14 skipped** (regression ゼロ)。主要成果物 = `.claude/rules/model-roster.md` (モデル名束縛の単一 SSOT) / `.claude/scripts/verify_model_reference.py` (drift 検査) / `.claude/skills/update-model/` (世代交代の順序表)。**出口宣言 3 点を発効** — (a) consolidation 系 Milestone のジャンルをここで閉じる (b) 決定木は今後「新規条項の誕生ゲート」として使い定期棚卸しでは再実行しない (c) 規範ストック総量に no-net-growth を課す。**HGA 新ゲートが発効**（旧ゲートの 3 軸は無条件召喚の資格を失い条件 2 の判定材料へ格下げ / `hga-summoning.md`）。**M-1 完了後の持ち越し**: upstream 仕様突合 Milestone (出口宣言の対象外 / 入力 = `docs/artifacts/upstream-inventory-input.md`)。_
 
@@ -20,7 +22,9 @@ _M-1 完走 (2026-07-26 / W0-W4 全 5 Wave + 安定性ゲート 1 / 34 Task / re
 | BUILDING | 2026-07-21 | 2026-07-25 | R-2 BUILDING Wave 1 完走（T4〜T8 / 5 commit / pytest 1043 PASS / W1 末ゲート FR-15 全クリア / HEAD `2ac4e91`）。W2/W3 は M-1 統合再スコープ待ちで中断 |
 | BUILDING | 2026-07-25 | 2026-07-26 | **M-1 完走**（W0-W4 全 5 Wave + 安定性ゲート合格 / 34 Task / 実働 2 日 / pytest 1103 PASS + 14 SKIP / DoD-1〜7 全充足 / retro 済）。**出口宣言 3 点発効 = consolidation 系 Milestone のジャンルをクローズ**。HGA 新ゲート発効。R-2 W2/W3 は M-1 W2-T7 で 5 件を「圧縮形で実施 / 実施」に写像し反映済み |
 | PLANNING | 2026-07-25 | 2026-07-25 | M-1 PLANNING 完了（ADR-0011 Accepted 起点 / requirements + design + tasks 全 Approved / 33 Task + 安定性ゲート 1 / Red 7 件クローズ） |
-| **BUILDING** | **2026-07-25** | **-** | **M-1 W0 着手（計器較正 → ベースライン測定 6 項目 → 台帳スケルトン / upstream 裏取り / ADR-0001 突合）** |
+| BUILDING | 2026-07-25 | 2026-07-26 | M-1 W0 着手（計器較正 → ベースライン測定 6 項目 → 台帳スケルトン / upstream 裏取り / ADR-0001 突合）。**上行と同一 Milestone の重複行**であり、M-1 完走をもってクローズ（2026-07-27 是正） |
+| BUILDING | 2026-07-26 | 2026-07-26 | セッション 13-14: 誕生ゲート実装（HGA #19）+ R2 降格 2 件 + drift 固定（HGA #20）→ **v5.0.0 リリース**（常駐指令 98 → 80 / pytest 1145 PASS + 14 SKIP） |
+| **PLANNING** | **2026-07-27** | **-** | **Milestone なしの診断フェーズ。** 常駐指令の減量案が 5 回連続で壊れた（削ろうとしたものが必ず別機構の入力だった）ことを受け、(a) 系が「減らすな」と言っているのかの再診断 = HGA #23 / (b) **指示を確実に効かせるには何をすべきかの再診断** = HGA #24 を予定。引き継ぎ正本 = `docs/artifacts/lam-reconstruction-handoff-2026-07-27.md` |
 
 ---
 
