@@ -11,6 +11,15 @@ T1-4 層1（design D7）: autonomous 専用 settings `.claude/settings.autonomou
   - FR-3.4 spec freeze（docs/specs/**）を Edit+Write 併記で deny（FR-9 とは別系統・成果物の即時停止）
   - disableBypassPermissionsMode=disable（bypass 経由の deny 回避封鎖）
   - defaultMode=auto（auto mode 既定・FR-2 利便層）
+  - **層1 が Bash 経路を守っていないこと**（既知の穴の可視化 / 2026-07-27 追加 / 下記）
+
+**既知の穴（WC-18「層 1 の空手形」/ 2026-07-27）**: 上記の検査は Edit / Write の
+存在しか見ない。**Bash 経路は層1・層2 とも素通りする**にもかかわらず、本テストは
+緑になる —— すなわち **テストが穴を承認していた**。基質の制約により閉鎖できない
+ため（`sandbox.filesystem.denyWrite` は native Windows 非サポート / 詳細は
+pre-tool-use.py の `_FR9_PATTERNS` 注記）、穴そのものは残す。ただし
+`test_layer1_does_not_cover_bash` を置いて **穴を明示的に固定**し、将来 Bash deny が
+追加された場合にテストを落として注記の更新を強制する。
 
 裏取り: docs/artifacts/research/2026-06-01-layer1-settings/findings.md
 対応仕様: docs/specs/autonomous-mode/design.md D7 / tasks.md T1-4(b) / FR-9.1 / SC-7
@@ -89,4 +98,29 @@ class TestLayer1Settings:
         専用 settings が誤って権限を緩めないことを保証）。"""
         assert "allow" not in settings["permissions"], (
             "層1 settings に allow を置かない（deny 専用の決定的境界）"
+        )
+
+    def test_layer1_does_not_cover_bash(self, settings: dict) -> None:
+        """**既知の穴を明示的に固定する**（WC-18「層 1 の空手形」/ 2026-07-27）。
+
+        層1 の deny は `Edit(...)` / `Write(...)` のみで `Bash(...)` を持たない。
+        層2（pre-tool-use.py）も file_path を要するため Bash 経路に到達しない。
+        したがって `Bash("echo x >> .claude/rules/foo.md")` は AUTONOMOUS でも通る。
+
+        **穴を閉じられないのは基質の制約による**: upstream の専用機構
+        `sandbox.filesystem.denyWrite`（OS レベルで全サブプロセスに適用）は
+        macOS / Linux / WSL2 のみで native Windows は非サポート
+        （code.claude.com/docs/en/sandboxing / 2026-07-27 裏取り）。
+        hook regex による代替は死んだ案 #15 で棄却済み。
+
+        本テストは穴を修正しない。**穴が invisible なまま緑になる状態を止める**ためにある
+        （従来は Edit/Write の存在だけを検査し、テストが穴を承認していた）。
+        Bash deny を追加する場合は本テストが落ちるので、そのとき
+        pre-tool-use.py の `_FR9_PATTERNS` 注記と本 docstring を同時に更新すること。
+        """
+        bash_rules = [r for r in settings["permissions"]["deny"] if r.startswith("Bash(")]
+        assert bash_rules == [], (
+            "層1 に Bash deny が追加された。穴の状態が変わったので "
+            "pre-tool-use.py の _FR9_PATTERNS 注記と本テストの docstring を更新すること "
+            f"(検出: {bash_rules})"
         )

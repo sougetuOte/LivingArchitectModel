@@ -53,7 +53,7 @@ metadata:
 - `shutil.which()` でコマンドパス解決（PATH インジェクション対策）
 - `eval`/`exec`/`pickle`/`yaml.load` の不使用を全域確認済み（iter2 確認）
 - gitleaks の Match/Secret フィールドを Issue に格納しない設計（シークレット値の永続化防止）
-- FR-9/FR-3.4 の二重防御（pre-tool-use.py 層2 + settings.autonomous.json 層1）
+- FR-9/FR-3.4 の二層防御（pre-tool-use.py 層2 + settings.autonomous.json 層1）— **ただし射程は Edit / Write のみ。Bash 経路は両層とも素通りする**（2026-07-27 訂正 / WC-18「層 1 の空手形」）。基質の制約であり実装漏れではない（`sandbox.filesystem.denyWrite` は native Windows 非サポート）。**「二重防御だから安全」と評価しないこと**
 - `_sanitize_target()` による Cc/Cf 制御文字除去（Trojan Source 型ログ偽装防止）
 - `normalize_path()` の W-15（symlink 展開）+ W-16（`..` 字句畳み込み）対策
 - ET.parse XXE/Billion Laughs: Python expat の組込み保護で安全（iter2 実行検証済み）

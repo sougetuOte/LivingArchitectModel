@@ -134,7 +134,26 @@ _SE_PATTERNS = [
 # 統治ファイル群。.claude/hooks/** と .claude/skills/autonomous/** を含めることで、
 # 自律エンジンが FR-9 強制機構そのもの（hook / モード定義）を書き換える再帰ハザードを塞ぐ。
 # これは層2（プロンプティング層）。層1（permissions.deny の決定的層・override 不可）は
-# .claude/settings.autonomous.json で固定済み（T1-4 層1, 5af4a63）。両層で二重防御する。
+# .claude/settings.autonomous.json で固定済み（T1-4 層1, 5af4a63）。
+#
+# **「二重防御」の射程（2026-07-27 訂正 / WC-18「層 1 の空手形」）**:
+#   両層とも **Edit / Write 経路のみ**を守る。**Bash 経路はどちらの層も素通りする**
+#   （層1 の deny は `Edit(...)` / `Write(...)` のみで `Bash(...)` を 1 件も持たない /
+#    層2 の本判定は file_path を要するため `_determine_by_command` に落ちる）。
+#   したがって `Bash("echo x >> .claude/rules/foo.md")` は AUTONOMOUS でも通る。
+#
+#   **これは実装漏れではなく基質の制約である**: upstream の専用機構
+#   `sandbox.filesystem.denyWrite`（OS レベルで全サブプロセスに適用し、`Edit(...)` deny の
+#   パスを自動併合する）は **macOS / Linux / WSL2 のみで、native Windows は非サポート**
+#   （code.claude.com/docs/en/sandboxing / 2026-07-27 裏取り）。`Bash(...)` ルールは
+#   コマンド文字列の prefix マッチでありパス解析ではないため、書込可能なコマンド形の
+#   列挙による代替は原理的に不完全になる。
+#
+#   hook 側の regex による Bash 遮断は **既に棄却済み**（MAGI CASPAR / 死んだ案 #15 =
+#   ① Bash の command は自由文字列でスキーマ契約を持たない ② 散文結合機構を執行層に
+#   新造することになる ③ 層の誤り）。本注記を残すのは、**穴を「二重防御」と呼ばない
+#   ため**である（`fable-l3-protocol.md` §2 の裏返し = 沈黙している機構を鳴っていると
+#   称さない）。検査: tests/test_settings_autonomous.py::test_layer1_does_not_cover_bash。
 _FR9_PATTERNS = [
     (re.compile(r"^\.claude/rules/"), "rules/"),
     (re.compile(r"^docs/adr/"), "adr/"),
@@ -147,7 +166,9 @@ _FR9_PATTERNS = [
 # docs/specs/ 配下の書込を deny する。spec は FR-9 の統治ファイル（自己統治の強制点）ではなく
 # 「成果物」だが、FR-3.4 が「spec 書換」を不可逆 C 操作の即時ハードストップに明示列挙するため、
 # FR-9 とは別系統で deny する（成果物と統治ファイルの混同を避ける）。層1（permissions.deny の
-# 決定的層・override 不可）は .claude/settings.autonomous.json に docs/specs/** を併記済み（二重防御）。
+# 決定的層・override 不可）は .claude/settings.autonomous.json に docs/specs/** を併記済み。
+# **射程は FR-9 と同じく Edit / Write のみ**（Bash 経路は両層とも素通り / 上記 _FR9_PATTERNS の
+# 「二重防御」の射程 を参照）。
 _FR34_SPEC_PATTERNS = [
     (re.compile(r"^docs/specs/"), "specs/"),
 ]
