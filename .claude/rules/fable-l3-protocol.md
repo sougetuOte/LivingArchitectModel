@@ -51,7 +51,9 @@ L3 の意味: 第0原則を default 判断基準として採用 / 自己監査 1
 **Outbound Write Ban** (全レベル共通 / MUST NOT): `D:\work7\Fable-Alembic\` 配下への書き込み・編集は行わない。
 Alembic への感想・提案の受け渡しは `D:\work7\etc-to-alembic\handoff\` を経由する。
 
-パス移動時の対応: Fable-Alembic 側のリポジトリ位置が変更された場合、本節のパスのみ更新すれば LAM 側の他規律は無変更で吸収する。
+パス移動時の対応: Fable-Alembic 側のリポジトリ位置が変更された場合、本節のパスのみ更新すれば LAM 側の他規律は無変更で吸収する。**ただし機構側（下記）は本節を自動追随しないため、両方を更新する**（drift 検査あり）。
+
+**機構（2026-07-27 / R3 二重化）**: 本節は `.claude/hooks/pre-tool-use.py` の `_OUTBOUND_WRITE_BAN_ROOTS` が **deny** として執行する（フェーズ非依存 / `_check_outbound_write_ban`）。allow 対は `_OUTBOUND_WRITE_ALLOW_ROOTS`（handoff 経路 / ADR-0008 D1）。テストと境界条件は `.claude/tests/hooks/test_outbound_write_ban.py`（セパレータ 4 形 / `etc-to-alembic` の誤 deny 回帰 / 条文との drift 検査）。**条文を残すのは、機構が沈黙したときにそれを知るため**（誕生ゲート設計 §1.3 = 不可逆ガードの R1 + R3 複宛先）。**Bash 経由の書込は本機構の対象外**（`_determine_by_command` はパス判定に到達しない / 対処は Layer 1 = `permissions.deny` の領分）。
 
 ## §3 帳簿単一原則 (crux 5 対応)
 

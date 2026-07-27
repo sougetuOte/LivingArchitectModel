@@ -152,6 +152,155 @@ _FR34_SPEC_PATTERNS = [
     (re.compile(r"^docs/specs/"), "specs/"),
 ]
 
+# Outbound Write Ban（`.claude/rules/fable-l3-protocol.md` §0 / §2）。
+# 条文は「全レベル共通 MUST NOT」であり **フェーズに条件づけられていない**ため、
+# FR-9 / FR-3.4（AUTONOMOUS 限定）とは別系統で、常に deny する。
+#
+# 機構化の根拠: 違反しても誰も気づかない「静かに潜伏する失敗クラス」であり、
+# HGA #17 crux 3 の基準では永久に運用移管不可 = 機構化が必須の類に当たる。
+# 条文は残す（誕生ゲート設計 §1.3 = 不可逆ガードの R1 + R3 複宛先）。
+#
+# SSOT は条文側。パス移動時は `fable-l3-protocol.md` §2 と本定数の両方を更新する
+# （drift 検査: .claude/tests/hooks/test_outbound_write_ban.py
+#  ::test_banned_root_matches_rule_document）。
+_OUTBOUND_WRITE_BAN_ROOTS = (Path("D:/work7/Fable-Alembic"),)
+
+# ADR-0008 D1（deny ↔ allow 二重化必須 / deny 単独で守らない）に対応する allow。
+# 条文 §2 が「Alembic への提案・観察の受け渡しは handoff を経由する」と定めた
+# **唯一の正規経路**であり、deny より先に照合して deny に優先させる。
+#
+# 注: PG 級 auto allow にはしない。リポジトリ外への書込を無確認で通すことは
+# R1-I18（out-of-root は信頼度が低いためセッションスコープ降格の対象にしない＝
+# 安全側維持）の設計判断を覆すため、handoff も out-of-root の PM 級（ask）に留める。
+_OUTBOUND_WRITE_ALLOW_ROOTS = (Path("D:/work7/etc-to-alembic/handoff"),)
+
+
+# PLANNING §禁止 3 項目め「設定ファイル変更（package.json, pyproject.toml 等）」の執行
+# （`.claude/rules/phase-rules.md` PLANNING §禁止）。**PLANNING フェーズ限定**。
+#
+# 射程の限界（過大評価しないこと / MAGI + gabriel 2 巡の結論）:
+#   - **Edit / Write 経路のみを保護する。** `Bash("cat >> pyproject.toml")` は
+#     file_path を持たないため `_determine_by_command` に落ち、本判定に到達しない。
+#     Bash 経路の遮断は Layer 1（settings.json の permissions.deny）の領分であり、
+#     同じ穴は既存の AUTONOMOUS FR-9 / FR-3.4 deny にも空いている。
+#   - 条文の 4 項のうち機構化したのはこの 1 項のみ。「実装コード生成」は `src/` 不在 +
+#     `.py` が `.claude/` に集中（ハーネス保守は PLANNING 中も正当なので除外必須）で
+#     守る対象が消え、「`src/` への変更」は `src/` 自体が存在せず、「未承認での次
+#     サブフェーズ開始」は意味判断のため機構化できない。
+#
+# ADR-0008 D4（ワイルドカード非依存・明示列挙）に従い閉じた集合で持つ。条文側は
+# 「等」と開いた列挙であるため、**列挙外は「許可」ではなく「機構が捕捉していない」**
+# を意味する（条文側の禁止は引き続き有効 / 境界テスト:
+# test_planning_config_deny.py::test_unenumerated_config_file_is_not_denied）。
+#
+# `.claude/settings*.json` は意図的に含めない（統治ファイルであり既に PM 級パス /
+# AUTONOMOUS では FR-9 が別系統で deny する / 本条項が想定する「プロジェクトの
+# ビルド・依存設定」とは射程が異なる）。
+_PLANNING_CONFIG_DENY_BASENAMES = frozenset({
+    # Node / TypeScript
+    "package.json", "package-lock.json", "pnpm-lock.yaml", "yarn.lock",
+    "tsconfig.json",
+    # Python
+    "pyproject.toml", "setup.py", "setup.cfg",
+    "requirements.txt", "requirements-dev.txt",
+    # Rust / Go
+    "Cargo.toml", "Cargo.lock", "go.mod", "go.sum",
+    # Ruby / Java / PHP
+    "Gemfile", "Gemfile.lock", "pom.xml", "build.gradle", "build.gradle.kts",
+    "composer.json",
+})
+
+# ADR-0008 D1（deny ↔ allow 二重化必須 / deny 単独で守らない）に対応する allow。
+# `phase-rules.md` PLANNING §許可 の出力先。deny より先に照合して優先させる。
+# 特に `.claude/states/*.json` は PLANNING が正規に書き込む状態ファイルであり、
+# 「.json だから設定ファイル」とみなす実装がこれを殺す事故を防ぐ。
+_PLANNING_ALLOW_PATTERNS = [
+    re.compile(r"^docs/(?:specs|adr|tasks|artifacts)/"),
+    re.compile(r"^\.claude/states/"),
+]
+
+
+def _check_planning_config_freeze(normalized: str) -> tuple[str, str] | None:
+    """PLANNING フェーズの設定ファイル変更なら DENY を返す（該当なしは None）。
+
+    呼び出し元が phase == "PLANNING" を確認済みであることを前提とする。
+    basename の**完全一致**で判定する（部分一致にすると
+    `docs/artifacts/notes-about-pyproject.toml.md` 等を誤 deny する）。
+    """
+    for pattern in _PLANNING_ALLOW_PATTERNS:
+        if pattern.match(normalized):
+            return None
+    basename = normalized.rsplit("/", 1)[-1]
+    if basename in _PLANNING_CONFIG_DENY_BASENAMES:
+        return "DENY", f"PLANNING config freeze ({basename})"
+    return None
+
+
+def _is_under(path: Path, root: Path) -> bool:
+    """`path` が `root` 配下かを判定する（Windows の大小文字非区別に対応）。"""
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        pass
+    # Windows のファイルシステムは大小文字を区別しない。`resolve()` は実在パスを
+    # 正規化するが、未作成パスでは元の表記が残るため casefold で再照合する。
+    # Windows 絶対パス定数は POSIX の実パスと衝突しないため、平台判定は不要。
+    try:
+        Path(str(path).casefold()).relative_to(Path(str(root).casefold()))
+        return True
+    except ValueError:
+        return False
+
+
+def _resolve_for_outbound_check(file_path: str, project_root: Path) -> Path | None:
+    """Outbound Write Ban 判定用にパスを実体解決する。
+
+    `normalize_path` は out-of-root 時に **生の file_path 文字列**を保持する
+    （`_hook_utils.normalize_path` 参照）ため、セパレータ違い（`\\` / `/`）・
+    相対 traversal・symlink を吸収できない。本判定は `resolve()` で正規化した
+    実体パスに対して行う。
+
+    resolve に失敗した場合は生パスで照合を続行する（**フェイルクローズ寄り** /
+    絶対禁止ガードのため素通しにしない）。
+    """
+    try:
+        p = Path(file_path)
+    except (TypeError, ValueError) as e:
+        sys.stderr.write(
+            f"WARNING: outbound ban: Path() failed for {file_path!r}: {e}\n"
+        )
+        return None
+    if not p.is_absolute():
+        p = project_root / p
+    try:
+        return p.resolve()
+    except (OSError, RuntimeError) as e:
+        sys.stderr.write(
+            f"WARNING: outbound ban: resolve() failed for {file_path!r}: {e}\n"
+        )
+        return p
+
+
+def _check_outbound_write_ban(
+    file_path: str,
+    project_root: Path,
+) -> tuple[str, str] | None:
+    """Outbound Write Ban に該当するなら DENY を返す（該当なしは None）。
+
+    allow（handoff）を deny より先に照合する（ADR-0008 D1）。
+    """
+    resolved = _resolve_for_outbound_check(file_path, project_root)
+    if resolved is None:
+        return None
+    for allow_root in _OUTBOUND_WRITE_ALLOW_ROOTS:
+        if _is_under(resolved, allow_root):
+            return None
+    for banned_root in _OUTBOUND_WRITE_BAN_ROOTS:
+        if _is_under(resolved, banned_root):
+            return "DENY", f"Outbound Write Ban ({banned_root})"
+    return None
+
 
 def _determine_by_path(
     file_path: str,
@@ -159,11 +308,20 @@ def _determine_by_path(
     phase_file: Path,
 ) -> tuple[str, str]:
     """ファイルパスから権限等級を判定する（パスベース判定）。"""
+    # Outbound Write Ban（fable-l3-protocol.md §2 / 全レベル共通 MUST NOT）。
+    # **フェーズ非依存かつ最優先**で判定する（条文がフェーズに条件づけていないため）。
+    # normalize_path より前段で行うのは、out-of-root マーカーが生パスを保持し
+    # セパレータ違い・symlink を吸収できないため（_resolve_for_outbound_check 参照）。
+    outbound = _check_outbound_write_ban(file_path, project_root)
+    if outbound is not None:
+        return outbound
+
     normalized = normalize_path(file_path, project_root)
+    phase = _read_current_phase(phase_file)
 
     # FR-9（自己統治の不可侵）: AUTONOMOUS フェーズでは統治ファイルへの書込を
     # deny する（design D5・自己破壊的再帰防止）。PM 照合より前段で判定する。
-    if _read_current_phase(phase_file) == "AUTONOMOUS":
+    if phase == "AUTONOMOUS":
         for pattern, fr9_reason in _FR9_PATTERNS:
             if pattern.match(normalized):
                 return "DENY", f"FR-9 self-governance immutability ({fr9_reason})"
@@ -172,6 +330,13 @@ def _determine_by_path(
         for pattern, spec_reason in _FR34_SPEC_PATTERNS:
             if pattern.match(normalized):
                 return "DENY", f"FR-3.4 spec freeze ({spec_reason})"
+
+    # PLANNING §禁止 3 項目め（設定ファイル変更）。PM 照合より前段で判定する。
+    # 射程は Edit / Write 経路のみ（Bash 経由は本判定に到達しない / 上記定数の注記参照）。
+    if phase == "PLANNING":
+        planning_deny = _check_planning_config_freeze(normalized)
+        if planning_deny is not None:
+            return planning_deny
 
     # PM パターン照合
     for pattern, reason in _PM_PATTERNS:
@@ -308,9 +473,25 @@ def _read_current_phase(phase_file: Path) -> str:
 def _build_deny_reason(reason: str, target: str) -> str:
     """DENY 応答の説明文言を構築する。
 
-    DENY は2系統: FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・成果物の
-    即時ハードストップ）。reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
+    DENY は3系統: Outbound Write Ban（フェーズ非依存・全レベル共通 MUST NOT）と
+    FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・成果物の即時
+    ハードストップ）。reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
     """
+    if reason.startswith("Outbound Write Ban"):
+        return (
+            f"Outbound Write Ban: Fable-Alembic リポジトリ配下は書込・編集できません"
+            f"（{reason}）。`.claude/rules/fable-l3-protocol.md` §2 が全レベル共通の "
+            f"MUST NOT と定めています。提案・観察の受け渡しは "
+            f"`D:\\work7\\etc-to-alembic\\handoff\\` を経由してください。対象: {target}"
+        )
+    if reason.startswith("PLANNING config freeze"):
+        return (
+            f"PLANNING フェーズでは設定ファイルを変更できません（{reason}）。"
+            f"`.claude/rules/phase-rules.md` PLANNING §禁止 の 3 項目めです。"
+            f"仕様・設計・タスクの出力（docs/specs/ docs/adr/ docs/tasks/ "
+            f"docs/artifacts/ / .claude/states/）は許可されています。"
+            f"設定変更が必要なら BUILDING へフェーズを切り替えてください。対象: {target}"
+        )
     if reason.startswith("FR-3.4"):
         return (
             f"FR-3.4 spec freeze: AUTONOMOUS モードでは仕様（docs/specs/）を変更できません"

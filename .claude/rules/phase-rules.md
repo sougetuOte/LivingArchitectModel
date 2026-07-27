@@ -36,6 +36,14 @@ requirements / design / tasks の各成果物完成時、ユーザーへ承認�
 - 設定ファイル変更（package.json, pyproject.toml 等）
 - 未承認での次サブフェーズ開始
 
+> **機構（2026-07-27 / R3 二重化 / MAGI + gabriel 2 巡を経て実施）**: 上記 4 項のうち機構が執行するのは **3 項目め（設定ファイル変更）のみ**。`pre-tool-use.py` の `_PLANNING_CONFIG_DENY_BASENAMES` が PLANNING フェーズ限定で deny し、allow 対は `_PLANNING_ALLOW_PATTERNS`（本節「許可」の出力先 / ADR-0008 D1）。テストと境界条件は `.claude/tests/hooks/test_planning_config_deny.py`。
+>
+> **射程は Edit / Write 経路のみ**。`Bash("cat >> pyproject.toml")` は `file_path` を持たず `_determine_by_command` に落ちるため、本機構では捕捉しない（対処は Layer 1 = `permissions.deny` の領分であり、同じ穴は AUTONOMOUS の FR-9 / FR-3.4 deny にも空いている）。
+>
+> **残る 3 項に機構がない理由**（2026-07-27 実測 / 記録は `docs/artifacts/2026-07-27-magi-planning-hook.md`）: **1 項目め**は `src/` 不在かつリポジトリ内の `.py` が 1 件を除きすべて `.claude/` 配下で、ハーネス自身の保守は本フェーズでも正当なため除外が要り、除外すると対象が消える（唯一の例外は `docs/artifacts/` 配下 = 本節「許可」の範囲内）/ **2 項目め**は **`src/` が実在しない**（条文は残すが現時点では空振りする）/ **4 項目め**は「承認」の有無が意味判断であり機械判定できない。
+>
+> 条文を 4 項とも残すのは、**機構が沈黙したときにそれを知るため**（誕生ゲート設計 §1.3 = R1 + R3 複宛先）。列挙外の設定ファイルが deny されないことは「許可」ではなく「機構が捕捉していない」を意味する（ADR-0008 D4 = ワイルドカード非依存の明示列挙）。
+
 ### 許可
 
 - `docs/specs/`, `docs/adr/`, `docs/tasks/`, `docs/artifacts/` への出力

@@ -150,7 +150,27 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 | 3 | 受領側の恒久制約の配送検査（R2 移設先の omission 検出） | `.claude/agents/*.md`（glob / ファイル集合） | `pytest .claude/tests/rules/test_agent_delegation_fences.py` | **無**（agent 定義とテストは同一 commit で動くのが正常 / 機構 #1 と同型） |
 | 4 | 層 → モデルの束縛が roster 外に出ていないこと（ADR-0011 決定 2） | `verify_model_reference.py` の `scan()` 返却 JSON（`classification` フィールド = 既存分類器の構造化出力） | `pytest .claude/tests/scripts/test_verify_model_reference.py::test_no_layer_assignment_drift_in_real_repo` | **無**（`design_property_description` は 0 を求めず / 時点記録は `point_in_time_record` で exempt されるため恒常税にならない） |
 
-**§1.1 の禁止条項**: 「同時更新義務 = 有」の機構は R3 に置けない（`rule-002` 型の恒常税を新規に作らない）。上記 2 件はいずれも「無」。
+| 5 | **Outbound Write Ban の執行**（`fable-l3-protocol.md` §2 = 全レベル共通 MUST NOT / **条文のみで機構を持たなかった**）| `pre-tool-use.py` の `tool_input.file_path`（公式スキーマ / 機構 #2 と同一） | `pytest .claude/tests/hooks/test_outbound_write_ban.py` | **無**（下記の注記参照） |
+
+| 6 | **PLANNING の設定ファイル変更の執行**（`phase-rules.md` PLANNING §禁止 の **3 項目めのみ** / 残 3 項は機構化不能または対象不在）| `pre-tool-use.py` の `tool_input.file_path`（公式スキーマ / 機構 #2・#5 と同一）| `pytest .claude/tests/hooks/test_planning_config_deny.py` | **無**（basename の閉じた集合であり、条文の漂流を追わない）|
+
+**機構 #6 の補足**（2026-07-27 / HGA #24 手 2 の W2）:
+
+- **予算外**（R3 / §A は 80 のまま不変 —— 条文 4 項は無変更、追記にも指令キーワードを含めていない）
+- **4 項のうち 1 項のみを機構化した**。1 項目め（実装コード生成）は `src/` 不在 + `.py` の `.claude/` 集中で対象が消え、2 項目め（`src/`）は **`src/` が実在しない dead letter**、4 項目め（未承認での次サブフェーズ開始）は意味判断。**条文は 4 項とも残す**（設計 §1.3）
+- **射程は Edit / Write 経路のみ**。Bash 経由は `_determine_by_command` に落ちて捕捉しない（機構 #5 と同じ限界 / 対処は Layer 1）
+- **allow 対を併設**（ADR-0008 D1 / `_PLANNING_ALLOW_PATTERNS`）。特に **`.claude/states/*.json` は PLANNING が正規に書き込む出力先**であり、「`.json` だから設定ファイル」とみなす実装がこれを殺す事故を防ぐ
+- **列挙外は「許可」ではない**（ADR-0008 D4 の明示列挙と、条文側の開いた列挙「等」との差分は「機構が捕捉していない」領域）。境界を沈黙させないため `test_unenumerated_config_file_is_not_denied` が明示的に記録する
+
+**機構 #5 の補足**（2026-07-27 / HGA #24 手 2 の W1 / MAGI + gabriel 2 巡を経て実施）:
+
+- **予算外**（R3 / R1 の指令カウントは 80 のまま不変 —— 条文に指令キーワードを追加していない）
+- **条文は残す**（設計 §1.3 = 不可逆ガードの R1 + R3 複宛先 / 機構が沈黙したときにそれを知るため）
+- **allow 対を併設**（ADR-0008 D1 / `_OUTBOUND_WRITE_ALLOW_ROOTS` = handoff 経路）。deny 単独では守らない
+- **対象外の明示**: **Bash 経由の書込は本機構では捕捉できない**（`_determine_by_command` はパス判定に到達しない）。対処は Layer 1 = `permissions.deny` の領分であり、**同じ穴が既存の AUTONOMOUS FR-9 / FR-3.4 deny にも空いている**（gabriel 第 1 回の発見 / 未処理事項として `CHANGELOG.md` に記録）
+- **同時更新義務を「無」とした根拠、および正直な留保**: drift 検査（`test_banned_root_matches_rule_document`）は条文テキストに対する**部分文字列の存在確認**であり、`rule-001` / `rule-002` のような「漂流する非構造入力を regex で追う」型ではない。禁止ルートは実質不変（リポジトリ移設時のみ変わる一回性の事象）であり、機構 #1 の「台帳と常駐ファイルは同一 commit で動くのが正常」と同じ理由で恒常税にならない。**ただし本件は #1〜#4 の中で最も prose に近い入力を見ており、この境界は将来の判断材料として記録しておく。**
+
+**§1.1 の禁止条項**: 「同時更新義務 = 有」の機構は R3 に置けない（`rule-002` 型の恒常税を新規に作らない）。**上記 6 件はいずれも「無」**（本行の件数は 2026-07-27 に「2 件」から更正 —— 機構 #3・#4 追加時に追随していなかった）。
 
 ---
 
