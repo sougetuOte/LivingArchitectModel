@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v5.0.1] - 2026-08-13
+
 ### Milestone D-1: 配布境界の決定（2026-08-13 完了）
 
 R1 の 15 ファイルをユーザー本人が判定（P=9 / X=1 / S=5、`docs/artifacts/d-1-evidence-2026-07-28.md` §6）し、配置そのものを配布境界として反映した。
