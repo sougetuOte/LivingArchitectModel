@@ -173,7 +173,7 @@ _FR34_SPEC_PATTERNS = [
     (re.compile(r"^docs/specs/"), "specs/"),
 ]
 
-# Outbound Write Ban（`.claude/rules/fable-l3-protocol.md` §0 / §2）。
+# Outbound Write Ban（`docs/private/fable-l3-protocol.md` §0 / §2 / D-1 で移動 2026-08-13）。
 # 条文は「全レベル共通 MUST NOT」であり **フェーズに条件づけられていない**ため、
 # FR-9 / FR-3.4（AUTONOMOUS 限定）とは別系統で、常に deny する。
 #
@@ -501,7 +501,7 @@ def _build_deny_reason(reason: str, target: str) -> str:
     if reason.startswith("Outbound Write Ban"):
         return (
             f"Outbound Write Ban: Fable-Alembic リポジトリ配下は書込・編集できません"
-            f"（{reason}）。`.claude/rules/fable-l3-protocol.md` §2 が全レベル共通の "
+            f"（{reason}）。`docs/private/fable-l3-protocol.md` §2 が全レベル共通の "
             f"MUST NOT と定めています。提案・観察の受け渡しは "
             f"`D:\\work7\\etc-to-alembic\\handoff\\` を経由してください。対象: {target}"
         )

@@ -91,7 +91,7 @@ L1 が PM 級ファイルを直接編集する場合は `core-identity.md` の�
 
 ## 迷った場合
 
-まず**第 0 原則の 3 変数**で判定する (`.claude/rules/core-identity.md` §第 0 原則 / `.claude/rules/fable-l3-protocol.md` §1 準拠 / 原典: `D:\work7\Fable-Alembic\knowledge\Fable行動規範.md`):
+まず**第 0 原則の 3 変数**で判定する (`.claude/rules/core-identity.md` §第 0 原則):
 
 1. **可逆性**: 間違えたとき巻き戻せるか
 2. **復旧コスト**: 巻き戻しと選び直しに何分かかるか

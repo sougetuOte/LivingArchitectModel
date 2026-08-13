@@ -38,13 +38,12 @@ L1（主体）が PM 級ファイル（`docs/specs/` / `docs/adr/` / `.claude/ru
 
 > 「これから `docs/specs/<path>/design.md` に R3 修正 7 件を入れます (Edit 3-5 回想定)。承認お願いします」
 
-## 第0原則 (Fable-Alembic L3 由来 / 権限等級の基底原理)
+## 第0原則 (権限等級の基底原理)
 
-LAM は Fable-Alembic を L3 で運用する (`.claude/rules/fable-l3-protocol.md` §1)。
 第0原則は権限等級 (PG/SE/PM) の**基底原理**として位置づける。
 Hierarchy of Truth (`CLAUDE.md`) には挿さない — Hierarchy は情報源真偽順位、第0原則は行動ゲート関数で軸が直交する。
 
-進むか確認するかは、**自分の能力への自信で決めるな**。次の 3 変数で決める (原典: `D:\work7\Fable-Alembic\knowledge\Fable行動規範.md`):
+進むか確認するかは、**自分の能力への自信で決めるな**。次の 3 変数で決める:
 
 1. **可逆性**: 間違えたとき巻き戻せるか
 2. **復旧コスト**: 巻き戻しと選び直しに何分かかるか
@@ -58,7 +57,7 @@ Hierarchy of Truth (`CLAUDE.md`) には挿さない — Hierarchy は情報源�
 
 ### 規則との関係
 
-以下の LAM 規則が状況を想定していない場合、この 3 変数と `D:\work7\Fable-Alembic\knowledge\体験シミュレーション・プロトコル.md` から判断を再導出する。規則の字面が第 0 原則と食い違うなら、第 0 原則が勝つ (原典冒頭)。
+以下の LAM 規則が状況を想定していない場合、この 3 変数から判断を再導出する。規則の字面が第 0 原則と食い違うなら、第 0 原則が勝つ。
 
 ## Context Compression
 

@@ -38,23 +38,22 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 
 | # | ファイル | 指令数 |
 |:-:|:---------|------:|
-| 1 | `.claude/rules/fable-l3-protocol.md` | 19 |
-| 2 | `.claude/rules/phase-rules.md` | 12 |
-| 3 | `.claude/rules/hga-summoning.md` | 9 |
-| 4 | `.claude/rules/model-roster.md` | 8 |
-| 5 | `.claude/rules/decision-making.md` | 7 |
-| 6 | `.claude/rules/code-quality-guideline.md` | 5 |
-| 7 | `CLAUDE.md` | 4 |
-| 8 | `.claude/rules/security-commands.md` | 4 |
-| 9 | `.claude/rules/permission-levels.md` | 3 |
-| 10 | `.claude/rules/upstream-first.md` | 3 |
-| 11 | `.claude/rules/auto-generated/trust-model.md` | 2 |
-| 12 | `.claude/rules/auto-generated/README.md` | 2 |
-| 13 | `.claude/rules/core-identity.md` | 1 |
-| 14 | `.claude/rules/auto-generated/rule-001.md` | 1 |
-| 15 | `.claude/rules/terminology.md` | 0 |
+| 1 | `.claude/rules/phase-rules.md` | 12 |
+| 2 | `.claude/rules/hga-summoning.md` | 9 |
+| 3 | `.claude/rules/model-roster.md` | 8 |
+| 4 | `.claude/rules/decision-making.md` | 7 |
+| 5 | `.claude/rules/code-quality-guideline.md` | 5 |
+| 6 | `CLAUDE.md` | 4 |
+| 7 | `.claude/rules/security-commands.md` | 4 |
+| 8 | `.claude/rules/permission-levels.md` | 3 |
+| 9 | `.claude/rules/upstream-first.md` | 3 |
+| 10 | `.claude/rules/auto-generated/trust-model.md` | 2 |
+| 11 | `.claude/rules/auto-generated/README.md` | 2 |
+| 12 | `.claude/rules/core-identity.md` | 1 |
+| 13 | `.claude/rules/auto-generated/rule-001.md` | 1 |
+| 14 | `.claude/rules/terminology.md` | 0 |
 
-**TOTAL: 80**
+**TOTAL: 61**
 
 > 発効時の初回実測は **99**。§B の取引 #2（`fable-l3-protocol.md` §6.7 の削除）で **98**、
 > 取引 #3-#8（`model-delegation-prompting.md` の R2 降格 / 指令 8）で **90**、
@@ -63,14 +62,15 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 > **取引 #1（`phase-rules.md`）は §A を動かしていない** —— 削除した箇条書きが RFC 2119 キーワードを
 > 含まないため。これは代理変数の既知の限界であり（本ファイル冒頭 §2 表の注記）、**実測で確認された**。
 > 逆に取引 #3-#8 は**ファイル 1 枚が R1 集合から外れた**ため、行の消滅として §A に全額現れた。
+> 取引 #13（2026-08-13 / D-1 のユーザー判定 X = `fable-l3-protocol.md` を `docs/private/` へ移動 / 指令 19）で **80 → 61**。
 
 ### 天井との対比
 
 | 項目 | 値 |
 |:-----|:---|
 | hard ceiling（外部定数 / arXiv:2607.19257 / **物理定数ではない** = 設計 §3.3） | **80** |
-| 現在値 | **80** |
-| 超過 | **なし（天井と同値 / 余裕ゼロ）** |
+| 現在値 | **61** |
+| 超過 | **なし（余裕 19 / 2026-08-13 取引 #13 による）** |
 | **交換レート** | **1 対 1（no-net-growth）** ← 2026-07-26 取引 #9-#11 で 80 を下回り、net-negative は解除 |
 
 **net-negative の履歴**: 発効時 99（+19）で発動 → 取引 #3-#11 の配置是正で 79 に到達し解除。再び 80 を超えたら自動的に再発動する（設計 §3.5 / 検査は `test_exchange_rate_matches_ceiling_state`）。減少は**新規流入または配置の是正が起きた時だけ**起こる（定期棚卸しはしない = 出口宣言 (a)(b) と整合）。
@@ -111,6 +111,7 @@ MUST NOT | MUST | SHOULD NOT | SHOULD | 禁止 | 必須 | してはならない
 | 11 | 2026-07-26 | **退出** | 仕様・設計・タスクの品質基準 6 節（Requirements Smells / RFC 2119 / Design Doc チェックリスト / SPIDR / WBS 100% / Example Mapping） | 同 §1-§6 | **R2（`paths: docs/specs/**/*.md` + `docs/adr/*.md` + `docs/tasks/**/*.md`）** | 不要（**純退出**） | 繋留先 = 仕様書・ADR・タスク定義を読み書きするとき（**ファイル繋留** = R2 要件 (i)）。存在の告知は `phase-rules.md` PLANNING §品質基準（R1 常駐）が継続して担う |
 
 | 12 | 2026-07-26 | **更正**（記録面の瑕疵の是正 / 入場でも退出でもない第三カテゴリ） | 「自己都合の数え直し禁止」（試行上限の執行歯） | `fable-l3-protocol.md` §6.7 へ**復元** | **R1（復元）** | 不要（**誤配の是正** / 下記 §更正の成立要件） | **矛盾する記録の行引用（必須）**: `m-1-triage-table.md` row 50 は同条項を「基質適合 = **通過** / 決定木 = **保全**」、保全理由「試行カウント明示は同一アプローチの無限反復を止める唯一の機構で代替条項が存在しない。基質適合 **NO**」と記録している。取引 #2 はこの記録に**一切触れずに**削除した（HGA #20 crux 2 手続違反 (i)）。加えて削除根拠「Opus 5 は指示なしで報告する」は**報告部分しか正当化しない**のに「数え直し禁止」まで消した（同 (ii) 便乗削除）|
+| 13 | 2026-08-13 | **退出**（ファイル 1 枚が R1 集合から外れた / 指令 19） | `fable-l3-protocol.md` 全文（Fable-Alembic L3 連携の SSOT） | 同ファイル全体 | **配布境界外へ移動（`docs/private/` / git 追跡は継続）** | 不要（**純退出**） | **D-1 W1-D1-T2 のユーザー本人判定 = X（私物）**（`d-1-evidence-2026-07-28.md` §6 / design D2-D3）。配布先で意味を持たない外部リポジトリ連携規律のため。**Outbound Write Ban の機構（hook + テスト）は存続**し、drift 検査は所有者ゲート付きに変更（design §5 の予告どおり）|
 
 ### 更正（第三カテゴリ）の成立要件 — WC-4「更正という名の裏口」への防御
 

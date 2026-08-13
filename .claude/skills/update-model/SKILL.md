@@ -84,7 +84,7 @@ PM 級ダイアログ発火数 / `CLAUDE.md` + `rules` トークン数）は、d
 grep -c "モデル誤り予防" docs/artifacts/m-1-triage-table.md
 ```
 
-2. 判定材料を集める。材料は **`.claude/rules/fable-l3-protocol.md` §9 観測チャンネル対応表**が指す
+2. 判定材料を集める。材料は **`docs/private/fable-l3-protocol.md` §9 観測チャンネル対応表**が指す
    現レジームの発火痕（CH-1 残置 2 行 / CH-2 `tdd-patterns.log` / CH-3 `gabriel-metrics.log`）に限る。
 
 3. **新基質の自己申告を判定材料にしない。** 「あなたは指示なしでこれをやるか」を新基質自身に問う形は
@@ -116,6 +116,6 @@ grep -c "モデル誤り予防" docs/artifacts/m-1-triage-table.md
 - `docs/adr/0001-model-routing-strategy.md`（ステップ2直後の確認対象）
 - `.claude/scripts/verify_model_reference.py`（ステップ3が呼び出すスクリプト）
 - `.claude/tests/rules/test_update_model_skill.py`（本 skill の整合検証 pytest）
-- `.claude/rules/fable-l3-protocol.md` §9（ステップ5直後の判定材料 = 観測チャンネル対応表）
+- `docs/private/fable-l3-protocol.md` §9（ステップ5直後の判定材料 = 観測チャンネル対応表 / D-1 で移動 2026-08-13）
 - `docs/artifacts/clause-gate-ledger.md`（ステップ5直後 5. の記録先 / §A hard ceiling）
 - `docs/artifacts/hga-summon-log.md` §20（ステップ5直後の設計根拠 = 失効の検出 3 層）

@@ -1,6 +1,6 @@
 """Outbound Write Ban の R3 二重化 TDD（HGA #24 手 2 / W1）.
 
-`.claude/rules/fable-l3-protocol.md` §2 の **Outbound Write Ban**
+`docs/private/fable-l3-protocol.md` §2 の **Outbound Write Ban**（D-1 で移動 / 2026-08-13）
 （`D:\\work7\\Fable-Alembic\\` 配下への書込・編集の禁止 / 全レベル共通 **MUST NOT**）は、
 制定（2026-07-07）以来 **条文のみで機構を持たなかった**。
 
@@ -143,7 +143,7 @@ def test_etc_to_alembic_is_not_denied(ptu, nonexistent_phase_file, file_path):
 @pytest.mark.parametrize(
     ("file_path", "expected_level"),
     [
-        (".claude/rules/fable-l3-protocol.md", "PM"),
+        (".claude/rules/phase-rules.md", "PM"),
         ("docs/specs/x/design.md", "PM"),
         ("docs/artifacts/x.md", "SE"),
         ("CLAUDE.md", "PM"),
@@ -213,7 +213,7 @@ def test_outbound_roots_exist_in_authoring_env():
     missing = _missing_roots(roots)
     assert missing == [], (
         f"Outbound Write Ban の対象が実在しない: {missing}。"
-        "リポジトリ群を移動した場合、`.claude/rules/fable-l3-protocol.md` §2（SSOT）と "
+        "リポジトリ群を移動した場合、`docs/private/fable-l3-protocol.md` §2（SSOT）と "
         "`pre-tool-use.py` の `_OUTBOUND_WRITE_BAN_ROOTS` / `_OUTBOUND_WRITE_ALLOW_ROOTS` "
         "の**両方**を更新すること。片方だけでは drift 検査が落ちる"
     )
@@ -232,6 +232,11 @@ def test_root_existence_check_detects_missing():
     assert _missing_roots([_REPO_ROOT]) == [], "実在するルートは検出されない"
 
 
+@pytest.mark.skipif(
+    not _IS_AUTHORING_ENV,
+    reason="所有者環境でのみ実行する。条文は D-1 で docs/private/ へ移動しており、"
+    "配布先では削除されうるため（design §5 が予告した「同じ所有者ゲート」）",
+)
 def test_banned_root_matches_rule_document():
     """hook の禁止ルートが `fable-l3-protocol.md` の記載と一致する。
 
@@ -239,9 +244,13 @@ def test_banned_root_matches_rule_document():
     設計になっている。機構側が別の値を持つと **沈黙して守らなくなる**ため、
     文字列の存在を突合する（**部分文字列の存在確認のみ**で、prose の構造解析は
     行わない —— rule-001 / rule-002 型の drift 保守負債を作らないため）。
+
+    条文の所在: D-1（2026-08-13 / ユーザー判定 X）で `.claude/rules/` から
+    `docs/private/fable-l3-protocol.md` へ移動した。配布先では削除されうるため
+    所有者ゲート付きとする（d-1-distribution-boundary/design.md §5 の予告どおり）。
     """
     ptu = _load_pre_tool_use()
-    rule_text = (_REPO_ROOT / ".claude" / "rules" / "fable-l3-protocol.md").read_text(
+    rule_text = (_REPO_ROOT / "docs" / "private" / "fable-l3-protocol.md").read_text(
         encoding="utf-8"
     )
     for banned in ptu._OUTBOUND_WRITE_BAN_ROOTS:
