@@ -235,6 +235,53 @@ def test_parse_extracts_multiple_wave_numbers():
     assert "2" in waves
 
 
+def test_parse_derives_wave_from_task_id():
+    """Task ID `W1-D1-T1` の先頭 `W1` から Wave 1 を導出すること。
+
+    rule-002 の regex 汎化と同型の恒久解（2026-08-13 / 検出イベント 4 件目）。
+    D-1 期以降のコミットは「Wave N」散文を持たず、Wave は Task ID にのみ現れる
+    （terminology.md §4: Task ID は `W<wave>-<milestone>-T<n>` 形式で Wave を内包する）。
+    """
+    from dashboard.parsers.git_history import GitHistoryParser
+
+    fake_log = "3994b11 docs(D-1): W1-D1-T1 証拠表 — R1 15 件の配布列該当 51 行を機械抽出\n"
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout=fake_log, stderr="")
+        result = GitHistoryParser(project_root=_PROJECT_ROOT).parse()
+
+    assert result["ok"] is True
+    assert "1" in result["data"]["completed_waves"]
+
+
+def test_parse_does_not_derive_wave_from_hyphen_w_task_id():
+    """`W-R3-S1-T1`（W 直後に数字がない R-1 期形式）からは Wave を導出しないこと。"""
+    from dashboard.parsers.git_history import GitHistoryParser
+
+    fake_log = "abc1234 docs(R-1): W-R3-S1-T1 実施\n"
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout=fake_log, stderr="")
+        result = GitHistoryParser(project_root=_PROJECT_ROOT).parse()
+
+    assert result["ok"] is True
+    assert result["data"]["completed_waves"] == []
+
+
+def test_parse_deduplicates_prose_wave_and_task_derived_wave():
+    """「Wave 1」散文と `W1-D1-T2` 由来の Wave 1 が重複しないこと。"""
+    from dashboard.parsers.git_history import GitHistoryParser
+
+    fake_log = (
+        "abc1234 feat(D-1): Wave 1 開始\n"
+        "def5678 docs(D-1): W1-D1-T2 判定\n"
+    )
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout=fake_log, stderr="")
+        result = GitHistoryParser(project_root=_PROJECT_ROOT).parse()
+
+    assert result["ok"] is True
+    assert result["data"]["completed_waves"].count("1") == 1
+
+
 # ─────────────────────────────────────────────
 # 正常系: Task 抽出 regex
 # ─────────────────────────────────────────────

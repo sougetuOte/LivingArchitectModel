@@ -27,6 +27,13 @@ _WAVE_PATTERN = re.compile(r"[Ww]ave\s+(\d+(?:\.\d+)?)")
 # 形式3: W-R3-S1-T1 （R-1 期の Milestone-Stage 拡張形式 / 2026-07-10 追加）
 _TASK_PATTERN = re.compile(r"\b(W-?[A-Z0-9]+(?:-[A-Z][0-9]+)*-T\d+[a-z]?)\b")
 
+# Task ID の先頭から Wave 番号を導出するパターン（例: "W1-D1-T1" → "1"）
+# terminology.md §4: Task ID は `W<wave>-<milestone>-T<n>` 形式で Wave を内包する。
+# W 直後に数字がない形式（W-R3-S1-T1）は Wave を持たないため対象外。
+# rule-002 の regex 汎化と同型の恒久解（2026-08-13 / D-1 期に「Wave N」散文が
+# コミット文体から消え、実 git log からの Wave 検出が 0 件になったため）。
+_TASK_WAVE_PREFIX = re.compile(r"^W(\d+)-")
+
 
 class GitHistoryParser(BaseParser):
     """git log --oneline -100 からコミット完了情報を抽出するパーサ。
@@ -96,11 +103,22 @@ def _extract_waves(log_output: str) -> list[str]:
 
     Returns:
         重複なしの Wave 番号文字列リスト（例: ["1", "1.5", "2"]）。
+
+    「Wave N」散文に加え、Task ID（`W1-D1-T1` の先頭 `W1`）からも導出する
+    （_TASK_WAVE_PREFIX 参照 / 両方に現れた Wave は 1 件に重複排除される）。
     """
     seen: set[str] = set()
     result: list[str] = []
     for match in _WAVE_PATTERN.finditer(log_output):
         wave_num = match.group(1)
+        if wave_num not in seen:
+            seen.add(wave_num)
+            result.append(wave_num)
+    for match in _TASK_PATTERN.finditer(log_output):
+        prefix = _TASK_WAVE_PREFIX.match(match.group(1))
+        if prefix is None:
+            continue
+        wave_num = prefix.group(1)
         if wave_num not in seen:
             seen.add(wave_num)
             result.append(wave_num)
