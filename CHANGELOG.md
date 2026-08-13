@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Milestone D-1: 配布境界の決定（2026-08-13 完了）
+
+R1 の 15 ファイルをユーザー本人が判定（P=9 / X=1 / S=5、`docs/artifacts/d-1-evidence-2026-07-28.md` §6）し、配置そのものを配布境界として反映した。
+
+- **X（私物 / `docs/private/` へ移動）**: `fable-l3-protocol.md`（Fable-Alembic L3 連携の SSOT / 指令 19）。§A は **80 → 61**（台帳 §B 取引 #13）。Outbound Write Ban の機構（hook + テスト）は存続し、条文との drift 検査は所有者ゲート付きに変更
+- **S（分割 / 私的部分のみ抜き出し）**: `CLAUDE.md` / `core-identity.md` / `hga-summoning.md` / `permission-levels.md` / `phase-rules.md`。抜いた原文は `docs/private/d-1-split-extracts-2026-08-13.md` に集約（軸 = 「誰のものか」/「要るか」は不問）
+- **P（据え置き）**: 残り 9 ファイル
+- 誕生ゲート（`/clause-gate` Step 5）に配布列の 1 問を追加（R1 決定時のみ / 時計なし）。README に `docs/private/` の削除可注記を追加
+- 付随修正: GitHistoryParser の Wave 検出を Task ID（`W1-D1-T1`）から導出できるよう汎化（rule-002 同型の恒久解 / 実 git log の Wave 検出 0 件 drift を解消）
+
+### 撤廃: 200K コンテキスト閾値の推奨（2026-08-13 / ユーザー決定）
+
+`CLAUDE.md` §Context Management の 180K/200K 閾値と「1M でも 200K 付近で auto-compact 発火」仮説注記を撤廃。公式ドキュメント確認（`docs/artifacts/upstream-intake-survey-2026-08-13.md` §B）により、auto-compact の既定発火点はモデルの context limit 到達時（1M モデルは 1M 基準）と確定したため。lost in the middle への対処はユーザーが StatusLine で手動判断する。
+
 ### 決定: 設計目標を「常駐指令カウントの管理」から「配送の管理」へ置換する（2026-07-27 / HGA #24 / 確信度 0.78）
 
 **これは読みの宣言であり、条文改定ではない。** 通貨・天井・出口宣言・計器のいずれにも触れない（`.claude/rules/` は 1 字も変更しない / 常駐条項の新設ゼロ）。HGA #23（0.72）→ #24（0.78）を経た裁定であり、**両者が食い違う箇所は #24 が現行方針**である。
