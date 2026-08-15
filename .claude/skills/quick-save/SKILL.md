@@ -1,7 +1,7 @@
 ---
 name: quick-save
 description: "セッション状態のセーブ（SESSION_STATE.md + ループログ + Daily記録）"
-version: 1.0.0
+version: 1.1.0
 disable-model-invocation: true
 ---
 
@@ -31,10 +31,30 @@ git commit は行わない（コミットは `/ship` を使用）。
 ### 未解決の問題
 - 残っている課題、確認事項（なければ「なし」）
 
+### 決定と棄却案
+- **決定**: 本セッションで下した判断のうち、ADR / retro に書かない粒度のものを 1 行ずつ
+- **採らなかった案**: 棄却した選択肢とその理由（1 行 / なければ「なし」）
+- **未検証の仮説**: 保留中の疑問・確かめていない前提（1 行 / なければ「なし」）
+
+> 行動ログだけを残すと、次セッションは「何をしたか」は分かるが「なぜそう決めたか」を再導出できない。
+> ADR 化に至らない粒度の判断はここでしか残らない。
+
 ### コンテキスト情報
 - 現在のフェーズ (PLANNING / BUILDING / AUDITING)
 - 現在のgitブランチ
 - 関連するSPEC/ADR/設計書ファイル名
+
+### 書き出し後の retention 確認（MUST）
+
+`SESSION_STATE.md` を書き換えたら、Milestone / Wave 表記の retention を確認する（`.claude/rules/auto-generated/rule-001.md` / 観測 5 回）:
+
+```
+bash .claude/scripts/py_invoke.sh -m pytest .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_milestone .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_wave -q
+```
+
+FAIL した場合、`SESSION_STATE.md` に Milestone 表記（`[A-Z]-\d+`）と Wave 表記（`Wave N` または `W-XN`）が最低 1 箇所ずつ残っているかを確認する。
+
+> **注意（形骸化させないために）**: `rule-001` は「Milestone / Wave **不在期**には、この検査が**痕跡テキストの保持を強制する**」という未解決の構造的論点を自ら記録している（同ファイル §構造的論点 / 観測 #5）。**FAIL したときに機械的な文字列追加で緑にするのは誤り。** 現に Milestone が存在しないなら、それは同論点の 2 回目の発火であり、恒久解の検討（選択肢 a/b/c は rule-001 に記載）に進む。
 
 ## 2. ループログ保存
 
