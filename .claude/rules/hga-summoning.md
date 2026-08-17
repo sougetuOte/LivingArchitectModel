@@ -110,7 +110,7 @@ Opus が currency sweep を行い、以下をブリーフに畳み込む（**pus
 
 ## 別予算 2 枠
 
-以下 2 枠は **envelope 2 軸（実 $ / Opus quota）の両方の外**とする。計上ラベルを分離し、コスト暴発源を切り分ける。
+以下 2 枠は **envelope 軸（weekly quota / `model-roster.md` §4）の外**とする。計上ラベルを分離し、コスト暴発源を切り分ける。
 
 | 枠 | 内容 |
 |----|------|
@@ -119,7 +119,7 @@ Opus が currency sweep を行い、以下をブリーフに畳み込む（**pus
 
 ### envelope 定義 / 実測単価 → `model-roster.md` §4（SSOT 退避済 / 2026-07-26 W2-M1-T2）
 
-**envelope 2 軸の定義（実 $ 月次枠 / Opus quota weekly cap）と実測単価は `.claude/rules/model-roster.md` §4 が正本**。Fable / Opus subagent の単価、branch モードの単価も同節を参照する。本節が持つのは「**どの枠を envelope の外に置くか**」という運用規律のみ。
+**envelope の定義（2026-08-17 に weekly quota 一軸へ集約 / 旧・実 $ 月次枠は Fable のサブスク化により破棄）と実測単価は `.claude/rules/model-roster.md` §4 が正本**。Fable / Opus subagent の単価、branch モードの単価も同節を参照する。本節が持つのは「**どの枠を envelope の外に置くか**」という運用規律のみ。
 
 ## 下調べパイプライン（research 委譲パターン / 2026-07-04 新設）
 
@@ -131,7 +131,7 @@ Opus の強み」を反映した委譲パターン。
 
 - **Fable は doc pull / web 検索が苦手**（X community 定説 / 2026-07 実測でも本体は tool 使用が薄い）
 - **Opus は Fable の半額**（単価は `model-roster.md` §4 / Opus 5 世代でも成立を継続）
-- **Opus は Claude Code 上で subscription 吸収**（credit 従量ではなく weekly quota 消費）→ 実 $ には効かない
+- **Opus は Claude Code 上で subscription 吸収**（credit 従量ではなく weekly quota 消費）。**2026-07-20 以降は Max / premium seat では Fable も同じ weekly quota から引かれる**ため、本パターンの利得は「実 $ 削減」から「**quota 節約**」へ移った（Fable は同じ枠をより速く食うため利得自体は存続 / `model-roster.md` §4）
 - **Anthropic 内部評価**: Opus lead + Sonnet subagent = 単独 Opus 比 **+90.2%**（multi-agent research system 論文）
 - **retrieval 能力**: Opus 4.6 = 76% vs Sonnet 4.5 = 18.5%（8-needle 1M MRCR v2 / emergent.sh）
 

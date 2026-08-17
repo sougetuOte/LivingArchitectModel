@@ -145,33 +145,43 @@
 - **Mythos 5 は招待制・非 GA のため LAM の対象外**（`introducing-claude-fable-5-and-claude-mythos-5` / 2026-07-26 確認）。ロスター表（§1）に行を持たない理由をここに残す。
 - **Fable 5 は ZDR（Zero Data Retention）が利用不可**: 30 日保持が必須で Covered Model 指定。`claude-fable-5` への ZDR リクエストは 400 を返す。**HGA 召喚のブリーフは 30 日保持される**前提で、載せる内容を選ぶこと（introducing-claude-fable-5-and-claude-mythos-5 / 2026-07-26 確認）。
 
-### envelope 定義（2026-07-04 二軸化 / 下調べパイプライン導入後 / W2-M1-T2 で `hga-summoning.md` から移設）
+### envelope 定義（**2026-08-17 一軸化** / Fable 5 のサブスク化に伴い実 $ 軸を破棄 / 旧: 2026-07-04 二軸化）
 
-Fable = credit 従量（実 $）、Opus subagent = subscription quota（weekly cap %）に切り分けて監視する。
+**一次資料**: https://support.claude.com/en/articles/15424964-claude-fable-5-on-your-plan （取得日 **2026-08-17**）
 
-| envelope 軸 | 対象 | 目安 |
+2026-07-20 以降、**Fable 5 は Max / Team premium seat / seat-based Enterprise premium seat では plan に含まれる**（"Fable 5 is included as a standard part of your plan"）。よって 2026-07-04 に定めた「**実 $ envelope 月 $10-40**」は前提（当時は「Fable はサブスク化されない」見込み）を失ったため **破棄**する。監視軸は **weekly quota の 1 本**に集約する。
+
+| envelope 軸 | 対象 | 上限 |
 |:-----------|:-----|:-----|
-| **実 $ envelope** | Fable brief 分のみ（メーター実 $） | 月 **$10-40**（下調べパイプライン導入後・削減見込） |
-| **Opus quota envelope** | Opus subagent の subscription 消費 | weekly cap **20% 以内**（大型探索 3-5 回/週相当） |
+| **weekly quota envelope**（唯一の軸） | Fable / Opus / Sonnet / Haiku の**合算**（同一プール） | Fable 分は **weekly usage limits の 50% まで**（公式上限・追加料金なし）。Opus subagent 分の内数目安は従来どおり weekly cap **20% 以内** |
 
-**別予算 2 枠（対話モード召喚 / branch モード）は上記 2 軸の両方の外**として計上ラベルを分離する。枠の内容と運用は `hga-summoning.md` §別予算 2 枠。
+**運用上いちばん効く公式の 2 文**:
 
-### 実測単価（2026-07-04 #5 実測後の更新 / 同上移設）
+- "Fable 5 draws from your plan's regular weekly usage limits and **uses them faster than other Claude models**" — **L1 Opus と同じ枠を食い、かつ食う速度が速い**
+- "you can never use more than your weekly limit" — **50% は上限であって加算枠ではない**（別枠が 50% 増えるのではなく、同じ枠の半分まで Fable に割ける）
+
+**plan 依存（配布時の注意）**: **Pro / Team standard seat では Fable 5 は plan の usage limits に含まれず usage credits（実 $）で動く**。その構成では旧・実 $ 軸が引き続き有効であり、本節の一軸化は **Max / premium seat 前提**である。
+
+**Claude Code 要件**: Fable 5 の利用には **v2.1.170 以降**が必要。
+
+**別予算 2 枠（対話モード召喚 / branch モード）は上記軸の外**として計上ラベルを分離する。枠の内容と運用は `hga-summoning.md` §別予算 2 枠。
+
+### 実測単価（2026-07-04 #5 実測 / **Max・premium seat では実 $ ではなく「相対的な重さ」として読む**）
 
 - Fable 単独召喚（旧型）: **$1.84（tool_uses=0 短答）〜 $12.66（tool_uses 17 大型）** / 平均 ~$5-8/回
 - 下調べパイプライン（Fable brief + Opus 下請け）: Fable brief 分 **~$0.20/回**（未実測 / パイロット #5 で確定予定）
-- **envelope 監視は API 実メータリング（jsonl 集計）基準**（`docs/artifacts/hga-summon-log.md` §day-1 実測メモ #5 参照）
-- branch モード（**$13+/回**）は別予算枠を維持
+- **2026-07-20 以降の Max / premium seat では上記は課金されない**。数値は廃棄せず、**短答 : 大型 ≒ 1 : 7** の比を quota 消費の見積に流用する
+- **envelope 監視の基準は weekly usage 表示**（StatusLine / claude.ai の usage）。**実 $ メータリングは Max では出ない**ため、旧基準（jsonl 集計の実 $）は Pro / Team standard seat 構成でのみ有効
+- branch モード（**$13+/回**相当の重さ）は別予算枠を維持
 
 ### 下調べパイプラインのコスト構造（同上移設）
 
 | 成分 | 支払い形態 | 目安/回 |
 |:-----|:----------|-------:|
-| Fable brief（in + out 少量） | credit 実 $ | **~$0.20** |
+| Fable brief（in + out 少量） | **quota**（Max / premium seat）/ credit 実 $（Pro / Team standard） | **~$0.20 相当** |
 | Opus subagent（retrieval 主体） | subscription quota | weekly cap **3-5%** |
-| **合計 実 $** | | **~$0.20** |
 
-Fable 単独大型探索 $12.66 に対し、下調べパイプライン化で **実 $ は 1/50 以下**（$0.20 圏）。ただし subscription quota は消費するため、**L1 常用 Opus と合算した weekly cap 監視は必須**。パターンの適用ゲートと構成は `hga-summoning.md` §下調べパイプライン。
+Fable 単独大型探索 $12.66 相当に対し、下調べパイプライン化で **重さは 1/50 以下**。**Max / premium seat では両成分とも同一の weekly quota を食う**ため、実 $ 削減の意義は消え、**残る意義は quota 節約のみ**（Fable は同じ枠をより速く食うため、下請けを Opus に寄せる利得自体は存続する）。**L1 常用 Opus と合算した weekly cap 監視は必須**。パターンの適用ゲートと構成は `hga-summoning.md` §下調べパイプライン。
 
 ---
 
