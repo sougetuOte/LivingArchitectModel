@@ -56,6 +56,8 @@ docs/daily/
 # gabriel probe メトリクスログ (Wave C Stage 5 T11 / NFR-W-C-4 / NFR-W-C-5)
 # `*.log` パターンで既に ignore されるが明示のため列挙
 .claude/gabriel-metrics.log
+# 条件ロード規範の compaction 曝露ログ (R3 機構 #7 / 段 3 / 同上・明示のため列挙)
+.claude/compaction-exposure.log
 
 # Reference materials
 _reference/
