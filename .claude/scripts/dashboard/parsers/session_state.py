@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import NamedTuple, Optional
 
 from dashboard.models import MilestoneInfo, WaveInfo
 from dashboard.parsers.base import BaseParser
@@ -28,6 +29,94 @@ _FALLBACK_WAVE_HYPHEN_RE = re.compile(r"\bW-([A-Z]\d+(?:\.\d+)?)\b")
 
 # セクション見出しパターン（## または ###）
 _SECTION_RE = re.compile(r"^#{2,3}\s+(.+)$", re.MULTILINE)
+
+# --- 宣言欄の解析（2026-08-17 / rule-001 §構造的論点の恒久解 (c)）--------------
+#
+# 現在の Milestone は SESSION_STATE.md ヘッダの宣言欄を**正本**とする。散文からの
+# 推論は宣言欄が無い旧書式のための fallback に降格した。
+#
+# 根拠（2026-08-17 の実測）: 旧実装は `参考: 直近実績` に残るセッション 18 の記録
+# `W1-D1-T1` 1 箇所から `D-1 / in-progress` を導出していた。D-1 は 2026-08-13 に
+# クローズ済であり、ダッシュボードはクローズ済 Milestone を進行中と表示していた。
+# retention 検査は緑のままだったため、**壊れても静かな計器**になっていた。
+_DECLARED_MILESTONE_RE = re.compile(
+    r"^\*\*現在の\s*Milestone\*\*\s*[:：]\s*(.+?)\s*$", re.MULTILINE
+)
+# 「Milestone は存在しない」を表す明示値。**「なし」は正当な値であり欠落ではない。**
+_NONE_MARKERS = frozenset({"なし", "無し", "none", "n/a", "-", "—", "ー", ""})
+
+
+class DeclaredMilestone(NamedTuple):
+    """SESSION_STATE.md ヘッダで宣言された Milestone 状態。
+
+    Attributes:
+        raw:      宣言欄の生の値（診断メッセージ用）
+        name:     Milestone 名（例 'B-5'）。「なし」または解釈不能なら None
+        is_none:  明示的に「なし」と宣言されている
+    """
+
+    raw: str
+    name: Optional[str]
+    is_none: bool
+
+    @property
+    def interpretable(self) -> bool:
+        """「なし」か Milestone 名のどちらかとして読めるか。
+
+        どちらでもない値（典型: 誤字）を「なし」と同一視すると、宣言欄が黙って
+        無効化される。呼び出し側はこの述語で不正な宣言を検出すること。
+        """
+        return self.name is not None or self.is_none
+
+
+def _scan_wave_numbers(content: str) -> list:
+    """本文から Wave 番号を重複排除して列挙する（旧記法 + ハイフン記法）。
+
+    宣言経路と旧書式 fallback の双方から使う共通部品。
+    """
+    seen: set = set()
+    nums: list = []
+    for regex in (_FALLBACK_WAVE_RE, _FALLBACK_WAVE_HYPHEN_RE):
+        for match in regex.finditer(content):
+            num = match.group(1)
+            if num not in seen:
+                seen.add(num)
+                nums.append(num)
+    return nums
+
+
+def _strip_annotation(value: str) -> str:
+    """宣言値から markdown 強調と注釈（括弧以降）を取り除く。
+
+    ハイフンは Milestone 名（`B-5`）の構成要素なので区切り文字に含めない。
+    """
+    cleaned = value.replace("**", "").replace("`", "").strip()
+    for sep in ("（", "(", "/", "—", "…"):
+        idx = cleaned.find(sep)
+        if idx != -1:
+            cleaned = cleaned[:idx]
+    return cleaned.strip()
+
+
+def parse_declared_milestone(content: str) -> Optional[DeclaredMilestone]:
+    """SESSION_STATE.md 本文から Milestone 宣言欄を読む。
+
+    Returns:
+        宣言欄が無ければ None（= 旧書式 / 呼び出し側は散文推論へ落とす）。
+    """
+    match = _DECLARED_MILESTONE_RE.search(content)
+    if match is None:
+        return None
+
+    raw = match.group(1).strip()
+    cleaned = _strip_annotation(raw)
+    if cleaned.lower() in _NONE_MARKERS:
+        return DeclaredMilestone(raw=raw, name=None, is_none=True)
+
+    name_match = _FALLBACK_MILESTONE_RE.search(cleaned)
+    if name_match is not None:
+        return DeclaredMilestone(raw=raw, name=name_match.group(1), is_none=False)
+    return DeclaredMilestone(raw=raw, name=None, is_none=False)
 
 
 def _is_completed_section(title: str) -> bool:
@@ -128,13 +217,7 @@ class SessionStateParser(BaseParser):
         completed = self._extract_completed(sections)
         blocked = self._extract_blocked(sections)
 
-        # Milestone / Wave を全テキストから抽出（タスク ID ベース）
-        task_tuples = _extract_task_ids_from_text(content)
-        milestones, waves = self._build_milestone_wave_lists(task_tuples)
-
-        # タスク ID が存在しない場合（書式変化対応）: テキスト直接スキャンでフォールバック
-        if not milestones:
-            milestones, waves = self._extract_milestones_waves_fallback(content)
+        milestones, waves = self._resolve_milestone_wave(content)
 
         return {
             "ok": True,
@@ -147,6 +230,57 @@ class SessionStateParser(BaseParser):
                 "completed": completed,
             },
         }
+
+    def _resolve_milestone_wave(
+        self, content: str
+    ) -> tuple[list[MilestoneInfo], list[WaveInfo]]:
+        """Milestone / Wave を決定する。**宣言欄が正本、散文推論は fallback。**
+
+        判定順:
+          1. 宣言欄あり かつ 解釈可能 → 宣言を採用（散文は見ない）
+             - 「なし」 → 空リスト（不在は正常であり、痕跡テキストを要求しない）
+             - Milestone 名 → その Milestone。Wave は散文から拾うが**当該 Milestone
+               に属するものだけ**に絞る（他 Milestone の履歴を現在状態にしない）
+          2. 宣言欄なし / 解釈不能 → 旧書式として散文推論（後方互換）
+        """
+        declared = parse_declared_milestone(content)
+        if declared is not None and declared.interpretable:
+            if declared.is_none:
+                return [], []
+            _, inferred_waves = self._build_milestone_wave_lists(
+                _extract_task_ids_from_text(content)
+            )
+            waves = [w for w in inferred_waves if w.milestone == declared.name]
+            if not waves:
+                # タスク ID 形式が無い書式（例: `W-R1 S1 T6`）向け。Wave 番号だけを
+                # 拾い、**宣言された Milestone とだけ**組む（クロス積を作らない）
+                waves = [
+                    WaveInfo(
+                        milestone=declared.name,
+                        wave_number=num,
+                        task_count=0,
+                        status="in-progress",
+                    )
+                    for num in _scan_wave_numbers(content)
+                ]
+            return (
+                [
+                    MilestoneInfo(
+                        name=declared.name,
+                        current_step="UNKNOWN",
+                        status="in-progress",
+                    )
+                ],
+                waves,
+            )
+
+        # 旧書式: タスク ID ベース → 直接スキャンの順でフォールバック
+        milestones, waves = self._build_milestone_wave_lists(
+            _extract_task_ids_from_text(content)
+        )
+        if not milestones:
+            milestones, waves = self._extract_milestones_waves_fallback(content)
+        return milestones, waves
 
     def _split_sections(self, content: str) -> dict[str, str]:
         """見出し（## / ###）でコンテンツをセクションに分割する。
@@ -249,14 +383,8 @@ class SessionStateParser(BaseParser):
                     )
                 )
 
-        seen_wave_nums: set[str] = set()
-        wave_nums: list[str] = []
-        for regex in (_FALLBACK_WAVE_RE, _FALLBACK_WAVE_HYPHEN_RE):
-            for m in regex.finditer(content):
-                num = m.group(1)
-                if num not in seen_wave_nums:
-                    seen_wave_nums.add(num)
-                    wave_nums.append(num)
+        wave_nums = _scan_wave_numbers(content)
+        seen_wave_nums = set(wave_nums)
 
         waves: list[WaveInfo] = []
         seen_waves: set[tuple[str, str]] = set()

@@ -653,44 +653,147 @@ def test_parse_real_session_state_file():
 
 
 def test_parse_real_session_state_contains_milestone():
-    """実 SESSION_STATE.md から [A-Z]-N 形式の Milestone が 1 件以上抽出されること。
+    """実 SESSION_STATE.md が Milestone の状態を**宣言**しており、それが解釈可能なこと。
 
-    旧名 test_parse_real_session_state_contains_b5_milestone。literal "B-5" assert は
-    W-R1 S1 T6 の fallback regex 恒久拡張 ([A-Z]-\\d+) にテスト側が未同期だった残滓で、
-    R-1 期 SESSION_STATE (R-1 表記のみ) で発火 (2026-07-07)。Milestone 命名体系に
-    依存しないパターン検証に更新 (rule-001 準拠 / 観測 #4)。
+    2026-08-17 に検査対象を変更した（rule-001 §構造的論点の恒久解 (c)）。
+
+    旧: 「[A-Z]-N 形式の Milestone が 1 件以上抽出されること」。これは Milestone 不在期に
+        (i) 痕跡テキストの保持を強制する（観測 #5 / 赤くなる形）か、
+        (ii) 過去への言及から誤った現在状態を導出して**緑のまま嘘をつく**（2026-08-17 /
+             `W1-D1-T1` というセッション 18 の記録 1 箇所から `D-1 / in-progress` を導出。
+             D-1 は 2026-08-13 クローズ済）
+        のいずれかになる。
+
+    新: **宣言欄が存在し解釈可能であること**を検査する。「なし」は正当な値であり、
+        パターンの残存を要求しない。推論をやめて宣言を読む（R3 機構 #7 で採った
+        「維持リストではなく基質から導出する」と同型の手）。
     """
-    import re
-
-    from dashboard.parsers.session_state import SessionStateParser
+    from dashboard.parsers.session_state import SessionStateParser, parse_declared_milestone
 
     session_file = _PROJECT_ROOT / "SESSION_STATE.md"
     if not session_file.exists():
         pytest.skip("SESSION_STATE.md が存在しないためスキップ")
 
-    parser = SessionStateParser(_PROJECT_ROOT)
-    result = parser.parse()
+    declared = parse_declared_milestone(session_file.read_text(encoding="utf-8"))
+    assert declared is not None, (
+        "SESSION_STATE.md に `**現在の Milestone**:` 宣言欄がない。"
+        "欄を追加すること（値は Milestone 名または「なし」）"
+    )
+    # 「なし」も Milestone 名も正当。ただし**どちらとも解釈できない値は不可**
+    # （典型: 誤字。ここを緩めると宣言欄が黙って「なし」に化ける）
+    assert declared.interpretable, f"宣言欄の値が解釈できない: {declared.raw!r}"
+    if declared.name is not None:
+        import re
 
+        assert re.fullmatch(r"[A-Z]-\d+", declared.name)
+
+    result = SessionStateParser(_PROJECT_ROOT).parse()
     assert result["ok"] is True
-    milestone_names = [m.name for m in result["data"]["milestones"]]
-    assert milestone_names, "SESSION_STATE.md から Milestone が 1 件も抽出されない"
-    assert any(re.fullmatch(r"[A-Z]-\d+", name) for name in milestone_names)
+    names = [m.name for m in result["data"]["milestones"]]
+    if declared.name is None:
+        assert names == [], f"Milestone なしと宣言されているのに抽出された: {names}"
+    else:
+        assert declared.name in names
 
 
 def test_parse_real_session_state_contains_wave():
-    """実 SESSION_STATE.md から Wave 情報が waves に含まれること。"""
-    from dashboard.parsers.session_state import SessionStateParser
+    """実 SESSION_STATE.md の waves が、宣言された Milestone 状態と整合すること。
+
+    2026-08-17 に検査対象を変更（上記 test_..._contains_milestone と同じ恒久解）。
+    旧: `len(waves) >= 1` を無条件に要求 → Milestone 不在期に嘘の緑を生んでいた。
+    """
+    from dashboard.parsers.session_state import SessionStateParser, parse_declared_milestone
 
     session_file = _PROJECT_ROOT / "SESSION_STATE.md"
     if not session_file.exists():
         pytest.skip("SESSION_STATE.md が存在しないためスキップ")
 
-    parser = SessionStateParser(_PROJECT_ROOT)
-    result = parser.parse()
+    declared = parse_declared_milestone(session_file.read_text(encoding="utf-8"))
+    assert declared is not None
 
-    assert result["ok"] is True
-    waves = result["data"]["waves"]
-    assert len(waves) >= 1
+    waves = SessionStateParser(_PROJECT_ROOT).parse()["data"]["waves"]
+    if declared.name is None:
+        assert waves == [], f"Milestone なしと宣言されているのに Wave が導出された: {waves}"
+
+
+# --- 宣言欄の解析（2026-08-17 / rule-001 恒久解 (c)）---------------------------
+
+
+def _session_state_with(tmp_path, body: str):
+    (tmp_path / "SESSION_STATE.md").write_text(body, encoding="utf-8")
+    return tmp_path
+
+
+def test_parse_declared_milestone_returns_none_when_field_absent():
+    """宣言欄が無ければ None（= 旧書式）。legacy 経路へ落とすための判定。"""
+    from dashboard.parsers.session_state import parse_declared_milestone
+
+    assert parse_declared_milestone("# SESSION_STATE\n\n本文のみ\n") is None
+
+
+def test_parse_declared_milestone_reads_none_value():
+    """`**なし**（注釈）` を「Milestone なし」として解釈する。"""
+    from dashboard.parsers.session_state import parse_declared_milestone
+
+    declared = parse_declared_milestone(
+        "**現在の Milestone**: **なし**（D-1 は 2026-08-13 クローズ）\n"
+    )
+    assert declared is not None
+    assert declared.name is None
+
+
+def test_parse_declared_milestone_reads_milestone_name():
+    """`**B-5**（注釈）` から B-5 を取り出す。"""
+    from dashboard.parsers.session_state import parse_declared_milestone
+
+    declared = parse_declared_milestone("**現在の Milestone**: **B-5**（BUILDING 中）\n")
+    assert declared is not None
+    assert declared.name == "B-5"
+
+
+def test_declared_none_suppresses_prose_inference(tmp_path):
+    """宣言が「なし」なら、散文中の履歴 task ID から Milestone を導出しない。
+
+    2026-08-17 のバグの回帰テスト: `W1-D1-T1` は過去セッションの記録であり、
+    現在の状態ではない。
+    """
+    from dashboard.parsers.session_state import SessionStateParser
+
+    root = _session_state_with(
+        tmp_path,
+        "# SESSION_STATE\n\n"
+        "**現在の Milestone**: **なし**（D-1 は 2026-08-13 クローズ）\n\n"
+        "## 参考: 直近実績\n\n- セッション 18: W1-D1-T1 完了\n",
+    )
+    data = SessionStateParser(root).parse()["data"]
+    assert data["milestones"] == []
+    assert data["waves"] == []
+
+
+def test_declared_milestone_is_authoritative(tmp_path):
+    """宣言された Milestone が正本であり、散文の別 Milestone に上書きされない。"""
+    from dashboard.parsers.session_state import SessionStateParser
+
+    root = _session_state_with(
+        tmp_path,
+        "# SESSION_STATE\n\n"
+        "**現在の Milestone**: **B-5**\n\n"
+        "## 参考: 直近実績\n\n- セッション 18: W1-D1-T1 完了\n",
+    )
+    names = [m.name for m in SessionStateParser(root).parse()["data"]["milestones"]]
+    assert names == ["B-5"]
+
+
+def test_absent_declaration_preserves_legacy_inference(tmp_path):
+    """宣言欄が無い旧書式では、従来どおり task ID から推論する（後方互換）。"""
+    from dashboard.parsers.session_state import SessionStateParser
+
+    root = _session_state_with(
+        tmp_path, "# SESSION_STATE\n\n## 完了タスク\n\n- W1-D1-T1 完了\n"
+    )
+    data = SessionStateParser(root).parse()["data"]
+    assert [m.name for m in data["milestones"]] == ["D-1"]
+    assert len(data["waves"]) == 1
 
 
 def test_fallback_milestone_regex_matches_r_series():
