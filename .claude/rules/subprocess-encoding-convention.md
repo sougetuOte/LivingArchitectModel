@@ -197,8 +197,12 @@ grep -rn "subprocess.run(" .claude/scripts .claude/hooks | grep -v "encoding="
 括弧対応抽出を行う以下の pytest で行う（規約の第一の検証手段）:
 
 ```bash
-bash .claude/scripts/py_invoke.sh -m pytest .claude/tests/rules/test_subprocess_encoding_convention.py -o addopts=""
+bash .claude/scripts/py_invoke.sh -m pytest .claude/tests/rules/test_subprocess_encoding_convention.py -q
 ```
+
+> **`-o addopts=""` を外した（2026-08-17 / retro-2026-08-17 T1）**: 本コマンドは当初 `-o addopts=""` 付きで書かれていたが、`pyproject.toml` の `addopts` は **`--junitxml=.claude/test-results.xml` を含み、これが TDD 内省パイプラインの唯一のデータ源**である（`trust-model.md` §データソース）。`-o addopts=""` はこの XML 生成ごと無効化するため、**本規約の検証を実行するたびに FAIL→PASS 遷移の記録が失われる**。実測（2026-08-17）: 本規範が条件ロードで注入されたセッションで L1 が本コマンドの形を他の pytest 実行にも流用し、その日の Red→Green 遷移が丸ごと記録されなかった（復元不能）。
+>
+> 除去の安全確認: 当該テストに `e2e_llm` / `e2e_convergence` マーカーはなく、`-o` の有無で **同一の 15 tests が選択される**（marker 除外の回避目的ではなかった）。
 
 行単位 grep は「修正候補の一次スクリーニング」としてのみ用い、各ヒットは
 本規約の「例外規定」「正例」と照合して個別に Read で確認すること
