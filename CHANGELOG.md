@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 変更: envelope を weekly quota 一軸へ集約（2026-08-17 / **PM 級** / `model-roster.md` §4 + `hga-summoning.md`）
+
+**Fable 5 のサブスク化により「実 $ envelope 月 $10-40」の前提が失われたため、当該軸を破棄した。** 一次資料 = [support.claude.com 記事 15424964](https://support.claude.com/en/articles/15424964-claude-fable-5-on-your-plan)（2026-08-17 取得）。
+
+- **Max / Team premium seat / Enterprise premium seat**: `Fable 5 is included as a standard part of your plan` / `You can use up to 50% of your weekly usage limits on Fable 5 at no extra cost`
+- **50% は加算枠ではない**: `Fable 5 draws from your plan's regular weekly usage limits and uses them faster than other Claude models` / `you can never use more than your weekly limit` —— **L1 Opus と共有する同じプールの上限**であり、かつ消費が速い
+- **plan 依存を残した**: Pro / Team standard seat では Fable は usage credits（実 $）で動くため、旧軸はその構成でのみ有効。LAM は配布物であるため条件分岐を消さない
+- **$ 実測値は廃棄せず**「短答 : 大型 ≒ 1 : 7」の相対的な重さとして存続。監視基準は実 $ メータ → **weekly usage 表示**へ
+- **なぜ 3 週間気づかなかったか**: 2026-07-20 の時点でサブスク継続は把握していたが、規律側は「実 $ envelope の**圧力低下**」と書くに留め**軸そのものは残した**。結果、存在しない上限で召喚頻度を自制していた。**前提が消えた条項は、緩めるのではなく壊す**
+
+### 追加: R3 機構 #7 — 条件ロード規範の compaction 曝露検出（2026-08-17 / 予算外）
+
+段 1 の実測（条件ロード条項は compaction を生き残らず、**失火が無音**）に対する機構。HGA #25 要件 (ii) の実装で、`pre-compact.py` に統合した。**条項は 1 行も増えていない**（§A = 61 のまま / そもそも対応する R1 条文が存在しない）。
+
+- **記録するのは「違反」ではなく「曝露」**: compaction が条件ロード済み規範の生存中に発生したという**事象**。意味判断を含まないため誕生ゲート Step 1 を通る
+- **実装条件 2 つに執行歯**（`test_compaction_exposure.py` / 24 tests）: ① 検査対象を `paths:` frontmatter から**基質導出**し維持リストを禁じる ② **検出のみ・注入なし**（`SessionStart` の `matcher: "compact"` 再注入経路は採らない）
+- **射程の限界 3 つ**: `.claude/rules/` のみ / Bash 経由の接触は捕捉しない / 「実際に注入されたか」ではなく「注入条件が満たされたか」の近似
+- 記録先は `.claude/compaction-exposure.log`（**append-only JSONL**）
+
+### 記録: 誕生ゲート 段 2 — 1 回で 3 判定 / 入場ゼロ（2026-08-17）
+
+- **Opus 5 ガイド #1（応答が長い）→ R4 在庫**。初回出力 R5 はゲートの適用ではなく論拠による上書きだったため訂正。**ユーザーが検出した欠落 = R5 は「基質は代替しないが、法則の読めない人間のハンドルに委ねる」状態の宛先を持たない**。ユーザー回答は「今のままでよい」
+- **Opus 5 ガイド #3（成果物が長い）→ R2**（(ii) の成立を先行条件とし、同日満たされた）
+- **要件 (ii) → R3（予算外）**。ゲートの独立適用が HGA #25 の裁定と一致
+
 ### 記録: ロスターと実運用の乖離は解消（2026-08-15 / **改訂しない**）
 
 セッション 19（2026-08-13）で「実運用トップ = Fable 5 / `model-roster.md` §1 の L1 = Opus 5」という乖離が記録され、ロスター §1 の改訂（**PM 級**）が次のステップに挙がっていた。セッション 20（2026-08-15）は **L1 = Opus 5 で稼働**し、ユーザーは切替を求めずそのまま続行したため、**乖離は解消した。§1 は改訂しない。**
