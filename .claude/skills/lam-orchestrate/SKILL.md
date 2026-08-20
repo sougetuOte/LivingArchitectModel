@@ -123,7 +123,7 @@ SSOT は `docs/internal/06_DECISION_MAKING.md`。
 `/magi` スキルの Step 0〜5 に従う。詳細は `.claude/skills/magi/SKILL.md` を参照。
 
 ```
-Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: Reflection → Step 5: AoT Synthesis
+Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: gabriel probe → Step 5: AoT Synthesis
 ```
 
 | レベル | 条件 | モデル |

@@ -320,7 +320,7 @@ MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体�
 
 ## 参照
 
-- SSOT: `docs/internal/06_DECISION_MAKING.md`（Reflection セクションは Wave C の後続 Stage 4 で gabriel probe 記述に置換予定）
+- SSOT: `docs/internal/06_DECISION_MAKING.md`（§6「gabriel Adversarial Probe（AoT 適用時のみ / 旧 Reflection）」に**置換済** / 2026-08-20 確認）
 - Wave C 統合仕様: `docs/specs/magi-v2-gabriel/{requirements,design}.md` v0.4.0
 - ADR-0007: `docs/adr/0007-magi-v2-gabriel-integration.md`（gabriel 統合根拠 / Accepted 2026-07-02）
 - ADR-0005: `docs/adr/0005-thin-harness-autonomous-governance.md`（Reflection 追補 / FR-9.1 opt-out 権限境界の根拠）
@@ -328,4 +328,4 @@ MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体�
 - verdict 別分岐 Python SSOT: `.claude/scripts/magi_dispatch.py` (Wave C Stage 3 T6 / 2026-07-05 実装)
 - 統合テスト: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (T6 / 全 8 verdict パターン)
 - アンカーフォーマット: `.claude/skills/magi/references/anchor-format.md`
-- decision-making ルール: `.claude/rules/decision-making.md`（Step 4 は Wave C 後続 Stage 4 で gabriel probe 記述に置換予定）
+- decision-making ルール: `.claude/rules/decision-making.md`（Step 4 は「gabriel Adversarial Probe（AoT 適用時のみ）」に**置換済** / 2026-08-20 確認）

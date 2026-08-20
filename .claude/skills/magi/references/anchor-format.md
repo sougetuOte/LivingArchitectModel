@@ -47,26 +47,18 @@ lam-orchestrate の構造化思考で使用するアンカーファイルの形�
 
 ---
 
-## Reflection（Level 3）
+## gabriel probe（AoT 適用時のみ）
 
-> **[警告: temporary preserve / v5② gabriel 統合予定]**
-> Reflection は B-4 監査（2026-06-19）で 9 件中 7 件記録・変更率 0% の形式実行状態であることが判明。
-> 本セクションの Iteration 反復記述は v5 ② gabriel 統合まで暫定温存。詳細は `.claude/skills/magi/SKILL.md` Step 4 警告ラベル参照。
+> **旧 Reflection は廃止**（gabriel probe に統合済 / Wave C 骨子 ② / ADR-0007 Accepted 2026-07-02）。
+> B-4 監査（2026-06-19）実機計測: Reflection の初回変更率 0%（全 7 件「致命的な見落とし: なし → 結論確定」）で「無効な安全網」であったため、独立コンテキストの adversarial probe へ構造的に置換した。詳細は `.claude/skills/magi/SKILL.md` §Step 4 参照。
 
-### Iteration 1
-
-**検出事項**:
-- {矛盾/見落とし}
-
-**修正**:
-- {Mediator による修正内容}
-
-### Iteration 2（該当する場合）
-
-**検出事項**: ...
-**修正**: ...
-
-**打ち切り理由**: stable / max_iterations_reached
+- verdict: confirmed / refuted / inconclusive
+- severity: critical / warning / info
+- affected_atoms: [Atom ID の配列 / verdict=refuted 時は非空必須]
+- reasoning: [判定理由 / 200-1000 字]
+- recommended_action: proceed / re-magi / abort
+- confidence: 0.0-1.0（0.3 未満なら verdict=inconclusive 強制）
+- 処理: `recommended_action` に応じた分岐（優先順位: abort > critical+re-magi > warning > info > confirmed > inconclusive）。詳細分岐は `.claude/skills/magi/SKILL.md` §Step 4.1 参照
 
 ---
 

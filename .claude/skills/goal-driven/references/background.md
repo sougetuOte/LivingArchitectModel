@@ -26,7 +26,7 @@
 
 - 仕様: `docs/specs/goal-driven-orchestration/requirements.md` v1.2.0
 - 設計: `docs/specs/goal-driven-orchestration/design.md` v0.3.3
-- タスク: `docs/specs/goal-driven-orchestration/tasks.md` v1.2.0
+- タスク: `docs/specs/goal-driven-orchestration/tasks.md` v1.4.6
 - Plan B 確定根拠: `docs/specs/goal-driven-orchestration/research/oq1-goal-subagent-test.md`
 - 設定: `docs/specs/goal-driven-orchestration/config.md`（W1-T2 で作成）
 - ガードスクリプト: `.claude/scripts/gd_guard.py`

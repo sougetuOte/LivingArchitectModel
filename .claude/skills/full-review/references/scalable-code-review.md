@@ -12,4 +12,6 @@
 - 要件仕様: `docs/specs/scalable-code-review-spec.md`
 - 設計書: `docs/design/scalable-code-review-design.md`
 - タスク: `docs/tasks/scalable-code-review-tasks.md`
-- 構想メモ: `docs/memos/2026-03-10-scalable-review-and-eval-ideas.md`
+- 構想メモ: ~~`docs/memos/2026-03-10-scalable-review-and-eval-ideas.md`~~ — **参照先不在**
+  （`docs/memos/` ディレクトリ自体は実在するが当該ファイルは存在しない / 2026-08-20 実測。
+  代替となる既存メモも確認できず）

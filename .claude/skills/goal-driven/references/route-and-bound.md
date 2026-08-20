@@ -34,7 +34,11 @@ L1 指揮者: タスク分析（LLM 呼び出し）
 Plan B（自前ループ）では `/goal` を使用しないため、`or stop after N turns` は不使用。
 代替として:
 - `max_loop_count`（差し戻し回数上限・外部化設定・FR-4 MUST）でループ打ち切り
-- エージェントフロントマターの `max_turns`（小:10 / 中:20 / 大:15）でターン打ち切り
+- ~~エージェントフロントマターの `max_turns`（小:10 / 中:20 / 大:15）でターン打ち切り~~
+  → **未実装**（2026-08-20 実測）。`max_turns`（snake_case）は subagent frontmatter の有効キーではない
+  （有効キー: `name` / `description` / `tools` / `disallowedTools` / `model` / `isolation` / `hooks`）。
+  近縁のものとして plugin agent 専用の `maxTurns`（camelCase）と CLI フラグの `--max-turns` があるが、
+  goal-driven の 3 agent には設定されていない。現時点で L3 のターン数打ち切りは効いていない
 - グローバル bound（tokens + time）でセッション全体を打ち切り
 
 ---

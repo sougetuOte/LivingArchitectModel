@@ -215,6 +215,7 @@ Step 4.2（テンプレート配置）を実行する時点で [references/templ
 
 ## 関連
 
-- 受け入れ仕様 (プロジェクト側): `docs/specs/init-harness/spec.md`
+- 受け入れ仕様 (プロジェクト側): ~~`docs/specs/init-harness/spec.md`~~ — **参照先不在**（当該ディレクトリ・
+  ファイルともにリポジトリ内に存在しない / 2026-08-20 実測。代替となる既存仕様書も確認できず）
 - AutoMode 関連 (Advisory のみ / 本 skill は advisory step を含まない): `docs/adr/0008-approval-gate-redesign.md` v0.3
 - マルチセッション環境考慮 (ユーザーメモリ領域 `~/.claude/projects/<key>/memory/reference_claude_code_desktop.md` 参照): 並行 init は最後勝ち、ロック機構なし (Open issue)
