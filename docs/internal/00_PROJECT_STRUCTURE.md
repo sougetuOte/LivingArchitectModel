@@ -7,10 +7,10 @@
 
 ```
 /
-├── src/                    # ソースコード (実装)
+├── src/                    # ソースコード (実装) ※配布先テンプレート枠 — LAM 本体には存在しない
 │   ├── backend/            # バックエンド (Python/FastAPI)
 │   └── frontend/           # フロントエンド (React/Vite)
-├── tests/                  # テストコード
+├── tests/                  # テストコード ※配布先テンプレート枠 — LAM 本体には存在しない
 ├── docs/                   # ドキュメント資産
 │   ├── specs/              # 要求仕様書 (Source of Truth)
 │   ├── design/             # 設計書 (Phase 1 成果物 / spec 完成後の実装設計)
@@ -36,6 +36,8 @@
 │   └── settings.json       # 権限・hooks 設定
 └── CLAUDE.md               # プロジェクト憲法
 ```
+
+> **注記（`src/` / `tests/` について）**: 上記ツリーの `src/`・`tests/` は、LAM を適用した**配布先プロジェクト**が実装コードを置くためのテンプレート枠であり、**LAM リポジトリ自体には存在しない**（LAM は自己の実装コードを持たないハーネス/ドキュメント資産）。`.claude/rules/phase-rules.md` PLANNING §禁止 の機構注記も同じ前提（「`src/` が実在しない」）で運用している。テンプレートとしての意味を保つため、本ツリーからは削除しない。
 
 ## 2. Asset Placement Rules (資産配置ルール)
 

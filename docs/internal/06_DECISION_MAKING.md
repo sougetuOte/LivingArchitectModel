@@ -264,7 +264,7 @@ CASPAR の統合結論を **そのまま正としてではなく**、結論に�
 ### 6.7. 実装 SSOT + テスト
 
 - **実装 SSOT**: `.claude/scripts/magi_dispatch.py`（`resolve_action()` + `render_log_entry()` + `should_run_gabriel()` + `OptOutRecord` + `GateDecision`）
-- **統合テスト**: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (26 件) + `test_wave_c_e2e_integration.py` (21 件) + `test_wave_c_gabriel_output.py` (16 件)
+- **統合テスト**: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (31 件) + `test_wave_c_e2e_integration.py` (21 件) + `test_wave_c_gabriel_output.py` (16 件)
 - **月次メトリクス**: `docs/artifacts/gabriel-metrics-environment-2026-07-05.md`（JSONL 12 フィールド）
 
 ### 6.8. opt-out 経路

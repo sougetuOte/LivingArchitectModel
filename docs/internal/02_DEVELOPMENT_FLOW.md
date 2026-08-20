@@ -76,7 +76,7 @@ PostToolUse hook がテスト実行結果を自動監視し、以下を記録す
 - JUnit XML（`.claude/test-results.xml`）を読み取り、テスト成否を `.claude/tdd-patterns.log` に蓄積
 - FAIL→PASS 遷移検出時に `/retro` 実行を推奨（通知のみ、自動実行なし）
 - 同一パターン 2回以上出現で `/retro` 内でルール候補を提案（PM級承認）
-- `src/` 配下のファイル変更を検知し、ドキュメント同期フラグを設定（詳細は `/ship` コマンド参照）
+- `src/` 配下のファイル変更を検知し、ドキュメント同期フラグを設定（詳細は `/ship` コマンド参照）※ `src/` は配布先プロジェクトでの実装コード配置を想定した記述であり、LAM リポジトリ自体には `src/` は存在しない（`00_PROJECT_STRUCTURE.md` §1 の注記を参照）
 
 詳細は `.claude/rules/auto-generated/trust-model.md` を参照。
 

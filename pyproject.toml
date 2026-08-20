@@ -11,7 +11,11 @@ version = "0.0.0"
 requires-python = ">=3.8"
 
 [tool.pytest.ini_options]
-# testpaths: 引数なし `pytest` で全 suite を収集する (retro-R1 T18 / Stop hook G1 判定と手動実行の振る舞い統一)。
+# testpaths: 引数なし `pytest` で `.claude/tests` + `.claude/hooks/tests` を収集する
+# (retro-R1 T18 / Stop hook G1 判定と手動実行の振る舞い統一)。
+# 注意: `.claude/hooks/analyzers/tests/` はこの testpaths に含まれないため収集対象外
+# (2026-08-20 実測: 単独実行で 565 passed / 5 deselected = 壊れているから外れているのではない)。
+# 「全 suite」ではない — analyzers 配下は別途明示的に実行する必要がある。
 # 両ルートの test basename は一意であること (同名は import file mismatch を起こす / retro-R1 T21 で 2 件 rename 済)
 testpaths = [".claude/tests", ".claude/hooks/tests"]
 addopts = "--junitxml=.claude/test-results.xml -m 'not e2e_llm and not e2e_convergence'"
