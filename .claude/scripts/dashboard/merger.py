@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Protocol, runtime_checkable
 
 from dashboard.models import MilestoneInfo
@@ -46,15 +47,20 @@ class MilestoneSourceMerger:
             責務を持つ（I-W-6 / Merger は None を受け取らない）。
         task_milestone_names: TasksParser.parse()["data"]["tasks"] の milestone
             フィールドを集合化した名前リスト。同様に ok=False 時は空リストを渡す。
+        current_phase: CurrentPhaseParser 由来の現在フェーズ。**SessionState が宣言した
+            Milestone にのみ**適用する（下記 _merge の Step 規則を参照）。省略時は
+            "UNKNOWN"（既存呼び出しとの後方互換 / 2026-08-20 追加）。
     """
 
     def __init__(
         self,
         session_milestones: list[MilestoneInfo],
         task_milestone_names: list[str],
+        current_phase: str = "UNKNOWN",
     ) -> None:
         self._session_milestones = session_milestones
         self._task_milestone_names = task_milestone_names
+        self._current_phase = current_phase or "UNKNOWN"
 
     def get_milestones(self) -> list[MilestoneInfo]:
         """MilestoneProvider Protocol 実装。統合後 Milestone リストを返す（MUST）。"""
@@ -70,9 +76,21 @@ class MilestoneSourceMerger:
         エラー耐障害性（FR-W8-6 MUST）:
           - 片方が空リストでも継続する
           - 両方が空なら空リストを返す
+
+        Step 規則（2026-08-20 追加 / wave7/design.md §8 の「将来候補」の実装）:
+          - **SessionState が宣言した Milestone**: current_step = 現在フェーズ。
+            SessionStateParser が `current_step="UNKNOWN"  # CurrentPhaseParser で補完`
+            と書きながら実装が存在しなかった補完は、ここが担う
+          - **tasks.md にしか現れない Milestone**: current_step = "UNKNOWN" のまま
+            （_make_milestone_from_name / 過去の Milestone の残骸に現在フェーズを
+            刻むと、クローズ済 Milestone が進行中に見える）
+
+        この非対称は status の扱い（_make_milestone_from_name の docstring）と同じ
+        理由に立つ —— **知らないことを知らないと書く**。
         """
         session_dict: dict[str, MilestoneInfo] = {
-            ms.name: ms for ms in self._session_milestones
+            ms.name: replace(ms, current_step=self._current_phase)
+            for ms in self._session_milestones
         }
 
         for name in self._task_milestone_names:

@@ -318,9 +318,25 @@ Wave 7 以降の新規 tasks.md エントリには `@<assignee>` タグを **SHO
 
 - `MilestoneInfo` フィールド:
   - `name: str`（例: `B-5` / SESSION_STATE 内 Task ID の `B<n>` から構築）
-  - `current_step: str`（SessionStateParser 段階では `"UNKNOWN"` / **DashboardBuilder 側で `self.data.current_phase` に上書きされ全 Milestone 共通の値が表示される**）
+  - `current_step: str`（SessionStateParser 段階では `"UNKNOWN"` / **`MilestoneSourceMerger` が出所に応じて確定する** —— 下記「Step の出所別確定」参照）
   - `status: str`（"in-progress" 等）
-- 結果として **Step は全 Milestone 共通**（current_phase 単一値）が現状仕様。Wave 7 ではこれを維持し、Milestone 別 Step 管理は将来候補（chip `task_68008f88` 関連）。
+- ~~結果として **Step は全 Milestone 共通**（current_phase 単一値）が現状仕様。Wave 7 ではこれを維持し、Milestone 別 Step 管理は将来候補（chip `task_68008f88` 関連）。~~
+  → **2026-08-20 に「将来候補」を実装し、Step は Milestone ごとに独立した。** 下記参照。
+
+#### Step の出所別確定（2026-08-20 / 上記「将来候補」の実装）
+
+| Milestone の出所 | `current_step` |
+|:---|:---|
+| **SessionState が宣言した**（= 現に進行中） | **グローバルの現在フェーズ**（`MilestoneSourceMerger` に渡される `current_phase`） |
+| **tasks.md にしか現れない**（= 過去の Milestone の残骸） | **`"UNKNOWN"`** |
+
+**契機（実測 / 2026-08-20）**: `SESSION_STATE.md` の Milestone 宣言欄が「なし」の状態でダッシュボードを開くと、**2026-07-05 にクローズ済の B-5 が `Step: BUILDING` と表示されていた**。旧仕様が「全 Milestone 共通で current_phase を刻む」ものであり、`docs/specs/b4-dashboard/tasks.md` に残る B-5 のタスクが Milestone を立てていたため。**アクティブな Milestone が 1 つ存在する前提**が Milestone 不在期に崩れる。
+
+この非対称は `MilestoneSourceMerger._make_milestone_from_name` が status に対して既に採っている方針（「完了済み Milestone が誤って not-started 表示されるリスクを回避するため中立な `unknown` を補完値とする」）を Step にも広げたものである —— **知らないことを知らないと書く**。
+
+**副次の変更**: Milestone カードがグローバル現在フェーズの唯一の描画先だったため、そのままでは Milestone 不在期にフェーズがページから消える。**フェーズは Milestone の属性ではなくプロジェクト全体の状態**であるため、**V-1 サマリーへ移した**（`<dd class="current-phase">`）。R1-002（current_phase の未エスケープ）に対する防御も移動先で維持している。
+
+**検査**: `.claude/tests/dashboard/test_milestone_step_per_source.py`（10 件 / 回帰テストに 2026-08-20 の実測そのものを含む）。
 
 ### V-2 検出される Milestone 件数の前提
 

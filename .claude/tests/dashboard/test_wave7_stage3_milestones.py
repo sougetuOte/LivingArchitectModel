@@ -176,23 +176,26 @@ def test_v2_renders_milestones_container_wrapper(multi_milestone_data):
 # ─────────────────────────────────────────────
 
 
-def test_v2_step_column_uses_current_phase(multi_milestone_data):
-    """Step 列が current_phase の値（全 Milestone 共通）で表示されること。
+def test_v2_step_column_uses_milestone_own_step(multi_milestone_data):
+    """Step 列が **Milestone 自身の** current_step で表示されること（2026-08-20 変更）。
 
-    design.md §8: <span class="step">{self.data.current_phase}</span>
-    全 Milestone で同一の current_phase 値が表示される（Milestone ごとの Step 値ではない）。
+    旧仕様（design.md §8）は `<span class="step">{self.data.current_phase}</span>` で
+    全 Milestone 共通だったが、同節が挙げていた「Milestone 別 Step 管理は将来候補」を
+    実装した。契機は Milestone 不在期にクローズ済 B-5 が「Step: BUILDING」と表示された
+    実測（2026-08-20）。
+
+    グローバルの current_phase は V-1 サマリー（`dd.current-phase`）へ移動している。
     """
     from dashboard.builder import DashboardBuilder
 
     builder = DashboardBuilder(data=multi_milestone_data)
     html = builder._render_v2_milestones()
 
-    # current_phase = "PLANNING" が 2 件（各 Milestone カード）に現れること
-    planning_count = html.count("PLANNING")
-    assert planning_count >= 2, (
-        f"PLANNING が {planning_count} 回しか出現しません（期待: 2 以上）。"
-        "各 milestone-card に current_phase の値が表示されているか確認してください。"
-    )
+    for ms in multi_milestone_data.milestones:
+        assert f'<span class="step">{ms.current_step}</span>' in html, (
+            f"Milestone {ms.name} のカードに自身の current_step "
+            f"({ms.current_step}) が表示されていません。"
+        )
 
 
 # ─────────────────────────────────────────────

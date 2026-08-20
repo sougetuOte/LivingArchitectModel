@@ -161,27 +161,31 @@ def test_render_v2_step_column_shows_current_phase(make_milestone):
     )
 
 
-def test_render_v2_step_column_planning(make_milestone):
-    """current_phase が PLANNING のとき Step 列に「PLANNING」が表示されること。"""
-    milestone = make_milestone(name="B-5")
-    html = _make_builder(milestones=[milestone], current_phase="PLANNING").render()
-    assert "PLANNING" in html, "Step 列に「PLANNING」が表示されていません。"
+def test_render_v2_step_column_uses_milestone_step(make_milestone):
+    """Step 列は `ms.current_step` を表示する（2026-08-20 変更）。
 
-
-def test_render_v2_multiple_milestones_same_step(make_milestone):
-    """複数 Milestone が存在する場合、全 Milestone に同じ Step が表示されること。
-
-    設計仕様: design.md §4 V-2 注記「複数 Milestone が存在する場合は全 Milestone に同じ Step を表示する」
+    旧仕様は「全 Milestone に current_phase を共通表示」だったが、
+    Milestone 不在期にクローズ済 Milestone が「BUILDING 中」に見える問題があり、
+    wave7/design.md §8 の「将来候補」= Milestone 別 Step 管理を実装した。
     """
-    ms_b4 = make_milestone(name="B-4", status="completed")
-    ms_b5 = make_milestone(name="B-5", status="in-progress")
-    html = _make_builder(milestones=[ms_b4, ms_b5], current_phase="BUILDING").render()
-    # 「BUILDING」が2回以上出現すること（各行に表示されるため）
-    count = html.count("BUILDING")
-    assert count >= 2, (
-        f"複数 Milestone の場合、全行に同じ Step が表示される必要があります。\n"
-        f"「BUILDING」の出現回数: {count}（期待: 2 以上）"
+    milestone = make_milestone(name="B-5", current_step="PLANNING")
+    html = _make_builder(milestones=[milestone], current_phase="BUILDING").render()
+    assert '<span class="step">PLANNING</span>' in html, (
+        "Step 列に ms.current_step が表示されていません。"
     )
+
+
+def test_render_v2_multiple_milestones_can_differ(make_milestone):
+    """複数 Milestone の Step は**独立**しうる（2026-08-20 変更）。
+
+    旧仕様は「全 Milestone に同じ Step」。現仕様では出所によって値が異なる
+    （SessionState 宣言 = 現在フェーズ / tasks.md のみ = UNKNOWN）。
+    """
+    ms_b4 = make_milestone(name="B-4", status="completed", current_step="UNKNOWN")
+    ms_b5 = make_milestone(name="B-5", status="in-progress", current_step="BUILDING")
+    html = _make_builder(milestones=[ms_b4, ms_b5], current_phase="BUILDING").render()
+    assert '<span class="step">UNKNOWN</span>' in html
+    assert '<span class="step">BUILDING</span>' in html
 
 
 # ─────────────────────────────────────────────
@@ -368,21 +372,27 @@ def test_render_v2_milestone_name_is_escaped(make_milestone):
     )
 
 
-def test_render_v2_current_phase_is_escaped(make_milestone):
+def test_render_v1_current_phase_is_escaped(make_milestone):
     """current_phase に XSS ペイロードが含まれる場合、html.escape() でエスケープされること。
 
     対応 issue: docs/artifacts/r-1-audit-tracker.md #R1-002
-    （_render_v2_milestones() で current_phase が html.escape() なしで interpolate されている）
+    （元は _render_v2_milestones() の current_phase 未エスケープに対する回帰テスト）
+
+    **2026-08-20 の移動**: Milestone カードの Step が `ms.current_step` になり、
+    current_phase の描画先が V-1 サマリー（`dd.current-phase`）へ移った。
+    R1-002 の防御対象は「current_phase が生で出ないこと」であり、その性質は
+    描画先が変わっても守る必要がある。ms.current_step 側のエスケープは
+    test_milestone_step_per_source.py::test_step_value_is_escaped が担う。
     """
     milestone = make_milestone(name="B-5")
     html = _make_builder(
         milestones=[milestone], current_phase=_XSS_PAYLOAD
     ).render()
-    assert _XSS_PAYLOAD_ESCAPED in html, (
+    assert f'<dd class="current-phase">{_XSS_PAYLOAD_ESCAPED}</dd>' in html, (
         "current_phase の XSS ペイロードがエスケープされていません。\n"
-        f"期待: {_XSS_PAYLOAD_ESCAPED!r} が HTML に含まれること。"
+        f"期待: {_XSS_PAYLOAD_ESCAPED!r} が V-1 サマリーに含まれること。"
     )
-    assert _XSS_PAYLOAD not in html, (
+    assert f'<dd class="current-phase">{_XSS_PAYLOAD}' not in html, (
         "current_phase に生の <script> タグが出力されています（XSS 脆弱性）。"
     )
 

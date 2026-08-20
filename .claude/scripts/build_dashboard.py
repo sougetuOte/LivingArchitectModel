@@ -154,6 +154,7 @@ def _apply_milestone_merger(data: object) -> None:
     data.milestones = MilestoneSourceMerger(
         session_milestones=data.milestones,
         task_milestone_names=task_ms_names,
+        current_phase=data.current_phase,
     ).get_milestones()
 
 

@@ -138,13 +138,21 @@ class DashboardBuilder:
         design.md §4「V-1: Project サマリービュー」DOM 構成案に準拠。
         Project 名は "LAM" にハードコード（design.md §4 の表示ロジック: 固定文字列）。
         最終更新日時は DashboardData.generated_at から取得する。
+
+        **現在フェーズをここに置く理由（2026-08-20 追加）**: Milestone カードの Step を
+        `ms.current_step` に変えた結果、グローバルの現在フェーズを描く場所が
+        ページから消えた。フェーズは Milestone の属性ではなくプロジェクト全体の状態
+        であり、V-1 サマリーが本来の置き場である。Milestone が 1 件も無い期間でも
+        フェーズは表示され続ける。
         """
         generated_at = self.data.generated_at or ""
+        current_phase = html.escape(self.data.current_phase or "UNKNOWN")
         return (
             '<section id="v1-project-summary">\n'
             "  <h1>LAM Dashboard</h1>\n"
             "  <dl>\n"
             "    <dt>Project</dt><dd>LAM（Living Architect Model）</dd>\n"
+            f'    <dt>現在フェーズ</dt><dd class="current-phase">{current_phase}</dd>\n'
             f"    <dt>最終更新</dt><dd>{generated_at}</dd>\n"
             "  </dl>\n"
             "</section>"
@@ -178,11 +186,12 @@ class DashboardBuilder:
         - Milestone が 0 件: empty state（「Milestone 情報なし」表示）
         - 1 件以上: section/article (milestone-card) 構造
         - Milestone 名昇順ソート（文字列辞書順 / design.md §3 A3-4）
-        - 各 article の Step は self.data.current_phase を使用（全 Milestone 共通）
+        - **各 article の Step は `ms.current_step`**（Milestone ごとに異なりうる /
+          2026-08-20 変更 = wave7/design.md §8 の「将来候補」の実装）。値の決定は
+          `MilestoneSourceMerger` が持つ —— SessionState が宣言した Milestone には
+          現在フェーズ、tasks.md にしか現れない残骸には "UNKNOWN"
         - 状態はテキストで表示（バッジなし）
         """
-        current_phase = self.data.current_phase
-
         if not self.data.milestones:
             return (
                 '<section id="v2-milestones">\n'
@@ -191,15 +200,15 @@ class DashboardBuilder:
                 "</section>"
             )
 
-        escaped_phase = html.escape(current_phase)
         cards = []
         for ms in sorted(self.data.milestones, key=lambda m: m.name):
             escaped_name = html.escape(ms.name)
             escaped_status = html.escape(ms.status)
+            escaped_step = html.escape(ms.current_step)
             cards.append(
                 f'    <article class="milestone-card" data-milestone="{escaped_name}">\n'
                 f"      <h3>{escaped_name}</h3>\n"
-                f'      <p>Step: <span class="step">{escaped_phase}</span></p>\n'
+                f'      <p>Step: <span class="step">{escaped_step}</span></p>\n'
                 f'      <p>状態: <span class="status">{escaped_status}</span></p>\n'
                 "    </article>"
             )

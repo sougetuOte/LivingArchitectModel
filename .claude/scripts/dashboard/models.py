@@ -14,7 +14,12 @@ class MilestoneInfo:
 
     Attributes:
         name: Milestone 名。例: "B-5"
-        current_step: 現在の Step 名。例: "PLANNING"（CurrentPhaseParser から補完）
+        current_step: この Milestone の Step 名。例: "PLANNING"。
+            **補完するのは `MilestoneSourceMerger`**（2026-08-20 / それまで
+            「CurrentPhaseParser から補完」と書かれていたが補完実装は存在せず、
+            描画側もこの値を無視していた = dead field だった）。
+            SessionState が宣言した Milestone には現在フェーズ、tasks.md にしか
+            現れない Milestone には "UNKNOWN" が入る
         status: 状態値。"not-started" / "in-progress" / "blocked" / "completed" のいずれか
     """
 
