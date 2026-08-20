@@ -227,7 +227,7 @@ Claude Code の auto memory（`~/.claude/projects/<project>/memory/MEMORY.md`）
 カスタム Subagent（`.claude/agents/`）はレビュー時に学んだプロジェクト固有の知見を
 `.claude/agent-memory/<agent-name>/` に蓄積する。
 これは Claude Code 公式の `memory: project` フロントマター機構を利用したものであり、
-全 8 エージェントに `memory: project` を設定済み（保存先は `.claude/agent-memory/<agent-name>/`）。
+全 12 エージェントに `memory: project` を設定済み（保存先は `.claude/agent-memory/<agent-name>/` / 件数は 2026-08-20 に実測）。
 公式機構により、各サブエージェントの system prompt に memory ディレクトリの読み書き指示と
 `MEMORY.md` の先頭 200 行（または 25KB）が自動注入され、Read/Write/Edit が自動有効化される。
 蓄積した知見はバージョン管理で共有される（`project` スコープ）。

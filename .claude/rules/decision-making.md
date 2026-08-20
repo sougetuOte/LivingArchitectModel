@@ -44,7 +44,7 @@ AoT Decomposition → MAGI Debate (各Atom) → gabriel probe → AoT Synthesis
 （軽量モード / 非 AoT: MAGI Debate のみで完結 / gabriel は起動しない）
 ```
 
-> **AoT フレームワーク保存**: 上記 §Atom の定義・適用条件は無改変で保存する（**NFR-W-C-6 MUST NOT** / 詳細: 親 §6.3）。破壊は統合テスト 3 系統（`.claude/tests/wave_c/` 26+21+16 件）が拾う設計。
+> **AoT フレームワーク保存**: 上記 §Atom の定義・適用条件は無改変で保存する（**NFR-W-C-6 MUST NOT** / 詳細: 親 §6.3）。破壊は統合テスト 3 系統（`.claude/tests/wave_c/` **31+21+16 件** / 2026-08-20 に `--collect-only` で実測）が拾う設計。
 
 ## Output Format
 
