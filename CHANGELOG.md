@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 修正: ダッシュボードがクローズ済 Milestone を現在フェーズで表示していた（2026-08-20 / **PM 級**）
+
+**実測**: `SESSION_STATE.md` の Milestone 宣言欄が「なし」の状態でダッシュボードを開くと、**2026-07-05 にクローズ済の B-5 が `Step: BUILDING` と表示されていた**。
+
+前日の `rule-001` 恒久解 (c) は効いており、パーサはもう散文から現在 Milestone を捏造しない。**残っていたのは別の経路**である —— `MilestoneSourceMerger` が SessionState **∪** tasks.md の和集合を返すため、SessionState 側が空でも `docs/specs/b4-dashboard/tasks.md` に残る B-5 のタスクが Milestone を立て、そこに `builder` が**全カード一律でグローバル現在フェーズを刻んでいた**。
+
+**これは事故ではなく明文化された仕様だった**。`wave7/design.md` §8 が「Step は全 Milestone 共通（current_phase 単一値）が現状仕様」と書き、同時に「**Milestone 別 Step 管理は将来候補**」とも書いていた。**アクティブな Milestone が 1 つ存在する前提**が、Milestone 不在期に崩れる。今回その将来候補を実装した。
+
+| Milestone の出所 | `current_step` |
+|:---|:---|
+| SessionState が宣言した（= 現に進行中） | グローバルの現在フェーズ |
+| tasks.md にしか現れない（= 過去の Milestone の残骸） | **`"UNKNOWN"`** |
+
+`_make_milestone_from_name` が status に対して既に採っていた方針（「完了済みが not-started に見えるのを避けるため中立値」）を Step にも広げた形 —— **知らないことを知らないと書く**。`SessionStateParser` の `# CurrentPhaseParser で補完` は補完実装が存在せず `MilestoneInfo.current_step` は **dead field** だったが、これで実体を得た。
+
+**副次の変更**: Milestone カードがグローバル現在フェーズの唯一の描画先だったため、そのままでは Milestone 不在期にフェーズがページから消える。**フェーズは Milestone の属性ではなくプロジェクト全体の状態**であるため **V-1 サマリーへ移した**（`<dd class="current-phase">`）。この消失は既存テスト `test_html_contains_current_phase` が捕まえた。
+
+**旧挙動を固定していたテスト 4 件を更新した**（うち 1 件は偶然通る空振り状態だった）。テスト +10（全数 **1245 passed**）。
+
 ### 追加: 計器隔離ガードを R3 機構 #8 として実装（2026-08-20 / 予算外 / 台帳 §D 在庫 #4 の半分消化）
 
 `retro-2026-08-17` P1 が記録した「1 セッションで計器に 3 回触れて **2 回壊した**」に対する機構。テストセッションの前後で hook の計器実体（`pre-compact-fired` / `tdd-patterns.log` / `SESSION_STATE.md` 等）を突き合わせ、変化していたら**変わったパスを名指しして**落とす。**規律は忘れられるが機構は忘れない。**
