@@ -139,3 +139,100 @@ def test_exchange_rate_matches_ceiling_state():
             "指令数 {0} は天井 {1} 以下だが net-negative が発動中と記載されている"
             "（1 対 1 に復帰させること）".format(total, HARD_CEILING)
         )
+
+
+# --- 機構 #9: 未払い債務の決済検査（台帳 §B §未払い債務 / HGA #26 / 2026-08-21）---
+#
+# 「入場は実行したが交換相手が未確定」という状態を台帳が持てるようにした代償として、
+# 最も蓋然性の高い失敗形が「未決済のまま忘れられる」ことになった。人手の記録義務だけに
+# 頼らず、次の入場が債務を踏み越えようとした瞬間に落ちるようにする。
+#
+# 検査は文字列の在否と行順のみで、意味解釈を含まない（設計 §1.1 の R3 要件）。
+
+_TX_ROW_RE = re.compile(r"^\|\s*(\d+)\s*\|\s*\d{4}-\d{2}-\d{2}\s*\|(.*)$")
+_DEBT_MARKER = "未払い債務"
+_SETTLED_MARKER = "債務決済済"
+_ENTRY_OP = "入場"
+# 操作列の先頭の強調キーワード（`**入場**` / `**退出**` / `**更正**`）を取る。
+_EMPHASIS_RE = re.compile(r"\*\*([^*]+)\*\*")
+
+
+def _transaction_rows(text: str) -> "list[tuple[int, str]]":
+    """§B の取引行を (取引番号, 残りの列) で返す。"""
+    rows = []
+    for line in text.splitlines():
+        match = _TX_ROW_RE.match(line)
+        if match:
+            rows.append((int(match.group(1)), match.group(2)))
+    return rows
+
+
+def _open_debt(rows: "list[tuple[int, str]]") -> "int | None":
+    """未払い債務マーカーを持つ取引番号を返す（なければ None）。"""
+    for number, rest in rows:
+        if _DEBT_MARKER in rest and _SETTLED_MARKER not in rest:
+            return number
+    return None
+
+
+def _entries_after(rows: "list[tuple[int, str]]", after: int) -> "list[int]":
+    """`after` より後の「入場」操作の取引番号を返す。
+
+    判定は**操作列の先頭の強調キーワードとの完全一致**による。部分一致で見ると、
+    操作列や根拠列に「入場」の語を含む別カテゴリの行を誤検出する —— 実際、取引 #17 の
+    操作列は「**更正**（記録面の瑕疵の是正 / **入場**でも退出でもない第三カテゴリ）」
+    であり、部分一致では入場と誤判定された（2026-08-21 の実測）。
+    """
+    result = []
+    for number, rest in rows:
+        if number <= after:
+            continue
+        emphasis = _EMPHASIS_RE.search(rest.split("|")[0])
+        if emphasis is not None and emphasis.group(1) == _ENTRY_OP:
+            result.append(number)
+    return result
+
+
+def test_unpaid_debt_blocks_new_entry():
+    """未払い債務が開いている間に新規入場が記録されていないこと。
+
+    決済するときは、退出 2 件（自分の分 + 債務分）を §B に記録したうえで
+    債務行に "債務決済済" を追記する。根拠は元本の繰越であり、§3.5 の
+    net-negative レート（天井超過時の混雑価格）ではない。
+    """
+    rows = _transaction_rows(LEDGER.read_text(encoding="utf-8"))
+    debt = _open_debt(rows)
+    if debt is None:
+        return
+    violating = _entries_after(rows, debt)
+    assert not violating, (
+        "取引 #{0} の未払い債務が未決済のまま、後続の入場 {1} が記録されている。"
+        "入場には 2 件の真正な退出（自分の分 + 債務分）が要る"
+        "（台帳 §B §未払い債務 / 設計 §3.2）".format(debt, violating)
+    )
+
+
+def test_debt_detector_fires_on_violation():
+    """陰性対照: 検出器が実際に発火することを確かめる。
+
+    実台帳が緑であることは「違反がない」とも「検出器が死んでいる」とも読める。
+    偽データで発火を確認しない限り、この検査は無言の空振りと区別できない。
+    """
+    fake = "\n".join([
+        "| 16 | 2026-08-21 | **入場** | 条項 X | 出典 | R1 | **未払い債務 1 件** | 根拠 |",
+        "| 17 | 2026-08-22 | **入場** | 条項 Y | 出典 | R1 | #99 | 根拠 |",
+    ])
+    rows = _transaction_rows(fake)
+    debt = _open_debt(rows)
+    assert debt == 16, "債務マーカーを検出できていない"
+    assert _entries_after(rows, debt) == [17], "債務後の入場を検出できていない"
+
+
+def test_debt_detector_accepts_settlement():
+    """決済済みマーカーがあれば後続の入場を妨げない（決済経路が存在すること）。"""
+    fake = "\n".join([
+        "| 16 | 2026-08-21 | **入場** | 条項 X | 出典 | R1 | **未払い債務 1 件**（債務決済済 #20・#21） | 根拠 |",
+        "| 20 | 2026-08-22 | **入場** | 条項 Y | 出典 | R1 | #21・#22 | 根拠 |",
+    ])
+    rows = _transaction_rows(fake)
+    assert _open_debt(rows) is None, "決済済みマーカーが効いていない"
