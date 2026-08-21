@@ -61,15 +61,22 @@ API 課金は発生し得る。
 - 数値はすべて初期値であり、`rubric.md` の `global_bound` フィールドで上書き可能（NFR-5）
 - `gd-session-state.json` の `global_token_bound` / `global_time_bound` フィールドに書き込まれ、スキルスクリプトおよび Stop hook B-3 節がこれを参照する
 
-### L3 max_turns 初期値（ルート別）
+### L3 打ち切りターン数 初期値（ルート別）
 
-| ルート | L3 max_turns（初期値） |
+| ルート | 打ち切りターン数（初期値） |
 |--------|----------------------|
 | 小タスク | 10 ターン |
 | 中タスク | 20 ターン |
 | 大タスク | 15 ターン（工程ごと） |
 
 > **出典**: design.md §9.2
+
+**この値を運ぶのは `/goal` 条件文の打ち切り句**（`or stop after <N> turns`）である。プロンプトなので
+ルートごとに `<N>` を差し替えられる。
+
+一方、`.claude/agents/goal-driven-l3-executor.md` の **`maxTurns` フロントマターは静的**であり、
+L3 の agent 定義は 1 ファイルしかないためルート別に変えられない。よって frontmatter には
+**上表の最大値 20 を固定で置き、バックストップとして扱う**（design.md §10 層別 bound）。
 
 ### グローバル bound フォールバック値（Stop hook B-3 節）
 

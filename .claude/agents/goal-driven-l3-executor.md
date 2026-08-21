@@ -6,6 +6,7 @@ description: |
   Task ツール（Agent）を持たず、自律 spawn 禁止。
 tools: Read, Glob, Grep, Write, Edit, Bash
 model: sonnet
+maxTurns: 20
 memory: project
 ---
 

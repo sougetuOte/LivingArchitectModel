@@ -18,12 +18,14 @@ effort を `xhigh` へ昇格させる指定をしてはならない（MUST NOT�
 > **重要**: 本スキルは `/goal` コマンドをサブエージェント内で使用しない（Plan B 確定済み）。
 > `/goal` は 2026-06-12 の実測検証によりサブエージェント内でスラッシュコマンドとして
 > 展開されないことが確認された（`research/oq1-goal-subagent-test.md` 参照）。
-> 打ち切り制御は `max_loop_count`（`gd-session-state.json` フィールド・初期値 3）で担保する（AC-7 Plan B 対応）。
-> 当初はエージェントフロントマターの `max_turns` との併用を想定していたが、**`max_turns`（snake_case）は
-> subagent frontmatter の有効キーではなく未実装**（有効キー: `name` / `description` / `tools` /
-> `disallowedTools` / `model` / `isolation` / `hooks`。近縁のものとして plugin agent 専用の `maxTurns`
-> （camelCase）と CLI フラグの `--max-turns` があるが、いずれも goal-driven の 3 agent には設定されていない
-> ・2026-08-20 実測）。**現時点で L3 のターン数打ち切りは効いておらず、`max_loop_count` のみが有効**。
+> 打ち切り制御は `max_loop_count`（`gd-session-state.json` フィールド・初期値 3）と、L3 の
+> **`maxTurns: 20`**（`goal-driven-l3-executor.md` フロントマター）の 2 本で担保する（AC-7 Plan B 対応）。
+>
+> **キー名の訂正（2026-08-21）**: 旧記述にあった `max_turns`（snake_case）は subagent frontmatter の
+> 有効キーではなく、**bound は一度も機能していなかった**（2026-08-20 発覚）。正しいキーは
+> **`maxTurns`（camelCase）**であり、plugin agent 専用ではなく `.claude/agents/*.md` でも有効である
+> ことを対照実験で確認した（`maxTurns: 2` の agent は 2 ターンで打ち切られ、無指定の対照は 10 ターン
+> 完走 / 記録: `docs/artifacts/maxturns-probe-2026-08-21.md`）。
 
 ---
 
@@ -108,13 +110,16 @@ L1 指揮者がタスクを分析し、三段階ルートを決定する。
 | global_token_bound | 50,000 | 150,000 | 400,000 |
 | global_time_bound | 3,600s | 3,600s | 7,200s |
 | max_loop_count | 3 | 3 | 3 |
-| L3 max_turns（**未実装**）| 10 | 20 | 15（工程ごと） |
+| L3 `maxTurns`（frontmatter / **全ルート 20 固定**）| 20 | 20 | 20 |
 
-> **注（2026-08-20）**: `max_turns` は subagent frontmatter の有効キーではなく、goal-driven の 3 agent
-> （`.claude/agents/goal-driven-{grader,l2-foreman,l3-executor}.md`）のいずれにも設定されていない
-> （実測: 3 ファイルとも `max_turns`/`maxTurns` 0 件）。上記の値は設計意図の記録として残すが、
-> **現時点で L3 のターン数によるループ打ち切りには効いていない**。打ち切りは `max_loop_count` と
-> グローバル bound（token / time）のみが担っている。
+> **注（2026-08-21 / 前注 2026-08-20 を差し替え）**: `maxTurns` は `goal-driven-l3-executor.md` に
+> **20 固定**で設定した。frontmatter は静的であり L3 定義は 1 ファイルしかないため、**ルート別の値
+> （設計値 小:10 / 中:20 / 大:15）は表現できない**。設計値の最大値をバックストップとして採っている。
+>
+> したがって小タスクでも 20 ターンまで走る（設計意図より緩い）。ただし改訂前は
+> `max_turns`（snake_case）が無効キーでターン打ち切りが**一切効いていなかった**ため、後退ではない。
+> ルート別の粒度を取り戻すには L3 agent 定義のファイル分割が要る（2026-08-21 に見送りを決定）。
+> 打ち切りは本項と `max_loop_count`・グローバル bound（token / time）が分担する。
 
 **`gd-session-state.json` スキーマ（design §10）**:
 ```json
