@@ -6,7 +6,7 @@ description: |
   1 PR単位への分割、依存関係の整理を担当。
   PLANNINGフェーズの最終段階で使用推奨。
 tools: Read, Glob, Grep, Write, Edit
-model: haiku
+model: haiku  # コスト最適化のため意図的に Haiku を採用（タスク分解は出力品質より速度重視）※2026-03-09 に記載され 03-13 に巻き添えで消えた根拠を復元（2026-08-21）
 memory: project
 ---
 
