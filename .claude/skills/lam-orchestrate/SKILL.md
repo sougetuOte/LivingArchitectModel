@@ -136,7 +136,7 @@ Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: gabriel probe �
 
 思考過程を `docs/artifacts/YYYY-MM-DD-magi-{用途}.md` に書き出す（可視化・追跡可能）。
 - 書き込み権限: CASPAR のみ（Single-Writer）
-- 読み取り権限: 全 Agent（Multi-Reader）
+- 読み取り権限: 全 MAGI + gabriel（Multi-Reader）
 - 削除: ユーザーのみ可能
 - フォーマット: `.claude/skills/magi/references/anchor-format.md` を参照
 

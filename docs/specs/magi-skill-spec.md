@@ -148,8 +148,13 @@ Reflection のルール:
 ### FR-M7: アンカーファイル出力
 
 思考過程を `docs/artifacts/YYYY-MM-DD-magi-{用途}.md` に常に書き出す（MUST）。
-`lam-orchestrate` の既存アンカーファイル仕様
-（`.claude/skills/lam-orchestrate/references/anchor-format.md`）と統一する。
+フォーマットの正本は **`.claude/skills/magi/references/anchor-format.md`** である（MUST）。
+
+> **正本の確定（2026-08-21）**: 本節はかつて `lam-orchestrate` 側のコピー
+> （`.claude/skills/lam-orchestrate/references/anchor-format.md`）を正本として指していたが、
+> 両ファイルは**内容が乖離**しており、lam-orchestrate 側は gabriel 統合前の Reflection 節を
+> 残したままだった（ADR-0007 Accepted 2026-07-02 以降、約 7 週間の drift）。
+> 正本を magi 側に一本化し、lam-orchestrate 側のコピーは削除した。
 
 ---
 
@@ -201,7 +206,7 @@ SSOT への参照（ファイルパス）のみを記述し、実行時に読み
 
 - SSOT: `docs/internal/06_DECISION_MAKING.md`
 - lam-orchestrate: `.claude/skills/lam-orchestrate/SKILL.md`
-- アンカーフォーマット: `.claude/skills/lam-orchestrate/references/anchor-format.md`
+- アンカーフォーマット（正本）: `.claude/skills/magi/references/anchor-format.md`
 - decision-making ルール: `.claude/rules/decision-making.md`
 - Reflection 根拠: [Multi-Agent Reflexion (MAR)](https://arxiv.org/html/2512.20845)
 - AoT 根拠: [Atom of Thoughts (NeurIPS 2025)](https://arxiv.org/html/2502.12018)
