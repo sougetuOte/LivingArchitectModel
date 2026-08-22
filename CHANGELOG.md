@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 追加: 条文が Deny と宣言していたコマンドを `settings.json` に実装した（2026-08-22 / **PM 級**）
+
+**`security-commands.md` のマトリクスが Deny 列に置いていた force push / hard reset / pipe-to-shell が、`.claude/settings.json` の deny 配列に 1 件も存在しなかった**（実測 deny 16 件）。`Bash(git push *)` が ask にあるため、force push は prefix マッチで ask に吸収されていた。deny を **16 → 24** に拡張して条文と実装を一致させた（案は `docs/artifacts/2026-08-22-settings-deny-proposal.md` / **`settings.json` は AI 編集不可のためユーザーが手動適用**）。
+
+**実害の評価は当初より小さく、しかしゼロではなかった**: 検証中に `~/.claude/hooks/pretooluse-safety.sh`（ユーザーグローバルの PreToolUse hook）が発見され、force push と pipe-to-shell は**既に正規表現で遮断**されていた。ただし hard reset のパターンは `origin` が続く形に限定されており、**`HEAD~1` 等を指定する形は素通りしていた**。ここは実際の穴であり、今回の追加が塞いだ。
+
+**重複ではない理由**: グローバル hook は `~/.claude/` にあり **LAM に同梱されない**。配布物としての LAM は自前の deny を必要とする。
+
+### 検出: 「条文が列挙し、実装が別に列挙している」箇所の横断掃き（2026-08-22 / 19 対 / 乖離 11 件）
+
+HGA #28 が付随観測として見つけた 1 件（PM 級パス列挙の `CLAUDE.md` 欠落 / 約 4 週間未発見）を**欠陥クラス**と見なし、4 スライス並列で横断検査した（`docs/artifacts/2026-08-22-enumeration-drift-sweep.md`）。
+
+**最重要の発見は条文同士の突合では出なかった** —— **`memory: project` を持つサブエージェントは、`tools:` に書かれていなくても Write/Edit を持つ**（公式挙動 / canary で実測）。`gabriel`（NFR-W-C-3 = 読み取り専用）と `goal-driven-grader`（W-2 = ファイル変更禁止）は**「書けないこと」を安全根拠として文書に書いているが、その根拠が成立していない**。
+
+その他: 台帳・自動生成系は**乖離 0**（§C 機構 9 件は判定コマンドを実際に実行して全通過）/ `SKILL.md`「全 8 パターン」vs 実装 9 種 / `magi-skill-spec.md` が gabriel 統合前の draft のまま放置 / `disallowedTools` が実在しない（`tools:` 正リストで代替済 = 安全側）/ 許可マトリクスに lint 群 10 件が未記載。
+
+**教訓**: 「文書 A と文書 B が一致しているか」の検査は、**両方が同じ思い込みを共有している場合に無力**である。
+
 ### 整理: 行動規範ファイルを「原理」に純化し、権限等級の記述を実務台帳へ寄せた（2026-08-22 / **PM 級** / MAGI + gabriel + HGA #28）
 
 **`core-identity.md` を廃止して分配する案（案 2）は、2026-08-21 の MAGI が「影響範囲の全数調査を経てから改めて問う」として保留していた。** 全数調査（92 件）の結果、**却下理由 3 本のうち 2 本が事実に耐えなかった** —— (i) 破壊すると見られていたテストは赤くならず**無言で空振り**するだけだった (ii) 仕様（`v4.0.0-immune-system-requirements.md`）に `core-identity` は **0 件**で、「概要を置け」と指定していたのは `docs/tasks/` 側の**完了記録**（`AC-1.24`）だった。追随が必須の参照も 71 件ではなく **5 件**だった。

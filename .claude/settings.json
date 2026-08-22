@@ -47,7 +47,15 @@
       "Bash(find * -delete *)",
       "Bash(find * -exec rm *)",
       "Bash(find * -exec chmod *)",
-      "Bash(find * -exec chown *)"
+      "Bash(find * -exec chown *)",
+      "Bash(git push --force*)",
+      "Bash(git push -f *)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f *)",
+      "Bash(git reset --hard*)",
+      "Bash(curl * | bash*)",
+      "Bash(curl * | sh*)",
+      "Bash(wget * | bash*)"
     ],
     "ask": [
       "Bash(find *)",
