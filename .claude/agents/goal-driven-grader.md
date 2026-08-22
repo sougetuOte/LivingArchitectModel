@@ -7,6 +7,7 @@ description: |
   Bash は rubric の verify コマンド実行（テスト・lint 等の読み取り専用検証）のみ使用。
   ファイル変更・git 操作・パッケージ操作は禁止（W-2）。
 tools: Read, Glob, Grep, Bash
+disallowedTools: Write, Edit
 model: haiku
 memory: project
 ---

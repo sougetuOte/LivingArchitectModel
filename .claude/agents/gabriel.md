@@ -8,6 +8,7 @@ description: |
   AoT 非適用 MAGI（軽量モード）では起動しない（FR-W-C-3 MUST NOT）。
   ファイル変更・git 操作は行わず、読み取り専用の検証のみを行う（NFR-W-C-3 暴走リスク抑制）。
 tools: Read, Glob, Grep
+disallowedTools: Write, Edit
 model: sonnet
 memory: project
 ---
