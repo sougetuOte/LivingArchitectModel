@@ -39,7 +39,7 @@ docs/adr/                  # アーキテクチャ決定記録
 
 | ファイル | 内容 |
 |---------|------|
-| `core-identity.md` | Living Architect 行動規範 |
+| `core-identity.md` | Living Architect 行動規範（原理: Active Retrieval / 第 0 原則） |
 | `phase-rules.md` | フェーズ別ガードレール（PLANNING/BUILDING/AUDITING） |
 | `security-commands.md` | コマンド安全基準（Allow/Deny List） |
 | `decision-making.md` | 意思決定プロトコル（MAGI System） |

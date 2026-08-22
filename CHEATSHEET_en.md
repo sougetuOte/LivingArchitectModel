@@ -39,7 +39,7 @@ docs/adr/                  # Architecture Decision Records
 
 | File | Description |
 |------|-------------|
-| `core-identity.md` | Living Architect behavioral guidelines |
+| `core-identity.md` | Living Architect behavioral principles (Active Retrieval / Principle Zero) |
 | `phase-rules.md` | Phase-specific guardrails (PLANNING/BUILDING/AUDITING) |
 | `security-commands.md` | Command safety standards (Allow/Deny List) |
 | `decision-making.md` | Decision-making protocol (MAGI System) |

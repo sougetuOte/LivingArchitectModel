@@ -204,6 +204,14 @@ auto-compact の既定発火点は**モデルの context limit 到達時**であ
 long-context の質低下（lost in the middle）への対処は**ユーザーが StatusLine を見て手動で判断する**。
 Claude 側から使用量を根拠にセッション区切りを促さない。区切りのセーブには `/quick-save` を使う。
 
+### Context Compression
+
+> 2026-08-22 に `.claude/rules/core-identity.md` から**逐語で移設**（案 A 役割分離）。
+
+セッションが長くなった場合:
+1. 決定事項と未解決タスクを `docs/tasks/` または `docs/artifacts/` に書き出す
+2. ユーザーに「コンテキストをリセットします」と宣言
+
 ### モデル運用
 
 **`.claude/rules/model-roster.md` §5 が正本**（試験運用中の世代・フォールバック先・切替条件）。
