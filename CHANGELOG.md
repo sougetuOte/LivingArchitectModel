@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [v5.1.0] - 2026-08-26
+
 ### 修正: PM 級パス列挙の複製を正本 1 枚に畳んだ（2026-08-26 / **PM 級**）
 
 **ドリフトの原因は「欠落」ではなく「複製」だった。** `permission-levels.md` には PM 級パスの列挙が **4 箇所**あり、ルート `CLAUDE.md` は**その 4 箇所すべてから同時に欠けていた**（実装 `_hook_utils.py` は 2026-07-26 から PM 判定 / 約 4 週間未発見）。
