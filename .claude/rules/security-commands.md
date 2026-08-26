@@ -33,19 +33,24 @@ allow に含まれず deny にも含まれない操作は **ask** (ユーザー�
 |---|---|---|---|
 | ファイル読取 | `ls`, `cat`, `grep`, `pwd`, `du`, `file` | — | — |
 | ファイル削除 | — | — | `rm`, `rm -rf` (不可逆なデータ消失) |
-| ファイル移動 | — | `mv <src> <dst>` (引数明示) | — |
+| ファイル移動 | — | — | `mv` (不可逆な上書きを含むため / **2026-08-26 に Ask から移動 = 実装は当初から deny**) |
 | ファイル操作 (作成系) | — | `cp`, `mkdir`, `touch` | — |
-| ファイル検索 | — | `find` (v4.3.1 で ask に移動) | `find -delete`, `find -exec rm` (破壊的パターン) |
+| ファイル検索 | — | `find` (v4.3.1 で ask に移動) | `find -delete`, `find -exec rm`, `find -exec chmod`, `find -exec chown` (破壊的パターン) |
 | 権限変更 | — | — | `chmod`, `chown` (セキュリティ境界の破壊) |
 | Git 読取 | `git status`, `git log`, `git diff`, `git show`, `git branch` | — | — |
-| Git 書込 | — | `git commit`, `git merge` | `git push --force`, `git reset --hard` (AutoMode soft_deny と二重) |
-| Git リモート | — | `git push` | — |
-| テスト | `pytest` (引数明示 or 既知パス), `npm test`, `go test` | — | — |
+| Git 書込 | — | `git commit`, `git merge` | `git push --force` / `-f` (4 形), `git reset --hard` (AutoMode soft_deny と二重 / **2026-08-22 に実装済**) |
+| Git リモート | — | `git push`, `git pull`, `git fetch`, `git clone` | — |
+| テスト | `pytest`, `python -m pytest`, `python3 -m pytest`, `npm test`, `go test` | — | — |
+| 静的解析・整形 (PG 級 auto allow) | `ruff check`, `ruff check --fix`, `ruff format`, `python -m ruff check`, `npx prettier`, `npx eslint --fix` | — | — |
+| シークレット走査 | `gitleaks detect`, `gitleaks protect`, `gitleaks version` | — | — |
+| LAM スクリプト実行 | `bash .claude/scripts/py_invoke.sh` (Python 呼び出しの単一 entry point / D4 の allowlist prefix 1 本) | — | — |
 | パッケージ情報 | `npm list`, `pip list` | — | — |
 | プロセス情報 | `ps` | — | — |
-| ネットワーク | — | `curl <既知 URL>`, `wget`, `ssh` | `curl | bash`, `wget <不明ホスト>` (外部通信 + 実行の複合) |
-| 実行 | — | `npm start`, `python main.py`, `make` | — |
-| システム変更 | — | — | `apt`, `brew`, `systemctl`, `reboot` (システム設定の変更) |
+| ネットワーク | — | `curl <既知 URL>`, `wget`, `ssh` | `curl \| bash`, `curl \| sh`, `wget \| bash` (外部通信 + 実行の複合) |
+| 実行 | — | `python` (全般), `npm start`, `npm run`, `make` | — |
+| システム変更 | — | — | `apt`, `yum`, `brew`, `systemctl`, `service`, `reboot`, `shutdown` (システム設定の変更) |
+
+> **本表は `.claude/settings.json` の実測（allow 29 / ask 17 / deny 24）と一致する**（2026-08-26 突合 / `docs/artifacts/2026-08-22-enumeration-drift-sweep.md` §2）。片方だけを更新しないこと —— **表と実装のどちらが正しいかは、表からは判定できない**（同掃き §6 共通の教訓）。
 
 上記に含まれないコマンドは **高リスク扱い**（ask / ユーザー判断必須）。
 

@@ -2,7 +2,8 @@
 
 **バージョン**: 1.0
 **作成日**: 2026-03-16
-**ステータス**: draft
+**ステータス**: **superseded**（2026-08-26 / draft のまま陳腐化していたものを明示）
+**後継**: `docs/specs/magi-v2-gabriel/requirements.md` v0.4.0（Approved）—— 本仕様の **FR-M3 Reflection は ADR-0007（Accepted 2026-07-02）で gabriel adversarial probe に置換済**であり、実装は後継に追随している。**本ファイルは歴史的記録であり、現行仕様として読んではならない**
 **SSOT 参照**: `docs/internal/06_DECISION_MAKING.md`（AoT + MAGI System）
 **名前の由来**: エヴァンゲリオンの MAGI システム（3 つの独立した思考体による合議意思決定）
 

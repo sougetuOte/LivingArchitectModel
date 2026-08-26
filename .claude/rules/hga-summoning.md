@@ -218,6 +218,13 @@ I'll wait for it to complete」型の応答で早期終了し、実作業は孫 
 disallowedTools: [Agent]  # 孫 subagent spawn を封じ、Sonnet に「自分でやる」以外の選択肢を残さない
 ```
 
+> **実装の現況（2026-08-26 突合）**: LAM 内の 12 定義に `disallowedTools: [Agent]` は**存在しない**。
+> Agent 封じは `tools:` の正リスト方式で達成済み（11/12 が `Agent` を持たず、`goal-driven-l2-foreman` のみ
+> `Agent(goal-driven-l3-executor)` とスコープ限定）であり、**機能的には同等かつ安全側**。
+> 一方 `disallowedTools` 自体は `gabriel` / `goal-driven-grader` で **Write/Edit 封じに実使用中**である
+> （`memory: project` による自動付与を打ち消す唯一の手段 / 2026-08-26 canary 実測）。
+> 上記コード例は**手段の例示**であって、この形の実在を主張するものではない。
+
 または委譲プロンプト側で明示的に指示:
 
 ```

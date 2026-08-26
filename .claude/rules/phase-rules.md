@@ -48,7 +48,7 @@ requirements / design / tasks の各成果物完成時、ユーザーへ承認�
 
 - `docs/specs/`, `docs/adr/`, `docs/tasks/`, `docs/artifacts/` への出力
 - 既存コード読取（仕様策定のため）、Mermaid 図表作成
-- `.claude/states/*.json` の更新
+- `.claude/states/` 配下の更新（**実装は拡張子を問わない** = `_PLANNING_ALLOW_PATTERNS` の `^\.claude/states/` / 「`.json` だから設定ファイル」とみなす実装が正規の状態書込を殺す事故を防ぐため）
 
 ---
 
