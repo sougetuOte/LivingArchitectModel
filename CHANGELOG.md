@@ -50,6 +50,14 @@ All notable changes to this project will be documented in this file.
 
 **重複ではない理由**: グローバル hook は `~/.claude/` にあり **LAM に同梱されない**。配布物としての LAM は自前の deny を必要とする。
 
+### 整理: 起動不能な参照ファイルと追跡下のバックアップを削除（2026-08-20 / 配布物から 3 ファイル減）
+
+`skill-creator/references/` の 2 ファイル（`output-patterns.md` / `workflows.md`）は**どの skill からも起動されない孤児**であり、`.claude/lam-loop-state.json.bak` は**バックアップがバージョン管理下に入っていた**。計 289 行を削除した。**受け取る側ではファイルが消える**ため本節に記録する。
+
+### 修正: `task-decomposer` の model 根拠を復元し、失効タスクをクローズ（2026-08-21）
+
+`.claude/agents/task-decomposer.md` の `model` 指定から根拠コメントが失われていたのを復元。併せて `docs/tasks/secret-pattern-expansion.md` を **CLOSED（対象消滅）** とした —— 拡充対象だった `_SECRET_PATTERN` 自体が**起票の翌日に削除されていた**ため、5 か月間「対象のないタスク」が開いたままだった。
+
 ### 検出: 「条文が列挙し、実装が別に列挙している」箇所の横断掃き（2026-08-22 / 19 対 / 乖離 11 件）
 
 HGA #28 が付随観測として見つけた 1 件（PM 級パス列挙の `CLAUDE.md` 欠落 / 約 4 週間未発見）を**欠陥クラス**と見なし、4 スライス並列で横断検査した（`docs/artifacts/2026-08-22-enumeration-drift-sweep.md`）。
@@ -59,6 +67,8 @@ HGA #28 が付随観測として見つけた 1 件（PM 級パス列挙の `CLAU
 その他: 台帳・自動生成系は**乖離 0**（§C 機構 9 件は判定コマンドを実際に実行して全通過）/ `SKILL.md`「全 8 パターン」vs 実装 9 種 / `magi-skill-spec.md` が gabriel 統合前の draft のまま放置 / `disallowedTools` が実在しない（`tools:` 正リストで代替済 = 安全側）/ 許可マトリクスに lint 群 10 件が未記載。
 
 **教訓**: 「文書 A と文書 B が一致しているか」の検査は、**両方が同じ思い込みを共有している場合に無力**である。
+
+> **本節は検出時点の記述である。挙げた乖離は本リリース内で全件処理した**（上記「解決: サブエージェントの読み取り専用」「修正: 許可マトリクス」「修正: PM 級パス列挙の複製」）。特に **`disallowedTools` は現在 2 定義で実在する** —— 本節の「実在しない」は 2026-08-22 時点の事実であり、その後 `gabriel` / `goal-driven-grader` の Write/Edit 封じとして導入された。
 
 ### 整理: 行動規範ファイルを「原理」に純化し、権限等級の記述を実務台帳へ寄せた（2026-08-22 / **PM 級** / MAGI + gabriel + HGA #28）
 

@@ -37,15 +37,28 @@ docs/adr/                  # アーキテクチャ決定記録
 
 ## Rules ファイル一覧
 
-| ファイル | 内容 |
-|---------|------|
-| `core-identity.md` | Living Architect 行動規範（原理: Active Retrieval / 第 0 原則） |
-| `phase-rules.md` | フェーズ別ガードレール（PLANNING/BUILDING/AUDITING） |
-| `security-commands.md` | コマンド安全基準（Allow/Deny List） |
-| `decision-making.md` | 意思決定プロトコル（MAGI System） |
-| `permission-levels.md` | 権限等級分類基準（PG/SE/PM）**v4.0.0 新規** |
-| `upstream-first.md` | 上流仕様優先原則（プラットフォーム機能の実装前確認） |
-| `test-result-output.md` | テスト結果ファイル出力ルール（JUnit XML） |
+**ロード区分**: **R1** = 無条件ロード（毎セッション必ず読まれる / 常駐面の予算対象）/ **R2** = 条件ロード（frontmatter の `paths:` に一致したときのみ）。
+
+| ファイル | 区分 | 内容 |
+|---------|:----:|------|
+| `core-identity.md` | R1 | Living Architect 行動規範（原理: Active Retrieval / 第 0 原則） |
+| `phase-rules.md` | R1 | フェーズ別ガードレール（PLANNING/BUILDING/AUDITING） |
+| `security-commands.md` | R1 | コマンド安全基準（許可マトリクス / 反面教師制約 D1・D4） |
+| `decision-making.md` | R1 | 意思決定プロトコル（MAGI System + gabriel probe） |
+| `permission-levels.md` | R1 | 権限等級分類基準（PG/SE/PM）＋ PM 級パス列挙の**正本** |
+| `upstream-first.md` | R1 | 上流仕様優先原則（実在性 → 適合性の二段構え） |
+| `terminology.md` | R1 | 用語ガイドライン（Project / Milestone / Step / Wave / Task） |
+| `code-quality-guideline.md` | R1 | 重要度分類（Critical / Warning / Info）と Green State 条件 |
+| `hga-summoning.md` | R1 | HGA 型 Fable 召喚規律（召喚ゲート / 下調べパイプライン） |
+| `model-roster.md` | R1 | 層 → モデルの束縛（**モデル名を書いてよい唯一の場所**）/ 単価・envelope |
+| `artifact-length-calibration.md` | R2 | 成果物の長さキャリブレーション |
+| `model-delegation-prompting.md` | R2 | 委譲プロンプトの書き方（`paths: .claude/agents/*.md`） |
+| `planning-quality-guideline.md` | R2 | 仕様書・設計書・タスクの品質基準 |
+| `subprocess-encoding-convention.md` | R2 | サブプロセスの文字コード規約 |
+| `test-result-output.md` | R2 | テスト結果ファイル出力ルール（JUnit XML） |
+| `auto-generated/` | R1 / R2 | TDD 内省パイプラインの自動生成ルール（`trust-model.md` / `rule-001` = R1 / `rule-002` = R2） |
+
+> **本表は網羅である**（2026-08-26 実測 = トップレベル 15 件 + `auto-generated/`）。**部分列挙にしないこと** —— 以前は 7 件のみを載せており、追加されたルールが約 4 か月にわたり一覧から漏れていた（列挙ドリフト / `docs/artifacts/2026-08-22-enumeration-drift-sweep.md`）。
 
 ## 権限等級（PG/SE/PM）**v4.0.0 新規**
 
