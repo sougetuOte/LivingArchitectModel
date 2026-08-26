@@ -109,7 +109,7 @@ CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作�
 4. **前提検証**: AoT Decomposition で設定した Atom の依存関係が結論に反映されているか
 5. **境界条件**: 結論が適用できないエッジケース（スコープ外・例外）が未記録ではないか
 
-**呼び出し方法**: Task ツール経由で `subagent_type=gabriel` を起動する。gabriel は独立コンテキストで動作し、Read/Glob/Grep/Write/Edit のみ利用可（Bash・Agent ツール禁止 / NFR-W-C-3 暴走リスク抑制）。
+**呼び出し方法**: Task ツール経由で `subagent_type=gabriel` を起動する。gabriel は独立コンテキストで動作し、**Read/Glob/Grep のみ利用可**（Write/Edit/Bash・Agent ツール禁止 / NFR-W-C-3 暴走リスク抑制）。**`memory: project` は Write/Edit を自動付与するため、`disallowedTools: Write, Edit` で打ち消している**（2026-08-26 canary で実測 / `docs/artifacts/2026-08-22-enumeration-drift-sweep.md` §1）。
 
 **タイムアウト**: 360 秒（NFR-W-C-1 / SHOULD / 2026-07-26 改訂）。呼び出し元で経過時間を計測し、超過時は `verdict=inconclusive + timeout 注記` として扱う。
 
@@ -139,7 +139,7 @@ gabriel の返り値に応じて以下のいずれかの経路を辿る。**優�
 
 **再 MAGI カウンター**: 1 ラウンド上限（AC-W-C-7）。2 回目の critical refute で自動的に人間エスカレーション。カウンターは MAGI ログセッション単位で管理する。
 
-**実装参照**: verdict 別分岐の Python 実装 SSOT は `.claude/scripts/magi_dispatch.py` (`resolve_action()` + `render_log_entry()`) を参照。テストは `.claude/tests/wave_c/test_wave_c_magi_integration.py` で全 8 パターンを網羅。
+**実装参照**: verdict 別分岐の Python 実装 SSOT は `.claude/scripts/magi_dispatch.py` (`resolve_action()` + `render_log_entry()`) を参照。テストは `.claude/tests/wave_c/test_wave_c_magi_integration.py` で**全 9 パターン**を網羅（`resolve_action()` の action 値は 9 種 / `handle_format_error` のみ 2 経路 = format_error と defensive fallback）。
 
 ### Step 4.2: opt-out 経路
 
@@ -326,6 +326,6 @@ MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体�
 - ADR-0005: `docs/adr/0005-thin-harness-autonomous-governance.md`（Reflection 追補 / FR-9.1 opt-out 権限境界の根拠）
 - gabriel subagent: `.claude/agents/gabriel.md`（Wave C Stage 2 実装済 / 2026-07-04 commit `6880421`）
 - verdict 別分岐 Python SSOT: `.claude/scripts/magi_dispatch.py` (Wave C Stage 3 T6 / 2026-07-05 実装)
-- 統合テスト: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (T6 / 全 8 verdict パターン)
+- 統合テスト: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (T6 / **全 9 verdict パターン**)
 - アンカーフォーマット: `.claude/skills/magi/references/anchor-format.md`
 - decision-making ルール: `.claude/rules/decision-making.md`（Step 4 は「gabriel Adversarial Probe（AoT 適用時のみ）」に**置換済** / 2026-08-20 確認）

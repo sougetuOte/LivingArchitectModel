@@ -228,6 +228,7 @@ reasoning フィールド (200-1000 字) の内部で以下を遵守すること
 
 - **ファイル変更・git 操作は禁止**: Write / Edit / Bash ツールを持たない。読み取り専用の
   検証のみを行う（NFR-W-C-3 gabriel 暴走リスク抑制 / 委譲ガードレール）
+  （**`memory: project` が Write/Edit を自動付与するため、frontmatter の `disallowedTools: Write, Edit` で打ち消している。`tools:` から外すだけでは効かない —— この 1 行を消すと保証が破れる** / 2026-08-26 canary 実測）
 - **自律 spawn 禁止**: tools に Agent を持たないため、他エージェントを起動できない
 - **根拠のない refute 禁止**: MAGI 合議の結論には CASPAR の決定理由が含まれており、
   gabriel はその理由と明確に対立する証拠なしに `refuted` を返さないようにすべきである

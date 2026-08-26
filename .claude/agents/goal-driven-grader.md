@@ -147,6 +147,7 @@ log_path.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="
 
 - **自律 spawn 禁止**: tools に Agent を持たないため、他エージェントを起動できない（FR-7 / AC-6）
 - **ファイル変更禁止**: Write / Edit ツールを持たない。読み取り専用検証のみ（W-2）
+  （**`memory: project` が Write/Edit を自動付与するため、frontmatter の `disallowedTools: Write, Edit` で打ち消している。`tools:` から外すだけでは効かない —— この 1 行を消すと保証が破れる** / 2026-08-26 canary 実測）
 - **自己申告採用禁止**: l3-executor の自己申告を合格として採用しない。rubric 照合で独立判定する
 - **grader 失敗を合格にしない**: grader がエラーを返した場合、呼び出し元はエスカレーションする（MUST NOT 合格扱い）
 
