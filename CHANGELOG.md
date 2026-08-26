@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 解決: サブエージェントの「読み取り専用」を実際に回復した（2026-08-26 / canary 実測）
+
+**`disallowedTools` は `memory: project` による Write/Edit 自動付与を打ち消す。** 前セッションで仮説として適用していた 1 行（`b165077`）を、新セッションの canary で確証した —— gabriel の実行時ツールは **Read / Glob / Grep のみ**となり、`Write` の呼び出しは拒否された。memory 指示の注入は健在なので、**memory 機構を失わずに書込だけを落とせている**。
+
+**交絡は同一スナップショット内の対照で排除した**: 同じ `memory: project` を持ちながら `disallowedTools` を持たない 3 定義（`code-reviewer` / `quality-auditor` / `test-runner`）は、**同じレジストリ内で今も Write/Edit を持つ**。差分は frontmatter 1 行のみ。上流ドキュメントに記述がなかった相互作用（掃き §1 の U4）への実測回答である。
+
+**副産物として条文の真偽が 3 箇所で反転した** —— `gabriel.md` と `SKILL.md:317` の「書けない」は真に戻り、逆に**唯一正しかった `SKILL.md:112`（「Write/Edit も使える」）が偽になった**。各 agent 定義には**機構の注記**を添えた（`tools:` から外すだけでは効かず、`disallowedTools` の 1 行が保証を担っていることは自明でないため）。
+
+### 修正: 許可マトリクスを `settings.json` の実測と全数突合した（2026-08-26 / **PM 級**）
+
+掃きが D-6 として挙げていた「lint 群 10 件の記述漏れ」は、**実際にはもっと広い乖離の一部**だった。`security-commands.md` のマトリクスを allow 29 / ask 17 / deny 24 と全数突合し、以下を一致させた:
+
+- **`mv` を Ask → Deny へ**（D-3 / 実装は当初から deny だった = 表を読む者は「承認すれば使える」と誤解する）
+- 記述漏れの追加: `git pull` / `fetch` / `clone`、`npm run`、`python` 全般、`yum` / `service` / `shutdown`、`find -exec chmod` / `chown`、`python -m pytest`
+- 新設 3 行: 静的解析・整形（PG 級 auto allow）/ シークレット走査 / LAM スクリプト実行（`py_invoke.sh`）
+
+併せて **out-of-root パスの PM 判定**を `permission-levels.md` のパス分類表に追加（D-1 / `pre-tool-use.py` は最優先で判定しているが条文に行がなかった）、**PLANNING 許可の `.claude/states/`** を実装（拡張子を問わない）に一致（D-2）、**`disallowedTools: [Agent]` の記述**に実態注記（§4 / `[Agent]` 形は 0 件・Agent 封じは `tools:` 正リストで達成済）、**`magi-skill-spec.md` を `superseded`** へ（M-3 / 削除ではなく後継の明示 = 可逆性を優先）、**`SKILL.md` の「全 8 パターン」を 9 に**（M-1）。
+
+**誕生ゲートの会計は予算中立**。承認済み実装の記述化のみで新規の判断を含まず、§A ゲージも **60 のまま動かなかった**（編集前後で実測 / ただし荷重は前者に掛けている —— ゲージ不動は台帳 §2 表の第一の限界そのものであり、それ単独では根拠にならない）。**未払い債務 1 件は開いたまま**で、増やしていない。
+
 ### 追加: 条文が Deny と宣言していたコマンドを `settings.json` に実装した（2026-08-22 / **PM 級**）
 
 **`security-commands.md` のマトリクスが Deny 列に置いていた force push / hard reset / pipe-to-shell が、`.claude/settings.json` の deny 配列に 1 件も存在しなかった**（実測 deny 16 件）。`Bash(git push *)` が ask にあるため、force push は prefix マッチで ask に吸収されていた。deny を **16 → 24** に拡張して条文と実装を一致させた（案は `docs/artifacts/2026-08-22-settings-deny-proposal.md` / **`settings.json` は AI 編集不可のためユーザーが手動適用**）。
