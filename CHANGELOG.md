@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 修正: `/release` がタグ止まりで GitHub Release を作らなかった（2026-08-26）
+
+**タグと Release は別のオブジェクトである。** `git push --follow-tags` が作るのはタグだけで、GitHub の Releases ページには何も現れない。skill は Phase 5（push）で終わっており、**リリースページの更新が手順に存在しなかった**。過去 32 件はユーザーが手で補っていた。
+
+v5.1.0 で実際に発生（タグは正しく push されたのに Latest が v5.0.1 のまま）し、ユーザーの指摘で発覚。**Phase 6: GitHub Release の作成（省略不可）** を追加した —— タグのリモート到達確認 / リリースノートの構成の既定形 / `--notes-file` を使う理由（インライン `--notes` は日本語 + 改行 + バッククォートでシェルが壊れる）/ `--latest` の明示 / `gh release list` での結果確認まで。
+
+併せて**完了条件のチェックリスト 5 項**を新設した。「タグのみの状態は『リリースしたつもり』を生む最も蓋然性の高い失敗形である」と明記し、`gh` 未認証時に **Phase 6 を飛ばしたまま完了と報告しない**ことを禁じた。
+
+
 ## [v5.1.0] - 2026-08-26
 
 ### 修正: PM 級パス列挙の複製を正本 1 枚に畳んだ（2026-08-26 / **PM 級**）
