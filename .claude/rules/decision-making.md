@@ -12,7 +12,8 @@
 
 ## Execution Flow
 
-> **モード宣言 MUST**: MAGI ログ冒頭で必ずモード (AoT または 軽量) を宣言する（FR-W-C-3）。軽量モード（非 AoT）では下記 4 の gabriel probe は起動しない（**MUST NOT**）。
+> MAGI ログ冒頭での**モード宣言**は `.claude/skills/magi/SKILL.md` §モード判定（FR-W-C-3）が担う。
+> **モードの判定基準そのものは下記 §AoT 適用条件**（および `phase-rules.md` BUILDING §Self-Check）に残る。
 
 1. **Divergence**: MELCHIOR と BALTHASAR が意見を出し尽くす
 2. **Debate**: 対立ポイントについて解決策を検討
@@ -24,9 +25,11 @@
 
 ### 適用条件（いずれか該当）
 
-- 判断ポイントが **2つ以上**
-- 影響レイヤー/モジュールが **3つ以上**
-- 有効な選択肢が **3つ以上**
+> **本節が 3 軸の値の正本である**。同じ値が `phase-rules.md` BUILDING §AoT/MAGI 適用条件 Self-Check（実務チェックリスト）と `magi/SKILL.md` §適用条件（起動判定）にもあり、**変更時は 3 箇所を同時に直す**（2026-08-27 に表記揺れ「2つ以上」/「2 つ以上」を統一 / probe 2 巡目の指摘）。
+
+- 判断ポイントが **2 つ以上**
+- 影響レイヤー/モジュールが **3 つ以上**
+- 有効な選択肢が **3 つ以上**
 
 ### Atom の定義
 
@@ -70,7 +73,7 @@ AoT Decomposition → MAGI Debate (各Atom) → gabriel probe → AoT Synthesis
 - confidence: 0.0-1.0（0.3 未満なら verdict=inconclusive 強制）
 - 処理: `recommended_action` に応じた分岐（優先順位: **abort > critical+re-magi > warning > info > confirmed > inconclusive**）。詳細分岐は SKILL.md §Step 4.1。親 SSOT: `docs/internal/06_DECISION_MAKING.md` §6.5-6.6
 - プローブ観点（rubric 5 観点）: 論理的一貫性 / 仕様整合 / リスク見落とし / 前提検証 / 境界条件（詳細: 親 §6.4）
-- **opt-out** (**MUST**): 以下 2 条件を**すべて**満たす場合のみスキップ可能: (1) opt-out 理由を MAGI ログに 1 文以上記録 (2) ユーザー（L1 統括）がスキップを明示。**AUTONOMOUS フェーズでの自律ループ opt-out は却下**（ADR-0005 FR-9.1 統治への自己書込禁止 / 詳細: 親 §6.8）
+- **opt-out**: 条件・AUTONOMOUS での扱いは SKILL.md §Step 4.2（親 §6.8）
 
 ### AoT Synthesis
 **統合結論**: ...
