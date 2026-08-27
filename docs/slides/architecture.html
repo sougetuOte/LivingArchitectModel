@@ -548,13 +548,13 @@ graph LR
           <li>影響レイヤーが <strong>3つ以上</strong></li>
           <li>選択肢が <strong>3つ以上</strong></li>
         </ul>
-        <p style="font-size: 0.85em; margin-top: 1rem;">複雑な判断を独立した <strong>Atom</strong> に分解し、<br>各 Atom で MAGI 合議 → Reflection で結論検証</p>
+        <p style="font-size: 0.85em; margin-top: 1rem;">複雑な判断を独立した <strong>Atom</strong> に分解し、<br>各 Atom で MAGI 合議 → gabriel probe で結論検証</p>
         <pre class="mermaid" style="margin-top: 0.5rem;">
 graph LR
   D["AoT<br/>Decomposition"] --> A1["Atom 1<br/>MAGI"]
   D --> A2["Atom 2<br/>MAGI"]
   D --> A3["Atom 3<br/>MAGI"]
-  A1 --> R["Reflection"]
+  A1 --> R["gabriel"]
   A2 --> R
   A3 --> R
   R --> S["AoT<br/>Synthesis"]
@@ -588,7 +588,7 @@ graph TD
   style M fill:#ce9178,stroke:#fff,color:#000
         </pre>
         <div class="emphasis-box fragment">
-          <p style="font-size: 0.8em;">複数ファイル/モジュールにまたがる作業を<strong>自動分解・並列実行</strong>。設計判断では MAGI System + Reflection で<strong>ハルシネーションを抑制</strong></p>
+          <p style="font-size: 0.8em;">複数ファイル/モジュールにまたがる作業を<strong>自動分解・並列実行</strong>。設計判断では MAGI System + gabriel probe で<strong>ハルシネーションを抑制</strong></p>
         </div>
       </section>
 

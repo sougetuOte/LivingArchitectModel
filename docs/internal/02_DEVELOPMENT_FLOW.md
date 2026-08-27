@@ -26,7 +26,7 @@
 
 ### MAGI System（構造化意思決定）との連携
 
-Phase 1 の各ステップにおいて、`/magi` スキル（AoT + MAGI Debate + Reflection）を活用できる:
+Phase 1 の各ステップにおいて、`/magi` スキル（AoT + MAGI Debate + gabriel probe）を活用できる:
 
 | ステップ | 適用 | 参照 |
 |----------|------|------|

@@ -77,7 +77,6 @@ AI が壁打ち相手になりながら、承認ゲートを一つずつ通過�
 |-------------|------|
 | `.claude/rules/` | 汎用ルール（どのプロジェクトでも有効） |
 | `.claude/hooks/` | 免疫システム |
-| `.claude/commands/` | フェーズ制御・ワークフロー |
 | `.claude/agents/`, `skills/` | 専門サブエージェント・スキル |
 | `.claude/agent-memory/` | Subagent のセッション跨ぎ学習記録 |
 | `docs/internal/` | 開発プロセスの SSOT |
