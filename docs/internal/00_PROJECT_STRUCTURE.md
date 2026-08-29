@@ -25,7 +25,6 @@
 │   ├── daily/              # /quick-save Daily 記録
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
 ├── .claude/                # Claude Code用設定・コマンド・状態管理
-│   ├── commands/           # ワークフローコマンド（/ship, /full-review 等）
 │   ├── rules/              # ガードレール（自動ロード）
 │   ├── hooks/              # PreToolUse/PostToolUse/Stop/PreCompact hooks
 │   ├── skills/             # スキル定義（テンプレート、思考フレームワーク等）
@@ -81,7 +80,6 @@
   |
   v 参照・実装
 情報層 2: .claude/rules/    — ガードレール（自動ロード）
-          .claude/commands/ — ワークフロー（手動実行）
           .claude/hooks/    — 自動化 hooks（PreToolUse/PostToolUse/Stop/PreCompact）
           .claude/agents/   — エージェント定義
           .claude/skills/   — スキル定義

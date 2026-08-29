@@ -1,5 +1,9 @@
 # LAM Quick Start Guide
 
+**LAM is a governance-type AI agent harness** — a governance layer that gives the AI agent in
+Claude Code approval gates, permission grades, and phase discipline. The runtime substrate is
+Claude Code itself, so **LAM does not run on its own**.
+
 > New to LAM? Start with the [concept slides](docs/slides/index-en.html) for a visual overview.
 
 ## Prerequisites
@@ -22,7 +26,7 @@ cd my-project
 rm -rf .git && git init
 ```
 
-## Step 2: Launch Claude Code and Define Requirements with `/planning`
+## Step 2: Launch Claude Code and Start PLANNING
 
 ```bash
 claude
@@ -31,13 +35,24 @@ claude
 When Claude Code starts, LAM's configuration (`.claude/`, `CLAUDE.md`, etc.) is loaded automatically.
 No need for `claude init` — the template includes everything.
 
-Once launched, type `/planning` to enter the PLANNING phase and describe your idea:
+Once launched, ask the AI to start the PLANNING phase and describe your idea:
 
 ```
-/planning
+Start the PLANNING phase.
 
 "I want to build a web app that manages ..."
 ```
+
+> **The source of truth for the current phase is `.claude/current-phase.md`.** The AI updates that
+> file to `PLANNING`, and the hook guards (such as refusing config-file edits during PLANNING)
+> read that value. You can verify the switch yourself:
+>
+> ```bash
+> cat .claude/current-phase.md
+> ```
+>
+> **If it was not updated, no guard is active.** Ask the AI to update it.
+> (For BUILDING, typing `/building` performs the same update. PLANNING has no such command.)
 
 The AI will brainstorm with you, walking through each approval gate:
 
@@ -77,7 +92,6 @@ Requirements are complete. Please review all LAM files and adapt the necessary p
 |-----------|-----|
 | `.claude/rules/` | Generic guardrails (effective for any project) |
 | `.claude/hooks/` | Immune system |
-| `.claude/commands/` | Phase controls and workflows |
 | `.claude/agents/`, `skills/` | Specialized subagents and skills |
 | `.claude/agent-memory/` | Subagent cross-session learning records |
 | `docs/internal/` | Development process SSOT |
@@ -92,6 +106,17 @@ Type `/building` to start TDD implementation.
 
 The AI autonomously runs Red-Green-Refactor cycles.
 When finished, run `/full-review` for an automated audit to reach Green State.
+
+## Terms You Will Meet
+
+Only the ones you are guaranteed to hit in your first session. Full list: [CHEATSHEET_en.md](CHEATSHEET_en.md).
+
+| Term | Meaning |
+|------|---------|
+| **Permission Grades (PG / SE / PM)** | Risk classification for a change. **PG** = fixed silently (typos, formatting) / **SE** = fixed, then reported (tests, internal refactors) / **PM** = **needs your approval** (spec changes, rule changes, settings). If you are being asked to approve something, it hit PM. |
+| **Principle Zero** | How the AI decides between proceeding and asking you. Not confidence — **reversibility / recovery cost / cost of asking**. Asking "just to be safe" counts as a cost: it interrupts your focus once. |
+| **Approval Gates** | Your explicit approval is required at requirements → design → tasks. It will not move on without it. |
+| **Green State** | The audit pass line: Critical = 0 and Warning = 0 (any number of Info items is fine). |
 
 ## FAQ
 
@@ -147,6 +172,6 @@ A: The template skill (spec-template) is applied automatically. Free-form writin
 ## Next Steps
 
 1. [New project slides](docs/slides/story-newproject-en.html) to walk through the full flow (10 min)
-2. Start your first `/planning` session
+2. Start your first PLANNING session (ask the AI: "Start the PLANNING phase")
 3. Keep [CHEATSHEET_en.md](CHEATSHEET_en.md) handy for daily reference
 4. Once comfortable, explore [docs/internal/](docs/internal/) for the process SSOT deep dive

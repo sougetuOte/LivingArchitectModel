@@ -1,10 +1,15 @@
-# The Living Architect Model
+# The Living Architect Model (LAM)
 
-**"AI は単なるツールではない。パートナーだ。"**
+**governance 型 AI エージェント・ハーネス。**
+AI エージェントに「何を独断でやってよいか / 何に人間の承認が要るか / **ルール自体をどう増減させるか**」を与える**統治層**です。
 
-このリポジトリは、大規模言語モデル（特に Claude）が中〜大規模ソフトウェア開発プロジェクトにおいて、自律的な「アーキテクト」兼「ゲートキーパー」として振る舞うためのプロトコルセット **"Living Architect Model"** を定義します。
+> **境界**: 実行基盤（runtime substrate）は Claude Code 本体が担います。LAM が提供するのはその上に載る統治層であり、**単体では動きません**。
 
-これらの定義ファイルをプロジェクトルートに配置することで、標準的なコーディングアシスタントを、プロジェクトの整合性と健全性を守る「能動的な守護者」へと変貌させることができます。
+**現在の版**: **v5.1.0**（2026-08-26 / [CHANGELOG.md](CHANGELOG.md)）
+
+> **"AI は単なるツールではない。パートナーだ。"**
+
+標準的なコーディングアシスタントは、指示されればたいてい何でもやります。LAM を配置すると、同じアシスタントがフェーズ規律・権限等級・承認ゲートの下で動き、**仕様なしの実装・独断の仕様変更・不可逆操作の素通し**を自ら止めるようになります。
 
 ## 初めての方へ
 
@@ -16,14 +21,23 @@
 
 ## コアコンセプト
 
-- **Active Retrieval (能動的検索)**: AI は受動的な記憶に頼るのではなく、能動的にコンテキストを検索・ロードしなければならない。
-- **Gatekeeper Role (門番の役割)**: AI は低品質なコードや曖昧な仕様がコードベースに混入するのを阻止する。
+### 統治（LAM 固有）
+
+- **権限等級 (PG / SE / PM)**: すべての変更を「自動修正してよい (PG)」「やってから報告 (SE)」「**人間の判断を仰ぐ (PM)**」に三分割する。PM 級のファイルパスは事前に列挙され、hook が実行時に判定する。
+- **第 0 原則**: 進むか確認するかを、AI の自信ではなく **可逆性 / 復旧コスト / 確認のコスト** の 3 変数で決める。「安全のための質問」も無料ではない（ユーザーの集中を 1 回中断する）と明示的に扱う。
+- **Approval Gates (承認ゲート)**: requirements → design → tasks の各段でユーザー承認を必須にし、未承認のまま次へ進むことを禁じる。
+- **誕生ゲート — ルールに天井と通貨を持たせる**: 常駐ルールに **上限 80 指令**を設け、**新しい条項を 1 つ入れるには既存の条項を 1 つ退出させる**（交換レート 1 対 1）。ルールが際限なく増えて誰も読まなくなる事態を、努力目標ではなく**会計**で防ぐ。台帳は `docs/artifacts/clause-gate-ledger.md`。
+- **3.5 層委譲**: 統括 (L1) / 司令塔 (L1.5) / 実行 (L2) / 採点 (L3) に役割を分ける。モデル名の束縛は**ロスター 1 枚**に集約し、世代交代でそこだけを直せば済むようにする。
+
+### 品質
+
+- **Gatekeeper Role (門番の役割)**: 低品質なコードや曖昧な仕様がコードベースに混入するのを阻止する。
 - **Zero-Regression (退行ゼロ)**: 厳格な影響分析と TDD サイクルにより、リグレッション（先祖返り）を防ぐ。
-- **Multi-Perspective Decisions (多角的意志決定)**: MAGI System（MELCHIOR・BALTHASAR・CASPAR）+ gabriel probe を用いた堅牢な構造化意思決定プロセス。
-- **Command Safety (コマンド安全性)**: 厳格な Allow/Deny リストによる、偶発的な事故の防止。
-- **Living Documentation (生きたドキュメント)**: ドキュメントをコードと同様に扱い、すべてのサイクルで動的に更新する。
-- **Phase Control (フェーズ制御)**: PLANNING/BUILDING/AUDITING の明示的な切り替えにより、「つい実装してしまう」問題を防止。
-- **Approval Gates (承認ゲート)**: サブフェーズ間の明示的な承認により、不完全な成果物での先走りを防止。
+- **Multi-Perspective Decisions (多角的意思決定)**: MAGI System（MELCHIOR・BALTHASAR・CASPAR）＋ **gabriel probe** —— 合議の結論を、**独立したコンテキストの検証者が敵対的に再検証**する。
+- **Phase Control (フェーズ制御)**: PLANNING / BUILDING / AUDITING の明示的な切り替えにより、「つい実装してしまう」問題を防止。
+- **Command Safety (コマンド安全基準)**: Allow / Ask / Deny の**明示列挙**（ワイルドカード非依存）による、偶発的な事故の防止。
+- **Active Retrieval (能動的検索)**: 受動的な記憶に頼らず、能動的にコンテキストを検索・ロードする。
+- **Living Documentation (生きたドキュメント)**: ドキュメントをコードと同様に扱い、**同一の不可分な単位**として更新する。
 
 ## 収録内容
 
@@ -134,6 +148,10 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | `doc-writer` | ドキュメント作成・仕様策定・更新 | ALL |
 | `test-runner` | テスト実行・分析 | BUILDING |
 | `code-reviewer` | コードレビュー（LAM品質基準） | AUDITING |
+| `gabriel` | MAGI 合議の結論を**独立コンテキストで敵対的に検証**（読み取り専用） | ALL |
+| `goal-driven-l2-foreman` | 大タスクの工程分解・L3 への分配（班長） | ALL |
+| `goal-driven-l3-executor` | 実装・テスト実行の末端（自律 spawn 禁止） | BUILDING |
+| `goal-driven-grader` | rubric との突合・合否判定（作業者と別コンテキスト） | ALL |
 
 ## セッション管理コマンド
 
@@ -168,7 +186,7 @@ requirements → [承認] → design → [承認] → tasks → [承認] → BUI
 | Git | バージョン管理 | 必須 |
 | [gitleaks](https://github.com/gitleaks/gitleaks) | シークレットスキャン（`/full-review` の G5 チェック） | 推奨 |
 
-gitleaks が未インストールの場合、`/full-review` で Green State G5 が FAIL になります。不要な場合は `review-config.json` で `"gitleaks_enabled": false` を設定してください。
+gitleaks が未インストールの場合、`/full-review` で Green State G5 が FAIL になります。不要な場合は **`.claude/review-config.json`**（任意ファイル / 無ければ新規作成）に `"gitleaks_enabled": false` を設定してください。
 
 ## ライセンス
 

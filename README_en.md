@@ -1,10 +1,15 @@
-# The Living Architect Model
+# The Living Architect Model (LAM)
 
-**"AI as a Partner, Not Just a Tool."**
+**A governance-type AI agent harness.**
+LAM gives an AI agent an explicit answer to three questions: what it may do on its own, what requires human approval, and **how the rules themselves are allowed to grow or shrink**.
 
-This repository defines the **"Living Architect Model"**, a protocol set designed to enable Large Language Models (specifically Claude) to act as an autonomous "Architect" and "Gatekeeper" for medium-to-large scale software development projects.
+> **Scope**: The runtime substrate is provided by Claude Code itself. What LAM supplies is the **governance layer** that sits on top of it — **LAM does not run on its own**.
 
-By placing these definition files in your project root, you transform a standard coding assistant into a proactive guardian of project consistency and health.
+**Current version**: **v5.1.0** (2026-08-26 / [CHANGELOG.md](CHANGELOG.md))
+
+> **"AI as a Partner, Not Just a Tool."**
+
+A standard coding assistant will do more or less whatever it is told. With LAM in place, the same assistant operates under phase discipline, permission grades, and approval gates — and stops itself from **implementing without a spec, changing the spec unilaterally, or waving through irreversible operations**.
 
 ## Getting Started
 
@@ -16,14 +21,23 @@ By placing these definition files in your project root, you transform a standard
 
 ## Core Concepts
 
-- **Active Retrieval**: The AI must actively search and load context, rather than relying on passive memory.
+### Governance (specific to LAM)
+
+- **Permission Grades (PG / SE / PM)**: Every change is sorted into "fix it silently (PG)", "fix it and report (SE)", or "**ask the human (PM)**". PM-grade file paths are enumerated in advance, and a hook decides at execution time.
+- **Principle Zero**: Whether to proceed or to ask is decided not by the AI's confidence but by three variables — **reversibility / recovery cost / cost of asking**. A "just to be safe" question is explicitly treated as *not free*: it interrupts the user's focus once.
+- **Approval Gates**: User approval is mandatory at each of requirements → design → tasks. Proceeding without it is prohibited.
+- **The Birth Gate — a ceiling and a currency for rules**: Resident rules are capped at **80 directives**, and **admitting one new clause requires retiring an existing one** (1-for-1 exchange). Rule sprawl — the state where nobody reads the rules any more — is prevented by *accounting* rather than by good intentions. The ledger lives at `docs/artifacts/clause-gate-ledger.md`.
+- **3.5-Tier Delegation**: Work is split across supervision (L1), dispatch (L1.5), execution (L2), and grading (L3). Model-name bindings are consolidated into **a single roster file**, so a model generation change touches exactly one document.
+
+### Quality
+
 - **Gatekeeper Role**: The AI blocks low-quality code and ambiguous specs before they enter the codebase.
 - **Zero-Regression**: Strict impact analysis and TDD cycles to prevent regressions.
-- **Multi-Perspective Decisions**: Use the MAGI System (MELCHIOR, BALTHASAR, CASPAR) + Reflection for robust structured decision-making.
-- **Command Safety**: Strict Allow/Deny lists for terminal commands to prevent accidental damage.
-- **Living Documentation**: Documentation is treated as code, updated dynamically in every cycle.
-- **Phase Control**: Explicit switching between PLANNING/BUILDING/AUDITING phases to prevent "accidental implementation".
-- **Approval Gates**: Explicit approvals between sub-phases prevent rushing ahead with incomplete deliverables.
+- **Multi-Perspective Decisions**: The MAGI System (MELCHIOR, BALTHASAR, CASPAR) plus a **gabriel probe** — the conclusion of the deliberation is **adversarially re-examined by a verifier running in an independent context**.
+- **Phase Control**: Explicit switching between PLANNING / BUILDING / AUDITING prevents "accidental implementation".
+- **Command Safety**: Allow / Ask / Deny lists written as **explicit enumerations** (no wildcard dependency) to prevent accidental damage.
+- **Active Retrieval**: The AI actively searches and loads context instead of relying on passive memory.
+- **Living Documentation**: Documentation is treated as code and updated as **one inseparable unit** with it.
 
 ## Contents
 
@@ -44,7 +58,7 @@ By placing these definition files in your project root, you transform a standard
 | `03_QUALITY_STANDARDS.md` | Coding standards and quality gates |
 | `04_RELEASE_OPS.md` | Deployment and emergency protocols |
 | `05_MCP_INTEGRATION.md` | MCP server integration & MEMORY.md policy (optional) |
-| `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (MAGI System + AoT + Reflection) |
+| `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (MAGI System + AoT + gabriel probe) |
 | `07_SECURITY_AND_AUTOMATION.md` | Command Safety Protocols (Allow/Deny Lists) |
 | `99_reference_generic.md` | General advice and best practices (Non-SSOT) |
 
@@ -53,11 +67,12 @@ By placing these definition files in your project root, you transform a standard
 | Directory | Description |
 |-----------|-------------|
 | `rules/` | Behavioral guidelines and guardrails (auto-loaded) |
-| `commands/` | Slash commands (phase control + utilities) |
 | `agents/` | Specialized subagents (requirements, design, TDD, etc.) |
 | `skills/` | Skills (task orchestration, template outputs) |
 
 ## How to Use
+
+> **About `docs/private/`**: This directory holds the LAM author's personal governance records. However you obtained LAM — template, clone, or ZIP — nothing loads from it, so **you may simply delete it**.
 
 ### Option A: Use as a Template (Recommended)
 
@@ -101,16 +116,15 @@ Place the Living Architect Model from _lam_source/ into this project.
 Reference <your-requirements-file> and review all LAM files to adapt the necessary parts.
 ```
 
-If no existing requirements exist, just start using LAM as-is. You can adapt after defining requirements with `/planning`.
+If you have no existing requirements, just start using LAM as-is. You can adapt it later, after defining requirements in the PLANNING phase.
 
 ## Phase Commands
 
 | Command | Purpose | Prohibited |
 |---------|---------|------------|
-| `/planning` | Requirements, design, task decomposition | Code generation |
 | `/building` | TDD implementation | Implementation without specs |
-| `/auditing` | Review, audit, refactoring | PM-level fixes prohibited (PG/SE allowed) |
-| `/project-status` | Display progress status | - |
+
+To enter PLANNING, tell the AI "Start the PLANNING phase". **The source of truth for the current phase is `.claude/current-phase.md`** — the AI updates that file, and the hook guards read its value. You can verify the switch yourself with `cat .claude/current-phase.md`; **if it was not updated, no phase guard is active**.
 
 ### Approval Gates
 
@@ -122,7 +136,7 @@ User approval is required at the completion of each sub-phase. Proceeding withou
 
 ## You Don't Need to Memorize Commands
 
-The tables below list all available commands and agents, but you don't need to memorize them. Just ask the AI: "What commands should I use here?" and it will suggest the right ones. Start with `/planning` and go from there.
+The tables below list the available commands and agents, but you don't need to memorize them. Just ask the AI: "What commands should I use here?" and it will suggest the right ones. Start with the PLANNING phase and go from there.
 
 ## Subagents
 
@@ -136,6 +150,10 @@ The tables below list all available commands and agents, but you don't need to m
 | `doc-writer` | Documentation creation, spec drafting, and updates | ALL |
 | `test-runner` | Test execution and analysis | BUILDING |
 | `code-reviewer` | Code review (LAM quality standards) | AUDITING |
+| `gabriel` | **Adversarial re-examination of MAGI conclusions in an independent context** (read-only) | ALL |
+| `goal-driven-l2-foreman` | Breaks large tasks into steps and dispatches them to L3 | ALL |
+| `goal-driven-l3-executor` | Leaf executor for implementation and tests (no autonomous spawning) | BUILDING |
+| `goal-driven-grader` | Grades results against the rubric in a context separate from the worker | ALL |
 
 ## Session Management Commands
 
@@ -151,15 +169,7 @@ The tables below list all available commands and agents, but you don't need to m
 | `/ship` | Logical grouping commits (inventory -> classify -> commit) |
 | `/full-review <target>` | Parallel audit + fix all + verify (end-to-end) |
 | `/release <version>` | Release (CHANGELOG -> commit -> tag -> push) |
-| `/wave-plan [N]` | Wave planning (select tasks and execution order for next Wave) |
 | `/retro [wave\|phase]` | Retrospective (learning cycle at Wave/Phase completion) |
-
-## Utility Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/pattern-review` | TDD pattern review |
-| `/project-status` | Project status display |
 
 ## Recommended Models
 
@@ -171,14 +181,14 @@ The tables below list all available commands and agents, but you don't need to m
 
 ## Requirements
 
-| Requirement | Purpose | Required |
-|-------------|---------|----------|
+| Requirement | Purpose | Required/Optional |
+|-------------|---------|-------------------|
 | [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) | AI assistant runtime | Required |
-| Python 3.8+ | Required for hooks and StatusLine | Required |
+| Python 3.8+ | Needed by hooks and the StatusLine | Required |
 | Git | Version control | Required |
 | [gitleaks](https://github.com/gitleaks/gitleaks) | Secret scanning (`/full-review` G5 check) | Recommended |
 
-If gitleaks is not installed, `/full-review` will fail at Green State G5. Set `"gitleaks_enabled": false` in `review-config.json` to disable if not needed.
+If gitleaks is not installed, Green State G5 will FAIL during `/full-review`. If you do not need it, set `"gitleaks_enabled": false` in **`.claude/review-config.json`** (an optional file — create it if it does not exist).
 
 ## License
 

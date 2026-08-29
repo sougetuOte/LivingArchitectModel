@@ -5,14 +5,14 @@
 > We recommend starting with the [concept overview slides](docs/slides/index-en.html) to grasp the big picture of LAM, then following the [quickstart guide](QUICKSTART_en.md) to set up your environment.
 
 1. Launch the Claude Code CLI (LAM settings are loaded automatically)
-2. Start the design phase with `/planning` and define requirements
+2. Ask the AI to start the PLANNING phase, then define requirements
 3. After requirements are set, adapt LAM to your project (just ask the AI)
 
 ```
 Typical flow:
-  /planning -> Requirements -> [Approval] -> Design -> [Approval] -> Task breakdown -> [Approval]
+  PLANNING  -> Requirements -> [Approval] -> Design -> [Approval] -> Task breakdown -> [Approval]
   /building -> TDD implementation (Red -> Green -> Refactor) -> [Approval]
-  /auditing -> Quality audit -> [Approval] -> Done
+  AUDITING  -> Quality audit -> [Approval] -> Done
 ```
 
 ## Directory Structure
@@ -20,7 +20,6 @@ Typical flow:
 ```
 .claude/
 ├── rules/                 # Guardrails and behavioral guidelines (auto-loaded)
-├── commands/              # Slash commands
 ├── agents/                # Subagents
 ├── skills/                # Orchestration and template output
 ├── states/                # Per-feature progress state
@@ -47,7 +46,7 @@ docs/adr/                  # Architecture Decision Records
 | `upstream-first.md` | Upstream First principle (verify platform docs before implementation) |
 | `test-result-output.md` | Test result file output rule (JUnit XML) |
 
-## Permission Levels (PG/SE/PM) **New in v4.0.0**
+## Permission Levels (PG/SE/PM)
 
 Three-tier classification based on change risk level:
 
@@ -57,7 +56,8 @@ Three-tier classification based on change risk level:
 | **SE** | Report after fix | Adding tests, internal refactoring |
 | **PM** | Requires approval | Spec changes, rule changes |
 
-**When in doubt, default to SE** (err on the safe side). Details: `.claude/rules/permission-levels.md`
+When in doubt, decide with **Principle Zero's three variables** (reversibility / recovery cost / cost of asking); **only if they do not settle it**, round to SE (err on the safe side).
+Source of truth: `.claude/rules/permission-levels.md` §迷った場合
 
 ### PreToolUse hook
 
@@ -79,10 +79,11 @@ After Wave 1 completion, analyze `.claude/logs/permission.log` to establish a ba
 
 | Command | Purpose | Restrictions |
 |---------|---------|-------------|
-| `/planning` | Requirements, design, task breakdown | No code generation |
 | `/building` | TDD implementation | No implementation without specs |
-| `/auditing` | Review, audit, refactoring | No PM-level fixes (PG/SE allowed) |
-| `/project-status` | Display progress status | - |
+
+PLANNING and AUDITING have no slash command. Tell the AI which phase to start; it updates
+`.claude/current-phase.md`, which is the source of truth the hook guards read.
+Verify with `cat .claude/current-phase.md` — if it did not change, no phase guard is active.
 
 ## Approval Gates
 
@@ -131,13 +132,10 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 
 | Skill | Purpose | Usage example |
 |-------|---------|---------------|
-| `magi` | Structured decision-making (AoT + MAGI System + Reflection) | `/magi <topic>` |
-| `clarify` | Document refinement (ambiguity, contradiction, gap detection) | `/clarify docs/specs/foo.md` |
+| `magi` | Structured decision-making (AoT + MAGI System + gabriel adversarial probe) | `/magi <topic>` |
 | `lam-orchestrate` | Task breakdown, parallel execution + `/magi` integration | "Run with lam-orchestrate" |
-| `skill-creator` | Skill creation guide | "I want to create a new skill" |
 | `adr-template` | ADR creation template | Auto-applied during ADR creation |
 | `spec-template` | Spec creation template | Auto-applied during spec creation |
-| `ui-design-guide` | UI/UX design checklist | Auto-applied during UI spec creation |
 
 ## State Management
 
@@ -156,15 +154,7 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 | `/ship` | Logical group commits (inventory -> classify -> commit) |
 | `/full-review <target>` | Parallel audit + full fixes + verification (end-to-end) |
 | `/release <version>` | Release (CHANGELOG -> commit -> tag -> push) |
-| `/wave-plan [N]` | Wave planning (task selection, dependencies, risk assessment) |
 | `/retro [wave\|phase]` | Structured retrospective (KPT + quantitative analysis + actions) |
-
-## Utility Commands
-
-| Command | Purpose |
-|---------|---------|
-| `/pattern-review` | TDD pattern review |
-| `/project-status` | Project status display |
 
 ## Reference Documents (SSOT)
 
@@ -176,7 +166,7 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 | `docs/internal/03_QUALITY_STANDARDS.md` | Quality standards |
 | `docs/internal/04_RELEASE_OPS.md` | Release, deployment, and incident response |
 | `docs/internal/05_MCP_INTEGRATION.md` | MCP integration and MEMORY.md usage policy |
-| `docs/internal/06_DECISION_MAKING.md` | Decision-making (MAGI System + AoT + Reflection) |
+| `docs/internal/06_DECISION_MAKING.md` | Decision-making (MAGI System + AoT + gabriel adversarial probe) |
 | `docs/internal/07_SECURITY_AND_AUTOMATION.md` | Command safety standards (Allow/Deny List) |
 | `docs/internal/99_reference_generic.md` | Generic reference template |
 
@@ -198,26 +188,14 @@ CASPAR (Woman/Synthesizer)     — Synthesis, Balance, Decision
 ```
 0. Decomposition: Break the topic into Atoms
 1-3. MAGI Debate: MELCHIOR/BALTHASAR/CASPAR deliberate per Atom
-4. Reflection: Validate conclusions for critical oversights (once only)
+4. gabriel adversarial probe: an independent subagent runs adversarial verification with a
+   6-field JSON schema (AoT mode only / replaced the former Reflection per ADR-0007, Accepted 2026-07-02)
 5. Synthesis: Integrated conclusion -> Action Items
 ```
 
 **Atom table format**
 ```
 | Atom | Description | Dependencies | Parallelizable (optional) |
-```
-
-## /clarify (Document Refinement) Quick Guide
-
-**When to use?**
-- After drafting specs or design documents
-- When detecting ambiguous expressions like "appropriately" or "as needed"
-- For cross-document consistency checks
-
-**Usage**
-```
-/clarify docs/specs/foo-spec.md                    # Refine a single document
-/clarify docs/specs/foo.md docs/design/foo.md      # Cross-check multiple documents
 ```
 
 ## Quick Reference
@@ -229,7 +207,7 @@ CASPAR (Woman/Synthesizer)     — Synthesis, Balance, Decision
 -> Display a message requesting approval
 
 **Want to check progress?**
--> Run `/project-status`
+-> Read `SESSION_STATE.md`, or ask the AI for a summary
 
 **Running low on context?**
 -> Save with `/quick-save` and `exit`

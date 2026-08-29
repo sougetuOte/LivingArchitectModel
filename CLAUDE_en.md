@@ -31,13 +31,12 @@ Priority order when making decisions:
 
 ## Execution Modes
 
-| Mode | Purpose | Guardrails | Recommended Model |
-|------|---------|------------|-------------------|
-| `/planning` | Design and task decomposition | Code generation prohibited | Opus / Sonnet |
-| `/building` | TDD implementation | Spec verification required | Sonnet |
-| `/auditing` | Review and audit | PG/SE fixes allowed, PM findings only | Opus |
+| Mode | Purpose | Guardrails | Tier |
+|------|---------|------------|------|
+| `/building` | TDD implementation | Spec verification required | L2 |
 
-See `.claude/rules/phase-rules.md` for details.
+See `.claude/rules/phase-rules.md` for details. Tier-to-model bindings live in
+`.claude/rules/model-roster.md` §1.
 
 ## References
 

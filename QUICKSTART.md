@@ -1,5 +1,7 @@
 # LAM クイックスタートガイド
 
+**LAM = governance 型 AI エージェント・ハーネス** —— Claude Code 上の AI エージェントに、承認ゲート・権限等級・フェーズ規律を与える**統治層**です。実行基盤そのものは Claude Code 本体が担うため、**LAM は単体では動きません**。
+
 > LAM の概念をまだ知らない方は、先に [概念説明スライド](docs/slides/index.html) をご覧ください。
 
 ## 前提条件
@@ -22,7 +24,7 @@ cd my-project
 rm -rf .git && git init
 ```
 
-## Step 2: Claude Code を起動して `/planning` で要件定義
+## Step 2: Claude Code を起動して PLANNING を開始
 
 ```bash
 claude
@@ -31,13 +33,24 @@ claude
 Claude Code を起動すると、LAM の設定（`.claude/`、`CLAUDE.md` 等）が自動的に読み込まれる。
 `claude init` は不要 — テンプレートに必要なファイルはすべて含まれている。
 
-起動したら `/planning` と入力して PLANNING フェーズを開始し、アイデアを伝える:
+起動したら、AI に PLANNING フェーズの開始を伝え、アイデアを渡す:
 
 ```
-/planning
+PLANNING フェーズを開始してください。
 
 「〇〇を管理する Web アプリを作りたい」
 ```
+
+> **フェーズの正本は `.claude/current-phase.md`** です。AI はこのファイルを `PLANNING` に更新し、
+> hook のガード（PLANNING 中の設定ファイル変更を拒否する等）は**この値を読んで**動きます。
+> 切り替わったかは自分で確認できます:
+>
+> ```bash
+> cat .claude/current-phase.md
+> ```
+>
+> **更新されていなければ、ガードは一切効いていません。** その場合は AI に更新を指示してください。
+> （BUILDING は `/building` と打てば同じ更新が行われます。PLANNING に対応するコマンドはありません。）
 
 AI が壁打ち相手になりながら、承認ゲートを一つずつ通過していく:
 
@@ -91,6 +104,17 @@ AI が壁打ち相手になりながら、承認ゲートを一つずつ通過�
 
 AI が自律的に Red-Green-Refactor サイクルを回す。
 完了したら `/full-review` で自動監査 → Green State を目指す。
+
+## 作業中に出てくる用語
+
+最初のセッションで必ず出会うものだけ挙げる。詳細は [CHEATSHEET.md](CHEATSHEET.md)。
+
+| 用語 | 意味 |
+|------|------|
+| **権限等級 (PG / SE / PM)** | 変更のリスク分類。**PG** = 自動修正・報告不要（typo、フォーマット）／**SE** = やってから報告（テスト追加、内部リファクタ）／**PM** = **あなたの承認が要る**（仕様変更、ルール変更、設定変更）。承認を求められたら PM 級に当たったということ |
+| **第 0 原則** | AI が「進むか、あなたに聞くか」を決める基準。自信ではなく **可逆性 / 復旧コスト / 確認のコスト** の 3 つで判断する。「念のため聞く」も**あなたの集中を 1 回中断するコスト**として数える |
+| **承認ゲート** | requirements → design → tasks の各段であなたの「承認」が要る。未承認のまま次へは進まない |
+| **Green State** | 監査の合格ライン。Critical = 0 かつ Warning = 0（Info は何件あってもよい） |
 
 ## よくある質問
 
@@ -146,6 +170,6 @@ A: テンプレートスキル (spec-template) が自動適用される。自由
 ## 次のステップ
 
 1. [新規プロジェクトスライド](docs/slides/story-newproject.html) でフロー全体を追体験（10分）
-2. 実際に `/planning` を始める
+2. 実際に PLANNING を始める（AI に「PLANNING フェーズを開始してください」と伝える）
 3. [CHEATSHEET.md](CHEATSHEET.md) を手元に置いて日常運用
 4. 慣れてきたら [docs/internal/](docs/internal/) でプロセス SSOT を深掘り
