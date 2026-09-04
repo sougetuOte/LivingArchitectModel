@@ -216,3 +216,85 @@ Claude Code のスキル名解決は **`enterprise > personal(~/.claude/skills) 
 - `docs/artifacts/2026-07-03-magi-4th-launch-test.md`（gabriel 配布順序の PM 決定・合議録）
 - Claude Code 公式: スキル解決順 / plugin 名前空間 / skillOverrides 仕様（2026-07-03 裏取り）
 - 既知バグ #25209（スキル一覧の表示非決定性）
+
+---
+
+## 追補 1（2026-09-04 / **所在の変更** / ユーザー決定）
+
+### 決定
+
+**`lam-harness` plugin の所在を `~/claude-global-assets/lam-marketplace/` から LAM リポジトリ内へ移す。**
+marketplace の登録元も `source: directory`（ローカルパス）から **GitHub リポジトリ `sougetuOte/LivingArchitectModel`** へ変更する。
+
+### 変えないもの（本 ADR の本体は存続する）
+
+**統治不変条件 I-1 〜 I-6 はすべて存続する。** 特に:
+
+- **I-1**: 共有 harness は名前空間付き plugin としてのみ配布する（**本 ADR の核心であり、2026-09-04 の MAGI + HGA #29 も独立に同じ結論に到達した**）
+- **I-2**: enable はプロジェクトスコープ限定
+- **I-4**: スキル参照は名前空間を常に明示する（**下記 R-1 再裏取りにより、射程が agents にも及ぶことが判明**）
+- **I-6**: 共有 agent も同一チャネルで配布
+
+バックアップ不変条件 **B-1 / B-3**、移行順序不変条件 **M-1 / M-2** も存続する。
+
+### 変わるもの
+
+| # | 旧 | 新 |
+|:-:|:--|:--|
+| 決定 1 の所在 | `~/claude-global-assets/lam-marketplace/` | **LAM リポジトリ内の plugin ディレクトリ**（`.claude-plugin/marketplace.json` はリポジトリルート） |
+| marketplace source | `directory`（ローカルパス） | `github` / `sougetuOte/LivingArchitectModel` |
+| **B-2 の位置づけ** | `~/claude-global-assets` = **harness SSOT 兼バックアップ** | harness SSOT ではなくなる。**同リポジトリ自体の存廃は本追補では決めない** |
+
+### 変更の根拠
+
+**1. K4「配布集合 ⊆ 開発ロード集合」が実際に破れており、2 か月間検出されなかった。**
+
+2026-09-04 の実測: `lam-harness` 1.0.0 の skills 14 件のうち **9 件が現行 LAM に存在しない**
+（`audit-mode` / `build-mode` / `design-mode` / `clarify` / `project-status` / `session-load` /
+`session-save` / `tdd-twada` / `ui-design-guide`）。2026-07-02 の世代で凍っていた。
+
+別リポジトリに置く構成は、**同期の仕組みを持たない限り必ず drift する**。これは本 ADR の欠陥ではなく、
+「配布物と開発物を別の場所に置く」構成そのものの性質である。
+
+**2. D-1（2026-08-13 クローズ）がリポジトリ分割を死んだ案 #5 として棄却している。**
+
+D-1 は「self-hosting 維持下では開発環境 = 製品リポジトリであり分割対象が存在しない」とし、
+境界は**パッケージング境界**として実装せよと定めた。plugin ディレクトリをリポジトリ内に置く構成は、
+この命令に正面から合致する（リポジトリを割らずにパッケージング境界を得る）。
+
+**3. GitHub の star・URL・31 リリースが公開の動機に直結する資産である**（ユーザー明示）。
+配布の入口が `LivingArchitectModel` であることは、この資産と整合する。
+
+**4. K4 をテストにできる。** plugin ディレクトリがリポジトリ内に実在すれば、
+「配布物が自分の外を参照しない」「開発側が配布物を包含する」を**基質から導出できる検査**として置ける
+（HGA #29 §13.5-B / R3 機構 #7・#10 と同型 / 維持リスト不要）。別リポジトリ構成ではこの検査が置けない。
+
+### R-1（再検証トリガー）の実施記録
+
+本 ADR の **R-1**「Claude Code のメジャー更新時、I-1 / I-2 の前提を公式ドキュメントで再裏取りする」を
+**2026-09-04 に実施した**（制定時 v2.1.x 初期 → 現在 **v2.1.259**）。結果:
+
+| 前提 | 判定 |
+|:--|:--|
+| `personal > project` の解決順 | 本追補では未再確認（**残課題**） |
+| plugin 名前空間の非衝突 | **確認**。skills は `/plugin:skill`、**agents も `plugin:agent`**（本セッションの agent 一覧に `hookify:conversation-analyzer` が実在 / ファイル側 frontmatter は `name: conversation-analyzer`）。→ **I-4 の射程は skills だけでなく agents にも及ぶ**（LAM の `subagent_type` 参照が該当） |
+| `skillOverrides` の plugin 無効 | 本追補では未再確認（**残課題**） |
+
+あわせて確認した上流事実（詳細は `docs/artifacts/2026-09-04-magi-distribution-form.md` §13.6）:
+
+- plugin のコンポーネント在庫は **skills / agents / hooks / MCP / LSP の 5 種のみ**。**`rules` は配れない**
+- **hook は設定レベル間で merge され置換されない**。plugin hook と project hook は**両方走る**
+- `marketplace add` は**リポジトリ全体**をディスクに置くが、`plugin install` が展開するのは **plugin ディレクトリのみ**
+- **hook の exit 2 以外の非零終了は非ブロッキング**で、トランスクリプトに `hook error` 通知 + stderr 1 行目が出る（**インタプリタ不在の 127 も同じ**）→ ランタイム不在時は **fail-open とノイズが同時に起きる**
+- plugin manifest に**ランタイム依存の宣言機構は無い**（公式 plugin `security-guidance` は `sg-python.sh` で自力解決している）
+
+### 移行の残課題（本追補では決めない）
+
+1. `~/claude-global-assets/lam-marketplace/` の `lam-harness` 1.0.0（現在 4 プロジェクトに project スコープで導入済・**全て disabled**）の扱い。**M-2 に従い削除ではなく quarantine とする**
+2. `personal > project` 解決順と `skillOverrides` の再裏取り（R-1 の未了分）
+3. ランタイム不在時の挙動をどう扱うか（`/lam:init` で検査して完了を拒む案が HGA #29 の推奨）
+
+### 経緯
+
+`docs/artifacts/2026-09-04-magi-distribution-form.md`（MAGI AoT 6 Atom + gabriel 2 巡 + **HGA #29**）§15。
+本追補の所在変更はユーザー決定（2026-09-04 / 選択肢 3 案の提示に対し「LAM リポジトリ内に plugin を移す」）。
