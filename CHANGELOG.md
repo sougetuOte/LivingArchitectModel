@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 機構 #10 が plugin の starter テンプレートを走査していなかった（2026-09-05 / P1(1) 予行で検出）
+
+配布物の集合が plugin 側（`templates/starter/`）へ広がったのに、`verify_distributable_claims.py`
+の走査の起点が project ルート + `docs/` のままだった。starter は `/lam-harness:init` が利用者の
+プロジェクトへ敷き、利用者が読むファイルであり、**まさに本機構が守る配布物**である。
+実測: starter が `/lam-harness:{building,magi,ship,retro,quick-save,quick-load}` の
+**6 種 8 箇所**を名乗っているのに、検査は緑のままだった。
+
+- `iter_distributables()` に `plugins/*/templates/starter/**/*.md` を追加
+- **managed テンプレートは対象外**（陰性対照テストで固定）。`.claude/rules/` と `docs/internal/` の
+  複製であり恒等性は機構 #11 が持つ。走査すると `docs/internal/` の違反を二重報告し、かつ
+  project 側で未走査の `.claude/rules/` を複製経由で暗黙に引き込む。rules の扱いは**未決**
+- starter 分の実リポジトリ検査を `xfail(strict=True)` に分離。P2 で skills を plugin へ移すまでの
+  前方参照であり、**starter ごと赤にすると「赤 1 件は既知」の運用が生まれて他領域の phantom を
+  見落とす**ため。strict なので解消時に xpass で落ち、mark の撤去を促す（除外の書き忘れで
+  盲目化する経路を持たない）
+- **`/release` は `--exit-nonzero-on-drift` で本機構を呼ぶため、P2 完了までブロックされる**
+
+### `/lam-harness:init` Step 0 が `${CLAUDE_PLUGIN_ROOT}` 未解決を誤診していた（2026-09-05）
+
+bash は未設定の変数を空文字に展開するため、`bash "/scripts/check-runtime.sh"` = exit 127 となり、
+Step 0 がそれを「ランタイム検査の失敗」と読んで「**Python を用意して再実行**」と案内していた。
+中止する結果は正しいが、真因は plugin root の未解決であり案内に従っても直らない。
+LAM は同型を一度踏んでいる（`CLAUDE.md` §Python Invocation Convention の段2 fixup 教訓）。
+
+- Step 0 の先頭に `: "${CLAUDE_PLUGIN_ROOT:?...}"` ガードを追加（理由を本文に併記）
+
 ### 配布物 1 件が gitignore に巻き込まれていた（2026-09-04 / `/ship` Phase 1 で検出）
 
 `.gitignore` のアンカーされていない `SESSION_STATE.md` が任意の深さに一致し、
