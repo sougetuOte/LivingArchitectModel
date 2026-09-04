@@ -49,6 +49,10 @@ from typing import Iterable, List, NamedTuple
 _MANAGED_AREAS = {
     "rules": Path(".claude") / "rules",
     "docs-internal": Path("docs") / "internal",
+    # 2026-09-05 追加（P2 複製相）: 配布 skills が呼ぶ scripts は配布されねばならない。
+    # 3 層分類 §5 は scripts を managed と分類していたが templates への実装が未了で、
+    # 利用者が /lam-harness:ship を打つと存在しない py_invoke.sh を呼んで落ちた。
+    "scripts": Path(".claude") / "scripts",
 }
 
 # 作者環境の絶対パス。ドライブレターは URL スキーム（http://）と衝突するため、

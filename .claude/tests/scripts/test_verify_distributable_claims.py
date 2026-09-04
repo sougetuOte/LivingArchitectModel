@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
-import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -69,35 +68,14 @@ def test_script_exists() -> None:
     assert SCRIPT_PATH.is_file()
 
 
-def _is_starter(violation: dict) -> bool:
-    return "/templates/starter/" in str(violation["file"])
-
-
 def test_repository_has_no_phantom_commands() -> None:
-    """starter 以外の配布物に phantom は無い（移行中も検出力を落とさない）。
+    """配布物に phantom は無い（starter を含む）。
 
-    starter を除くのは、plugin 移行 P2 完了までそこに前方参照が残るためである。
-    ここで starter ごと赤にすると「赤 1 件は既知」という運用が生まれ、
-    **他領域に新しい phantom が入っても気づかなくなる**（`code-quality-guideline.md`
-    が警戒する「常時鳴る計器は殺される」型）。starter 側は下の xfail が受け持つ。
+    2026-09-05: starter 分を一時的に `xfail(strict=True)` へ分離していたが、
+    **P2 複製相で 14 skills が plugin 側に実体を得た瞬間に xpass で落ちた**ため
+    mark を撤去して 1 本へ戻した（strict xfail を「解消の検知器」として使った実例）。
     """
-    violations = [v for v in find_command_violations(REPO_ROOT) if not _is_starter(v)]
-    assert violations == [], "実在しないコマンドの提示: " + "; ".join(
-        f"{v['file']}:{v['line']} {v['subject']}" for v in violations
-    )
-
-
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "plugin 移行 P2 完了まで starter は /lam-harness:{building,magi,ship,retro,"
-        "quick-save,quick-load} を前方参照する（skills はまだ .claude/skills/ にある）。"
-        "strict なので、P2 で解消した瞬間に xpass で落ちて本 mark の撤去を促す "
-        "= 除外を書き忘れて機構が恒久的に盲目になる経路を持たない。"
-    ),
-)
-def test_starter_has_no_phantom_commands() -> None:
-    violations = [v for v in find_command_violations(REPO_ROOT) if _is_starter(v)]
+    violations = find_command_violations(REPO_ROOT)
     assert violations == [], "実在しないコマンドの提示: " + "; ".join(
         f"{v['file']}:{v['line']} {v['subject']}" for v in violations
     )

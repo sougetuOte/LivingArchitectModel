@@ -184,4 +184,8 @@ def test_module_exposes_scope_constants():
     """射程を決める定数が module 上に公開されている（変更が diff に出る）。"""
     assert len(vpc._ABSOLUTE_PATH_PATTERNS) == 3
     assert len(vpc._NON_DISTRIBUTED_REFS) == 1
-    assert set(vpc._MANAGED_AREAS) == {"rules", "docs-internal"}
+    # 2026-09-05（P2 複製相）: `scripts` を追加。配布 skills が呼ぶ
+    # `.claude/scripts/*` を init が敷いておらず、利用者環境では存在しない
+    # `py_invoke.sh` を呼んで落ちる状態だった。本 assert は射程変更を
+    # diff に出すためのトリップワイヤであり、実際にそう働いた。
+    assert set(vpc._MANAGED_AREAS) == {"rules", "docs-internal", "scripts"}

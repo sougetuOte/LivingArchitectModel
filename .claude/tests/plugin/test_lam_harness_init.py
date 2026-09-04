@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import re
 import os
 import shutil
 import subprocess
@@ -246,3 +247,62 @@ def test_step0_guards_unresolved_plugin_root() -> None:
     guard_pos = text.index(':?')
     check_pos = text.index("check-runtime.sh")
     assert guard_pos < check_pos, "ガードが check-runtime.sh の呼び出しより後にある"
+
+
+# ==========================================================================
+# 配布 skills が呼ぶ scripts は配布されているか（2026-09-05 / P2 複製相で発覚）
+#
+# 3 層分類 §5 は scripts を managed 10 件と分類していたが、templates/managed/ には
+# rules と docs-internal しか無く、init は scripts を敷いていなかった。
+# 利用者が /lam-harness:ship を打つと、存在しない py_invoke.sh を呼んで落ちる。
+# ==========================================================================
+
+NON_DISTRIBUTED_SCRIPTS: dict[str, str] = {
+    "build_dashboard.py": (
+        "LAM の SESSION_STATE.md 書式と Milestone 語彙に強く依存するため非配布"
+        "（3 層分類 §4.2）。quick-save からの呼び出しは SHOULD かつ失敗を許容する"
+        "設計であり、不在でも quick-save 全体は成功する。"
+    ),
+    "verify_plugin_containment.py": (
+        "plugin ディレクトリの封じ込め（機構 #11/#12）を検査する開発者向け機構。"
+        "利用者のプロジェクトには plugins/ が存在しないため配る意味がない。"
+        "呼び出し元の release skill 側で plugins/ 不在時にスキップする。"
+    ),
+}
+
+
+def _scripts_called_by_plugin_skills() -> set[str]:
+    """plugin skills が呼ぶ `.claude/scripts/<name>` を実体から導出する。"""
+    pat = re.compile(r"\.claude/scripts/([A-Za-z0-9._-]+\.(?:py|sh))")
+    called: set[str] = set()
+    for path in (PLUGIN_ROOT / "skills").rglob("*.md"):
+        called |= set(pat.findall(path.read_text(encoding="utf-8")))
+    return called
+
+
+def test_every_script_called_by_plugin_skills_is_distributed() -> None:
+    called = _scripts_called_by_plugin_skills()
+    assert called, "plugin skills が scripts を 1 件も呼んでいない（導出が壊れている）"
+    distributed = {
+        p.name for p in (PLUGIN_ROOT / "templates" / "managed" / "scripts").glob("*")
+        if p.is_file()
+    }
+    missing = called - distributed - set(NON_DISTRIBUTED_SCRIPTS)
+    assert not missing, (
+        "配布 skills が呼ぶのに配布されない script: " + ", ".join(sorted(missing))
+    )
+
+
+def test_every_non_distributed_script_carries_a_reason() -> None:
+    for name, reason in NON_DISTRIBUTED_SCRIPTS.items():
+        assert len(reason) >= 20, f"{name} の非配布理由が短すぎる"
+
+
+def test_distill_lessons_pair_moves_together() -> None:
+    """entry point とその実体は 2 件セットで配る（§6.1 / 片方だけだと壊れる）。"""
+    scripts = PLUGIN_ROOT / "templates" / "managed" / "scripts"
+    pair = {"distill-lessons.py", "distill_lessons.py"}
+    present = {n for n in pair if (scripts / n).is_file()}
+    assert present in (set(), pair), (
+        "distill の 2 ファイル構成が片側だけ配られている: " + ", ".join(sorted(present))
+    )

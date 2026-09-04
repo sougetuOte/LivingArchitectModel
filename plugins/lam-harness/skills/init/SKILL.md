@@ -2,7 +2,7 @@
 name: init
 description: |
   LAM ハーネスの規範層をプロジェクトへ敷く初期化スキル。
-  plugin コンポーネントとして配れない層（.claude/rules/ と docs/internal/ = managed、
+  plugin コンポーネントとして配れない層（.claude/rules/ と docs/internal/ と .claude/scripts/ = managed、
   および CLAUDE.md 等の starter）をファイルとして配置し、.claude/harness.json に記録する。
   ランタイム（Python）が無い環境では完了を拒む。
   Layer 1（.claude/settings.json の permissions）は敷かず、手作業の手順として提示する。
@@ -14,8 +14,8 @@ description: |
 ## このスキルが存在する理由
 
 Claude Code の plugin が配れるコンポーネントは **skills / agents / hooks / MCP / LSP の 5 種**である。
-**`.claude/rules/` と `docs/internal/` はその在庫に無い。** しかし LAM のガードのうち
-Layer 0（規範）はまさにその 2 つに書かれている。
+**`.claude/rules/` と `docs/internal/` と `.claude/scripts/` はその在庫に無い。** しかし LAM のガードのうち
+Layer 0（規範）と、それを執行する機構の一部はまさにそこに置かれている。
 
 したがって規範層は「plugin が持ち、init がプロジェクトへ敷く」形にするしかない。
 本スキルはその配置係である。
@@ -24,7 +24,7 @@ Layer 0（規範）はまさにその 2 つに書かれている。
 
 | 層 | 中身 | 本スキル | 更新 |
 |:--|:--|:--|:--|
-| **Layer 0 / managed** | `.claude/rules/` 14 件 ＋ `docs/internal/` 10 件 | **敷く** | `/plugin update` で**届く** |
+| **Layer 0 / managed** | `.claude/rules/` 14 件 ＋ `docs/internal/` 10 件 ＋ `.claude/scripts/` 12 件 | **敷く** | `/plugin update` で**届く** |
 | **Layer 0 / starter** | `CLAUDE.md` / `CHEATSHEET.md` / `CHANGELOG.md` / `SESSION_STATE.md` / `.claude/current-phase.md` / `.claude/harness.json` / `.claude/rules/model-roster.md` / `.claude/rules/terminology.md` | **敷く（初回のみ）** | 届かない（利用者の資産） |
 | **Layer 2 / 機構** | `.claude/hooks/` ・ `.claude/agents/` ・ skills | **敷かない** | plugin が直接供給する |
 | **Layer 1 / 決定的な禁止** | `.claude/settings.json` の `permissions` | **敷かない** | **利用者の手作業**（下記 Step 6） |
@@ -131,6 +131,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-runtime.sh"
 ```bash
 ls "${CLAUDE_PLUGIN_ROOT}/templates/managed/rules"
 ls "${CLAUDE_PLUGIN_ROOT}/templates/managed/docs-internal"
+ls "${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts"
 ls "${CLAUDE_PLUGIN_ROOT}/templates/starter"
 ```
 
@@ -140,6 +141,7 @@ ls "${CLAUDE_PLUGIN_ROOT}/templates/starter"
 |:--|:--|
 | `templates/managed/rules/**` | `.claude/rules/**` |
 | `templates/managed/docs-internal/**` | `docs/internal/**` |
+| `templates/managed/scripts/**` | `.claude/scripts/**`（**`py_invoke.sh` は実行ビット不要 / `bash` 経由で呼ばれる**） |
 | `templates/starter/dot-claude/**` | `.claude/**`（`dot-claude` を `.claude` に読み替える） |
 | `templates/starter/<その他>` | プロジェクトルート直下 |
 
@@ -168,7 +170,7 @@ ls "${CLAUDE_PLUGIN_ROOT}/templates/starter"
 
 - `.claude/current-phase.md` が行頭 `**PLANNING**`（大文字のみ）を含むこと
   —— ここが崩れるとフェーズ依存のガードが**黙って**効かなくなる
-- `.claude/rules/` と `docs/internal/` のファイル数が、テンプレート側の件数と一致すること
+- `.claude/rules/` と `docs/internal/` と `.claude/scripts/` のファイル数が、テンプレート側の件数と一致すること
 - `.claude/harness.json` が読める JSON であること
 
 ---
@@ -202,7 +204,7 @@ Layer 1（決定的な禁止 = settings.json の permissions）は入ってい�
 ```
 ハーネス初期化完了（harness_version: <version>）
 
-  managed: .claude/rules/ <N> 件 / docs/internal/ <M> 件（/plugin update で更新が届く）
+  managed: .claude/rules/ <N> 件 / docs/internal/ <M> 件 / .claude/scripts/ <S> 件（/plugin update で更新が届く）
   starter: <K> 件（以後はあなたの資産）
   Layer 1: 未適用（Step 6 の手順を参照）
 
