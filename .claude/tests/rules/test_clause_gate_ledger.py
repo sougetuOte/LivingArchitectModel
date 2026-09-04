@@ -236,3 +236,89 @@ def test_debt_detector_accepts_settlement():
     ])
     rows = _transaction_rows(fake)
     assert _open_debt(rows) is None, "決済済みマーカーが効いていない"
+
+
+# ---- 天井との対比表の整合（2026-09-04 追加 / retro-2026-09-04 A4） ----
+#
+# §A の TOTAL は test_ledger_total_is_consistent が守るが、「天井との対比」表の
+# 現在値・余裕は **手写しの導出** であり検査対象外だった。実績として 2 度ドリフトしている:
+#   - 2026-08-21 取引 #15 の後、「61 / 余裕 19」のまま約 6 日間残置（台帳自身が記録）
+#   - §C の機構件数が「8 件」のまま約 2 週間（2026-09-04 に是正）
+# retro-2026-09-04 問い 5 の結論「そもそも数を書かない / 書くなら基質から検査する」の実装。
+
+
+def _ceiling_table(text: str) -> "dict[str, int]":
+    """「天井との対比」表から ceiling / 現在値 / 余裕 を抽出する。
+
+    引数でテキストを受けるのは、偽データによる発火確認を可能にするため
+    （test_debt_detector_fires_on_fake_data と同じ設計）。
+    """
+    section = text.split("### 天井との対比")[1].split("### R2")[0]
+    result: "dict[str, int]" = {}
+    for line in section.splitlines():
+        if line.startswith("| hard ceiling"):
+            found = re.search(r"\*\*(\d+)\*\*", line)
+            if found:
+                result["ceiling"] = int(found.group(1))
+        elif re.match(r"^\|\s*現在値\s*\|", line):
+            found = re.search(r"\*\*(\d+)\*\*", line)
+            if found:
+                result["current"] = int(found.group(1))
+        elif re.match(r"^\|\s*超過\s*\|", line):
+            found = re.search(r"余裕\s*(\d+)", line)
+            if found:
+                result["slack"] = int(found.group(1))
+    return result
+
+
+def test_ceiling_table_is_parseable():
+    """対比表の 3 値が抽出できる（書式が変わったら落ちる）。"""
+    table = _ceiling_table(LEDGER.read_text(encoding="utf-8"))
+    for key in ("ceiling", "current", "slack"):
+        assert key in table, "対比表から {0} を抽出できない（書式変更の疑い）".format(key)
+
+
+def test_ceiling_table_matches_section_a_total():
+    """対比表の現在値が §A の TOTAL と一致し、ceiling と余裕も整合する。
+
+    正本は §A の TOTAL（機械検査済）であり、対比表はその手写しの導出である。
+    ここが乖離すると「天井まであとどれだけか」という判断材料が嘘をつく。
+    """
+    table = _ceiling_table(LEDGER.read_text(encoding="utf-8"))
+    total = _ledger_total()
+    assert table["ceiling"] == HARD_CEILING, (
+        "対比表の hard ceiling {0} がテスト側定数 {1} と不一致".format(
+            table["ceiling"], HARD_CEILING
+        )
+    )
+    assert table["current"] == total, (
+        "対比表の現在値 {0} が §A TOTAL {1} と不一致（対比表を更新せよ）".format(
+            table["current"], total
+        )
+    )
+    assert table["slack"] == HARD_CEILING - total, (
+        "対比表の余裕 {0} が ceiling - TOTAL = {1} と不一致".format(
+            table["slack"], HARD_CEILING - total
+        )
+    )
+
+
+def test_ceiling_table_detector_fires_on_fake_data():
+    """偽データで発火を確認する（無言の空振りと区別するため）。
+
+    台帳側が正しい間、上の 2 検査は常に緑であり「効いている」ことを示せない。
+    """
+    fake = "\n".join([
+        "### 天井との対比",
+        "| 項目 | 値 |",
+        "| hard ceiling（外部定数） | **80** |",
+        "| 現在値 | **61** |",
+        "| 超過 | **なし（余裕 19 / 旧値のまま残置）** |",
+        "### R2",
+    ])
+    table = _ceiling_table(fake)
+    assert table == {"ceiling": 80, "current": 61, "slack": 19}, (
+        "偽データを抽出できていない: {0}".format(table)
+    )
+    # 正本（TOTAL）と乖離していることを検出できる
+    assert table["current"] != _ledger_total(), "ドリフト検出の前提が成立していない"
