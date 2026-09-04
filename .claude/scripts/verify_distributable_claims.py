@@ -120,11 +120,25 @@ _COMMAND_PAT = re.compile(r"(?:`|<code>)(/[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)(
 
 
 def iter_distributables(base: Path) -> list[Path]:
-    """配布物を glob から導出する（維持リストを持たない）。"""
+    """配布物を glob から導出する（維持リストを持たない）。
+
+    plugin の **starter テンプレート**も配布物である（2026-09-05 追加）。
+    `/lam-harness:init` が利用者のプロジェクトへ敷くファイルであり、利用者が読む。
+    P1(1) の予行で、starter が `/lam-harness:building` 他 6 件の不在コマンドを
+    名乗っているのに本検査が緑のままだったことで射程漏れが露見した
+    —— 配布物の集合が plugin 側へ広がったのに、走査の起点だけが旧来の場所にあった。
+
+    **managed テンプレートは走査しない。** あれは `.claude/rules/` と `docs/internal/`
+    の複製であり、恒等性は R3 機構 #11 が強制する。走査すると `docs/internal/` の
+    違反を二重に報告し、かつ project 側で未走査の `.claude/rules/` を複製経由で
+    暗黙に引き込む。rules を検査対象にするなら、複製の側面からではなく
+    **project 側の起点として明示的に決める**（未決 / `test_managed_templates_are_not_scanned`）。
+    """
     paths: list[Path] = []
     paths.extend(sorted(base.glob("*.md")))
     paths.extend(sorted((base / "docs" / "slides").glob("*.html")))
     paths.extend(sorted((base / "docs" / "internal").glob("*.md")))
+    paths.extend(sorted(base.glob("plugins/*/templates/starter/**/*.md")))
     return [p for p in paths if p.name not in EXCLUDED_FROM_SCAN]
 
 

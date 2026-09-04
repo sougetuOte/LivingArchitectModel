@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import sys
 from pathlib import Path
+import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
@@ -68,8 +69,35 @@ def test_script_exists() -> None:
     assert SCRIPT_PATH.is_file()
 
 
+def _is_starter(violation: dict) -> bool:
+    return "/templates/starter/" in str(violation["file"])
+
+
 def test_repository_has_no_phantom_commands() -> None:
-    violations = find_command_violations(REPO_ROOT)
+    """starter 以外の配布物に phantom は無い（移行中も検出力を落とさない）。
+
+    starter を除くのは、plugin 移行 P2 完了までそこに前方参照が残るためである。
+    ここで starter ごと赤にすると「赤 1 件は既知」という運用が生まれ、
+    **他領域に新しい phantom が入っても気づかなくなる**（`code-quality-guideline.md`
+    が警戒する「常時鳴る計器は殺される」型）。starter 側は下の xfail が受け持つ。
+    """
+    violations = [v for v in find_command_violations(REPO_ROOT) if not _is_starter(v)]
+    assert violations == [], "実在しないコマンドの提示: " + "; ".join(
+        f"{v['file']}:{v['line']} {v['subject']}" for v in violations
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "plugin 移行 P2 完了まで starter は /lam-harness:{building,magi,ship,retro,"
+        "quick-save,quick-load} を前方参照する（skills はまだ .claude/skills/ にある）。"
+        "strict なので、P2 で解消した瞬間に xpass で落ちて本 mark の撤去を促す "
+        "= 除外を書き忘れて機構が恒久的に盲目になる経路を持たない。"
+    ),
+)
+def test_starter_has_no_phantom_commands() -> None:
+    violations = [v for v in find_command_violations(REPO_ROOT) if _is_starter(v)]
     assert violations == [], "実在しないコマンドの提示: " + "; ".join(
         f"{v['file']}:{v['line']} {v['subject']}" for v in violations
     )
@@ -389,3 +417,52 @@ def test_unknown_plugin_namespace_is_reported(tmp_path: Path) -> None:
     (root / "README.md").write_text("`/nope:init`\n", encoding="utf-8")
     subjects = [v["subject"] for v in find_command_violations(root)]
     assert subjects == ["/nope:init"]
+
+
+# ==========================================================================
+# plugin templates の走査（2026-09-05 / P1(1) 予行で発見した射程漏れ）
+#
+# 配布物の集合が plugin 側（templates/starter/）へ広がったのに、走査の起点だけが
+# project ルート + docs/ のままだった。starter は `/lam-harness:init` が利用者の
+# プロジェクトへ敷くファイルであり、まさに本機構が守る「配布物」である。
+# 実測: starter が `/lam-harness:building` 他 6 件の不在コマンドを名乗っていたが、
+# 検査は 2 passed（緑）のままだった。
+# ==========================================================================
+
+
+def test_starter_templates_are_scanned(tmp_path: Path) -> None:
+    """plugin の starter テンプレートが走査対象に入る（陽性）。"""
+    root = tmp_path
+    (root / "plugins" / "lam-harness" / "skills" / "init").mkdir(parents=True)
+    starter = root / "plugins" / "lam-harness" / "templates" / "starter"
+    (starter / "dot-claude").mkdir(parents=True)
+    (starter / "dot-claude" / "current-phase.md").write_text(
+        "BUILDING へ移るときは `/lam-harness:ghost` を実行する。\n", encoding="utf-8"
+    )
+    subjects = [v["subject"] for v in find_command_violations(root)]
+    assert subjects == ["/lam-harness:ghost"], (
+        "starter テンプレートが走査対象に入っていない（射程漏れ）"
+    )
+
+
+def test_managed_templates_are_not_scanned(tmp_path: Path) -> None:
+    """managed テンプレートは走査しない（陰性対照）。
+
+    managed は project 側の実体（`.claude/rules/` と `docs/internal/`）の複製であり、
+    恒等性は R3 機構 #11 が強制する。ここを走査すると同一の違反を二重に報告するか、
+    project 側で未走査の領域（`.claude/rules/`）を複製経由で暗黙に走査対象へ
+    引き込むことになる。射程を広げるなら project 側の起点として明示的に決める。
+    """
+    root = tmp_path
+    managed = root / "plugins" / "lam-harness" / "templates" / "managed" / "rules"
+    managed.mkdir(parents=True)
+    (managed / "phase-rules.md").write_text("`/ghost` を使う。\n", encoding="utf-8")
+    assert find_command_violations(root) == []
+
+
+def test_real_starter_templates_are_in_scope() -> None:
+    """実リポジトリの starter が実際に走査対象へ入っている。"""
+    scanned = {str(p.relative_to(REPO_ROOT)).replace("\\", "/") for p in iter_distributables(REPO_ROOT)}
+    assert any(
+        p.startswith("plugins/") and "/templates/starter/" in p for p in scanned
+    ), "実リポジトリの starter が 1 件も走査されていない"
