@@ -16,8 +16,14 @@ import pytest
 
 class TestGetProjectRoot:
     def test_get_project_root_default(self, hook_utils, monkeypatch):
-        """__file__ ベースの PROJECT_ROOT 取得（環境非依存）"""
+        """__file__ ベースの PROJECT_ROOT 取得（環境非依存）
+
+        2026-09-04: CLAUDE_PROJECT_DIR も外す。外さないと、Claude Code セッション内で
+        走らせたときに env 経路を通ってしまい、**テスト名が嘘をつく**（__file__ 経路を
+        検査していると称して検査していない）。
+        """
         monkeypatch.delenv("LAM_PROJECT_ROOT", raising=False)
+        monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
         root = hook_utils.get_project_root()
         assert isinstance(root, Path)
         assert root.is_dir()
@@ -27,6 +33,71 @@ class TestGetProjectRoot:
         monkeypatch.setenv("LAM_PROJECT_ROOT", str(tmp_path))
         root = hook_utils.get_project_root()
         assert root == tmp_path
+
+    # ---- plugin 移行 P0（2026-09-04 / MAGI `2026-09-04-magi-migration-order.md`）----
+    #
+    # hooks が plugin へ移ると `__file__` は plugin cache を指す。そのとき被害は 3 段階で、
+    # 深いほど静かになる: 状態ファイルが cache に書かれて /plugin update で消える →
+    # current-phase.md が読めずフェーズガードが黙って死ぬ → normalize_path が誤った root で
+    # 相対化するため _PM_PATH_PATTERNS が一切マッチせず **PM 級承認ゲートが no-op になる**。
+    #
+    # 上流は hook 実行時に CLAUDE_PROJECT_DIR を注入すると規定している（settings.json の
+    # 既存 hook コマンドが `$CLAUDE_PROJECT_DIR` を使って現に動いていることが実証）。
+
+    def test_claude_project_dir_is_used_when_lam_root_absent(
+        self, hook_utils, tmp_path, monkeypatch
+    ):
+        """CLAUDE_PROJECT_DIR があれば __file__ より優先する。"""
+        monkeypatch.delenv("LAM_PROJECT_ROOT", raising=False)
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
+        assert hook_utils.get_project_root() == tmp_path
+
+    def test_lam_project_root_wins_over_claude_project_dir(
+        self, hook_utils, tmp_path, monkeypatch
+    ):
+        """LAM_PROJECT_ROOT は最優先のまま（テストの明示 override を壊さない）。
+
+        CLAUDE_PROJECT_DIR を上位に置くと、Claude Code セッション内で走る全テストが
+        実プロジェクトを掴んでしまい、tmp_path による隔離が崩れる。
+        """
+        lam_root = tmp_path / "lam"
+        claude_root = tmp_path / "claude"
+        lam_root.mkdir()
+        claude_root.mkdir()
+        monkeypatch.setenv("LAM_PROJECT_ROOT", str(lam_root))
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(claude_root))
+        assert hook_utils.get_project_root() == lam_root
+
+    def test_file_fallback_is_reachable_and_warns(self, hook_utils, monkeypatch, capsys):
+        """両 env を外すと __file__ 経路に落ち、**その事実を stderr に出す**。
+
+        これが本テストの主目的である。現行の検査は LAM_PROJECT_ROOT を設定して走るため
+        __file__ 経路をそもそも通らず、この経路の欠陥を **構造的に検出できなかった**。
+        「root が健全か」を推測で判定はしない（推測は必ず空振りする —— marketplace add は
+        リポジトリ全体を .claude ごと clone するため「.claude があれば健全」は誤検知する）。
+        代わりに **最も弱い解決経路を使ったという事実そのものを可聴化**する。
+        """
+        monkeypatch.delenv("LAM_PROJECT_ROOT", raising=False)
+        monkeypatch.delenv("CLAUDE_PROJECT_DIR", raising=False)
+        root = hook_utils.get_project_root()
+        assert root.is_dir()
+        assert (root / ".claude").is_dir(), "開発環境では __file__ 経路が repo root を指すはず"
+        captured = capsys.readouterr()
+        assert "CLAUDE_PROJECT_DIR" in captured.err, (
+            "最も弱い経路に落ちたことが可聴化されていない: {0!r}".format(captured.err)
+        )
+
+    def test_invalid_claude_project_dir_falls_back_with_warning(
+        self, hook_utils, tmp_path, monkeypatch, capsys
+    ):
+        """CLAUDE_PROJECT_DIR がディレクトリでなければ握りつぶさず fallback する。"""
+        monkeypatch.delenv("LAM_PROJECT_ROOT", raising=False)
+        bogus = tmp_path / "not-a-dir.txt"
+        bogus.write_text("x", encoding="utf-8")
+        monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(bogus))
+        root = hook_utils.get_project_root()
+        assert root.is_dir()
+        assert "CLAUDE_PROJECT_DIR" in capsys.readouterr().err
 
 
 class TestReadStdinJson:

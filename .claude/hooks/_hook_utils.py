@@ -93,29 +93,69 @@ def now_utc_iso8601() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _env_dir(name: str) -> "pathlib.Path | None":
+    """環境変数をディレクトリとして解決する。不正なら握りつぶさず警告して None を返す。"""
+    raw = os.environ.get(name)
+    if not raw:
+        return None
+    resolved = pathlib.Path(raw).resolve()
+    if resolved.is_dir():
+        return resolved
+    sys.stderr.write(
+        f"WARNING: {name} is not a directory: {raw!r}, falling back\n"
+    )
+    return None
+
+
 def get_project_root() -> pathlib.Path:
     """
     プロジェクトルートの Path を返す。
 
-    テスト用: 環境変数 LAM_PROJECT_ROOT が設定されていればそちらを優先。
-    通常: __file__ から ../../ を辿って PROJECT_ROOT を取得
-          (.claude/hooks/_hook_utils.py -> .claude/hooks/ -> .claude/ -> PROJECT_ROOT)
+    解決順（**上ほど強い**）:
+
+    1. ``LAM_PROJECT_ROOT`` — テストの明示 override。**最優先を維持する**。
+       ここを 2 位以下に落とすと、Claude Code セッション内で走るテストが
+       ``CLAUDE_PROJECT_DIR`` 経由で実プロジェクトを掴み、tmp_path による隔離が崩れる。
+    2. ``CLAUDE_PROJECT_DIR`` — Claude Code が **hook 実行時に注入する**プロジェクトディレクトリ。
+       ``.claude/settings.json`` の既存 hook コマンドが ``$CLAUDE_PROJECT_DIR`` を使って
+       現に動いていることが、注入の実証になっている。
+    3. ``__file__`` からの導出（``.claude/hooks/_hook_utils.py`` → 2 階層上）— **最も弱い**。
+
+    2 を追加した理由（2026-09-04 / plugin 移行 P0 / MAGI ``2026-09-04-magi-migration-order.md``）:
+    hooks が plugin へ移ると ``__file__`` は **plugin cache** を指す。上流は
+    「``${CLAUDE_PLUGIN_ROOT}`` に永続状態を置くな（更新でパスが変わる）」と明記している。
+    そのとき被害は 3 段階で、**深いほど静かになる**:
+
+    - 状態ファイル（``tdd-patterns.log`` / ``permission.log`` / PM キャッシュ）が
+      cache に書かれ、``/plugin update`` で消える
+    - ``current-phase.md`` が読めず、**フェーズ依存のガードが黙って死ぬ**
+    - ``normalize_path()`` が誤った root で相対化するため ``_PM_PATH_PATTERNS`` が
+      一切マッチせず、**PM 級承認ゲートが丸ごと no-op になる**
+
+    **「root が健全か」を推測で判定しない。** 推測は必ず空振りする —— ``marketplace add`` は
+    リポジトリ全体を ``.claude`` ごと clone するため（MAGI V2 実測）、
+    「``.claude`` があれば健全な root」という判定は clone を健全と誤検知し、fail-open に直結する。
+    代わりに **最も弱い経路（3）を使ったという事実そのものを stderr に出す**。
+    hook 実行時の stderr は上流がトランスクリプトに表示するため、沈黙にならない。
     """
-    env_root = os.environ.get("LAM_PROJECT_ROOT")
-    if env_root:
-        resolved = pathlib.Path(env_root).resolve()
-        if resolved.is_dir():
-            return resolved
-        # テスト用変数が不正なパスの場合はフォールバック（握りつぶさずログに残す）
-        sys.stderr.write(
-            f"WARNING: LAM_PROJECT_ROOT is not a directory: {env_root!r}, "
-            "falling back to __file__\n"
-        )
+    root = _env_dir("LAM_PROJECT_ROOT")
+    if root is not None:
+        return root
+
+    root = _env_dir("CLAUDE_PROJECT_DIR")
+    if root is not None:
+        return root
+
     # __file__ は .claude/hooks/_hook_utils.py
     # parent   -> .claude/hooks/
     # parent.parent -> .claude/
     # parent.parent.parent -> PROJECT_ROOT
-    return pathlib.Path(__file__).resolve().parent.parent.parent
+    fallback = pathlib.Path(__file__).resolve().parent.parent.parent
+    sys.stderr.write(
+        "WARNING: neither LAM_PROJECT_ROOT nor CLAUDE_PROJECT_DIR is set; "
+        f"falling back to __file__-derived project root: {fallback}\n"
+    )
+    return fallback
 
 
 def read_stdin_json() -> dict:
