@@ -4,6 +4,41 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### retro の指摘を反映した（2026-09-04 / `retro-2026-09-04.md` A2-A6）
+
+- **`06_DECISION_MAKING.md` §6.6**（**PM 級**）: 「gabriel critical 2 回目」に**意味**の注記を追加 ——
+  gabriel は与えられた前提のもとで結論を検証するため、**前提を欠陥として名指す語彙を持たない**。
+  よって critical 2 回目は「設計が誤っている」ではなく「**入力が誤っている**」の信号である。
+  併せて新ゲートの「M-1 完了後に発効」→「**発効中**」を更正（2026-08-21 の移行期規定除去に未追随だった）
+- **`clause-gate-ledger.md` の「天井との対比」表を機械検査**（+3 tests / 偽データ発火確認込み）——
+  §A TOTAL は検査済だったが対比表は**手写しの導出**で検査対象外であり、過去 2 度ドリフトしていた
+- **`/retro` skill**: Try に「**宛先**」欄（候補 6 種と費用）と、Step 4 の記憶同期チェック 1 行を追加
+
+### PM 級パス列挙の複製 3 箇所を是正した（2026-09-04 / `/ship` Phase 2 で検出）
+
+`permission-levels.md` の正本表とは別に、散文・早見表へ**同じ列挙が複製**されており、
+いずれも `CLAUDE.md`（2026-07-26 追加）を落としたまま約 1 か月放置されていた。
+
+- `docs/internal/07_SECURITY_AND_AUTOMATION.md` §5（**PM 級**）: 括弧内の列挙を**正本への参照に畳んだ**
+  （欠陥クラスが構造的に消える / 2026-08-26 の複製解消と同型）
+- `CHEATSHEET.md` / `CHEATSHEET_en.md`: 早見表としての列挙は残しつつ**完全な形に是正**し、
+  「本行は写しであり、増減時は正本を先に直す」と明記
+
+### `docs/internal/*.md` を PM 級パスに昇格した（2026-09-04 / **PM 級** / `retro-2026-09-04.md` A1）
+
+`CLAUDE.md` の Hierarchy of Truth は `docs/internal/00-08` を **level 2**、`docs/specs/` を **level 3** と
+定めるのに、権限等級は specs=PM / internal=SE と**逆転していた**。2026-09-04 にこの穴を実際に通った ——
+247 行の新規 SSOT `docs/internal/08_EXECUTION_DISCIPLINE.md` が無ゲートで生まれ、PM ダイアログは
+参照側（`.claude/rules/` の 12 箇所付替）にのみ発火した。加えて `docs/internal/` は同日 managed 配布物に
+なったため、無ゲートで生まれた条文が利用者へ配られる経路でもあった。
+
+- `permission-levels.md` §ファイルパスベースの分類 に行を追加（**本表が正本**）＋ 入場記録の注記
+- `_hook_utils.py` `_PM_PATH_PATTERNS` に `^docs/internal/.*\.md$` / `pre-tool-use.py` の `_PM_PATH_REASONS` に対応要素
+- **`docs/` 配下の他（`artifacts/` / `private/` / `daily/`）は SE のまま** —— 記録であって規範ではなく、
+  巻き込むと毎回書込が PM ダイアログになり「常時鳴る計器は殺される」型に直行する
+- テスト +1（`test_docs_internal_is_pm_and_other_docs_are_not` / 陽性 + 拡張子ガード + 陰性対照 3）
+- managed テンプレートを同期（**機構 #11 が差分を検出した** = 導入 1 日目に恒等性検査が効いた実測）
+
 ### 配布形態を plugin + marketplace に決定し、骨格を置いた（2026-09-04 / **PM 級** / ADR-0010 追補 1）
 
 「clone したらリリースの度に洗浄が要る」という問いから始め、MAGI（AoT 6 Atom）+ gabriel 2 巡 + **HGA #29** を経て決定した。
