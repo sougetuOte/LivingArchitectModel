@@ -50,11 +50,19 @@ def _iter_hook_commands(settings: dict) -> list[str]:
     return commands
 
 
-def test_settings_json_has_five_hook_commands():
-    """settings.json は 5 件の hook 起動コマンドを持つ（回帰の前提確認）。"""
+def test_settings_json_hook_command_count():
+    """settings.json の hook 起動コマンド件数（回帰の前提確認）。
+
+    2026-09-04 に 5 → **6** へ。Outbound Write Ban を配布物の `pre-tool-use.py` から
+    project 層（`.claude/hooks-local/outbound-write-ban.py`）へ分離し、**置換ではなく
+    追加**として PreToolUse に 1 本足したため（hook は設定レベル間で merge される）。
+
+    旧名 `test_settings_json_has_five_hook_commands` は件数を名前に持っていたため、
+    件数変更で「名前が嘘をつく」状態になる。実態に合わせて改名した。
+    """
     settings = json.loads(_SETTINGS_PATH.read_text(encoding="utf-8"))
     commands = _iter_hook_commands(settings)
-    assert len(commands) == 5
+    assert len(commands) == 6
 
 
 def test_hook_commands_use_venv_first():

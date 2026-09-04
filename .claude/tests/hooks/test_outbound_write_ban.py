@@ -1,34 +1,42 @@
 """Outbound Write Ban の R3 二重化 TDD（HGA #24 手 2 / W1）.
 
-`docs/private/fable-l3-protocol.md` §2 の **Outbound Write Ban**（D-1 で移動 / 2026-08-13）
-（`D:\\work7\\Fable-Alembic\\` 配下への書込・編集の禁止 / 全レベル共通 **MUST NOT**）は、
-制定（2026-07-07）以来 **条文のみで機構を持たなかった**。
+`docs/private/fable-l3-protocol.md` §2 の **Outbound Write Ban**（制定 2026-07-07 /
+外部リポジトリ配下への書込・編集の禁止 / 全レベル共通 **MUST NOT**）は、制定以来
+**条文のみで機構を持たなかった**。当該パスへの書込は `normalize_path` で
+`__out_of_root__/` マーカーが付き **PM 級（ask ダイアログ）** として扱われる。
+すなわち「ユーザーが承認すれば書ける」状態であり、条文の **MUST NOT** と格差があった。
+かつ違反しても誰も気づかない = **静かに潜伏する失敗クラス**（HGA #17 crux 3）。
 
-実測（2026-07-27）: 当該パスへの書込は `normalize_path` で `__out_of_root__/` マーカーが
-付き、`_PM_OUT_OF_ROOT_PATTERN` により **PM 級（ask ダイアログ）** として扱われる。
-すなわち「ユーザーが承認すれば書ける」状態であり、条文の **MUST NOT（絶対禁止）** と
-格差がある。かつ違反しても誰も気づかない = **静かに潜伏する失敗クラス**（HGA #17 crux 3）
-であり、同 crux の基準では**永久に運用移管不可 = 機構化が必須**の類に当たる。
+## 2026-09-04: 機構を project 層へ移設した
 
-設計上の位置づけ:
-- clause-gate Step 1 を全通過（入力 = tool_input のパス = スキーマ契約あり /
-  `relative_to` による機械判定 / 意味解釈不要）
-- 軸 1 = ユーザー意思（triage `#2-01`）/ 軸 3 = 不可逆（他リポジトリの破壊）
-- 設計 §1.3 により **不可逆ガードは R1 + R3 の複宛先を許す** → 条文は残したまま機構を建てる
+配布形態を plugin へ移すにあたり、`pre-tool-use.py` は**配布物**になった。作者マシンの
+絶対パスをそこに埋めたままだと、利用者は「動いているように見えて何も守らないコード」を
+受け取る（**31 回のリリースで実際に配られ続けていた**）。
 
-MAGI 記録: `docs/artifacts/2026-07-27-magi-planning-hook.md`
-（gabriel 第 1 回 `refuted/critical` → 再 MAGI → 第 2 回 `refuted/warning/proceed`）
+D-1 design §5 決定 D4 が定めた目標状態「**hook・テスト・条文がすべて配布物から外れる**」に従い:
 
-**gabriel G-3 が要求した境界条件テストを本ファイルが担う**:
-(a) セパレータ正規化（`\\` / `/` / 相対 / symlink）—— `normalize_path` は out-of-root 時に
-    **生の file_path 文字列**を保持する（`_hook_utils.py:218-220`）ため、素朴な前方一致
-    regex では `D:\\...` と `D:/...` が別文字列となり片方が検知漏れする
-(b) `etc-to-alembic` の誤 deny —— 部分一致で実装すると **allow 対である handoff 経路**を
-    殺す（ADR-0008 D1 違反）
+| | 所在（2026-09-04 以降） | 配布 |
+|:--|:--|:--|
+| 条文 | `docs/private/fable-l3-protocol.md` §0-§2 | されない |
+| 機構 | `.claude/hooks-local/outbound-write-ban.py` | されない |
+| テスト | 本ファイル | されない |
+
+hook は設定レベル間で **merge され置換されない**ため、分離しても deny の実効性は落ちない
+（`exit 2` は他 hook の allow で覆せない / 公式 fail-secure）。これは不変条件
+「私的規範は『追加』のみ許し『置換』を許さない」に厳密に一致する。
+
+**gabriel G-3 が要求した境界条件テストは全て維持している**:
+(a) セパレータ正規化（`\\` / `/` / 相対 / symlink）/ (b) `etc-to-alembic` の誤 deny 回帰
+（allow 対を殺さない / ADR-0008 D1）。
+
+MAGI 記録: `docs/artifacts/2026-07-27-magi-planning-hook.md`（制定時）/
+`docs/artifacts/2026-09-04-magi-distribution-form.md`（移設時）。
 """
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -36,32 +44,74 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _HOOKS_DIR = Path(__file__).resolve().parents[2] / "hooks"
+_LOCAL_HOOKS_DIR = Path(__file__).resolve().parents[2] / "hooks-local"
+_BAN_SCRIPT = _LOCAL_HOOKS_DIR / "outbound-write-ban.py"
+
 if str(_HOOKS_DIR) not in sys.path:
     sys.path.insert(0, str(_HOOKS_DIR))
 
 
-def _load_pre_tool_use():
-    spec = importlib.util.spec_from_file_location(
-        "pre_tool_use_for_ban_test", _HOOKS_DIR / "pre-tool-use.py"
-    )
+def _load(path: Path, name: str):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
+def _load_pre_tool_use():
+    return _load(_HOOKS_DIR / "pre-tool-use.py", "pre_tool_use_for_ban_test")
+
+
 @pytest.fixture(scope="module")
 def ptu():
+    """配布物側の hook（out-of-root の PM 級判定を確認するために使う）。"""
     return _load_pre_tool_use()
+
+
+@pytest.fixture(scope="module")
+def owb():
+    """project 層の Outbound Write Ban hook（2026-09-04 移設）。"""
+    return _load(_BAN_SCRIPT, "outbound_write_ban_for_test")
 
 
 @pytest.fixture
 def nonexistent_phase_file(tmp_path: Path) -> Path:
-    """存在しない phase ファイル（`_read_current_phase` は "" を返す）。
-
-    Outbound Write Ban は**フェーズ非依存**であることを示すため、
-    フェーズが読めない状態でも deny されねばならない。
-    """
     return tmp_path / "no-such-phase.md"
+
+
+# --- 移設そのものの検査（2026-09-04 追加） -------------------------------------
+
+
+def test_ban_script_exists():
+    assert _BAN_SCRIPT.is_file(), f"project 層の機構が存在しない: {_BAN_SCRIPT}"
+
+
+def test_distributed_hook_has_no_author_paths():
+    """**配布物側に作者環境の絶対パスが残っていないこと**（移設の目的そのもの）。
+
+    ここが赤くなるのは「私的ガードを配布物へ書き戻した」ときであり、
+    利用者に死んだコードを配る状態への逆戻りを意味する。
+    """
+    source = (_HOOKS_DIR / "pre-tool-use.py").read_text(encoding="utf-8")
+    for needle in ("Fable-Alembic", "etc-to-alembic", "_OUTBOUND_WRITE_BAN_ROOTS"):
+        assert needle not in source, (
+            f"配布される pre-tool-use.py に {needle!r} が残っている。"
+            "私的ガードは .claude/hooks-local/ に置くこと（D-1 design §5 決定 D4）"
+        )
+
+
+def test_ban_script_is_self_contained():
+    """project 層の機構が配布物側の内部実装に依存しないこと。
+
+    `_hook_utils` を import すると、配布物が動いた瞬間に project 層が壊れる。
+    """
+    source = _BAN_SCRIPT.read_text(encoding="utf-8")
+    # docstring では `_hook_utils` に**言及する**（なぜ依存しないかの説明）。
+    # 禁じているのは実際の import であって語の出現ではない。
+    for line in source.splitlines():
+        stripped = line.strip()
+        assert not stripped.startswith("import _hook_utils")
+        assert not stripped.startswith("from _hook_utils")
 
 
 # --- (a) セパレータ 4 形すべてで deny されること -------------------------------
@@ -78,33 +128,31 @@ def nonexistent_phase_file(tmp_path: Path) -> Path:
         r"..\Fable-Alembic\knowledge\x.md",
     ],
 )
-def test_outbound_write_ban_denies_all_separator_forms(
-    ptu, nonexistent_phase_file, file_path
-):
-    """`Fable-Alembic` 配下は表記形によらず DENY となる。
+def test_outbound_write_ban_denies_all_separator_forms(owb, file_path):
+    """`Fable-Alembic` 配下は表記形によらず deny となる。
 
-    gabriel G-3(a): out-of-root は生の file_path を保持するため、素朴な前方一致では
-    セパレータ違いを取りこぼす。実装は `Path.resolve()` による正規化を経ること。
+    gabriel G-3(a): 素朴な前方一致ではセパレータ違いを取りこぼす。
+    実装は `Path.resolve()` による正規化を経ること。
+
+    注: 相対形（`../Fable-Alembic/...`）はリポジトリの配置に依存して解決される。
+    本リポジトリが対象の兄弟位置にある構成でのみ deny になる。
     """
-    level, reason = ptu._determine_by_path(
-        file_path, _REPO_ROOT, nonexistent_phase_file
-    )
-    assert level == "DENY", f"{file_path!r} が DENY にならない（level={level} / {reason}）"
+    reason = owb.check(file_path, _REPO_ROOT)
+    assert reason is not None, f"{file_path!r} が deny されない"
     assert "Outbound Write Ban" in reason
 
 
-def test_outbound_write_ban_is_phase_independent(ptu, tmp_path: Path):
-    """フェーズによらず DENY（既存の FR-9 deny が AUTONOMOUS 限定なのと対照的）。
+def test_ban_is_structurally_phase_independent(owb):
+    """フェーズ非依存が**構造として**保証されていること。
 
-    条文は「全レベル共通 MUST NOT」であり、フェーズに条件づけられていない。
+    条文は「全レベル共通 MUST NOT」でありフェーズに条件づけられていない。
+    移設前は `_determine_by_path` の最前段で判定することで達成していたが、
+    移設後は **hook がフェーズを読まない**ことで構造的に達成される。
     """
-    for phase in ("PLANNING", "BUILDING", "AUDITING", "AUTONOMOUS"):
-        phase_file = tmp_path / f"phase-{phase}.md"
-        phase_file.write_text(f"# Current Phase\n\n**{phase}**\n", encoding="utf-8")
-        level, reason = ptu._determine_by_path(
-            r"D:\work7\Fable-Alembic\knowledge\x.md", _REPO_ROOT, phase_file
-        )
-        assert level == "DENY", f"phase={phase} で DENY にならない"
+    source = _BAN_SCRIPT.read_text(encoding="utf-8")
+    assert "current-phase" not in source
+    assert "PLANNING" not in source
+    assert "AUTONOMOUS" not in source
 
 
 # --- (b) allow 対: handoff 経路を殺さないこと（ADR-0008 D1） --------------------
@@ -119,21 +167,29 @@ def test_outbound_write_ban_is_phase_independent(ptu, tmp_path: Path):
         "D:/work7/etc-to-alembic/",
     ],
 )
-def test_etc_to_alembic_is_not_denied(ptu, nonexistent_phase_file, file_path):
-    """`etc-to-alembic` は DENY されない（**allow 対** / ADR-0008 D1）。
+def test_etc_to_alembic_is_not_denied(owb, file_path):
+    """`etc-to-alembic` は deny されない（**allow 対** / ADR-0008 D1）。
 
-    gabriel G-3(b): 実装が `"alembic"` の部分一致（case-insensitive 含む）で
-    書かれると、条文が明示的に許可した唯一の受け渡し経路を殺す。
-
-    なお「DENY されない」= 素通しではない。out-of-root として **PM 級（ask）** に
-    留まる（`_PM_OUT_OF_ROOT_PATTERN` / R1-I18 の意図的設計）。PG 級 auto allow に
-    しないのは、リポジトリ外書込を無確認で通すことが R1-I18 の「安全側維持」
-    判断を覆すため（設計判断は MAGI ログ §Step 5 に記録）。
+    gabriel G-3(b): 実装が `"alembic"` の部分一致で書かれると、条文が明示的に
+    許可した唯一の受け渡し経路を殺す。
     """
-    level, reason = ptu._determine_by_path(
-        file_path, _REPO_ROOT, nonexistent_phase_file
-    )
-    assert level != "DENY", f"{file_path!r} が誤って DENY された（{reason}）"
+    assert owb.check(file_path, _REPO_ROOT) is None, f"{file_path!r} が誤って deny された"
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        r"D:\work7\etc-to-alembic\handoff\observation-2026-07-27.md",
+        r"D:\work7\Fable-Alembic\knowledge\x.md",
+    ],
+)
+def test_out_of_root_still_asks(ptu, nonexistent_phase_file, file_path):
+    """配布物側は out-of-root を **PM 級（ask）** に留める（移設後も不変）。
+
+    「deny されない」= 素通しではない。PG 級 auto allow にしないのは、リポジトリ外
+    書込を無確認で通すことが R1-I18 の「安全側維持」判断を覆すため。
+    """
+    level, _reason = ptu._determine_by_path(file_path, _REPO_ROOT, nonexistent_phase_file)
     assert level == "PM", f"{file_path!r} は out-of-root PM 級であるべき（level={level}）"
 
 
@@ -152,23 +208,66 @@ def test_etc_to_alembic_is_not_denied(ptu, nonexistent_phase_file, file_path):
 def test_in_repo_paths_are_unaffected(
     ptu, nonexistent_phase_file, file_path, expected_level
 ):
-    """リポジトリ内パスの判定は本変更で一切変わらない（Zero-Regression）。"""
-    level, _reason = ptu._determine_by_path(
-        file_path, _REPO_ROOT, nonexistent_phase_file
-    )
+    """リポジトリ内パスの判定は移設で一切変わらない（Zero-Regression）。"""
+    level, _reason = ptu._determine_by_path(file_path, _REPO_ROOT, nonexistent_phase_file)
     assert level == expected_level
+
+
+# --- end-to-end: hook として起動したときの終了コード ---------------------------
+
+
+def _run_hook(payload: dict) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        [sys.executable, str(_BAN_SCRIPT)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+
+def test_hook_exits_2_on_banned_path():
+    """`exit 2` = blocking。他 hook が allow を返しても覆せない（公式 fail-secure）。"""
+    r = _run_hook({"tool_name": "Write", "tool_input": {"file_path": "D:/work7/Fable-Alembic/x.md"}})
+    assert r.returncode == 2, f"returncode={r.returncode} / stderr={r.stderr}"
+    payload = json.loads(r.stdout)
+    assert payload["hookSpecificOutput"]["permissionDecision"] == "deny"
+
+
+def test_hook_exits_0_on_allowed_path():
+    r = _run_hook(
+        {"tool_name": "Write", "tool_input": {"file_path": "D:/work7/etc-to-alembic/handoff/a.md"}}
+    )
+    assert r.returncode == 0, f"returncode={r.returncode} / stderr={r.stderr}"
+
+
+def test_hook_exits_0_without_file_path():
+    """`file_path` を持たない tool（Bash 等）では素通しする。
+
+    Bash 経由の書込は本機構の射程外である（対処は Layer 1 = `permissions.deny` の領分）。
+    """
+    assert _run_hook({"tool_name": "Bash", "tool_input": {"command": "ls"}}).returncode == 0
+
+
+def test_hook_exits_0_on_malformed_input():
+    """入力が壊れていても他 hook の判定を邪魔しない。"""
+    r = subprocess.run(
+        [sys.executable, str(_BAN_SCRIPT)],
+        input="not json",
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+    assert r.returncode == 0
 
 
 # --- drift 検査: 機構と条文の SSOT 整合 ---------------------------------------
 
 
 def _missing_roots(roots) -> list:
-    """実在しないルートを列挙する（純関数 / 下の 2 テストが共有する）。
-
-    テスト本体から分離してあるのは、所有者ゲートつきの検査（`test_..._exist_in_
-    authoring_env`）が **vacuous でないこと**を、ゲートなしの検査
-    （`test_root_existence_check_detects_missing`）で保証するため。
-    """
+    """実在しないルートを列挙する（純関数 / 下の 2 テストが共有する）。"""
     return [r for r in roots if not Path(r).exists()]
 
 
@@ -179,53 +278,35 @@ def _missing_roots(roots) -> list:
 #
 # **なぜ `not path.exists()` を skip 条件にしないか**: 検出したい事象（ban root が
 # 実在しない）そのものが skip 条件になり、検査として機能しなくなる（循環）。
-# gabriel が MAGI A3 の未検討経路として指摘した点であり、所有者判定を **ban root と
-# 独立なシグナル**に置くことで解消する（`docs/artifacts/2026-07-27-magi-outbound-ban-path.md`）。
-#
-# **なぜ `git remote` を使わないか**: 外部の漂流入力を追うことになり、誕生ゲート設計
-# §1.1 (iii)「同時更新義務ありの機構は R3 に置けない」に触れるため。
 _IS_AUTHORING_ENV = (_REPO_ROOT / "SESSION_STATE.md").exists()
 
-# 既知の弱点（受忍済 / MAGI Synthesis に明記）: 所有者が SESSION_STATE.md を削除すると
-# 本検査は静かに skip される。同ファイルは `/quick-save` の中核成果物であり、所有者
-# 環境での不在は実質的に起こらないと判断した。
+# 既知の弱点（受忍済）: 所有者が SESSION_STATE.md を削除すると本検査は静かに skip される。
 
 
 @pytest.mark.skipif(
     not _IS_AUTHORING_ENV,
-    reason="所有者環境（SESSION_STATE.md が存在する）でのみ実行する。"
-    "配布先には Fable-Alembic が存在しないため検査が無意味になる",
+    reason="所有者環境（SESSION_STATE.md が存在する）でのみ実行する",
 )
-def test_outbound_roots_exist_in_authoring_env():
+def test_outbound_roots_exist_in_authoring_env(owb):
     """条文を書いた環境では、禁止ルートと許可ルートが**実在**すること。
 
-    `test_banned_root_matches_rule_document`（drift 検査）が守るのは
-    「条文と機構が同じ文字列を持つこと」だけであり、**その文字列が実在するかは
-    検査していない**。リポジトリ群を移動すると条文と機構は仲良く同じ嘘をつき、
-    drift 検査は緑のまま通る —— すなわち **Outbound Write Ban が沈黙して守らなく
-    なっても誰も気づかない**。本テストはその穴を塞ぐ。
-
-    設計 §1.3 は不可逆ガードに R1（条文）+ R3（機構）の二重化を義務づけるが、
-    機構が指す先が消えていれば二重化は名目でしかない（WC-18「層 1 の空手形」と同型）。
+    drift 検査が守るのは「条文と機構が同じ文字列を持つこと」だけであり、
+    **その文字列が実在するかは検査していない**。リポジトリ群を移動すると条文と機構は
+    仲良く同じ嘘をつき、drift 検査は緑のまま通る —— すなわち **ガードが沈黙して
+    守らなくなっても誰も気づかない**。本テストはその穴を塞ぐ。
     """
-    ptu = _load_pre_tool_use()
-    roots = list(ptu._OUTBOUND_WRITE_BAN_ROOTS) + list(ptu._OUTBOUND_WRITE_ALLOW_ROOTS)
+    roots = list(owb._BAN_ROOTS) + list(owb._ALLOW_ROOTS)
     missing = _missing_roots(roots)
     assert missing == [], (
         f"Outbound Write Ban の対象が実在しない: {missing}。"
         "リポジトリ群を移動した場合、`docs/private/fable-l3-protocol.md` §2（SSOT）と "
-        "`pre-tool-use.py` の `_OUTBOUND_WRITE_BAN_ROOTS` / `_OUTBOUND_WRITE_ALLOW_ROOTS` "
-        "の**両方**を更新すること。片方だけでは drift 検査が落ちる"
+        "`.claude/hooks-local/outbound-write-ban.py` の `_BAN_ROOTS` / `_ALLOW_ROOTS` の"
+        "**両方**を更新すること"
     )
 
 
 def test_root_existence_check_detects_missing():
-    """`_missing_roots` が実際に不在を検出する（**上のテストが vacuous でないことの保証**）。
-
-    所有者ゲートつきの検査は、ゲートが常に False になれば「常に skip = 常に緑」に
-    退化しうる。本テストはゲートを持たず全環境で走り、検出ロジック自体が生きて
-    いることを固定する。
-    """
+    """`_missing_roots` が実際に不在を検出する（**上のテストが vacuous でないことの保証**）。"""
     nonexistent = Path("D:/work7/__lam_nonexistent_root_for_test__")
     assert not nonexistent.exists(), "テスト前提: このパスは存在しないこと"
     assert _missing_roots([nonexistent]) == [nonexistent]
@@ -234,27 +315,18 @@ def test_root_existence_check_detects_missing():
 
 @pytest.mark.skipif(
     not _IS_AUTHORING_ENV,
-    reason="所有者環境でのみ実行する。条文は D-1 で docs/private/ へ移動しており、"
-    "配布先では削除されうるため（design §5 が予告した「同じ所有者ゲート」）",
+    reason="所有者環境でのみ実行する。条文は docs/private/ にあり配布先では削除されうる",
 )
-def test_banned_root_matches_rule_document():
-    """hook の禁止ルートが `fable-l3-protocol.md` の記載と一致する。
+def test_banned_root_matches_rule_document(owb):
+    """機構の禁止ルートが `fable-l3-protocol.md` の記載と一致する。
 
-    条文側（§2 / §0）が SSOT であり、パス移動時は条文のみ更新すれば足りるという
-    設計になっている。機構側が別の値を持つと **沈黙して守らなくなる**ため、
-    文字列の存在を突合する（**部分文字列の存在確認のみ**で、prose の構造解析は
-    行わない —— rule-001 / rule-002 型の drift 保守負債を作らないため）。
-
-    条文の所在: D-1（2026-08-13 / ユーザー判定 X）で `.claude/rules/` から
-    `docs/private/fable-l3-protocol.md` へ移動した。配布先では削除されうるため
-    所有者ゲート付きとする（d-1-distribution-boundary/design.md §5 の予告どおり）。
+    条文側（§2 / §0）が SSOT。機構側が別の値を持つと **沈黙して守らなくなる**ため、
+    文字列の存在を突合する（**部分文字列の存在確認のみ** / prose の構造解析はしない）。
     """
-    ptu = _load_pre_tool_use()
     rule_text = (_REPO_ROOT / "docs" / "private" / "fable-l3-protocol.md").read_text(
         encoding="utf-8"
     )
-    for banned in ptu._OUTBOUND_WRITE_BAN_ROOTS:
-        # 条文は Windows 表記（`D:\work7\Fable-Alembic\`）で書かれている。
+    for banned in owb._BAN_ROOTS:
         windows_form = str(banned).replace("/", "\\")
         assert windows_form in rule_text, (
             f"禁止ルート {windows_form!r} が fable-l3-protocol.md に見つからない。"

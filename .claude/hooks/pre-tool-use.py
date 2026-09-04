@@ -173,28 +173,15 @@ _FR34_SPEC_PATTERNS = [
     (re.compile(r"^docs/specs/"), "specs/"),
 ]
 
-# Outbound Write Ban（`docs/private/fable-l3-protocol.md` §0 / §2 / D-1 で移動 2026-08-13）。
-# 条文は「全レベル共通 MUST NOT」であり **フェーズに条件づけられていない**ため、
-# FR-9 / FR-3.4（AUTONOMOUS 限定）とは別系統で、常に deny する。
+# Outbound Write Ban は **project 層へ分離した**（2026-09-04 / ADR-0010 追補 1）。
 #
-# 機構化の根拠: 違反しても誰も気づかない「静かに潜伏する失敗クラス」であり、
-# HGA #17 crux 3 の基準では永久に運用移管不可 = 機構化が必須の類に当たる。
-# 条文は残す（誕生ゲート設計 §1.3 = 不可逆ガードの R1 + R3 複宛先）。
+# 本ファイルは plugin コンポーネントとして配布されるため、作者マシンの絶対パスを
+# 埋めたままにすると、利用者は「動いているように見えて何も守らないコード」を受け取る。
+# D-1 design §5 決定 D4 が定めた目標状態「**hook・テスト・条文がすべて配布物から外れる**」
+# に従い、機構を `.claude/hooks-local/outbound-write-ban.py`（配布されない project 層）へ移した。
 #
-# SSOT は条文側。パス移動時は `fable-l3-protocol.md` §2 と本定数の両方を更新する
-# （drift 検査: .claude/tests/hooks/test_outbound_write_ban.py
-#  ::test_banned_root_matches_rule_document）。
-_OUTBOUND_WRITE_BAN_ROOTS = (Path("D:/work7/Fable-Alembic"),)
-
-# ADR-0008 D1（deny ↔ allow 二重化必須 / deny 単独で守らない）に対応する allow。
-# 条文 §2 が「Alembic への提案・観察の受け渡しは handoff を経由する」と定めた
-# **唯一の正規経路**であり、deny より先に照合して deny に優先させる。
-#
-# 注: PG 級 auto allow にはしない。リポジトリ外への書込を無確認で通すことは
-# R1-I18（out-of-root は信頼度が低いためセッションスコープ降格の対象にしない＝
-# 安全側維持）の設計判断を覆すため、handoff も out-of-root の PM 級（ask）に留める。
-_OUTBOUND_WRITE_ALLOW_ROOTS = (Path("D:/work7/etc-to-alembic/handoff"),)
-
+# 分離しても deny の実効性は落ちない —— hook は設定レベル間で merge され置換されず、
+# `exit 2` は他 hook の `permissionDecision: allow` では覆せない（公式 / fail-secure）。
 
 # PLANNING §禁止 3 項目め「設定ファイル変更（package.json, pyproject.toml 等）」の執行
 # （`.claude/rules/phase-rules.md` PLANNING §禁止）。**PLANNING フェーズ限定**。
@@ -257,86 +244,12 @@ def _check_planning_config_freeze(normalized: str) -> tuple[str, str] | None:
     return None
 
 
-def _is_under(path: Path, root: Path) -> bool:
-    """`path` が `root` 配下かを判定する（Windows の大小文字非区別に対応）。"""
-    try:
-        path.relative_to(root)
-        return True
-    except ValueError:
-        pass
-    # Windows のファイルシステムは大小文字を区別しない。`resolve()` は実在パスを
-    # 正規化するが、未作成パスでは元の表記が残るため casefold で再照合する。
-    # Windows 絶対パス定数は POSIX の実パスと衝突しないため、平台判定は不要。
-    try:
-        Path(str(path).casefold()).relative_to(Path(str(root).casefold()))
-        return True
-    except ValueError:
-        return False
-
-
-def _resolve_for_outbound_check(file_path: str, project_root: Path) -> Path | None:
-    """Outbound Write Ban 判定用にパスを実体解決する。
-
-    `normalize_path` は out-of-root 時に **生の file_path 文字列**を保持する
-    （`_hook_utils.normalize_path` 参照）ため、セパレータ違い（`\\` / `/`）・
-    相対 traversal・symlink を吸収できない。本判定は `resolve()` で正規化した
-    実体パスに対して行う。
-
-    resolve に失敗した場合は生パスで照合を続行する（**フェイルクローズ寄り** /
-    絶対禁止ガードのため素通しにしない）。
-    """
-    try:
-        p = Path(file_path)
-    except (TypeError, ValueError) as e:
-        sys.stderr.write(
-            f"WARNING: outbound ban: Path() failed for {file_path!r}: {e}\n"
-        )
-        return None
-    if not p.is_absolute():
-        p = project_root / p
-    try:
-        return p.resolve()
-    except (OSError, RuntimeError) as e:
-        sys.stderr.write(
-            f"WARNING: outbound ban: resolve() failed for {file_path!r}: {e}\n"
-        )
-        return p
-
-
-def _check_outbound_write_ban(
-    file_path: str,
-    project_root: Path,
-) -> tuple[str, str] | None:
-    """Outbound Write Ban に該当するなら DENY を返す（該当なしは None）。
-
-    allow（handoff）を deny より先に照合する（ADR-0008 D1）。
-    """
-    resolved = _resolve_for_outbound_check(file_path, project_root)
-    if resolved is None:
-        return None
-    for allow_root in _OUTBOUND_WRITE_ALLOW_ROOTS:
-        if _is_under(resolved, allow_root):
-            return None
-    for banned_root in _OUTBOUND_WRITE_BAN_ROOTS:
-        if _is_under(resolved, banned_root):
-            return "DENY", f"Outbound Write Ban ({banned_root})"
-    return None
-
-
 def _determine_by_path(
     file_path: str,
     project_root: Path,
     phase_file: Path,
 ) -> tuple[str, str]:
     """ファイルパスから権限等級を判定する（パスベース判定）。"""
-    # Outbound Write Ban（fable-l3-protocol.md §2 / 全レベル共通 MUST NOT）。
-    # **フェーズ非依存かつ最優先**で判定する（条文がフェーズに条件づけていないため）。
-    # normalize_path より前段で行うのは、out-of-root マーカーが生パスを保持し
-    # セパレータ違い・symlink を吸収できないため（_resolve_for_outbound_check 参照）。
-    outbound = _check_outbound_write_ban(file_path, project_root)
-    if outbound is not None:
-        return outbound
-
     normalized = normalize_path(file_path, project_root)
     phase = _read_current_phase(phase_file)
 
@@ -494,17 +407,13 @@ def _read_current_phase(phase_file: Path) -> str:
 def _build_deny_reason(reason: str, target: str) -> str:
     """DENY 応答の説明文言を構築する。
 
-    DENY は3系統: Outbound Write Ban（フェーズ非依存・全レベル共通 MUST NOT）と
-    FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・成果物の即時
-    ハードストップ）。reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
+    DENY は3系統: FR-9（統治ファイルの自己統治不可侵）と FR-3.4（spec freeze・
+    成果物の即時ハードストップ）と PLANNING config freeze（設定ファイル変更の禁止）。
+    reason 接頭辞で説明文言を出し分ける（reason は内部生成で安定）。
+
+    Outbound Write Ban は 2026-09-04 に project 層（`.claude/hooks-local/`）へ分離した。
+    旧 docstring は PLANNING config freeze の追加に追随しておらず「3系統」の中身がずれていた。
     """
-    if reason.startswith("Outbound Write Ban"):
-        return (
-            f"Outbound Write Ban: Fable-Alembic リポジトリ配下は書込・編集できません"
-            f"（{reason}）。`docs/private/fable-l3-protocol.md` §2 が全レベル共通の "
-            f"MUST NOT と定めています。提案・観察の受け渡しは "
-            f"`D:\\work7\\etc-to-alembic\\handoff\\` を経由してください。対象: {target}"
-        )
     if reason.startswith("PLANNING config freeze"):
         return (
             f"PLANNING フェーズでは設定ファイルを変更できません（{reason}）。"

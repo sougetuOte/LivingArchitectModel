@@ -201,12 +201,22 @@ def test_basename_match_is_not_substring_match(ptu, tmp_path: Path):
 # --- Outbound Write Ban との優先順位 ------------------------------------------
 
 
-def test_outbound_ban_takes_precedence_over_planning_deny(ptu, tmp_path: Path):
-    """Outbound Write Ban はフェーズ非依存で最優先（PLANNING でも理由が上書きされない）。"""
+def test_outbound_ban_is_no_longer_decided_here(ptu, tmp_path: Path):
+    """Outbound Write Ban は本 hook の関心事ではなくなった（2026-09-04 移設）。
+
+    旧テストは「PLANNING でも Outbound Write Ban が最優先で DENY になる」ことを
+    `_determine_by_path` の内部順序で確かめていた。移設後は**別 hook** が担うため、
+    優先順位は内部順序ではなく **`exit 2` の blocking 性**で保証される —— 公式仕様上、
+    `exit 2` は他 hook が JSON で `permissionDecision: allow` を返しても覆せない。
+
+    したがって本 hook に残る責務は「リポジトリ外は PM 級（ask）に留める」ことだけである
+    （R1-I18 の安全側維持）。実際の deny は
+    `.claude/tests/hooks/test_outbound_write_ban.py` が検査する。
+    """
     level, reason = ptu._determine_by_path(
         r"D:\work7\Fable-Alembic\pyproject.toml",
         _REPO_ROOT,
         _phase_file(tmp_path, "PLANNING"),
     )
-    assert level == "DENY"
-    assert "Outbound Write Ban" in reason
+    assert level == "PM", f"out-of-root は PM 級であるべき（level={level} / {reason}）"
+    assert "Outbound Write Ban" not in reason

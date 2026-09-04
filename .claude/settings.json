@@ -81,6 +81,9 @@
     "PreToolUse": [
       {
         "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use.py\"" }]
+      },
+      {
+        "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/scripts/py_invoke.sh\" \"$CLAUDE_PROJECT_DIR/.claude/hooks-local/outbound-write-ban.py\"" }]
       }
     ],
     "PostToolUse": [
