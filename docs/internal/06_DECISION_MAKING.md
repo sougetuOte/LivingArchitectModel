@@ -253,13 +253,26 @@ CASPAR の統合結論を **そのまま正としてではなく**、結論に�
 ### 6.6. 失敗時挙動（3 段階 + 追加）
 
 - **critical (初回)**: 再 MAGI 1 ラウンド（gabriel.reasoning を Divergence 入力に追加）
-- **critical (2 回目)**: 人間 escalation（AC-W-C-7 / 上限 1 回）**または HGA 召喚**（ADR-0009 追補の新ゲート条件 1 / **M-1 完了後に発効** / `.claude/rules/hga-summoning.md` §召喚ゲート）
+- **critical (2 回目)**: 人間 escalation（AC-W-C-7 / 上限 1 回）**または HGA 召喚**（ADR-0009 追補の新ゲート条件 1 / **発効中** / `.claude/rules/hga-summoning.md` §召喚ゲート）
 - **warning**: MAGI 結論に指摘併記 + 警告ラベル
 - **info**: 記録のみ / MAGI 結論不変
 - **abort** (recommended_action=abort): 即時人間 escalation（verdict/severity 問わず）
 - **inconclusive / timeout / format_error**: MAGI 結論を確定（inconclusive 注記添付）
 
 分岐優先順位（MUST）: **abort > critical > warning > info > confirmed > inconclusive**
+
+> **critical 2 回目が意味するもの（2026-09-04 追加 / `retro-2026-09-04.md` A2）**: 上記は
+> **手続き**（誰に上げるか）であって、**何を疑うべきか**を述べていない。gabriel は
+> **与えられた前提のもとで CASPAR の結論を検証する**ため、前提そのものが誤っている場合に
+> 出せる出力は `refuted` の反復だけであり、**前提を欠陥として名指す語彙を持たない**
+> （前提は文脈として渡されている）。したがって **critical 2 回目は「設計が誤っている」の信号ではなく、
+> 「入力が誤っている」の信号**として読む。エスカレーション先（人間 / HGA）に持ち込むのは
+> 「どちらの案が正しいか」ではなく「**この論点はそもそも正しい前提の上に立っているか**」である。
+>
+> **実測（2026-09-04 / セッション 28）**: gabriel が 2 巡とも `refuted`/`critical`（2 巡目 `abort`）を
+> 返した局面で、L1 は 2 巡とも「設計を直す」方向に動いた。前提の誤りへ切り替わったのは
+> **HGA #29 を召喚した後**であり、HGA の診断は「設計が間違っていたからではなく、
+> 前提が D-1 の段階で 1 度ずれていたから」だった。本注記はその 1 手を前倒しするためにある。
 
 ### 6.7. 実装 SSOT + テスト
 
