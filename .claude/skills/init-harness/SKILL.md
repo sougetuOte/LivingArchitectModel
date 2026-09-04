@@ -1,11 +1,13 @@
 ---
 name: init-harness
 description: |
-  憲法型ハーネスフレームワーク (PLANNING / BUILDING / AUDITING 三フェーズ規律 +
-  Three Agents Model + セッション継続性) を新規 or 既存プロジェクトに opt-in で適用する
-  初期化スキル。規約ディレクトリとテンプレートファイルを生成し、
+  ハーネスの**足場**を新規 or 既存プロジェクトに opt-in で敷く初期化スキル。
+  規約ディレクトリと雛形ファイル 6 件 (CLAUDE.md / CHEATSHEET.md / CHANGELOG.md /
+  SESSION_STATE.md / .claude/current-phase.md / .claude/harness.json) を生成し、
   .claude/harness.json でハーネスバージョンを管理する。
   3状態判定 (ハーネス適用済 / 既存非ハーネス / 完全新規) で適切な挙動に分岐する。
+  **本スキルは .claude/rules/ · hooks/ · agents/ · settings.json を配置しない**
+  (それらはリポジトリ本体に同梱されている前提)。
   Use when the user asks to initialize harness, scaffold project structure, or runs `/init-harness`.
 ---
 
@@ -13,8 +15,25 @@ description: |
 
 ## 目的
 
-憲法型ハーネスを単一コマンドでプロジェクトに適用する。
-全ハーネススキル (building, ship, retro 等) の前提条件を保証する。
+ハーネスの**足場**（規約ディレクトリ + 雛形 6 件）を単一コマンドで敷く。
+`/building` `/ship` `/retro` 等が前提とする**ファイル構造**を用意する。
+
+### 本スキルの射程（**名乗りと実体の一致 / 2026-09-04 是正**）
+
+| | 内容 |
+|:--|:--|
+| **敷く** | 規約ディレクトリ 6 件 + 雛形 6 件（`CLAUDE.md` / `CHEATSHEET.md` / `CHANGELOG.md` / `SESSION_STATE.md` / `.claude/current-phase.md` / `.claude/harness.json`） |
+| **敷かない** | `.claude/rules/` · `.claude/hooks/` · `.claude/agents/` · `.claude/skills/` · `.claude/settings.json` |
+
+**したがって本スキル単体では、三フェーズ規律も権限等級も Three Agents Model も効かない。**
+それらを執行するのは `.claude/rules/`（規範）と `.claude/hooks/`（機構）であり、
+本スキルはそれらが**既にリポジトリに存在すること**を前提とする（clone / テンプレート由来）。
+
+> **是正の経緯（2026-09-04）**: 本節と description は、以前「三フェーズ規律 + Three Agents Model を
+> 適用する」と名乗っていたが、実体は雛形生成のみだった。同時に `.claude/current-phase.json` を
+> 生成しており、hook が読むのは `.md` であるため**初期状態でフェーズ依存のガードが沈黙**していた。
+> 2 件とも是正済。配布物が実体より強い主張をする欠陥クラスの一例
+> （`.claude/scripts/verify_distributable_claims.py` = R3 機構 #10 が扱う型）。
 
 **特殊性**: 本スキルは **CLAUDE.md を生成する側**。他スキルと異なり、対象プロジェクトに
 CLAUDE.md が存在しない状態でも動作する (ブートストラップ責務)。
@@ -125,7 +144,7 @@ fi
   ✚ CHEATSHEET.md                   [新規]
   ✚ CHANGELOG.md                    [新規]
   ✚ SESSION_STATE.md                [新規]
-  ✚ .claude/current-phase.json      [新規]
+  ✚ .claude/current-phase.md        [新規 / フェーズ = PLANNING]
   ✚ .claude/harness.json            [新規]
 
 実行しますか? (y/N):
@@ -156,7 +175,7 @@ done
 
 各テンプレートは [references/templates.md](references/templates.md) のインライン文字列をそのまま書き出す。
 Step 3 の生成プランに挙げた 5 ファイル (`CLAUDE.md` / `CHEATSHEET.md` / `CHANGELOG.md` /
-`SESSION_STATE.md` / `.claude/current-phase.json`) はすべて同ファイルに本文がある。
+`SESSION_STATE.md` / `.claude/current-phase.md`) はすべて同ファイルに本文がある。
 `CLAUDE.md` のプロジェクト概要欄は `<!-- ユーザーが手動記入 -->` プレースホルダー (FR-06)。
 
 ### 4.3 `.claude/harness.json` 記録

@@ -127,15 +127,28 @@ LLM (Claude Code) 向けプロジェクト規約。**不変に近いルール**�
 > `SESSION_STATE.md` はローカル限定の作業状態ファイルであり、**`.gitignore` への追加を推奨**する
 > （LAM 本体でも gitignore 済）。追加するかはプロジェクト側の判断に委ねる。
 
-### `.claude/current-phase.json`
+### `.claude/current-phase.md`
 
-```json
-{
-  "phase": "none",
-  "phase_approved": false,
-  "next_recommended": "design",
-  "updated_at": "<ISO 8601>",
-  "notes": "Harness initialized."
-}
+**フェーズの正本は `.md` である**（`.json` ではない）。`pre-tool-use.py` の `_read_current_phase()` は
+`current-phase.md` を開き、行頭の `**PHASE**`（大文字のみ）にマッチする最初の行からフェーズ名を取る。
+
+```markdown
+# Current Phase
+
+**PLANNING**
+
+_ハーネス初期化により設定（<ISO 8601>）。承認ゲート（requirements → design → tasks）を
+通過するまで BUILDING へ進まない。BUILDING へ移るときは `/building` を実行するか、
+本ファイルの `**PLANNING**` を `**BUILDING**` に書き換える。_
 ```
+
+> **書式の制約（変更するとガードが黙って死ぬ）**:
+>
+> - フェーズ名は**行頭**の `**` で囲み、**大文字のみ**（`^\*\*([A-Z]+)\*\*` にマッチさせる）
+> - ファイル名は `current-phase.md`。**`.json` で生成してはならない** —— hook が読まないため、
+>   「フェーズ状態が存在するように見えて、フェーズ依存のガードが一切効かない」状態になる
+>   （2026-09-04 まで本テンプレートが実際にこの欠陥を持っていた）
+> - 初期値を `PLANNING` にすると、PLANNING 用のガード（設定ファイル変更の deny 等）が
+>   初回セッションから有効になる。**既存プロジェクトに適用する場合（状態②）は、
+>   進行中の作業が deny される可能性をユーザーに提示してから書き込むこと**
 
