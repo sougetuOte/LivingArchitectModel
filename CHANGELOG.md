@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 配布 skills が呼ぶ scripts を誰も配っていなかった（2026-09-05 / P2 複製相で検出）
+
+`/lam-harness:*` skills は `.claude/scripts/*` を **11 種 47 箇所**（うち `py_invoke.sh` が 30）
+呼ぶが、`templates/managed/` には `rules` と `docs-internal` しか無く、init も plugin も
+scripts を利用者のプロジェクトへ置いていなかった。**利用者が `/lam-harness:ship` を打つと
+存在しない `py_invoke.sh` を呼んで落ちる。** 3 層分類 §5 は scripts を managed と分類済であり、
+**決定は下りていて実装が追随していない**型。
+
+- `templates/managed/scripts/` に **12 件**を配置（分類の 10 件 + `distill` ペア = 分類側の漏れを是正）
+- **`${CLAUDE_PLUGIN_ROOT}` から呼ぶ形は採らない** —— plugin root は環境ごとに変わる絶対パスで、
+  `bash .claude/scripts/py_invoke.sh` という allowlist prefix 1 本が書けなくなるため
+- 機構 #11 の `_MANAGED_AREAS` に `scripts` を追加（恒等性を自動で強制 / 検査は 24 → 36 件）
+- **維持リストを持たない検査**を追加: plugin skills の本文から呼び出し先を導出し、配布集合との差を落とす。
+  非配布は理由必須（`build_dashboard.py` / `verify_plugin_containment.py`）
+- `release` skill の `verify_plugin_containment.py` 呼び出しに `[ -d plugins ] &&` ガードを追加
+  （検査対象が `plugins/` 配下であり、利用者環境には存在しないため）
+
+### plugin 移行 P2 複製相 —— 14 skills を plugin へ複製（2026-09-05）
+
+`clause-gate` と `build-dashboard` は LAM 固有ゆえ非配布。project 側は生きたままで、
+名前空間が呼び出し先を分離する。移行中に機構が 2 回鳴り、いずれも設計どおりだった。
+
+- 機構 #12（閉包）が `release/SKILL.md` の**自己言及**を検出（「違反の説明に違反そのものを書けない」型）
+- **`xfail(strict=True)` が XPASS で落ちた** —— starter の前方参照 6 種 8 箇所が実体を得た瞬間に
+  mark 撤去を促された（strict xfail を「解消の検知器」として使った実例）
+
 ### 機構 #10 が plugin の starter テンプレートを走査していなかった（2026-09-05 / P1(1) 予行で検出）
 
 配布物の集合が plugin 側（`templates/starter/`）へ広がったのに、`verify_distributable_claims.py`

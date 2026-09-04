@@ -55,15 +55,31 @@
 
 `init-harness` は **`/lam-harness:init` に置換して廃止**（MAGI §13.5-D）。
 
-### 2.4 scripts — **10 件**
+### 2.4 scripts — **12 件**（2026-09-05 に 10 → 12 / P2 複製相で確定）
 
 `py_invoke.sh`（**単一 entry point / SPOF**）/ `detect-permission-mode.py` / `gd_guard.py` /
 `gd_loop.py` / `gd_state.py` / `magi_dispatch.py` / `verify_distributable_claims.py` /
-`verify_import_availability.py` / `verify_model_reference.py` / `verify_reference_resolution.py`
+`verify_import_availability.py` / `verify_model_reference.py` / `verify_reference_resolution.py` /
+**`distill_lessons.py`** / **`distill-lessons.py`**
 
-> **要判断 A**: `distill_lessons.py` と `distill-lessons.py` が**両方存在する**（アンダースコア版と
-> ハイフン版 / どちらも「goal-driven メモリ蒸留」）。**片方は entry point、片方は実体**と読めるが、
-> 配布前に重複の要否を確定すること。
+> ~~**要判断 A**~~ **決着（2026-09-05）**: `distill` の 2 ファイルは**重複ではなく entry point と実体**
+> （§6.1 が 2026-09-04 に決着済で「2 件セットで動かすこと」と明記していた）。本節の 10 件リストが
+> それを取り込んでいなかったため、**配布集合から両方が落ちていた**。12 件に是正。
+>
+> **配置形態（2026-09-05 確定）**: scripts は plugin コンポーネントとして配れないため、
+> `templates/managed/scripts/` に置き `/lam-harness:init` が `.claude/scripts/` へ敷く。
+> **`${CLAUDE_PLUGIN_ROOT}` から呼ぶ形は採らない** —— plugin root は環境ごとに変わる絶対パスであり、
+> `bash .claude/scripts/py_invoke.sh` という **allowlist prefix 1 本**（security-commands.md §D4）が
+> 書けなくなるため（A2 決定「py_invoke.sh は project 残置」の理由そのもの）。
+> 恒等性は機構 #11（`_MANAGED_AREAS` に `scripts` を追加）が強制する。
+
+#### 非配布とした scripts（理由つき / `NON_DISTRIBUTED_SCRIPTS` が正本）
+
+| script | 理由 | 呼び出し元の扱い |
+|:--|:--|:--|
+| `build_dashboard.py` + `dashboard/` | LAM の `SESSION_STATE.md` 書式と Milestone 語彙に依存（§4.2） | `quick-save` の呼び出しは **SHOULD かつ失敗許容**。不在でも quick-save は成功する |
+| `verify_plugin_containment.py` | 検査対象が `plugins/` 配下。**利用者のプロジェクトには存在しない** | `release` 側に `[ -d plugins ] &&` ガードを追加（2026-09-05） |
+| `r1_*.py` / `r-1-*.py` / `hga_usage.py` | R-1 Milestone のワンショット・LAM 固有の集計（§4.2） | 配布 skills からの参照なし（実測 0 件） |
 
 ### 2.5 rules — **14 / 19 件**
 
@@ -147,7 +163,7 @@
 
 | 層 | hooks | agents | skills | scripts | rules | docs/internal | ルート文書 |
 |:--|--:|--:|--:|--:|--:|--:|--:|
-| **managed** | 7 | 12 | **14**（update-model 含む） | 10 | **14** | 10 | 0 |
+| **managed** | 7 | 12 | **14**（update-model 含む） | **12** | **14** | 10 | 0 |
 | **starter** | 0 | 0 | 0 | 0 | 2 | 0 | 6 |
 | **私物** | （定数 2 件のみ分離） | 0 | 3 | 8 | **3** | 0 | 4 |
 

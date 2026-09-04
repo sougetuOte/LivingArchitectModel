@@ -53,7 +53,7 @@ hooks は**イベント発火型で「参照切替」という操作が存在せ
 |:-:|:--|:--|
 | **P0** | `get_project_root()` に `CLAUDE_PROJECT_DIR` 経路 ＋ `__file__` 経路を通るテスト | **完了**（2026-09-04 / 下記 §2.2） |
 | **P1** | `--plugin-dir` 予行（**hooks.json を置かない**）。**2 回に割る** —— (1) plugin ロード経路の実証は今できる / (2)(3) bare `subagent_type` 解決・description 衝突は **agents 複製後でないと測れない**（MAGI 記録 §P1 の位置の調整） | **次はここ**（**ユーザー操作** = 別セッション起動） |
-| **P2** | skills: 複製 → 参照切替 → 撤去 | 未 |
+| **P2** | skills: 複製 → 参照切替 → 撤去 | **複製相 完了**（2026-09-05 / 14 skills / 下記 §2.3）。次は参照切替 |
 | **P3** | agents: 複製 → **名前空間化（= 旧 手順 4）** → 撤去 | 未 |
 | **P4** | hooks: 捨てプロジェクトで隔離検証 → **セッション境界でアトミック入れ替え**（複製相なし） | 未 |
 | **P5** | `permissions.allow` の手作業 ＋ `init` Step 6 への反映判断 | 未（**ユーザー**） |
@@ -116,6 +116,41 @@ cache を指す。被害は 3 段階で**深いほど静かになる** —— �
 > セッション内テストの隔離が崩れる / 「hook 文脈の実行時判定」は推測の再導入）。
 > **gabriel は 2 巡ともこれを指摘していない** —— probe は書かれた設計を検証するが、
 > **実装して初めて出る誤りには構造的に届かない**。詳細は MAGI 記録の §訂正。
+
+### §2.3 P2 複製相の実施記録（2026-09-05 / セッション 30）
+
+**14 skills を `plugins/lam-harness/skills/` へ複製した**（`clause-gate` と `build-dashboard` は
+LAM 固有ゆえ非配布 / §4.2）。project 側はまだ生きており、名前空間が呼び出し先を分離する。
+
+| 起きたこと | 内容 |
+|:--|:--|
+| **機構 #12 が即座に鳴った** | `release/SKILL.md` が閉包検査を**説明する文**の中で `docs/private/` を literal で書いていた。`subprocess-encoding-convention.md` が 2026-09-04 に踏んだ「違反の説明に違反そのものを書けない」型 |
+| **xfail(strict) が XPASS で落ちた** | starter の前方参照 6 種 8 箇所が複製で実体を得た瞬間。mark 撤去を促され、テストを 1 本へ戻した（**strict xfail を「解消の検知器」として使った実例**） |
+
+#### 発見: 配布 skills が呼ぶ scripts を誰も配っていなかった
+
+`.claude/scripts/*` への呼び出しは **11 種 47 箇所**（うち `py_invoke.sh` が 30）。しかし
+`templates/managed/` には `rules` と `docs-internal` しか無く、**利用者が `/lam-harness:ship` を
+打つと存在しない `py_invoke.sh` を呼んで落ちる**状態だった。§5 集計表は scripts を managed と
+分類していたので、**決定は下りていて実装が追随していない**型（本日 2 例目）。
+
+- `templates/managed/scripts/` に **12 件**を配置（10 件リスト + `distill` ペア = 分類側の漏れを是正）
+- 機構 #11 の `_MANAGED_AREAS` に `scripts` を追加（恒等性が自動で守られる）
+- **維持リストを持たない検査**を追加: plugin skills の本文から呼び出し先を導出し、配布集合との差を落とす
+
+#### 未処理で残したもの（参照切替相へ）
+
+| # | 内容 |
+|:-:|:--|
+| 1 | **`clause-gate` への参照 2 件**（`update-model` は `/clause-gate` を手順として指示 / `retro` は台帳を参照）。**機構 #10 は LAM リポジトリ基準で実在判定するため、この「配布後に消える参照」を構造的に検出できない**（LAM 内では実在するので永久に緑） |
+| 2 | `quick-save` の `build_dashboard.py` 呼び出しは失敗許容だが、**利用者環境では毎回警告が出る**。「常時鳴る計器」型に近い |
+| 3 | `docs/artifacts/` の具体ファイル参照（`clause-gate-ledger.md` / `maxturns-probe-2026-08-21.md` 他）。**未解決 C と同型だが、C は規範側の話であり skills まで射程が広がった** |
+
+#### 撤去相の前提（確定）
+
+`.claude-plugin/marketplace.json` は既存（`source: "./plugins/lam-harness"` = 相対パス形式 /
+上流仕様に合致）。一方 `.claude/settings.json` に **`enabledPlugins` は未設定**であり、
+**撤去相はユーザーの install 操作待ち**（`/plugin marketplace add` → `/plugin install --scope project`）。
 
 ## §3 いま触ると壊れるもの（重要）
 
