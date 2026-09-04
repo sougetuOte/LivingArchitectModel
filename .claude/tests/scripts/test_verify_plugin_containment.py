@@ -1,0 +1,187 @@
+"""verify_plugin_containment.py テスト（2026-09-04 / セッション 28）.
+
+R3 機構 #11（T1 包含）/ #12（T2 閉包）。
+
+**なぜ要るか**: `lam-harness` 1.0.0（2026-07-02 / 別リポジトリ配置）は skills 14 件のうち
+9 件が現行 LAM に存在しない状態で 2 か月間放置された。K4「配布集合 ⊆ 開発ロード集合」は
+**原則としては書かれていたが検査が無く、破れても誰も気づかなかった**。
+
+本テストは陰性対照（違反を仕込んだ偽リポジトリで実際に落ちること）を両検査について含む
+—— 「落ちない検査」は計器として無価値であるため（機構 #10 と同じ構え）。
+
+**偽陽性の対照も含む**: T2 のドライブレター検出は URL（`https://`）と衝突しやすい。
+`p:` `s:` を誤検出すると配布物のあらゆる参照が赤になるため、明示的に対照を置く。
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parents[2] / "scripts"
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+import verify_plugin_containment as vpc  # noqa: E402
+from verify_plugin_containment import (  # noqa: E402
+    check_managed_identity,
+    check_reference_closure,
+    main,
+    verify,
+)
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _fake_repo(tmp_path: Path, *, template_body: str, source_body: str | None) -> Path:
+    """plugin テンプレートと開発側を持つ最小の偽リポジトリを作る。
+
+    `source_body=None` のときは開発側の対応物を作らない（欠落の対照）。
+    """
+    tpl = tmp_path / "plugins" / "lam-harness" / "templates" / "managed" / "rules"
+    tpl.mkdir(parents=True)
+    # write_text は newline=None のため `\n` を os.linesep に再変換する（Windows で
+    # "a\r\nb" が "a\r\r\nb" になる）。改行コードを検査する対照なのでバイトで書く。
+    (tpl / "sample.md").write_bytes(template_body.encode("utf-8"))
+    if source_body is not None:
+        dev = tmp_path / ".claude" / "rules"
+        dev.mkdir(parents=True)
+        (dev / "sample.md").write_bytes(source_body.encode("utf-8"))
+    return tmp_path
+
+
+# --- 実リポジトリ ---------------------------------------------------------
+
+
+def test_real_repo_has_no_violations():
+    """実リポジトリが T1 / T2 を満たす。"""
+    violations = verify(REPO_ROOT)
+    assert violations == [], "\n".join(f"[{v.check}] {v.path} — {v.detail}" for v in violations)
+
+
+def test_check_is_not_vacuous():
+    """検査対象が 0 件なら「常に緑」になるため、実テンプレートの存在を要求する。
+
+    機構 #10 と同じ構え —— 対象が消えたことを緑で報告する計器を作らない。
+    """
+    managed = REPO_ROOT / "plugins" / "lam-harness" / "templates" / "managed"
+    assert managed.is_dir(), "managed テンプレートディレクトリが存在しない"
+    files = [p for p in managed.rglob("*") if p.is_file()]
+    assert len(files) >= 20, f"テンプレートが少なすぎる（{len(files)} 件）= 検査が空回りしている"
+
+
+def test_main_returns_zero_on_real_repo(capsys):
+    assert main() == 0
+    assert "OK" in capsys.readouterr().out
+
+
+# --- T1 陰性対照 ----------------------------------------------------------
+
+
+def test_t1_detects_content_drift(tmp_path):
+    """テンプレートと開発側の内容が食い違えば検出する（= lam-harness 1.0.0 の事故）。"""
+    repo = _fake_repo(tmp_path, template_body="old\n", source_body="new\n")
+    violations = check_managed_identity(repo)
+    assert len(violations) == 1
+    assert violations[0].check == "T1"
+    assert "内容が異なる" in violations[0].detail
+
+
+def test_t1_detects_missing_source(tmp_path):
+    """開発側に対応物が無ければ検出する（配布集合 ⊄ 開発ロード集合）。"""
+    repo = _fake_repo(tmp_path, template_body="x\n", source_body=None)
+    violations = check_managed_identity(repo)
+    assert len(violations) == 1
+    assert "開発側に対応物がない" in violations[0].detail
+
+
+def test_t1_ignores_line_ending_difference(tmp_path):
+    """CRLF/LF の差だけでは落ちない（Windows の git 変換で偽陽性を出さない）。"""
+    repo = _fake_repo(tmp_path, template_body="a\r\nb\r\n", source_body="a\nb\n")
+    assert check_managed_identity(repo) == []
+
+
+# --- T2 陰性対照 ----------------------------------------------------------
+
+
+def _closure_repo(tmp_path: Path, body: str) -> Path:
+    d = tmp_path / "plugins" / "lam-harness"
+    d.mkdir(parents=True)
+    (d / "note.md").write_text(body, encoding="utf-8")
+    return tmp_path
+
+
+def test_t2_detects_windows_absolute_path(tmp_path):
+    repo = _closure_repo(tmp_path, 'cwd="D:/work7/LivingArchitectModel"\n')
+    violations = check_reference_closure(repo)
+    assert len(violations) == 1
+    assert violations[0].check == "T2"
+    assert "絶対パス" in violations[0].detail
+
+
+def test_t2_detects_backslash_absolute_path(tmp_path):
+    repo = _closure_repo(tmp_path, r"see C:\Users\someone\knowledge\x.md" + "\n")
+    assert len(check_reference_closure(repo)) == 1
+
+
+def test_t2_detects_posix_home_path(tmp_path):
+    repo = _closure_repo(tmp_path, "see /home/someone/notes.md\n")
+    assert len(check_reference_closure(repo)) == 1
+
+
+def test_t2_detects_non_distributed_reference(tmp_path):
+    repo = _closure_repo(tmp_path, "詳細は docs/private/protocol.md を参照\n")
+    violations = check_reference_closure(repo)
+    assert len(violations) == 1
+    assert "配布されないディレクトリ" in violations[0].detail
+
+
+# --- T2 偽陽性の対照 ------------------------------------------------------
+
+
+def test_t2_does_not_flag_urls(tmp_path):
+    """URL のスキーム（`https:` の `s:`）をドライブレターと誤認しない。
+
+    誤認すると配布物のあらゆる外部参照が赤になり、計器が殺される。
+    """
+    body = (
+        "- https://code.claude.com/docs/en/plugins\n"
+        "- http://example.com/a\n"
+        "- file:///tmp/x\n"
+    )
+    assert check_reference_closure(_closure_repo(tmp_path, body)) == []
+
+
+def test_t2_does_not_flag_project_relative_paths(tmp_path):
+    """プロジェクト相対パス（利用者環境で解決される）は違反ではない。"""
+    body = "`.claude/rules/phase-rules.md` と `docs/internal/06_DECISION_MAKING.md` を参照\n"
+    assert check_reference_closure(_closure_repo(tmp_path, body)) == []
+
+
+def test_t2_does_not_flag_plugin_root_variable(tmp_path):
+    """`${CLAUDE_PLUGIN_ROOT}` 形式の参照は正しい書き方なので通す。"""
+    body = 'bash "${CLAUDE_PLUGIN_ROOT}/scripts/py_invoke.sh" "${CLAUDE_PROJECT_DIR}/x.py"\n'
+    assert check_reference_closure(_closure_repo(tmp_path, body)) == []
+
+
+# --- 射程の明示 -----------------------------------------------------------
+
+
+def test_t2_scope_v1_allows_record_references(tmp_path):
+    """v1 の射程は意図的に狭い —— `docs/artifacts/` 等への参照は**通す**。
+
+    managed 規範から LAM 自身の記録への参照は 60 件超あり（2026-09-04 実測）、
+    一律に禁じると検査が最初から赤で埋まる（`security-commands.md` §計器への書き込みを伴う検証
+    が警告する「常時落ちる計器は殺される」型）。既知ギャップとして
+    `docs/artifacts/2026-09-04-distribution-layer-classification.md` §7 が持つ。
+
+    **本テストは射程が意図的なものであることの記録であり、将来 v2 で狭める際に
+    ここが赤くなることで「射程を変えた」と気づける。**
+    """
+    body = "経緯は `docs/artifacts/2026-09-04-magi-distribution-form.md` を参照\n"
+    assert check_reference_closure(_closure_repo(tmp_path, body)) == []
+
+
+def test_module_exposes_scope_constants():
+    """射程を決める定数が module 上に公開されている（変更が diff に出る）。"""
+    assert len(vpc._ABSOLUTE_PATH_PATTERNS) == 3
+    assert len(vpc._NON_DISTRIBUTED_REFS) == 1
+    assert set(vpc._MANAGED_AREAS) == {"rules", "docs-internal"}
