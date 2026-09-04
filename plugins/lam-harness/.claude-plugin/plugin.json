@@ -1,0 +1,8 @@
+{
+  "name": "lam-harness",
+  "version": "0.1.0",
+  "description": "Living Architect Model governance harness. Distributes hooks / agents / skills as plugin components, and lays the norm layer (CLAUDE.md + .claude/rules/ + docs/internal/) into the project via /lam-harness:init — those cannot ship as plugin components.",
+  "author": {
+    "name": "sougetuOte"
+  }
+}

@@ -1,0 +1,99 @@
+# Project Structure & Naming Conventions
+
+本ドキュメントは、プロジェクトの物理的な構成（ディレクトリ構造）と、資産の配置ルールを定義する。
+"Living Architect" は、この地図に従って情報を格納・検索しなければならない。
+
+## 1. Directory Structure (ディレクトリ構成)
+
+```
+/
+├── src/                    # ソースコード (実装) ※配布先テンプレート枠 — LAM 本体には存在しない
+│   ├── backend/            # バックエンド (Python/FastAPI)
+│   └── frontend/           # フロントエンド (React/Vite)
+├── tests/                  # テストコード ※配布先テンプレート枠 — LAM 本体には存在しない
+├── docs/                   # ドキュメント資産
+│   ├── specs/              # 要求仕様書 (Source of Truth)
+│   ├── design/             # 設計書 (Phase 1 成果物 / spec 完成後の実装設計)
+│   ├── adr/                # アーキテクチャ決定記録 (Why)
+│   ├── tasks/              # タスク管理 (Kanban/List)
+│   ├── internal/           # プロジェクト運用ルール (本フォルダ)
+│   ├── artifacts/          # 中間成果物・監査レポート・知見
+│   │   ├── knowledge/      # /retro Step4 で整理した知見
+│   │   ├── audit-reports/  # 監査レポート
+│   │   └── tdd-patterns/   # TDD パターン詳細記録（v2 のログは .claude/tdd-patterns.log）
+│   ├── slides/             # 概念説明スライド
+│   ├── daily/              # /quick-save Daily 記録
+│   └── memos/              # [Input] ユーザーからの生メモ・資料
+├── .claude/                # Claude Code用設定・コマンド・状態管理
+│   ├── rules/              # ガードレール（自動ロード）
+│   ├── hooks/              # PreToolUse/PostToolUse/Stop/PreCompact hooks
+│   ├── skills/             # スキル定義（テンプレート、思考フレームワーク等）
+│   ├── agents/             # カスタムサブエージェント定義
+│   ├── agent-memory/       # サブエージェントの永続メモリ
+│   ├── states/             # フェーズ承認ゲート状態（*.json）
+│   ├── logs/               # 権限ログ、ループログ等
+│   └── settings.json       # 権限・hooks 設定
+└── CLAUDE.md               # プロジェクト憲法
+```
+
+> **注記（`src/` / `tests/` について）**: 上記ツリーの `src/`・`tests/` は、LAM を適用した**配布先プロジェクト**が実装コードを置くためのテンプレート枠であり、**LAM リポジトリ自体には存在しない**（LAM は自己の実装コードを持たないハーネス/ドキュメント資産）。`.claude/rules/phase-rules.md` PLANNING §禁止 の機構注記も同じ前提（「`src/` が実在しない」）で運用している。テンプレートとしての意味を保つため、本ツリーからは削除しない。
+
+## 2. Asset Placement Rules (資産配置ルール)
+
+### A. User Inputs & Intermediate Artifacts (ユーザー入力と中間成果物)
+
+- **Raw Ideas**: ユーザーからの未加工のアイデアやチャットログは `docs/memos/YYYY-MM-DD_topic.md` に保存する。
+- **Intermediate Reports**: lam-orchestrate の Wave 間で受け渡す調査結果等の中間成果物は `docs/artifacts/YYYY-MM-DD_intermediate_[topic].md` に保存する（Coordinator のコンテキスト圧迫を防ぐため）。
+- **Knowledge**: `/retro` Step 4 で整理した知見は `docs/artifacts/knowledge/` に蓄積する。
+- **Audit Reports**: `/full-review` の監査レポートは `docs/artifacts/audit-reports/` に保存する。
+- **TDD Patterns**: テスト失敗/成功パターンの詳細記録は `docs/artifacts/tdd-patterns/` に保存する。
+- **Reference Materials**: 参考資料（画像、PDF）は `docs/memos/assets/` に配置する。
+
+### B. Specifications (仕様書)
+
+- **Naming**: `docs/specs/{feature_name}.md` (ケバブケース)
+- **Granularity**: 1 機能 = 1 ファイル。巨大になる場合はディレクトリを切る。
+
+### C. ADR (Architectural Decision Records)
+
+- **Naming**: `docs/adr/<NNNN>-<kebab-case-title>.md`（NNNN: 4桁連番、0001から）
+- **Immutable**: 一度確定した ADR は原則変更せず、変更が必要な場合は新しい ADR を作成して "Supersedes" と明記する。
+
+### D. Subagent Persistent Memory
+
+- **Path**: `.claude/agent-memory/<agent-name>/`
+- **用途**: サブエージェントがレビュー時に学んだプロジェクト固有知見を蓄積する領域。CLAUDE.md の指示に従いサブエージェントが自発的に書き込む。
+
+### E. State Management (状態管理)
+
+- **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/quick-save` で記録、`/quick-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
+- **.claude/states/*.json**: 機能/Milestone 単位の承認ゲート状態・進捗記録 (例: `<milestone-slug>.json` / `cc-spec-alignment.json`, `large-scale-review.json` 等)。フェーズ (PLANNING/BUILDING/AUDITING) 現在値管理ではなく、各機能開発の進行管理に使用 (フェーズ現在値は `.claude/current-phase.md` が担当)。
+- **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。PLANNING/AUDITING は手動更新、BUILDING は `/building` 実行時に更新される。
+
+## 3. SSOT 3層アーキテクチャ
+
+> **用語注意**: 本セクションの「情報層」は SSOT の情報階層を指す。
+> `07_SECURITY_AND_AUTOMATION.md` Section 5 の「Permission Layer 0/1/2」（権限制御の多層モデル）とは別の概念である。
+
+```
+情報層 1: docs/internal/ — プロセス SSOT（What & Why）
+  |
+  v 参照・実装
+情報層 2: .claude/rules/    — ガードレール（自動ロード）
+          .claude/hooks/    — 自動化 hooks（PreToolUse/PostToolUse/Stop/PreCompact）
+          .claude/agents/   — エージェント定義
+          .claude/skills/   — スキル定義
+  |
+  v 要約
+情報層 3: CHEATSHEET.md — クイックリファレンス
+```
+
+- 情報層 1 が最高権限。情報層 2 は情報層 1 の「実装」
+- 情報層 2 に新機能を追加したら、情報層 1 への反映を確認する
+- 情報層 3 は情報層 1-2 の要約であり、独自情報を持たない
+
+## 4. File Naming Conventions (命名規則)
+
+- **Directories**: `snake_case` (例: `user_auth`)
+- **Files (Code)**: 言語標準に従う (Python: `snake_case.py`, JS/TS: `PascalCase.tsx` or `camelCase.ts`)
+- **Files (Docs)**: `snake_case.md` または `kebab-case.md` (プロジェクト内で統一)

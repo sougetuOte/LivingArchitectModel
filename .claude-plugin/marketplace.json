@@ -1,0 +1,14 @@
+{
+  "name": "lam",
+  "description": "Living Architect Model — governance harness for Claude Code. Approval gates, permission grades, and phase discipline as an installable plugin.",
+  "owner": {
+    "name": "sougetuOte"
+  },
+  "plugins": [
+    {
+      "name": "lam-harness",
+      "source": "./plugins/lam-harness",
+      "description": "LAM governance harness: hooks, agents, skills, and the norm templates laid down by /lam-harness:init."
+    }
+  ]
+}
