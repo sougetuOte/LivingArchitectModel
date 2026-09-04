@@ -111,7 +111,12 @@ BUILTIN_COMMANDS: frozenset[str] = frozenset(
 # 末尾の否定先読みに `[a-z0-9-]` を含めるのは必須。`(?!/)` だけだと、`/etc/` に対して
 # 正規表現が `/etc` からバックトラックして `/et`（直後が `c` で `/` ではない）を
 # 拾ってしまう。トークン境界そのものを表明する必要がある。
-_COMMAND_PAT = re.compile(r"(?:`|<code>)(/[a-z][a-z0-9-]*)(?![a-z0-9-/])")
+#
+# 名前空間つき plugin コマンド（2026-09-04 追加 / 手順 3）: plugin skill は
+# `/lam-harness:init` の形で起動する（上流仕様 / MAGI V1 実測）。`:` を含めないと
+# 正規表現が `/lam-harness` で切れ、「そんな skill は無い」という**偽陽性**を出す
+# （拡張前に実在した欠陥 / `test_namespaced_command_is_not_truncated_at_colon` が固定）。
+_COMMAND_PAT = re.compile(r"(?:`|<code>)(/[a-z][a-z0-9-]*(?::[a-z][a-z0-9-]*)?)(?![a-z0-9-/:])")
 
 
 def iter_distributables(base: Path) -> list[Path]:
@@ -123,12 +128,34 @@ def iter_distributables(base: Path) -> list[Path]:
     return [p for p in paths if p.name not in EXCLUDED_FROM_SCAN]
 
 
-def existing_commands(base: Path) -> set[str]:
-    """`.claude/skills/` のディレクトリ名から実在コマンドを導出する。"""
-    skills_dir = base / ".claude" / "skills"
+def _skill_dir_names(skills_dir: Path) -> set[str]:
     if not skills_dir.is_dir():
         return set()
     return {p.name for p in skills_dir.iterdir() if p.is_dir() and not p.name.startswith("__")}
+
+
+def existing_commands(base: Path) -> set[str]:
+    """実在コマンドを実体から導出する（維持リストを持たない）。
+
+    2 経路ある:
+
+    - project skill: `.claude/skills/<name>/` → `/<name>`
+    - **plugin skill**: `plugins/<plugin>/skills/<name>/` → `/<plugin>:<name>`
+      （2026-09-04 追加 / 手順 3。plugin skill は名前空間つきでしか起動できない = 上流仕様）
+
+    plugin 側は「plugin ディレクトリ名」を名前空間として使う。`plugin.json` の `name` では
+    なくディレクトリ名を採るのは、marketplace の `source` がディレクトリを指すためであり、
+    かつ**維持リスト（対応表）を持たない**ためである。
+    """
+    commands = _skill_dir_names(base / ".claude" / "skills")
+    plugins_root = base / "plugins"
+    if plugins_root.is_dir():
+        for plugin_dir in plugins_root.iterdir():
+            if not plugin_dir.is_dir() or plugin_dir.name.startswith("__"):
+                continue
+            for skill_name in _skill_dir_names(plugin_dir / "skills"):
+                commands.add("{0}:{1}".format(plugin_dir.name, skill_name))
+    return commands
 
 
 def _has_content(directory: Path) -> bool:

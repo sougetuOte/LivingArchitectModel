@@ -90,8 +90,26 @@ def test_distributables_are_derived_not_listed() -> None:
 
 
 def test_existing_commands_derived_from_skills_dir() -> None:
-    on_disk = {p.name for p in (REPO_ROOT / ".claude" / "skills").iterdir() if p.is_dir()}
-    assert existing_commands(REPO_ROOT) == {n for n in on_disk if not n.startswith("__")}
+    """実在コマンドは 2 経路とも実体から導出される（維持リストを持たない）。
+
+    2026-09-04 に plugin 経路を追加した。project skill だけを期待すると、
+    plugin skill が増えた瞬間にこの検査が落ちる（= 期待側が維持リストになる）ため、
+    両経路とも実体から組み立てて突合する。
+    """
+    project = {
+        p.name
+        for p in (REPO_ROOT / ".claude" / "skills").iterdir()
+        if p.is_dir() and not p.name.startswith("__")
+    }
+    plugin = {
+        "{0}:{1}".format(plugin_dir.name, skill.name)
+        for plugin_dir in (REPO_ROOT / "plugins").iterdir()
+        if plugin_dir.is_dir()
+        for skill in (plugin_dir / "skills").iterdir()
+        if (plugin_dir / "skills").is_dir() and skill.is_dir()
+    }
+    assert plugin, "plugin skill が 1 件も導出されていない（経路が死んでいる）"
+    assert existing_commands(REPO_ROOT) == project | plugin
 
 
 def test_empty_dirs_derived_from_filesystem() -> None:
@@ -329,3 +347,45 @@ def test_directory_scope_is_limited_to_claude(tmp_path: Path) -> None:
     )
     assert find_directory_violations(root) == []
     assert "D-2" in vdc.__doc__
+
+
+# ---- 名前空間つき plugin コマンド（2026-09-04 / 手順 3） ----
+#
+# plugin skill は `/lam-harness:init` の形で起動する（上流仕様 / V1 実測）。
+# 拡張前の `_COMMAND_PAT` は `:` の手前で切れるため `/lam-harness` を誤抽出し、
+# 「そんな skill は無い」という**偽陽性**を出していた。
+
+
+def test_namespaced_plugin_command_resolves_to_plugin_dir(tmp_path: Path) -> None:
+    """`/plugin:skill` は plugins/<plugin>/skills/<skill>/ で解決する（陽性）。"""
+    root = tmp_path
+    (root / "plugins" / "lam-harness" / "skills" / "init").mkdir(parents=True)
+    (root / ".claude" / "skills" / "building").mkdir(parents=True)
+    (root / "README.md").write_text("Run `/lam-harness:init` first.\n", encoding="utf-8")
+    assert find_command_violations(root) == []
+
+
+def test_namespaced_command_with_missing_skill_is_reported(tmp_path: Path) -> None:
+    """plugin 側に実体が無ければ落ちる（陰性対照）。"""
+    root = tmp_path
+    (root / "plugins" / "lam-harness" / "skills" / "init").mkdir(parents=True)
+    (root / "README.md").write_text("Run `/lam-harness:ghost`.\n", encoding="utf-8")
+    violations = find_command_violations(root)
+    assert [v["subject"] for v in violations] == ["/lam-harness:ghost"]
+
+
+def test_namespaced_command_is_not_truncated_at_colon(tmp_path: Path) -> None:
+    """`/lam-harness:init` から `/lam-harness` を誤抽出しない（拡張前の実際の欠陥）。"""
+    root = tmp_path
+    (root / "plugins" / "lam-harness" / "skills" / "init").mkdir(parents=True)
+    (root / "README.md").write_text("`/lam-harness:init`\n", encoding="utf-8")
+    subjects = [v["subject"] for v in find_command_violations(root)]
+    assert "/lam-harness" not in subjects, "コロンの手前で切って誤抽出している"
+
+
+def test_unknown_plugin_namespace_is_reported(tmp_path: Path) -> None:
+    """存在しない plugin 名の名前空間も落ちる（陰性対照）。"""
+    root = tmp_path
+    (root / "README.md").write_text("`/nope:init`\n", encoding="utf-8")
+    subjects = [v["subject"] for v in find_command_violations(root)]
+    assert subjects == ["/nope:init"]
