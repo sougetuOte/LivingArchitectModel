@@ -75,7 +75,8 @@ docs/adr/                  # アーキテクチャ決定記録
 ### PreToolUse hook
 
 ファイルパスベースで PG/SE/PM を自動判定:
-- `docs/specs/`, `docs/adr/`, `.claude/rules/`, `.claude/settings*.json` → **PM級**（block）
+- `docs/specs/`, `docs/adr/`, `docs/internal/`, `.claude/rules/`, `.claude/settings*.json`, ルート `CLAUDE.md` → **PM級**（block）
+  （**正本は `permission-levels.md` §ファイルパスベースの分類** / 本行は写しであり、増減時は正本を先に直す）
 - `docs/` 配下（上記以外） → **SE級**（allow + ログ）
 - `Read/Glob/Grep` → 常に許可
 

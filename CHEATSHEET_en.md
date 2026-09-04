@@ -62,7 +62,8 @@ Source of truth: `.claude/rules/permission-levels.md` §迷った場合
 ### PreToolUse hook
 
 Automatic PG/SE/PM classification based on file paths:
-- `docs/specs/`, `docs/adr/`, `.claude/rules/`, `.claude/settings*.json` -> **PM** (block)
+- `docs/specs/`, `docs/adr/`, `docs/internal/`, `.claude/rules/`, `.claude/settings*.json`, root `CLAUDE.md` -> **PM** (block)
+  (**Source of truth: `permission-levels.md` "File-path-based classification"**; this line is a copy -- update the source first)
 - `docs/` (other than above) -> **SE** (allow + log)
 - `Read/Glob/Grep` -> Always allowed
 
