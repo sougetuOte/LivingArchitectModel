@@ -118,6 +118,7 @@ _PM_OUT_OF_ROOT_PATTERN = (re.compile(r"^__out_of_root__/"), "out-of-root path")
 _PM_PATH_REASONS = (
     "specs/ path",
     "adr/ path",
+    "internal/ path",
     "rules/ path",
     "settings path",
     "root CLAUDE.md",
@@ -126,7 +127,7 @@ _PM_PATTERNS = [_PM_OUT_OF_ROOT_PATTERN] + list(zip(_PM_PATH_PATTERNS, _PM_PATH_
 
 # パス判定パターン（SE 級）
 _SE_PATTERNS = [
-    (re.compile(r"^docs/"), "docs/ path (non-specs/adr)"),
+    (re.compile(r"^docs/"), "docs/ path (non-specs/adr/internal)"),
     (re.compile(r"^src/"), "src/ path"),
 ]
 

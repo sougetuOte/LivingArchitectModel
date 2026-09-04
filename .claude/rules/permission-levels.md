@@ -31,7 +31,7 @@ v4.0.0 で導入された変更のリスクレベルに応じた三段階分類�
 
 - テストの追加・修正
 - 内部リファクタリング（公開 API 不変）
-- ドキュメントの細部更新（`docs/` 配下、ただし `docs/specs/` と `docs/adr/` を除く）
+- ドキュメントの細部更新（`docs/` 配下、ただし `docs/specs/` と `docs/adr/` と `docs/internal/` を除く）
 - 依存パッケージの minor/patch update
 - 内部関数の名前変更（外部インターフェース不変）
 - ログ出力の追加・修正
@@ -66,6 +66,7 @@ v4.0.0 で導入された変更のリスクレベルに応じた三段階分類�
 | **リポジトリ外のパス**（hook 内部表現 `__out_of_root__/`） | **PM** | 射程外への書込（`pre-tool-use.py` が最優先で判定 / **降格キャッシュの対象外**）|
 | `docs/specs/*.md` | PM | 仕様変更 |
 | `docs/adr/*.md` | PM | アーキテクチャ変更 |
+| `docs/internal/*.md` | PM | プロセス SSOT（**Hierarchy of Truth level 2** = `docs/specs/` より上位 / 下記注記）|
 | `.claude/rules/*.md`, `.claude/rules/*/*.md` | PM | ルール変更（サブディレクトリ含む） |
 | `.claude/settings*.json` | PM | 設定変更 |
 | ルート `CLAUDE.md` | PM | プロジェクト憲法（無条件ロードされる唯一の常駐面 / **nested な `CLAUDE.md` は対象外**）|
@@ -74,6 +75,8 @@ v4.0.0 で導入された変更のリスクレベルに応じた三段階分類�
 | その他 | SE | 安全側に倒す |
 
 > **`CLAUDE.md` 行の入場記録（2026-08-27 / 誕生ゲート取引 #23）**: 本行は実装 `_hook_utils.py` `_PM_PATH_PATTERNS` に 2026-07-26 から存在したが、条文には約 4 週間収載されていなかった（§D 在庫 #5）。**真正な退出 2 件（取引 #21・#22 = `decision-making.md` の MAGI 手続き 2 条項の skill 降格）と引き換えに入場**し、乖離を閉じた。2026-08-26 に無料で閉じる試みは gabriel probe に差し戻されている（`docs/artifacts/clause-gate-ledger.md` §射程内記述）。**これにより L1 は `CLAUDE.md` 編集の事前宣言義務を条文上も負う**。
+>
+> **`docs/internal/*.md` 行の入場記録（2026-09-04 / `retro-2026-09-04.md` A1 / ユーザー承認済）**: `CLAUDE.md` の Hierarchy of Truth は `docs/internal/00-08` を **level 2**、`docs/specs/` を **level 3** と定めるのに、本表は specs=PM / internal=SE と**逆転させていた**。2026-09-04 に穴を実際に通った —— 247 行の新規 SSOT `docs/internal/08_EXECUTION_DISCIPLINE.md` が**無ゲートで生まれ**、PM ダイアログは参照側（`.claude/rules/` の 12 箇所付替）にのみ発火した。**ゲートが本体ではなく参照に発火していた**。加えて `docs/internal/` は同日 managed 配布物になったため、無ゲートで生まれた条文が利用者へ配られる経路でもあった。**`docs/` 配下の他（`artifacts/` / `private/` / `daily/`）は SE のまま**である —— あれらは記録であって規範ではなく、巻き込むと retro・進捗台帳の毎回書込が PM ダイアログになり「常時鳴る計器は殺される」型に直行する（陰性対照は `test_docs_internal_is_pm_and_other_docs_are_not`）。
 >
 > **本表が PM 級パス列挙の正本である**（実装は `_hook_utils.py` `_PM_PATH_PATTERNS` / out-of-root のみ `pre-tool-use.py` がローカル保持）。**本ファイル内の他節は本表を参照し、列挙を複製しないこと** —— 複製は必ずドリフトする（2026-08-22 の掃きで実測 / `CLAUDE.md` の欠落が 4 箇所に同時に存在し、約 4 週間発見されなかった）。
 

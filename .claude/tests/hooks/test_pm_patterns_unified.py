@@ -61,6 +61,13 @@ post_tool_use = _load_module("post_tool_use_pm_unified_test", "post-tool-use.py"
 _EXPECTED_PM_PATH_PATTERNS = {
     r"^docs/specs/.*\.md$",
     r"^docs/adr/.*\.md$",
+    # docs/internal/（2026-09-04 追加 / retro-2026-09-04 A1 / ユーザー承認済）。
+    # Hierarchy of Truth（CLAUDE.md）は docs/internal/00-08 を level 2、docs/specs/ を
+    # level 3 と定めるのに、等級は specs=PM / internal=SE と逆転していた。
+    # 2026-09-04 に 08_EXECUTION_DISCIPLINE.md（247 行）が無ゲートで生まれ、
+    # PM ダイアログは参照側（.claude/rules/）にのみ発火した実測がある。
+    # managed 配布物でもあるため、無ゲートの条文が利用者へ配られる経路でもあった。
+    r"^docs/internal/.*\.md$",
     r"^\.claude/rules/.*\.md$",
     r"^\.claude/settings.*\.json$",
     r"^CLAUDE\.md$",
@@ -79,6 +86,24 @@ def test_hook_utils_has_is_pm_path_pattern_function():
     assert hasattr(_hook_utils, "is_pm_path_pattern")
     assert _hook_utils.is_pm_path_pattern("docs/specs/foo.md") is True
     assert _hook_utils.is_pm_path_pattern("src/foo.py") is False
+
+
+def test_docs_internal_is_pm_and_other_docs_are_not():
+    """docs/internal/*.md は PM 級（Hierarchy level 2）/ 他の docs/ は SE のまま。
+
+    陽性: Hierarchy of Truth level 2 の SSOT 群。
+    陰性対照: docs/artifacts/ · docs/private/ · docs/daily/ は記録であり規範ではないため
+    SE のまま（ここを巻き込むと retro / 進捗台帳の毎回書込が PM ダイアログになり、
+    「常時鳴る計器は殺される」型に直行する）。
+    """
+    assert _hook_utils.is_pm_path_pattern("docs/internal/08_EXECUTION_DISCIPLINE.md") is True
+    assert _hook_utils.is_pm_path_pattern("docs/internal/00_PROJECT_STRUCTURE.md") is True
+    # 拡張子ガード: .md 以外は対象外（README 生成物等の巻き込み防止）
+    assert _hook_utils.is_pm_path_pattern("docs/internal/notes.txt") is False
+    # 陰性対照（SE のまま維持されること）
+    assert _hook_utils.is_pm_path_pattern("docs/artifacts/retro-2026-09-04.md") is False
+    assert _hook_utils.is_pm_path_pattern("docs/private/fable-l3-protocol.md") is False
+    assert _hook_utils.is_pm_path_pattern("docs/daily/2026-09-04.md") is False
 
 
 # ---- Red→Green: pre / post 両モジュールが _hook_utils から取得し完全一致 ----

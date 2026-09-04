@@ -61,6 +61,14 @@ def build_allowlisted_env(extra: dict[str, str] | None = None) -> dict[str, str]
 _PM_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^docs/specs/.*\.md$"),
     re.compile(r"^docs/adr/.*\.md$"),
+    # docs/internal/（2026-09-04 追加 / retro-2026-09-04 A1 / ユーザー承認済）。
+    # Hierarchy of Truth（CLAUDE.md）は docs/internal/00-08 を level 2、docs/specs/ を
+    # level 3 と定めるのに、等級は specs=PM / internal=SE と逆転していた。
+    # 実測（2026-09-04）: 247 行の新規 SSOT `08_EXECUTION_DISCIPLINE.md` が無ゲートで
+    # 生まれ、PM ダイアログは参照側（.claude/rules/ の 12 箇所付替）にのみ発火した。
+    # さらに docs/internal/ は managed 配布物であり、無ゲートの条文が利用者へ配られる。
+    # docs/ 配下の他（artifacts / private / daily）は記録であり規範ではないため SE のまま。
+    re.compile(r"^docs/internal/.*\.md$"),
     re.compile(r"^\.claude/rules/.*\.md$"),
     re.compile(r"^\.claude/settings.*\.json$"),
     # ルート CLAUDE.md（2026-07-26 追加 / 誕生ゲート設計 §4.2-4.3 / ユーザー承認済）。
