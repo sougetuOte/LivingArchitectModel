@@ -227,3 +227,22 @@ def test_old_init_harness_skill_is_retracted():
     """
     old = REPO_ROOT / ".claude" / "skills" / "init-harness"
     assert not old.exists(), "旧 init-harness skill が残っている: {0}".format(old)
+
+
+def test_step0_guards_unresolved_plugin_root() -> None:
+    """Step 0 は `${CLAUDE_PLUGIN_ROOT}` 未解決を「Python 不在」と誤診しない。
+
+    bash は未設定の変数を空文字に展開するため、ガードが無いと
+    `bash "/scripts/check-runtime.sh"` = exit 127 となり、Step 0 の
+    「非零なら中止」に落ちる。中止するのは正しいが、利用者には
+    「Python を用意して再実行してください」と案内される —— 真因は別で、
+    その案内に従っても直らない。LAM は同型を一度踏んでいる
+    （CLAUDE.md §Python Invocation Convention / 段2 fixup 教訓 = `$CLAUDE_PROJECT_DIR`）。
+    """
+    text = (PLUGIN_ROOT / "skills" / "init" / "SKILL.md").read_text(encoding="utf-8")
+    assert ':?' in text and "CLAUDE_PLUGIN_ROOT" in text, (
+        "Step 0 に ${CLAUDE_PLUGIN_ROOT:?...} ガードが無い"
+    )
+    guard_pos = text.index(':?')
+    check_pos = text.index("check-runtime.sh")
+    assert guard_pos < check_pos, "ガードが check-runtime.sh の呼び出しより後にある"

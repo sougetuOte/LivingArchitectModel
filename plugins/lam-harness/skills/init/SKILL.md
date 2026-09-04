@@ -59,8 +59,18 @@ Layer 0（規範）はまさにその 2 つに書かれている。
 最初に実行する。
 
 ```bash
+: "${CLAUDE_PLUGIN_ROOT:?plugin root が未解決です。本スキルは plugin 経由でのみ動作します}"
 bash "${CLAUDE_PLUGIN_ROOT}/scripts/check-runtime.sh"
 ```
+
+> **1 行目のガードが要る理由**: bash は未設定の変数を**空文字に展開する**ため、
+> ガードが無いと `bash "/scripts/check-runtime.sh"` = **exit 127** になる。
+> 中止する結果は同じだが、下の分岐がそれを「ランタイム検査の失敗」と読み、
+> 利用者に「**Python を用意して再実行してください**」と案内してしまう
+> —— 真因は plugin root の未解決であり、その案内に従っても直らない。
+> LAM は同型を一度踏んでいる（`CLAUDE.md` §Python Invocation Convention の
+> 段2 fixup 教訓 = skill 内で `$CLAUDE_PROJECT_DIR` が unset だった件）。
+> `:?` は unset/空のときにメッセージを出して非零終了する bash の書式である。
 
 - **exit 0**: Step 1 へ進む
 - **非零**: **init を中止する。** stderr の内容をそのまま利用者に見せ、
