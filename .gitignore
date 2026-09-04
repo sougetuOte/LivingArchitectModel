@@ -36,7 +36,12 @@ yarn-error.log*
 memos/
 .serena/
 data/
-SESSION_STATE.md
+# ルート直下の作業状態ファイルのみを除外する。**先頭スラッシュを外さないこと** ——
+# 外すと任意の深さの SESSION_STATE.md に一致し、2026-09-04 に
+# plugins/lam-harness/templates/starter/SESSION_STATE.md（配布物）が
+# 巻き込まれて git 管理外になった（/ship Phase 1 の staged 一覧で検出）。
+# テストはファイルシステムを見ていて git を見ていないため検出できなかった。
+/SESSION_STATE.md
 docs/daily/
 .claude/settings.local.json
 # リリース手順はローカル固有（GitHub Token 等の環境差異を含みうるため）

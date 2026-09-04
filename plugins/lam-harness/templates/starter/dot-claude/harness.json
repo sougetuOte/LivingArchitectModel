@@ -1,0 +1,11 @@
+{
+  "harness_version": "0.1.0",
+  "source": "lam-harness@lam",
+  "applied_at": "<ISO 8601 現在時刻>",
+  "layers": {
+    "managed": "plugin 所有。/plugin update で更新が届く（.claude/rules/ と docs/internal/）",
+    "starter": "初回だけ敷く。以後は利用者の資産（本ファイルを含む）",
+    "layer1_permissions": "未適用。.claude/settings.json の permissions は利用者が手作業で入れる"
+  },
+  "notes": ""
+}
