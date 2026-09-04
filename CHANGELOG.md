@@ -4,6 +4,71 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 配布物 1 件が gitignore に巻き込まれていた（2026-09-04 / `/ship` Phase 1 で検出）
+
+`.gitignore` のアンカーされていない `SESSION_STATE.md` が任意の深さに一致し、
+**`plugins/lam-harness/templates/starter/SESSION_STATE.md`（配布物）が git 管理外**になっていた。
+fresh clone や公開 plugin では starter が 8 件でなく 7 件になり、`/lam-harness:init` が
+敷けないファイルが生じる。
+
+- パターンを `/SESSION_STATE.md`（先頭スラッシュ = ルート直下のみ）へ是正
+- **テストが検出できなかった理由**: `test_starter_templates_match_expected_set` は
+  **ファイルシステムを見ていて git を見ていない**。「ディスクにあること」は「配布されること」と同じではない
+- `test_starter_templates_are_all_git_tracked` を追加（`git check-ignore` で判定 / **修正前の
+  `.gitignore` に戻すと実際に落ちることを実測**）
+
+### hook の project root 解決に `CLAUDE_PROJECT_DIR` 経路を足した（2026-09-04 / plugin 移行 P0）
+
+`_hook_utils.get_project_root()` は `__file__` から root を導出しており、
+`CLAUDE_PROJECT_DIR` を見ていなかった。hooks が plugin へ移ると root が **plugin cache** を指し、
+被害は 3 段階で**深いほど静かになる**:
+
+1. 状態ファイル（`tdd-patterns.log` / `permission.log` / PM キャッシュ）が cache に書かれ、
+   `/plugin update` で消える（上流は「`${CLAUDE_PLUGIN_ROOT}` に永続状態を置くな」と明記）
+2. `current-phase.md` が読めず、**フェーズ依存のガードが黙って死ぬ**
+3. `normalize_path()` が誤った root で相対化するため `_PM_PATH_PATTERNS` が一切マッチせず、
+   **PM 級承認ゲートが丸ごと no-op になる**
+
+- 解決順を **`LAM_PROJECT_ROOT` → `CLAUDE_PROJECT_DIR` → `__file__`** に（`_env_dir()` に共通化）。
+  テストの明示 override が最優先である点は維持（逆にするとセッション内テストの隔離が崩れる）
+- **最も弱い `__file__` 経路に落ちた事実を stderr に出す**。「root が健全か」は**推測しない** ——
+  `marketplace add` はリポジトリ全体を `.claude` ごと clone するため「`.claude` があれば健全」は
+  clone を健全と誤検知して fail-open する
+- **既存テストはこの欠陥を検出できなかった** —— `.claude/tests/` は `LAM_PROJECT_ROOT` を設定して走るため
+  `__file__` 経路を通らない。`test_get_project_root_default` は名前に反して当該経路を検査していなかった。
+  両 env を外すテストを追加して塞いだ（+4 tests）
+
+### plugin 移行の着手順を MAGI で再設計した（2026-09-04 / gabriel 2 巡）
+
+旧「手順 4 → 手順 5」を廃し、**分岐条件を「呼び出し先が存在するか」**に置いた相分けへ。
+skills / agents は名前空間が呼び出し先を分離するため**複製相が安全**だが、hooks は
+**イベント発火型で「参照切替」という操作が存在せず**、複製した瞬間に二重発火する
+（`docs/adr/0010-...md` =「hook は merge され置換されない。両方走る」）。
+記録: `docs/artifacts/2026-09-04-magi-migration-order.md`
+
+### `/lam-harness:init` を実装し、`init-harness` skill を撤回した（2026-09-04 / plugin 移行 手順 3）
+
+plugin が配れるコンポーネントは skills / agents / hooks / MCP / LSP の 5 種であり、
+`.claude/rules/` と `docs/internal/` はその在庫に無い。よって規範層は
+「plugin が持ち、init がプロジェクトへ敷く」形になる。その配置係を実装した。
+
+- **ランタイム検査で完了を拒む**（`plugins/lam-harness/scripts/check-runtime.sh`）——
+  hook の `exit 2` 以外の非零終了は非ブロッキングであり、インタプリタ不在の 127 も同じ扱いになる。
+  放置すると**素通り（fail-open）と毎回のノイズが同時に起きる**。init は「一度きり・利用者起動・
+  対話的」を満たす唯一の地点なので、ここで止める。失敗時は**部分適用せず中止**する
+- **Layer 1 が届かないことを宣言する** —— `.claude/settings.json` の `permissions` は敷かず、
+  利用者の手作業手順として提示する。「入れた瞬間に全部効く」と言わないことを禁止事項に明記した
+- **starter 8 件を追加**（`templates/starter/` / `.claude/` は `dot-claude/` に読み替えて格納）
+- **`.claude/skills/init-harness/` を削除** —— 修正して残す期間は「存在の主張が半分正しい」期間である
+- テスト +12（starter 集合の一致 / hook 書式 / ランタイム検査の**陽性 + 陰性対照** / 旧 skill の撤回）
+
+### 機構 #10 が名前空間つき plugin コマンドを解決できるようにした（2026-09-04）
+
+旧 `_COMMAND_PAT` は `/lam-harness:init` を **`/lam-harness` で切って誤抽出**していた
+（`:` が文字クラス外）。名前空間つきを 1 トークンとして拾い、`existing_commands` に
+**`plugins/<plugin>/skills/<skill>/` 経路**を追加した。**両経路とも実体から導出**する（対応表を持たない）。
+陰性対照 4 件つき。
+
 ### retro の指摘を反映した（2026-09-04 / `retro-2026-09-04.md` A2-A6）
 
 - **`06_DECISION_MAKING.md` §6.6**（**PM 級**）: 「gabriel critical 2 回目」に**意味**の注記を追加 ——

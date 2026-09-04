@@ -38,10 +38,25 @@
 | 0'' | 要検証 V1-V8 | **完了**（結果は MAGI §13.6） |
 | 1 | plugin 骨格 + T1/T2 検査（R3 機構 #11 / #12） | **完了** |
 | 2 | Outbound Write Ban を project 層へ分離 | **完了**（D-1 決定 D4 の目標状態を達成） |
-| **3** | **`/lam-harness:init` の実装 + ランタイム検査** | **次はここ** |
-| 4 | `subagent_type` 参照の名前空間化（agents 12 × 参照元すべて） | 未 |
-| 5 | hooks / agents / skills / scripts を plugin へ移動 + local install で self-hosting 切替 | 未 |
+| **3** | **`/lam-harness:init` の実装 + ランタイム検査** | **完了**（2026-09-04 / 下記 §2.1） |
+| ~~4~~ / ~~5~~ | **着手順を MAGI で再設計した（2026-09-04）**。手順 4 は独立工程ではなく **P3 の中相**になった。新しい相分けは下表 | **`2026-09-04-magi-migration-order.md` が正本** |
 | 6 | clone-template の廃止判断 | 未 |
+
+### 手順 4 / 5 に代わる相分け（MAGI 2 巡 / gabriel critical → warning / `2026-09-04-magi-migration-order.md`）
+
+分岐条件は「重要度」でも「リスク」でもなく **「呼び出し先が存在するか」**。
+skills / agents は名前空間が呼び出し先を分離するので**複製相が安全**。
+hooks は**イベント発火型で「参照切替」という操作が存在せず**、複製した瞬間に二重発火する
+（`docs/adr/0010-...md:286` =「hook は merge され置換されない。両方走る」/ **gabriel が発見**）。
+
+| 相 | 内容 | 状態 |
+|:-:|:--|:--|
+| **P0** | `get_project_root()` に `CLAUDE_PROJECT_DIR` 経路 ＋ `__file__` 経路を通るテスト | **完了**（2026-09-04 / 下記 §2.2） |
+| **P1** | `--plugin-dir` 予行（**hooks.json を置かない**）。**2 回に割る** —— (1) plugin ロード経路の実証は今できる / (2)(3) bare `subagent_type` 解決・description 衝突は **agents 複製後でないと測れない**（MAGI 記録 §P1 の位置の調整） | **次はここ**（**ユーザー操作** = 別セッション起動） |
+| **P2** | skills: 複製 → 参照切替 → 撤去 | 未 |
+| **P3** | agents: 複製 → **名前空間化（= 旧 手順 4）** → 撤去 | 未 |
+| **P4** | hooks: 捨てプロジェクトで隔離検証 → **セッション境界でアトミック入れ替え**（複製相なし） | 未 |
+| **P5** | `permissions.allow` の手作業 ＋ `init` Step 6 への反映判断 | 未（**ユーザー**） |
 
 ### 手順 3 の要件（次セッションの入口）
 
@@ -50,7 +65,57 @@
 - **ランタイム検査**: Python / bash が無ければ**完了を拒む**。根拠は V4 —— hook の `exit 2` 以外の非零終了は**非ブロッキング**で、トランスクリプトに `hook error` 通知 + stderr 1 行目が出る。**インタプリタ不在の 127 も同じバケツ**なので、放置すると fail-open とノイズが同時に起きる。init は「一度きり・利用者起動・対話的」を満たす唯一の地点であり、K6 が棄却した 7 案のいずれにも触れない
 - **Layer 1（`settings.json` の `permissions.deny`）は届かないことを明示的に宣言する**（HGA §13.5-E）。「入れた瞬間に使える」の射程は Layer 0（規範）+ Layer 2（hook）まで
 
+### §2.1 手順 3 の実施記録（2026-09-04 / セッション 29）
+
+| 成果物 | 内容 |
+|:--|:--|
+| `plugins/lam-harness/skills/init/SKILL.md` | Step 0 でランタイム検査、失敗時は**部分適用せず中止**。Step 6 で Layer 1 未適用を明示し手作業手順を提示。配置対象は**テンプレートディレクトリから導出**（維持リスト不要） |
+| `plugins/lam-harness/scripts/check-runtime.sh` | `py_invoke.sh` と同じ探索順（venv-first → fallback）＋「存在するが起動不能」の判定。失敗時は stderr に理由と対処 |
+| `plugins/lam-harness/templates/starter/` | **8 件**（`.claude/` は `dot-claude/` に読み替えて格納）。`model-roster.md` / `terminology.md` は「構造は配る・値は記入欄」の形にした（§6 B の完全な分離は v2） |
+| `.claude/tests/plugin/test_lam_harness_init.py` | **12 tests**。starter 集合の一致 / `current-phase.md` の hook 書式 / ランタイム検査の**陽性 + 陰性対照**（PATH から python を除き `.venv` の無い CWD で実行）/ 旧 skill の撤回 |
+| `.claude/skills/init-harness/` | **削除**（MAGI §13.5-D =「修正して残す期間は存在の主張が半分正しい期間」） |
+
+**機構 #10 の拡張（副産物 / 手順 3 で必要になった）**: 旧 `_COMMAND_PAT` は `/lam-harness:init` を
+**`/lam-harness` で切って誤抽出**していた（`:` が文字クラス外）。名前空間つきを 1 トークンとして拾い、
+`existing_commands` に **`plugins/<plugin>/skills/<skill>/` 経路**を追加した。**両経路とも実体から導出**する
+（対応表を持たない）。陰性対照 4 件つき。
+
+**検証**: `1305 → 1321 passed / 14 skipped` / 機構 #10・#11・#12 いずれも OK。
+
+> **ランタイム検査に「テスト専用の分岐」を置かなかった**: 最初 `LAM_FORCE_NO_PYTHON` 環境変数で
+> 陰性対照を作ろうとしたが、本番コードにテスト専用経路を残す形になるため取りやめ、
+> **PATH から python を除き `.venv` の無い一時ディレクトリで実行する**形に変えた。
+> 「実環境で起きる状況をそのまま再現する」ほうが計器として強い。
+
 ---
+
+### §2.2 P0 の実施記録（2026-09-04 / セッション 29）
+
+**変更**: `_hook_utils.get_project_root()` の解決順を
+**`LAM_PROJECT_ROOT` → `CLAUDE_PROJECT_DIR` → `__file__`** にした（`_env_dir()` に共通化）。
+最も弱い `__file__` 経路に落ちた場合は **その事実を stderr に出す**。
+
+**なぜ移動より先に必要だったか**: hooks が plugin cache に入ると `__file__` 導出の root が
+cache を指す。被害は 3 段階で**深いほど静かになる** —— 状態ファイルが `/plugin update` で消える →
+`current-phase.md` が読めずフェーズガードが黙って死ぬ → **`normalize_path()` が誤った root で
+相対化するため `_PM_PATH_PATTERNS` が一切マッチせず PM 級承認ゲートが丸ごと no-op になる**。
+
+**なぜ既存テストが検出できなかったか**: `.claude/tests/` は `LAM_PROJECT_ROOT` を設定して走るため
+**`__file__` 経路をそもそも通らない**。escape hatch が計器を盲目にしていた。
+`test_get_project_root_default` は名前に反して `__file__` 経路を検査していなかった（両 env を外して是正）。
+
+**canary は推測しない**（gabriel 2 巡目の指摘 (a)）: 「`.claude` があれば健全な root」という判定は、
+`marketplace add` がリポジトリ全体を `.claude` ごと clone するため **clone を健全と誤検知**し fail-open する。
+代わりに**最も弱い経路を使った事実そのものを可聴化**する（`rule-001` 恒久解 (c) と同型 = 推論をやめる）。
+
+**検証**: `1321 → 1325 passed / 14 skipped`。加えて**実働で確認** —— 変更後のコマンド実行が
+`.claude/logs/permission.log`（**プロジェクト側**）に記録されることを実測した（hook が生きている証拠）。
+
+> **設計の訂正 1 件**: MAGI の当初結論は解決順を `CLAUDE_PROJECT_DIR` 最優先とし、
+> 「hook 経路では必須にして落とす」としていたが、**2 点とも誤り**だった（順序を逆にすると
+> セッション内テストの隔離が崩れる / 「hook 文脈の実行時判定」は推測の再導入）。
+> **gabriel は 2 巡ともこれを指摘していない** —— probe は書かれた設計を検証するが、
+> **実装して初めて出る誤りには構造的に届かない**。詳細は MAGI 記録の §訂正。
 
 ## §3 いま触ると壊れるもの（重要）
 
@@ -64,17 +129,27 @@ plugin コンポーネントは**インストールされて初めて有効に�
 
 ## §4 未コミット（`/ship` はユーザー実行）
 
-推奨コミット分割（依存順）:
+> **セッション 28 分は 2026-09-04 に push 済**（`eae403b..e89106b` / 7 コミット）。以下は**セッション 29 分**。
 
-| # | type(scope) | 内容 |
-|:-:|:--|:--|
-| 1 | `fix(skills)` | `init-harness` 欠陥 2 件（`current-phase.json` → `.md` / 名乗りの縮小） |
-| 2 | `docs(dist)` | **S 分割** —— `docs/internal/08_EXECUTION_DISCIPLINE.md` 新設 / `fable-l3-protocol.md` 273→95 行 / 参照 12 箇所付替 / 配布物 8 枚追随（日英 + スライド） |
-| 3 | `feat(dist)` | plugin 骨格（`.claude-plugin/marketplace.json` / `plugins/lam-harness/` / managed templates 24 件） |
-| 4 | `feat(clause-gate)` | **R3 機構 #11 / #12**（`verify_plugin_containment.py` + 15 tests）/ `/release` Phase 2.5 接続 / 台帳 §C |
-| 5 | `refactor(hooks)` | **Outbound Write Ban の project 層分離**（`.claude/hooks-local/` 新設 / `pre-tool-use.py` -3,079 字 / `settings.json` に追加登録 / テスト retarget） |
-| 6 | `docs(adr)` | **ADR-0010 追補 1**（所在変更 + R-1 再検証記録）※ **PM 級** |
-| 7 | `docs(magi)` | MAGI アンカー / 3 層分類 / 本進捗台帳 / HGA 召喚ログ #29 |
+推奨コミット分割（依存順 / **手順 3 → 機構 #10 → P0 → 記録** の順で bisect が保たれる）:
+
+| # | type(scope) | 内容 | 主なファイル |
+|:-:|:--|:--|:--|
+| 1 | `feat(dist)` | **`/lam-harness:init` の実装 + `init-harness` の撤回**（手順 3） | `plugins/lam-harness/skills/init/` / `scripts/check-runtime.sh` / `templates/starter/` 8 件 / `.claude/tests/plugin/` / **削除** `.claude/skills/init-harness/` |
+| 2 | `fix(clause-gate)` | **機構 #10 が名前空間つき plugin コマンドを解決できるようにした**（`/lam-harness:init` を `/lam-harness` で誤抽出していた） | `verify_distributable_claims.py` / 同テスト |
+| 3 | `fix(hooks)` | **P0** = `get_project_root()` に `CLAUDE_PROJECT_DIR` 経路 ＋ `__file__` 経路を通るテスト | `_hook_utils.py` / `test_hook_utils.py` |
+| 4 | `docs(magi)` | **移行順の再設計**（MAGI 2 巡 / gabriel critical → warning）＋ 進捗台帳更新 ＋ CHANGELOG | `2026-09-04-magi-migration-order.md` / 本ファイル / `CHANGELOG.md` |
+
+**意図的に未追跡**: `docs/private/2026-08-26-positioning-and-lecture-notes.md`（ユーザーの別案件資料）
+
+### セッション 29 の検証状態
+
+```
+pytest .claude/tests .claude/hooks/tests   → 1325 passed / 14 skipped（1301 → +24）
+verify_distributable_claims.py (機構 #10)  → OK（実在 skill 17 = project 16 + plugin 1）
+verify_plugin_containment.py  (機構 #11/#12) → OK
+実働確認: 変更後の hook が .claude/logs/permission.log（プロジェクト側）へ記録
+```
 
 **gitignore 対象**: `SESSION_STATE.md` / `docs/daily/` / `.claude/test-results.xml`
 **意図的に未追跡**: `docs/private/2026-08-26-positioning-and-lecture-notes.md`（既存 / ユーザーの別案件資料）
@@ -98,7 +173,7 @@ verify_plugin_containment.py  (機構 #11/#12) → OK
 
 | # | 内容 | 送り先 |
 |:-:|:--|:--|
-| A | `distill_lessons.py` / `distill-lessons.py` の重複 | 手順 5 の前に確定 |
+| ~~A~~ | ~~`distill_lessons.py` / `distill-lessons.py` の重複~~ | **解決済（2026-09-04）— 重複ではない**（下記 §6.1） |
 | B | `model-roster.md` / `terminology.md` の「構造は配る・値は配らない」分離 | v2 |
 | C | managed 規範から `docs/artifacts/` 等への dangling 参照 **60 件超** | T2 の射程 v2 / 公開前 |
 | D | `personal > project` 解決順と `skillOverrides` の plugin 無効の再裏取り | **ADR-0010 R-1 の未了分** |
@@ -107,6 +182,35 @@ verify_plugin_containment.py  (機構 #11/#12) → OK
 | G | `docs/private/` と規律 8 件の所在整理 | **S 分割で部分的に前進**（`fable-l3-protocol.md` は 95 行に縮小）。残りは未着手 |
 
 ---
+
+### §6.1 A の決着 —— **重複ではなく意図的な 2 ファイル構成**（2026-09-04 / セッション 29）
+
+| ファイル | 役割 |
+|:--|:--|
+| `distill_lessons.py`（アンダースコア / 15,996 B） | **実装本体**。Python モジュール命名規約に従う = テストから `import distill_lessons` できる |
+| `distill-lessons.py`（ハイフン / 962 B） | **entry point のみ**。`from distill_lessons import main` して呼ぶだけの薄い層。`goal-driven/SKILL.md` フロー[8] がこの名前で呼ぶ |
+
+B-3 W4-T1 の設計であり、`.claude/agent-memory/tdd-developer/project_gd_distill_w4t1.md` に
+2 ファイル構成である旨が記録されていた。**片方を消すと、テストの import かフロー[8] の
+呼び出しのどちらかが壊れる。** 手順 5 での移動時も 2 件セットで動かすこと。
+
+> **なぜ「重複」に見えたか**: 台帳を書いた時点で中身を開いておらず、名前の類似だけで
+> 判定していた。ファイルサイズ（16 KB vs 1 KB）を見れば片方が wrapper だと分かる。
+
+### §6.2 D の部分回答 —— ADR-0010 **R-1** の再裏取り（2026-09-04 / context7 経由）
+
+| 項目 | 結果 |
+|:--|:--|
+| `skillOverrides` が plugin skill に効くか | **未確定のまま**。公式例のキーは素の skill 名（`{"legacy-context": "name-only", "deploy": "off"}`）であり、名前空間つきのキーを取る記述は見つからなかった。**「無効」と断定できる根拠も見つかっていない** |
+| `personal > project` の解決順 | **今回の取得範囲では再確認できず**（当該記述に到達しなかった）。ADR-0010 制定時の裏取りが最後 |
+| **新発見: `strictPluginOnlyCustomization`** | **settings に実在する**。`["skills"]` を指定すると **user / project パスと account sync からの custom skill 読み込みを禁止**し、plugin / bundled / managed policy のみ許可する。`["skills", "hooks"]` のように複数指定可 |
+
+**`strictPluginOnlyCustomization` は ADR-0010 の脅威モデルに直接効く。** I-1 が防ごうとしていたのは
+「personal 層が project を上書きする」ことであり、I-2 は「`skillOverrides` が plugin に効かないので
+enable 粒度が唯一の防御線」と述べていた。**この設定は enable 粒度とは別の、より上流の防御線**である。
+
+**ただし採用可否は判定しない**（`upstream-first.md` §採用可否の二段構え / 段階 1 = 実在性は確認、
+段階 2 = LAM の設計思想との適合性は未評価）。**ADR-0010 の更新は PM 級**であり、ユーザー判断に送る。
 
 ## §7 このセッションで判明した運用上の事実（次セッションが同じ轍を踏まないため）
 
