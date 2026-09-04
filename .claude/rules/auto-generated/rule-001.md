@@ -98,7 +98,7 @@ bash .claude/scripts/py_invoke.sh -m pytest \
 
 - **履歴を整理するたびに発火する**（履歴こそが唯一の Wave 表記の在処であるため）
 - **痕跡テキスト（vestigial text）の保持を強制する**方向に働く
-- これは `docs/private/fable-l3-protocol.md` §9 が扱う「観測チャンネル」の問題と同型で、**計器が測れる形を保つために対象を変形させている**
+- これは `docs/internal/08_EXECUTION_DISCIPLINE.md` §9 が扱う「観測チャンネル」の問題と同型で、**計器が測れる形を保つために対象を変形させている**
 
 ### なぜ即座に恒久解へ進まないか
 

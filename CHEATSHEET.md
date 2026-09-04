@@ -181,6 +181,7 @@ Memory 列: `auto` = `.claude/agent-memory/<name>/` に知見を自発的に蓄�
 | `docs/internal/05_MCP_INTEGRATION.md` | MCP 連携・MEMORY.md 運用ポリシー |
 | `docs/internal/06_DECISION_MAKING.md` | 意思決定（MAGI System + AoT + gabriel adversarial probe） |
 | `docs/internal/07_SECURITY_AND_AUTOMATION.md` | コマンド安全基準（Allow/Deny List） |
+| `docs/internal/08_EXECUTION_DISCIPLINE.md` | 実行規律（帳簿単一・自己監査 14 項目・体験シミュ・F0-F4） |
 | `docs/internal/99_reference_generic.md` | 汎用リファレンステンプレート |
 
 ## /magi（構造化意思決定）クイックガイド

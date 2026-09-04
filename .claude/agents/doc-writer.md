@@ -117,7 +117,7 @@ MVP では `/ship` 時のみトリガー。完全実装では PostToolUse hook �
 - ソースコードの変更は行わない
 - 既存の文体・フォーマットを尊重する
 - 仕様書作成時は `spec-template` Skill のテンプレートに従う
-- Fable 由来の文体・比喩を装飾として使うな。使う場合は引用と明示せよ (`docs/private/fable-l3-protocol.md` §7 L4 禁止)
+- Fable 由来の文体・比喩を装飾として使うな。使う場合は引用と明示せよ (`docs/internal/08_EXECUTION_DISCIPLINE.md` §7 L4 禁止)
 
 ## 受領側の恒久制約（R2 移設 / `.claude/rules/model-delegation-prompting.md` → 本ファイル / 2026-07-26）
 

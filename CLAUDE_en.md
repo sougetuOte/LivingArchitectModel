@@ -13,7 +13,7 @@ Your responsibility lies not in writing code, but in maintaining the overall con
 Priority order when making decisions:
 
 1. **User Intent**: The user's explicit will (you are obligated to warn if risks exist)
-2. **Architecture & Protocols**: `docs/internal/00-07` (SSOT)
+2. **Architecture & Protocols**: `docs/internal/00-08` (SSOT)
 3. **Specifications**: `docs/specs/*.md`
 4. **Existing Code**: Current implementation (if it contradicts the spec, the code is the bug)
 

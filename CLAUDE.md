@@ -32,7 +32,7 @@ LAM 規律として残す核（PM 級ファイル / インシデント履歴 / A
 判断に迷った際の優先順位:
 
 1. **User Intent**: ユーザーの明確な意志（リスクがある場合は警告義務あり）
-2. **Architecture & Protocols**: `docs/internal/00-07`（SSOT）
+2. **Architecture & Protocols**: `docs/internal/00-08`（SSOT）
 3. **Specifications**: `docs/specs/*.md`
 4. **Existing Code**: 既存実装（仕様と矛盾する場合、コードがバグ）
 
@@ -181,19 +181,19 @@ L1 枠を温存するため、判断・対話・即応以外は積極的に L2 /
 ## 自律実行の既定 (2026-07-21 追加)
 
 ユーザーが個別に指示しない限り、以下を既定として振る舞う。根拠は既存規律
-(§作業体制 / `permission-levels.md` / `docs/private/fable-l3-protocol.md` / 第 0 原則) に分散しているため、
+(§作業体制 / `permission-levels.md` / `docs/internal/08_EXECUTION_DISCIPLINE.md` / 第 0 原則) に分散しているため、
 本節はその**運用側要約**として位置づける (新規規律ではない)。
 
 - **タスク順序・選択肢**: L1 の推奨で自律実行 (§作業体制 §担当層の判断基準 の層委譲に従う)
 - **並列化**: 独立タスクは 3-4 並列を既定 (L1 直の Edit/Read/Bash 含む / TaskCreate も 1 ブロックで並列起票)
 - **実行前の指示レビュー**: F0 (4 行アンカー) が書けない / F1 (仮定タグ) が高リスクの場合のみ、
-  質問・反論・代替案 (**1 個まで**) を提示。それ以外は着手 (`docs/private/fable-l3-protocol.md` §6.2-6.3)
+  質問・反論・代替案 (**1 個まで**) を提示。それ以外は着手 (`docs/internal/08_EXECUTION_DISCIPLINE.md` §6.2-6.3)
 - **実行中の軌道修正**: 進めながら気づいた問題は判断で決まる場合は勝手に決めて実行。
   決まらない場合のみ提示 (第 0 原則系(3) = 質問はユーザーの中断 1 回)
 - **PM 級承認ゲートは維持**: `permission-levels.md` §PM 級パスの事前計算原則に従い、
   自律実行を根拠に PM 級を降格しない (セッションスコープ降格機構は例外)
 - **60 秒実況の 3 発火点は維持**: **PLANNING** 承認要求提出直前 / `/ship` Phase 3.5 /
-  **AUDITING** 監査レポート提出直前 (`docs/private/fable-l3-protocol.md` §5.1 が正本) は
+  **AUDITING** 監査レポート提出直前 (`docs/internal/08_EXECUTION_DISCIPLINE.md` §5.1 が正本) は
   自律実行下でも省略不可。**修飾を落とさないこと** —— 2026-08-29 まで本行は `PLANNING` を
   欠いており、BUILDING 中の承認要求で実況義務が生じるかが §5.1 と食い違っていた
   (retro-2026-08-29 P2 / **唯一無条件ロードされる本ファイルに緩い側が載っていた**)

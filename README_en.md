@@ -60,6 +60,7 @@ A standard coding assistant will do more or less whatever it is told. With LAM i
 | `05_MCP_INTEGRATION.md` | MCP server integration & MEMORY.md policy (optional) |
 | `06_DECISION_MAKING.md` | Multi-Perspective Decision Making Protocol (MAGI System + AoT + gabriel probe) |
 | `07_SECURITY_AND_AUTOMATION.md` | Command Safety Protocols (Allow/Deny Lists) |
+| `08_EXECUTION_DISCIPLINE.md` | Execution Discipline (single ledger, 14-point self-audit, experience simulation, F0-F4) |
 | `99_reference_generic.md` | General advice and best practices (Non-SSOT) |
 
 ### Claude Code Extensions (`.claude/`)

@@ -168,6 +168,7 @@ Displays remaining context at the bottom of the screen (requires Python 3.8+):
 | `docs/internal/05_MCP_INTEGRATION.md` | MCP integration and MEMORY.md usage policy |
 | `docs/internal/06_DECISION_MAKING.md` | Decision-making (MAGI System + AoT + gabriel adversarial probe) |
 | `docs/internal/07_SECURITY_AND_AUTOMATION.md` | Command safety standards (Allow/Deny List) |
+| `docs/internal/08_EXECUTION_DISCIPLINE.md` | Execution discipline (single ledger, 14-point self-audit, experience simulation, F0-F4) |
 | `docs/internal/99_reference_generic.md` | Generic reference template |
 
 ## /magi (Structured Decision-Making) Quick Guide

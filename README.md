@@ -60,6 +60,7 @@ AI エージェントに「何を独断でやってよいか / 何に人間の�
 | `05_MCP_INTEGRATION.md` | MCP サーバー連携・MEMORY.md 運用ポリシー（オプション） |
 | `06_DECISION_MAKING.md` | 意思決定プロトコル (MAGI System + AoT + gabriel probe) |
 | `07_SECURITY_AND_AUTOMATION.md` | コマンド実行の安全基準 (Allow/Deny List) |
+| `08_EXECUTION_DISCIPLINE.md` | 実行規律 (帳簿単一・自己監査 14 項目・体験シミュ・F0-F4) |
 | `99_reference_generic.md` | 一般的な助言とベストプラクティス (Non-SSOT) |
 
 ### Claude Code 拡張 (`.claude/`)
