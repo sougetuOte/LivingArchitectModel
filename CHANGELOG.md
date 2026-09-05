@@ -29,6 +29,30 @@ E2E 準備段の P-1。`.claude/hooks/` の **7 件**を `plugins/lam-harness/ho
 **これ以降 `--plugin-dir` を使ってはならない**（project hooks と plugin hooks が両方走り、
 `tdd-patterns.log` へ復元不能な二重追記が起きる）。
 
+### P-2 —— 素の clone で赤くなるテストを、配置と履歴に依存しない形へ書き換えた（2026-09-05）
+
+HEAD を一時ディレクトリへ clone して `pytest` を回すと赤になるテストを是正した（L2 委譲 + L1 検収）。
+
+- **赤は「3 件」ではなく 2 件だった** —— `test_outbound_write_ban_denies_all_separator_forms` の
+  相対形パラメータ 2 件（`../Fable-Alembic/...`）= **本リポジトリが ban root の兄弟位置にある構成でしか deny にならない**。
+  `test_parse_with_real_git_log` は clone が HEAD を共有するため当時は緑だったが、
+  **実 git log の直近 100 コミットに `Wave N` があることを前提に assert する構造**は同じだったため併せて是正した
+- **実装側 2 本（`outbound-write-ban.py` / `git_history.py`）は変更不要**。欠陥はテスト側の入力構成にあった
+- **相対形**は専用テストへ分離し、`project_root` に実配置ではなく合成値を渡す形にした。
+  合成値は **`_BAN_ROOTS` から導出する**（リテラルで持たない = 維持リストを持たない構え / 機構 #7・#11 と同型）
+- **実 git バイナリ経路の内容検査を復元した** —— `test_parse_with_real_git_log` を構造検査へ狭めた結果、
+  「`git log --oneline -100` の**実出力形式**に regex が働くか」を見るテストが 1 件も無くなっていた
+  （モック群は `subprocess.run` を patch するため実形式が変わっても緑）。
+  **内容が既知の git リポジトリを `tmp_path` に組み立てて**同じ性質を検査する
+  `test_parse_extracts_from_synthetic_git_repo` を新設した
+- **素の clone: 2 failed → 0 failed（1345 passed / 20 skipped）** / 本体: **1351 passed / 14 skipped**
+- **skip 6 件の差は意図的な所有者ゲート**だと確認した（`SESSION_STATE.md` 不在で rule-001 系 4 件 ＋
+  条文が `docs/private/` にある outbound 系 2 件）。**masked failure ではない**
+
+**L1 検収で 2 点差し戻した**（合成 root のリテラル / 実バイナリ経路の内容検査の消失）。
+後者は **L2 がブリーフの「縮小」だけを実行し「決定的な git リポジトリを組み立てる」半分を落とした**もので、
+リテラル解釈型の under-deliver（roster §3 デルタ 1）の実例である。
+
 ### P-3 —— 対象を実測で改訂し、生きた作業ツリーを指す marketplace 登録を除去した（2026-09-05）
 
 計画は「`lam-harness@lam` と `lam-harness@lam-global`（4 プロジェクト）を消す」としていた。根拠は

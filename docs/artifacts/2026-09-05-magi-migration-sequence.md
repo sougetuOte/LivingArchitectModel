@@ -668,7 +668,7 @@ user 層 hooks 3 本は LAM 計器を書かない。
 | # | 内容 | 読む | **書く** | 担当 |
 |:-:|:--|:--|:--|:--|
 | **P-1** ✅ | hooks 7 件を plugin へ複製 + 同一性検査（**2026-09-05 セッション 32 完了**） | `.claude/hooks/**` | `plugins/lam-harness/hooks/**` / `verify_plugin_containment.py` + そのテスト | L1 直（**宣言 1 行**） |
-| **P-2** | fresh clone の赤 3 件 | テスト出力 | `hooks-local/outbound-write-ban.py` + そのテスト（配置依存 2 件）／**`dashboard/parsers/git_history.py` 系 + `test_git_history_parser.py`（履歴依存 1 件）** | L2 |
+| **P-2** ✅ | fresh clone の赤（**実測 2 件** / **2026-09-05 セッション 32 完了**） | テスト出力 | `test_outbound_write_ban.py`（配置依存 2 件）／`test_git_history_parser.py`（履歴依存）。**実装側 2 本は変更不要だった** | L2 + L1 検収 |
 | **P-3** ✅ | 孤児 `cache/lam` + `lam-global` quarantine（**2026-09-05 セッション 32 / 対象を実測で改訂**） | `plugin list --json` / `marketplace list --json` / `lam-global` の manifest | **環境のみ**（リポジトリ書込なし） | L1 直 |
 
 **3 者の書込集合は交わらない**（P-1 は containment 系 / P-2 は outbound-write-ban 系 + git_history 系 / P-3 は環境のみ）。

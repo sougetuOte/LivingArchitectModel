@@ -221,6 +221,8 @@ MAGI（gabriel 2 巡とも `refuted & critical` / 2 巡目 `abort` = AC-W-C-7 �
 | **6** | **`_MIRROR_AREAS` に `hooks` 追加（T3）＋ T4 新設** —— hooks.json が名指しする実体の実在検査。**輸送はエントリ単位**で成立するため、宣言と実体のずれは「そのイベントだけが黙って発火しない」形になる。**陰性対照を実測**（plugin 側コピーを 1 行汚して T3 が名指しで赤転 → 復元で緑） |
 | **7** | **テスト 1343 → 1350 passed / 14 skipped** |
 | **8** | **P-3 完了（対象を実測で改訂）**: 実施は `marketplace remove lam` の **1 件のみ**。**残留 5 件はいずれも user スコープではなく**（local 1 + project 4）、新規サンドボックスに漏れないことが判明したため、計画が挙げていた「4 プロジェクトの残存を消す」は**費用に見合わないと判断して見送った**。実在した危険は名前解決側の 2 つで、(i) `lam` が生きた作業ツリーを指していた（**除去済**）/ (ii) `lam-global` が同名 `lam-harness` を提供し続けている（→ **E2E は完全修飾形で打つ・clone の marketplace 名に `lam` を使わない**） |
+| **9** | **P-2 完了（L2 委譲 + L1 検収）**: 素の clone の赤は **3 件ではなく 2 件**だった（`test_outbound_write_ban` の相対形 2 パラメータ = **配置依存**。`test_parse_with_real_git_log` は clone が HEAD を共有するため**当時は緑**）。実装側 2 本（`outbound-write-ban.py` / `git_history.py`）は**変更不要**で、欠陥はテスト側の入力構成にあった。**L1 検収で 2 点差し戻し** —— ①合成 root がリテラルで `_BAN_ROOTS` に追随しない → **導出形へ** ②**実 git バイナリ経路の内容検査が消えていた**（L2 は「縮小」だけ行い、ブリーフが求めた「決定的な git リポジトリを組み立てる」半分を落としていた）→ `test_parse_extracts_from_synthetic_git_repo` を新設。**素の clone 1345 passed / 0 failed** / 本体 **1351 passed / 14 skipped** |
+| **10** | **素の clone の skip 6 件は意図的な所有者ゲート**だと確認（`SESSION_STATE.md` 不在で rule-001 系 4 件 ＋ 条文が `docs/private/` にある outbound 系 2 件）。**masked failure ではない** |
 
 **P-1 で確認した安全性**（着手前の錠）: `claude plugin list --json` で `lam-harness` 5 エントリすべて
 `enabled: false`・`projectPath` に LAM 無し。**二重発火の条件が無いことを確認してから hooks.json を置いた**。
@@ -280,7 +282,10 @@ verify_plugin_containment.py  (機構 #11/#12) → OK
 追跡ソースへの作者絶対パス混入            → 0
 ```
 
-**fresh clone の 3 件の赤は未解消**（`test_parse_with_real_git_log` = 履歴依存 / `test_outbound_write_ban` の相対形 2 件 = 配置依存）。手順 5・6 の範囲。
+~~**fresh clone の 3 件の赤は未解消**~~ → **2026-09-05（セッション 32 / P-2）で解消**。
+**実測では赤は 2 件**（`test_outbound_write_ban` の相対形 = 配置依存）。`test_parse_with_real_git_log` は
+clone が HEAD を共有するため当時は緑だったが、**履歴内容に依存する構造は同じ**だったため併せて是正した。
+素の clone で **1345 passed / 20 skipped / 0 failed**（skip 6 件は所有者環境ゲート = §2.6 #10）。
 
 ---
 
@@ -292,7 +297,7 @@ verify_plugin_containment.py  (機構 #11/#12) → OK
 | B | `model-roster.md` / `terminology.md` の「構造は配る・値は配らない」分離 | v2 |
 | C | managed 規範から `docs/artifacts/` 等への dangling 参照 **60 件超** | T2 の射程 v2 / 公開前 |
 | D | `personal > project` 解決順と `skillOverrides` の plugin 無効の再裏取り | **ADR-0010 R-1 の未了分** |
-| E | `~/claude-global-assets` の `lam-harness` 1.0.0（4 プロジェクトに project スコープで導入済・**全て disabled**）の quarantine | ADR-0010 **M-2** 準拠 |
+| E | `~/claude-global-assets` の `lam-harness` 1.0.0（4 プロジェクトに project スコープで導入済）の quarantine → **2026-09-05 に改名で対応**（`lam-harness-legacy` + `renames`）。**「全て disabled」は誤り** —— `plugin list` の `enabled` は cwd 相対で、4 プロジェクトの `settings.json` はいずれも `true`（＝現に有効） | ADR-0010 **M-2**（移行そのものは未了） |
 | F | `CLAUDE.md` 251 行（公式目安 200 行超） | 前セッションからの持ち越し |
 | G | `docs/private/` と規律 8 件の所在整理 | **S 分割で部分的に前進**（`fable-l3-protocol.md` は 95 行に縮小）。残りは未着手 |
 
