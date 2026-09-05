@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### local install がスナップショットであることが判明し、self-hosting の形態を再設計した（2026-09-05）
+
+配布形態 MAGI §A3 は「self-hosting は維持。ただし**同一リポジトリ内 plugin の local install**へ形を変える」
+と結論していたが、**上流実装がその想定を満たさない**ことを実測した —— install は plugin を
+`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/` にコピーし、`/reload-plugins` でも
+更新されない。バージョンがキャッシュパスと更新判定を決めるため、`plugin.json` の version を
+上げるまで固定される。
+
+MAGI（AoT / gabriel 2 巡とも `refuted & critical` / 2 巡目 `abort` = AC-W-C-7 到達）→ **HGA #30** で決着。
+
+- **HGA の裁定**: L1 の分解が誤っていた。「stale」「検出器」は**性質の異なる 2 つの故障**
+  （**存在** = ガード不在の無音の失敗 / **鮮度** = QA の空振り）を 1 語で束ねていた。
+  自己参照の罠は**存在軸にだけ**当てはまり、鮮度軸の検出器は plugin 内に置いてよい
+- **「キャッシュ ≠ ワークツリー」を警報にしない** —— 開発中は常に真であり「常時鳴る計器は殺される」型。
+  警報は「**キャッシュから走るセッションで plugin を編集した**」というセッション局所の事象に絞る
+- **検出器と復旧はペアでしか置けない**。version 凍結下の復旧は reinstall のみ
+- **P4 の前提「project hooks = 0」は既に偽だった** —— `.claude/hooks-local/outbound-write-ban.py` が
+  PreToolUse に登録済（実測）。不変条件を「**同一スクリプトが 2 層に居ない**」へ書き換える
+- **検出器が要るのは P4 の前ではなく P2 撤去相の前**（LAM が install した瞬間から skills が
+  スナップショットになる。現在 LAM は未 install で 100% project 層で動いていることも実測）
+- **要検証の仮定 6 件**を明示（marketplace 名の一意性 / SessionStart hook の可用性 / plugin hook の
+  `__file__` / `uninstall`→`install` の再コピー / 未 install 環境での挙動 / 恒等性の根拠は内容ハッシュのみ）。
+  **これらを潰すまで P2 撤去相へ進まない**
+
+### plugin 移行 P3 前半 —— agents 12 件を plugin へ複製（2026-09-05）
+
+project 側は生きたままで、名前空間が呼び出し先を分離する。bare な `subagent_type` の解決可否と
+description 衝突（P1(2)(3)）は、複製後でなければ測れないため本相が前提となる。
+
 ### 配布 skills が呼ぶ scripts を誰も配っていなかった（2026-09-05 / P2 複製相で検出）
 
 `/lam-harness:*` skills は `.claude/scripts/*` を **11 種 47 箇所**（うち `py_invoke.sh` が 30）
