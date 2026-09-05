@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### PM 級ゲートの 2 つの穴と、7 週間死んでいた gabriel 計器を塞いだ（2026-09-05 / `/full-review` iter0）
+### 権限ゲートの 3 つの穴と、7 週間死んでいた gabriel 計器を塞いだ（2026-09-05 / `/full-review` iter0）
 
 Action 4 着手前のベースライン取得として `.claude/` + `plugins/` を監査した（Stage 1 静的解析 +
 観点別 4 並列）。**Critical 5 / Warning 22 / Info 11**。Critical は全件 L1 が実測で裏取りし、
-1 件を降格・1 件を新規発見した。ユーザー決定により **Critical 4 件を修正、残りは起票**。
+1 件を降格・1 件を新規発見した。**Critical 5 件すべてを修正**し、Warning は監査レポートを起票として残した。
 
 - **PM 級判定が大文字小文字で迂回できた**（C-2）。Windows の NTFS は case-insensitive だが
   `normalize_path` の相対パス分岐は FS に問い合わせない設計のため、`.claude/Rules/security-commands.md`
@@ -31,10 +31,21 @@ Action 4 着手前のベースライン取得として `.claude/` + `plugins/` �
   経路が 0 件だった）。(3) **「書かれなかった」を検出する** anchor カバレッジ検査を新設
 - **未記録の 5 件は埋めていない**。遡って被覆させるには計器データを捏造するしかなく、
   `security-commands.md` §計器への書き込みを伴う検証 が禁じる方向であるため、基準日を 2026-09-05 に置いた
-- **C-1 は未修正**（`py_invoke.sh -c` で Bash deny リストを全迂回できる / **本監査セッション自身が
-  無承認で任意 Python を 6 回実行したことが実証**）。方向は決定済みだが、`pre-tool-use.py` 自身の
-  コメントが「allow マッチ時に hook をスキップする場合がある」と述べており、**upstream 確認が先**
-- テスト **1364 → 1377 passed**。新規検査の陰性対照が実際に赤転することを確認済
+- **C-1: `py_invoke.sh -c` で Bash deny リストを全迂回できた**（**本監査セッション自身が無承認で
+  任意 Python を 6 回実行したことが実証**）。allow の末尾ワイルドカードが任意の引数にマッチするため、
+  Python の `subprocess` / `shutil` で `rm` / `mv` / `chmod` / `git push --force` 相当を全て代替できた
+- **保留していた前提が晴れた**。`pre-tool-use.py` のコメント「allow マッチ時に hook をスキップする
+  場合がある」は**裏付けが取れなかった** —— 上流で「allow ルールで事前承認されたものには呼ばれない」
+  と明記されているのは `CanUseTool`（SDK の権限コールバック）であって PreToolUse hook ではなく、
+  実測でも allow 規則へ厳密一致するコマンドの hook 記録が `permission.log` に **418 件**ある。
+  **2 機構の取り違え**だったので同時に訂正した
+- **一律 PM にはしなかった**。`-c` は `CLAUDE.md` の規約が前提とし `/full-review`・`/ship` が常用するため、
+  一律にすると承認ダイアログが常時鳴り「常時鳴る計器は殺される」型に直行する。**ペイロードを見て昇格**する
+  形にした —— 既存の AUDITING PG コマンド判定（shell メタ文字 + ブラックリスト引数）と同じ形。
+  D1（deny 単独で守らない）への対応として allow 対を `security-commands.md` に併記した
+- **陰性対照を明示した**: `spec.loader.exec_module(m)` が `exec(` に誤爆しないこと。誤爆すれば
+  実作業がすべて PM になり、避けたかった状態そのものになる
+- テスト **1364 → 1381 passed**。新規検査の陰性対照が実際に赤転することを確認済
 - 詳細: `docs/artifacts/audit-reports/2026-09-05-iter0.md`
 
 ### P-1 —— hooks を複製相へ入れ、hook 宣言の実体検査（T4）を新設した（2026-09-05）
