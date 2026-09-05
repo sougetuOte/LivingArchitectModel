@@ -17,10 +17,12 @@ R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13
   導出するため、**維持リストを持たない**（R3 機構 #7 / #10 と同型）。
 - **T2 閉包（機構 #12）**: `plugins/` 配下のファイルは、**作者環境の絶対パス**と
   **配布されないディレクトリ（`docs/private/`）への参照**を含まないこと。
-- **T3 複製相の恒等性（2026-09-05 追加）**: LAM は plugin 移行の途中にあり、
+- **T3 複製相の導出一致（2026-09-05 追加 / 同日「恒等性」から改訂）**: LAM は plugin 移行の途中にあり、
   `skills` と `agents` は開発側 (`.claude/skills/` `.claude/agents/`) と配布側
   (`plugins/<plugin>/skills/` `plugins/<plugin>/agents/`) の**両方に実体を持つ複製相**にある。
-  将来 project 側を撤去するまで両者は一致していなければならない。検査対象は
+  将来 project 側を撤去するまで両者は対応していなければならない。
+  **判定はバイト恒等ではなく「開発側 == 導出(正本)」である**（ADR-0010 追補 2 /
+  正本 = `plugins/` 側、開発側は名前空間 prefix を除去した導出物）。検査対象は
   「**両側に同名で存在するトップレベルエントリ**（skill ディレクトリ / agent ファイル）」のみから
   導出する（維持リスト不要 / T1 と同型）。**片側にしか無いエントリは意図的な差分として無視する**
   （例: 開発側のみの `build-dashboard`（非配布）/ `clause-gate`（LAM 固有）、
@@ -102,6 +104,9 @@ _MIRROR_AREAS = {
 
 # hooks.json 内で plugin 実体を名指しする形（上流の公式変数 / code.claude.com/docs/en/hooks）
 _PLUGIN_ROOT_REF_RE = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([\w./-]+)")
+
+# 名前の直後に続いてよくない文字（`gabriel` が `gabriel-x` に部分一致するのを防ぐ）
+_NAME_BOUNDARY = r"(?![A-Za-z0-9_-])"
 
 _TEXT_SUFFIXES = {".md", ".json", ".py", ".sh", ".txt", ".yaml", ".yml", ".html"}
 
@@ -194,6 +199,56 @@ def check_reference_closure(repo_root: Path) -> List[Violation]:
     return violations
 
 
+def plugin_namespace(plugin_dir: Path) -> str:
+    """plugin の名前空間 prefix（例 ``lam-harness:``）を manifest から導出する。
+
+    リテラルで持たない（基質から導出する / 機構 #7・#11 と同型）。manifest が読めない場合は
+    空文字を返し、変換を恒等写像に落とす —— **推測で prefix を作らない**。
+    """
+    manifest = plugin_dir / ".claude-plugin" / "plugin.json"
+    if not manifest.is_file():
+        return ""
+    try:
+        name = json.loads(_read(manifest)).get("name")
+    except json.JSONDecodeError:
+        return ""
+    return f"{name}:" if isinstance(name, str) and name else ""
+
+
+def component_names(plugin_dir: Path) -> set:
+    """名前空間が付きうるコンポーネント名の集合を、plugin の実在から導出する。
+
+    agents はファイル名の stem、skills はディレクトリ名。**維持リストを持たない**ため、
+    コンポーネントが増減しても本関数の更新義務が生じない。
+    """
+    names = set()
+    agents_dir = plugin_dir / "agents"
+    if agents_dir.is_dir():
+        names |= {p.stem for p in agents_dir.glob("*.md")}
+    skills_dir = plugin_dir / "skills"
+    if skills_dir.is_dir():
+        names |= {p.name for p in skills_dir.iterdir() if p.is_dir()}
+    return names
+
+
+def to_project_text(text: str, namespace: str, names: set) -> str:
+    """正本（plugin 側）のテキストを、開発側（project）の形へ導出する。
+
+    名前空間 prefix を、**基質から導出した名前集合に前置されている場合にのみ**除去する
+    （`lam-harness:gabriel` → `gabriel` / `/lam-harness:ship` → `/ship`）。
+
+    向きの根拠は ADR-0010 追補 2「**正本は、第 2 段の後に生き残る側**」。prefix 除去は
+    固定文字列の削除であり**無損失**である一方、逆向き（付与）は「実行指示か概念の言及か」の
+    分類を要し、**分類は導出ではない**（HGA #33 裁定 1）。
+    """
+    if not namespace or not names:
+        return text
+    # 長い名前を先に試す（`goal-driven-l2-foreman` が `goal-driven-l2` に食われないため）
+    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    pattern = re.compile(re.escape(namespace) + f"({alternation})" + _NAME_BOUNDARY)
+    return pattern.sub(r"\1", text)
+
+
 def _relative_text_files(root: Path) -> dict:
     """root 配下の text suffix ファイルを、root からの相対パス → 絶対パスの辞書として返す。
 
@@ -224,11 +279,18 @@ def _iter_mirror_matches(repo_root: Path):
             plugin_names = {p.name: p for p in plugin_area_root.iterdir()}
             dev_names = {p.name: p for p in dev_area_root.iterdir()}
             for name in sorted(set(plugin_names) & set(dev_names)):
-                yield plugin_names[name], dev_names[name]
+                yield plugin_dir, plugin_names[name], dev_names[name]
 
 
-def _compare_mirror_entry(repo_root: Path, plugin_entry: Path, dev_entry: Path) -> List[Violation]:
-    """同名の複製相エントリ（skill ディレクトリ or agent ファイル）を再帰的に比較する。"""
+def _compare_mirror_entry(
+    repo_root: Path, plugin_dir: Path, plugin_entry: Path, dev_entry: Path
+) -> List[Violation]:
+    """同名の複製相エントリ（skill ディレクトリ or agent ファイル）を再帰的に比較する。
+
+    比較は**バイト恒等ではなく「派生 == 導出(正本)」**である（ADR-0010 追補 2）。
+    """
+    namespace = plugin_namespace(plugin_dir)
+    names = component_names(plugin_dir)
     violations: List[Violation] = []
     plugin_map = _relative_text_files(plugin_entry)
     dev_map = _relative_text_files(dev_entry)
@@ -244,25 +306,33 @@ def _compare_mirror_entry(repo_root: Path, plugin_entry: Path, dev_entry: Path) 
                 Violation("T3", shown, "plugin 側に複製されていない（複製相の非対称）")
             )
         else:
-            if _read(plugin_map[rel]) != _read(dev_map[rel]):
+            expected = to_project_text(_read(plugin_map[rel]), namespace, names)
+            if _read(dev_map[rel]) != expected:
                 shown = str(plugin_map[rel].relative_to(repo_root)).replace("\\", "/")
                 dev_shown = str(dev_map[rel].relative_to(repo_root)).replace("\\", "/")
                 violations.append(
-                    Violation("T3", shown, f"開発側と内容が異なる: {dev_shown}")
+                    Violation(
+                        "T3",
+                        shown,
+                        f"開発側が正本からの導出結果と異なる: {dev_shown}"
+                        "（`derive_project_copies.py --write` で再生成する）",
+                    )
                 )
     return violations
 
 
 def check_mirror_identity(repo_root: Path) -> List[Violation]:
-    """T3: plugin 側の複製相（skills / agents）が開発側と内容一致することを検査する。
+    """T3: 開発側の複製相（skills / agents / hooks）が、**正本からの導出結果と一致する**ことを検査する。
 
     検査対象は「両側に同名で存在するトップレベルエントリ」から導出する
     （維持リスト不要 / T1 と同型）。片側にしか無いエントリは意図的な差分として
-    無視する（モジュール冒頭の docstring §3 つの検査 参照）。
+    無視する（モジュール冒頭の docstring 参照）。
     """
     violations: List[Violation] = []
-    for plugin_entry, dev_entry in _iter_mirror_matches(repo_root):
-        violations.extend(_compare_mirror_entry(repo_root, plugin_entry, dev_entry))
+    for plugin_dir, plugin_entry, dev_entry in _iter_mirror_matches(repo_root):
+        violations.extend(
+            _compare_mirror_entry(repo_root, plugin_dir, plugin_entry, dev_entry)
+        )
     return violations
 
 
@@ -367,7 +437,7 @@ def main() -> int:
     if not violations:
         print(
             "OK  plugin ディレクトリは包含（T1）・閉包（T2）・"
-            "複製相の恒等性（T3）・hook 宣言の実体（T4）を満たす"
+            "複製相の導出一致（T3）・hook 宣言の実体（T4）を満たす"
         )
         return 0
 

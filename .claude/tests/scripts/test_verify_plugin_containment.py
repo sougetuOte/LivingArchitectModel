@@ -145,7 +145,7 @@ def test_t3_detects_content_drift(tmp_path):
     violations = check_mirror_identity(repo)
     assert len(violations) == 1
     assert violations[0].check == "T3"
-    assert "内容が異なる" in violations[0].detail
+    assert "導出結果と異なる" in violations[0].detail
 
 
 def test_t3_detects_missing_on_dev_side(tmp_path):
@@ -198,7 +198,7 @@ def test_t3_agent_files_are_compared_directly(tmp_path):
     violations = check_mirror_identity(repo)
     assert len(violations) == 1
     assert violations[0].check == "T3"
-    assert "内容が異なる" in violations[0].detail
+    assert "導出結果と異なる" in violations[0].detail
 
 
 def test_t3_ignores_line_ending_difference(tmp_path):
@@ -403,9 +403,78 @@ def test_hooks_mirror_is_not_vacuous():
     """hooks の複製相が実際に比較されていることを要求する（片側のみなら黙って 0 件になる）。"""
     matched = [
         (p, d)
-        for p, d in vpc._iter_mirror_matches(REPO_ROOT)
+        for _, p, d in vpc._iter_mirror_matches(REPO_ROOT)
         if "hooks" in p.parts
     ]
     assert len(matched) >= 7, (
         f"hooks の一致エントリが少なすぎる（{len(matched)} 件）= 複製されていない"
     )
+
+
+# --- 導出規則（ADR-0010 追補 2 / 正本 = plugins 側）--------------------------
+
+
+def test_namespace_and_names_are_derived_from_substrate():
+    """名前空間も名前集合も、リテラルではなく実在から導出される。"""
+    plugin_dir = REPO_ROOT / "plugins" / "lam-harness"
+    assert vpc.plugin_namespace(plugin_dir) == "lam-harness:"
+    names = vpc.component_names(plugin_dir)
+    # agents 12 + skills 15。件数が激減したら「変換対象が消えた」= 空回りの兆候
+    assert len(names) >= 20, f"名前集合が少なすぎる（{len(names)} 件）"
+    assert {"gabriel", "test-runner", "ship", "init"} <= names
+
+
+def test_namespace_is_empty_without_manifest(tmp_path):
+    """manifest が無ければ空を返し、変換は恒等写像に落ちる（**推測で prefix を作らない**）。"""
+    assert vpc.plugin_namespace(tmp_path) == ""
+    assert vpc.to_project_text("lam-harness:gabriel", "", {"gabriel"}) == "lam-harness:gabriel"
+
+
+def test_to_project_text_strips_known_names():
+    """既知の名前に前置された prefix のみ除去する（agent 参照・スラッシュコマンドの両方）。"""
+    names = {"gabriel", "ship"}
+    out = vpc.to_project_text(
+        'subagent_type="lam-harness:gabriel" と `/lam-harness:ship`', "lam-harness:", names
+    )
+    assert out == 'subagent_type="gabriel" と `/ship`'
+
+
+def test_to_project_text_leaves_unknown_names():
+    """名前集合に無い語の prefix は残す（**未知の語を勝手に剥がさない**）。"""
+    out = vpc.to_project_text("lam-harness:unknown", "lam-harness:", {"gabriel"})
+    assert out == "lam-harness:unknown"
+
+
+def test_to_project_text_respects_name_boundary():
+    """部分一致で剥がさない（`gabriel` が `gabriel-x` に食い込まない）。"""
+    out = vpc.to_project_text("lam-harness:gabriel-x", "lam-harness:", {"gabriel"})
+    assert out == "lam-harness:gabriel-x"
+
+
+def test_to_project_text_prefers_longer_name():
+    """短い名前が長い名前を食わない（`goal-driven` が `goal-driven-l3-executor` を切らない）。"""
+    names = {"goal-driven", "goal-driven-l3-executor"}
+    out = vpc.to_project_text("lam-harness:goal-driven-l3-executor", "lam-harness:", names)
+    assert out == "goal-driven-l3-executor"
+
+
+def test_t3_detects_untransformed_dev_side(tmp_path):
+    """**バイト一致でも導出結果と違えば落ちる** —— 本 Action の発端そのもの。
+
+    正本が名前空間つきで書かれているのに開発側がそれをそのまま持っていると、
+    LAM 本体では解決しない参照が残る（旧 T3 = バイト恒等では緑のまま通った）。
+    """
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"gabriel.md": "use lam-harness:gabriel\n"},
+        dev={"gabriel.md": "use lam-harness:gabriel\n"},
+        area="agents",
+    )
+    (repo / "plugins" / "lam-harness" / ".claude-plugin").mkdir(parents=True)
+    (repo / "plugins" / "lam-harness" / ".claude-plugin" / "plugin.json").write_text(
+        '{"name": "lam-harness"}', encoding="utf-8"
+    )
+    violations = check_mirror_identity(repo)
+    assert len(violations) == 1
+    assert violations[0].check == "T3"
+    assert "導出結果と異なる" in violations[0].detail
