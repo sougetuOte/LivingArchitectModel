@@ -208,6 +208,22 @@ MAGI Reflection は 9 件の適用事例において初回変更率 0%（7 件�
 物理削除・コメントアウトは採用しない理由: v5 ② gabriel 統合への設計地ならしのため、
 Reflection の構造と位置を保持する必要がある。
 
+> ## §4 の現況（2026-09-05 追記 / **ADR-0007 により一部 superseded**）
+>
+> 本節は「Reflection を物理削除せず警告ラベルで残し、**v5 ② で gabriel へ昇格する**」という
+> **暫定対応**を定めたものである。その v5 ② は **ADR-0007（Accepted 2026-07-02）として実現し、
+> Reflection は gabriel adversarial probe に置換済**である。したがって:
+>
+> | 条項 | 状態 |
+> |:--|:--|
+> | **FR-4.1 / FR-4.2 / FR-4.3**、**AC-9 / AC-10**、**W7-B4-T10 / T11 / T12** | **superseded・充足不能** —— 置換先に Reflection 節が存在せず、**警告ラベルという対象自体が消滅した** |
+> | **FR-4.3 の対象ファイル** `.claude/skills/lam-orchestrate/references/magi-skill.md` | **2026-09-05 に削除** —— 実行時参照ゼロの SKILL.md 全文コピー（旧版）であり、2026-08-21 に同じ理由で削除された `lam-orchestrate/references/anchor-format.md` と同型 |
+> | **FR-4.4 / AC-11**（gabriel 統合設計記録） | **達成済** —— ADR-0007 がその記録にあたる |
+> | **FR-4.5**（AoT 分解の温存 / MUST NOT） | **生きている** —— `docs/specs/magi-v2-gabriel/requirements.md` の **NFR-W-C-6** として引き継がれ、統合テスト 3 系統が破壊を検出する |
+>
+> 本文書は Draft（PM 承認待ち）のまま**歴史的記録として保存**する（`docs/specs/magi-skill-spec.md` と同じ扱い）。
+> **§4 を現行仕様として読んではならない**。後継: `docs/specs/magi-v2-gabriel/{requirements,design}.md` v0.4.0。
+
 #### FR-4.1 MAGI SKILL.md への警告ラベル追記（MUST）
 
 `.claude/skills/magi/SKILL.md` の Step 4（Reflection）冒頭に以下の警告ラベルを追記しなければならない:

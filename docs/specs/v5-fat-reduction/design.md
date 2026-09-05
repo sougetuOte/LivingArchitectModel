@@ -396,6 +396,13 @@ commit c674ec8（`docs(skills): full-review SKILL.md に no-op マーカー追�
 
 ## §4 設計: MAGI Reflection 警告ラベルの文言
 
+> **本節は ADR-0007（Accepted 2026-07-02）により一部 superseded**（2026-09-05 追記）。
+> Reflection は gabriel adversarial probe に置換済で、**警告ラベルという対象自体が消滅した**ため
+> **§4.1〜4.4 と AC-9 / AC-10 は充足不能**である。**§4.5（AoT 分解の温存）は生きている**
+> （NFR-W-C-6 として引き継ぎ済）。**§4.4 の対象ファイル
+> `.claude/skills/lam-orchestrate/references/magi-skill.md` は 2026-09-05 に削除**したため、
+> 同節の diff 検証コマンドは実行不能である。詳細は `requirements.md` §4 冒頭の「§4 の現況」を見よ。
+
 ### 4.1 警告ラベル最終確定版（FR-4.1）
 
 requirements.md FR-4.1 に記載された文言をそのまま採用する。以下が確定版:

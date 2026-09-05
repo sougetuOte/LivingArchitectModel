@@ -261,6 +261,15 @@ B-4 ④「v5 fat 削減リファクタ」の BUILDING Wave 1 向けタスク定�
 
 **注意: T10・T11・T12 は `.claude/skills/` / `.claude/rules/` 変更のため PM 級。実施前に PM 承認ゲートを通過すること。**
 
+> **T10 / T11 / T12 は ADR-0007（Accepted 2026-07-02）により superseded・実施不要**（2026-09-05 追記）。
+> Reflection が gabriel adversarial probe に置換され、**警告ラベルを貼る対象そのものが消滅**したため、
+> 3 タスクの DoD は**充足不能**である。とくに **T12 の対象ファイル
+> `.claude/skills/lam-orchestrate/references/magi-skill.md` は 2026-09-05 に削除**した
+> （実行時参照ゼロの SKILL.md 全文コピー・旧版）。したがって T12 の DoD
+> 「Step 4 以外の行が変更されていない」も**対象不在により無効**である。
+> **T14（AoT 温存確認 / FR-4.5）は生きている** —— NFR-W-C-6 と統合テスト 3 系統に引き継がれた。
+> 詳細は `requirements.md` §4 冒頭の「§4 の現況」を見よ。
+
 ---
 
 #### W7-B4-T10: MAGI SKILL.md Step 4 警告ラベル追記
