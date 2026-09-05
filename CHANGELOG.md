@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### marketplace 名を衝突耐性のあるものへ改名し、`/release` に上流公式の検証を組み込んだ（2026-09-05）
+
+上流調査で、同名 marketplace の `add` が**既存登録を無警告で上書きする**問題（anthropics/claude-code
+#44042）が **Closed as not planned** であると判明した。実害例では別リポジトリの plugin が壊れたまま
+1 週間気づかれていない。**上流に防御が無い以上、名前の一意性が唯一の防御線**である。
+
+- `.claude-plugin/marketplace.json` の `name` を **`lam` → `sougetuote-lam`** へ（3 文字は衝突確率が現実的）
+- starter の `harness.json` の `source` も追随
+- **`/release` に `claude plugin validate --strict` と `claude plugin tag` を追加** —— 上流が保守する
+  検証系に寄せる。自前で書けば plugin スキーマ変更のたびに追随する義務を負うため、R3 機構は
+  LAM 固有の規律に限る
+- 命名規律と公式ツール呼び出しをテストで固定（+2 tests / 1333 → 1335 passed）
+
+### self-hosting の要検証 6 件を実測し、上流の既知問題を調査した（2026-09-05）
+
+HGA #30 が「潰すまで P2 撤去相へ進めない」とした 6 件を全て測り、**2 件は HGA の想定と違った**。
+
+- **`CLAUDE_PLUGIN_ROOT` は hook プロセスに環境変数として export される** —— 出所判定に `__file__` 解析は不要
+- **`uninstall`→`install` は同 version でも再コピーする**（復旧 R1 は成立）。ただし #45542 は逆を報告して
+  おり、**復旧手順に「効いたかの内容ハッシュ確認」を含める**
+- SessionStart hook の出力は `additionalContext`（**Claude の文脈**）であり、ユーザー向け表示経路ではない
+- **未 install の `enabledPlugins` は無言で素通り**（実測 / #32607 も同旨。検出機構は存在しない）
+- キャッシュ側 mtime は**コピー元を引き継ぐ**ため、鮮度判定は**内容ハッシュでしか書けない**
+- 上流の既知問題 4 件のうち **2 件（同名上書き / hooks 二重発火）は "not planned"**。後者は
+  **LAM とほぼ同一のユースケース**が起票されている（#40826）
+- 検出器は **`claude plugin list --json` 等の公式 CLI** で実装する（上流の私有状態を自前パースしない）
+
 ### local install がスナップショットであることが判明し、self-hosting の形態を再設計した（2026-09-05）
 
 配布形態 MAGI §A3 は「self-hosting は維持。ただし**同一リポジトリ内 plugin の local install**へ形を変える」

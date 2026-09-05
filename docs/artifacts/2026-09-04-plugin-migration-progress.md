@@ -54,7 +54,7 @@ hooks は**イベント発火型で「参照切替」という操作が存在せ
 | **P0** | `get_project_root()` に `CLAUDE_PROJECT_DIR` 経路 ＋ `__file__` 経路を通るテスト | **完了**（2026-09-04 / 下記 §2.2） |
 | **P1** | `--plugin-dir` 予行（**hooks.json を置かない**）。**2 回に割る** —— (1) plugin ロード経路の実証は今できる / (2)(3) bare `subagent_type` 解決・description 衝突は **agents 複製後でないと測れない**（MAGI 記録 §P1 の位置の調整） | **次はここ**（**ユーザー操作** = 別セッション起動） |
 | **P2** | skills: 複製 → 参照切替 → 撤去 | **複製相 完了**（2026-09-05 / 14 skills / 下記 §2.3）。次は参照切替 |
-| **P3** | agents: 複製 → **名前空間化（= 旧 手順 4）** → 撤去 | 未 |
+| **P3** | agents: 複製 → **名前空間化（= 旧 手順 4）** → 撤去 | **前半（複製 12 件）完了**（2026-09-05）。後半は P2 参照切替の後 |
 | **P4** | hooks: 捨てプロジェクトで隔離検証 → **セッション境界でアトミック入れ替え**（複製相なし） | 未 |
 | **P5** | `permissions.allow` の手作業 ＋ `init` Step 6 への反映判断 | 未（**ユーザー**） |
 
@@ -151,6 +151,43 @@ LAM 固有ゆえ非配布 / §4.2）。project 側はまだ生きており、名
 `.claude-plugin/marketplace.json` は既存（`source: "./plugins/lam-harness"` = 相対パス形式 /
 上流仕様に合致）。一方 `.claude/settings.json` に **`enabledPlugins` は未設定**であり、
 **撤去相はユーザーの install 操作待ち**（`/plugin marketplace add` → `/plugin install --scope project`）。
+
+### §2.4 self-hosting 形態の決着と、要検証 6 件の解消（2026-09-05 / セッション 30）
+
+**local install はスナップショットである**ことが実測で判明し、配布形態 MAGI §A3 の前提が崩れた。
+MAGI（gabriel 2 巡とも `refuted & critical` / 2 巡目 `abort` = AC-W-C-7 到達）→ **HGA #30** で決着。
+続けて HGA が要求した**要検証 6 件を全て実測**し、さらに**上流の公式ドキュメントと issue tracker を調査**した。
+
+**全文は `docs/artifacts/2026-09-05-magi-selfhosting-form.md`**（末尾の「対策の確定版」が正本 /
+前半 2 節は gabriel に退けられた記録であり決定ではない）。
+
+#### 移行計画に直接効く 4 点
+
+| # | 内容 |
+|:-:|:--|
+| **1** | **P4 の前提「project hooks = 0」は既に偽**（`hooks-local/outbound-write-ban.py` が PreToolUse に登録済 / 実測）。新不変条件は「**同一スクリプトが 2 層に居ない**」で、**上流仕様と一致する**ことも確認した |
+| **2** | **検出器が要るのは P4 の前ではなく P2 撤去相の前**。LAM が install した瞬間から skills がスナップショットになる（現在 LAM は未 install で 100% project 層） |
+| **3** | **marketplace 名を `lam` → `sougetuote-lam` へ改名済**。同名 add は無警告で既存を上書きし（実演）、上流は **not planned** で直さない（#44042）。名前の一意性が唯一の防御線 |
+| **4** | 検出器は **`claude plugin list --json` / `marketplace list --json`** で実装する。上流の私有状態を自前パースしない |
+
+#### 上流に既に用意されていたもの（自前で作らない）
+
+- **開発ループ**: `--plugin-dir`（install せず直読み・install 済みより優先）+ `/reload-plugins`
+- **`claude plugin` CLI 一式**（`--json` / `--strict` 付き）—— **対話セッション不要で自動化できる**
+- **`claude plugin validate --strict`** と **`claude plugin tag`** を `/release` に組み込み済（2026-09-05）
+- 公式 Tip「**standalone `.claude/` で回し、共有段階で plugin に変換せよ**」= **LAM の現在位置が公式の推奨そのもの**
+
+#### 上流の既知問題（4 件とも既知 / 2 件は「対応しない」）
+
+| 問題 | 状態 |
+|:--|:--|
+| キャッシュ陳腐化 | 未解決（#14061 が Open のまま / 重複多数） |
+| 同名 marketplace の無警告上書き | **Closed as not planned**（#44042） |
+| `enabledPlugins` の無言スキップ | Closed as duplicate（#32607）/ 検出機構なし |
+| hooks 二重発火 | **Closed as not planned**（#40826 / **LAM とほぼ同一のユースケースが起票されている**） |
+
+**次セッションの実装対象**: 存在検出（`hooks-local/` の SessionStart）/ 鮮度検出（`CLAUDE_PLUGIN_ROOT` 判定）/
+復旧手順（CLI 2 行 + 内容ハッシュ確認）。
 
 ## §3 いま触ると壊れるもの（重要）
 

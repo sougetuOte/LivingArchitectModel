@@ -436,3 +436,81 @@ plugin が読み込まれていないなら鮮度は問題にならず、存在�
 - 仮定 1 が偽 → **A3''**（E-β を明示的に禁止する条文が要る）
 - 仮定 2 が偽 → **A4-P の置き場**（代替は「plugin 不在なら `/lam-harness:quick-load` が unknown で落ちる = 大きい音」に委ねる）
 - `plugin eval` が無償・自動になった → **「self-hosting = 唯一の QA」が失効**し、既定を `--plugin-dir` 側へ倒し直す余地
+
+---
+
+# 要検証 6 件の実測結果（2026-09-05 / HGA 裁定の後）
+
+HGA が「潰すまで P2 撤去相へ進めない」とした 6 件を全て測った。**2 件は HGA の想定と違った。**
+
+| # | 仮定 | 結果 |
+|:-:|:--|:--|
+| **1** | marketplace 名の一意性 | **同名 add は既存を無警告で上書きする**。別名は作られず、`lam` の登録先が LAM リポジトリからダミーへ差し替わり、**install 記録が孤児化**した（実演） |
+| **2** | SessionStart hook が使え、stdout がユーザーに見える | **前半は真・後半は偽**。command 型は使えるが、出力制御は `additionalContext`（= **Claude の文脈へ注入**）/ `sessionTitle` / `watchPaths` / `reloadSkills` であり、**ユーザー向け表示経路ではない** |
+| **3** | plugin hook の出所は `__file__` で判定する | **より良い解があった**。`CLAUDE_PLUGIN_ROOT` が **hook プロセスに環境変数として export される**（上流明記 / exec・shell 両形式）。`__file__` の解析は不要 |
+| **4** | `uninstall`→`install` は同 version でも再コピーするか | **再コピーされた**（差分 0 / 前回の古い版が置換された）。**R1 は成立**。ただし下記の食い違いあり |
+| **5** | 未 install 環境で committed `enabledPlugins` を持つと何が起きるか | **無言で素通り**。警告も自動 install も無い |
+| **6** | 恒等性の根拠は内容ハッシュのみ | **真**。キャッシュ側の mtime は**コピー元の mtime を引き継ぐ**ため、タイムスタンプでは判定できない |
+
+**副産物**: `CLAUDE_PLUGIN_DATA`（アップデートを跨いで永続するデータ領域）/ `watchPaths` / `reloadSkills` を発見。
+
+---
+
+# 上流調査（公式ドキュメント + issue tracker / 2026-09-05）
+
+**4 件とも既知の問題であり、うち 2 件は「対応しない」で closed されている。**
+
+| 問題 | 上流の状態 | 根拠 |
+|:--|:--|:--|
+| **A. キャッシュ陳腐化** | **未解決**。最古の **#14061**（2025-12）が `duplicate` ラベル付きで **Open のまま**。#28492 / #39927 / #45542 / #72616 等が重複として closed。直近の言及は 2026-06-30（v2.1.197） | issue tracker |
+| **B. 同名 marketplace の無警告上書き** | **Closed as not planned**（#44042 / 2026-04-06）。実装箇所（`marketplaceManager.ts` の `addMarketplaceSource()`）まで特定済。実害例では別リポジトリの plugin が壊れ **1 週間気づかれなかった** | #44042 |
+| **C. `enabledPlugins` の無言スキップ** | **Closed as duplicate**（#32607 / 2026-03-09）。「開始時に警告なし・**Errors タブにも出ない**・エラーが install 状態を示唆しない」 | #32607 |
+| **D. hooks 二重発火** | **Closed as not planned**（#40826 / 2026-03-30）。**LAM とほぼ同一のユースケース**（clone で保守しつつ plugin としても配布）が起票されている | #40826 |
+
+### 公式が明示している仕様（本 MAGI の結論を裏づけ / または訂正するもの）
+
+1. **開発ループは公式に存在する** —— `--plugin-dir` は**インストールせずに**ディレクトリから直接ロードし、
+   **install 済みの同名 plugin より優先される**。`/reload-plugins` は再起動なしに再読込する。
+   公式 Tip は「**standalone `.claude/` で素早く回し、共有段階で plugin に変換せよ**」と述べており、
+   **LAM が今立っている位置（project 層）が公式の推奨そのもの**である
+2. **`claude plugin` は完全な CLI を持つ**（`install` / `uninstall` / `update` / `list` / `enable` /
+   `disable` / `validate` / `details` / `tag` / `eval` / `prune` / `marketplace`）。
+   **`--json`**（list / marketplace list / validate）と **`--strict`**（CI 用）あり。**対話セッション不要**
+3. **構成要素ごとに衝突の挙動が違う** —— **agents は project が plugin を上書き / skills は両方生き残る /
+   hooks は両方発火**。かつ **「hook が他の hook を無効化する手段は存在しない」**。
+   **公式の解も「同じものを両方に置かない」だけ**であり、**A5' の新不変条件は上流仕様と一致する**
+4. **`enabledPlugins` のプロジェクト単位 override は存在しない**（#40826）。user settings が project に勝つ。
+   「開発中だけ plugin を切る」はできない
+5. **`settings.local.json` にだけ `enabledPlugins` を書くと、`settings.json` に同キーが無い限り
+   マージ結果から黙って落ちる**（#25086 / #27247）。**I-2（project スコープ限定）はこの点でも正しい**
+
+### 実測と食い違う報告 1 件（**未解決 / 扱いを決めた**）
+
+**#45542**（v2.1.97 / 2026-04-09）は「**`uninstall`→`install` でもキャッシュが更新されない**」と
+実測バイト数付きで報告しており、**本日の実測（v2.1.261 で再コピーされた）と逆**である。
+バージョン差による改善か条件差かは判別できない。
+
+**扱い**: 復旧 R1 は「2 コマンド打って終わり」にせず、**打った後に内容ハッシュで確認する**手順にする
+（`claude plugin list --json` の `installPath` と `plugins/lam-harness/` を突合）。
+
+### 本日のテストに残った穴（申告）
+
+- 検証 #5 で **`/plugin` の Errors タブを確認していない**。#32607 は「出ない」と報告しているが未確認
+- 公式ドキュメントは「キャッシュに無ければ `/plugin` にエラーを表示し、**ネットワーク到達可能なら
+  セッション開始時に install を試みる**」と述べる。本日のテストは**未登録の marketplace** を指しており
+  到達不能だったため、**この条件を満たしていない**。「無言だった」事実は正しいが、**原因の切り分けは未完**
+
+---
+
+# 対策の確定版（HGA 裁定 + 実測 + 上流調査を統合）
+
+| # | 対策 | 変更点 |
+|:-:|:--|:--|
+| **1** | **marketplace 名を `lam` → `sougetuote-lam` へ改名** | **新規**。#44042 が not planned である以上、**名前の一意性が唯一の防御線**。3 文字の `lam` は衝突確率が現実的にある。移行前の今が最安（実施済 / テストで固定） |
+| **2** | **存在検出（A4-P）** は `claude plugin list --json` と `claude plugin marketplace list --json` の突合で実装 | **自前パースを撤回**。上流の私有状態（`installed_plugins.json` 等）に触らないので、内部形式の変更に壊れない。**HGA が懸念した R2（私有状態への書き込み）は完全に不要になった** |
+| **3** | **鮮度検出（A4-F）** は `CLAUDE_PLUGIN_ROOT` を読み、キャッシュ出所のセッションで `plugins/lam-harness/**` を編集した時のみ警報 | 判定を `__file__` 解析から**環境変数 1 つ**へ簡素化 |
+| **4** | **復旧（A4-R）** は `claude plugin uninstall`→`install` の CLI 2 行 ＋ **効いたかの内容ハッシュ確認** | 確認ステップを追加（#45542 との食い違いのため）。対話コマンドではなく **CLI なので自動化できる** |
+| **5** | **`/release` に `claude plugin validate --strict` と `claude plugin tag` を組み込む** | **新規**（実施済）。上流仕様の検査は上流のツールに寄せ、R3 機構は LAM 固有の規律に限る |
+| **6** | **P4 の新不変条件「同一スクリプトが 2 層に居ない」はそのまま** | **上流仕様と一致することが確認された**（変更不要） |
+
+**実装は次セッション**（2・3・4 の検出器）。本セッションは 1・5 と記録までとする。
