@@ -70,6 +70,10 @@ v4.0.0 で導入された変更のリスクレベルに応じた三段階分類�
 | `.claude/rules/*.md`, `.claude/rules/*/*.md` | PM | ルール変更（サブディレクトリ含む） |
 | `.claude/settings*.json` | PM | 設定変更 |
 | ルート `CLAUDE.md` | PM | プロジェクト憲法（無条件ロードされる唯一の常駐面 / **nested な `CLAUDE.md` は対象外**）|
+| `.claude/.session-pm-edit-cache.json` | **PM** | **hook が書く信頼アンカー**（偽造で以後の PM 承認が全て SE へ降格する / 下記注記）|
+| `.claude/autonomous-state.json` | **PM** | 同上（`active` 偽装で G1 checker を評価せずに「正常終了」できる）|
+| `.claude/gd-session-state.json` | **PM** | 同上（token/time bound の PM エスカレーションを回避できる）|
+| `.claude/lam-loop-state.json` | **PM** | 同上（ループ制御を外側から書き換えられる）|
 | `docs/` 配下（上記以外） | SE | ドキュメント更新 |
 | `src/` 配下 | SE | ソースコード変更（デフォルト） |
 | その他 | SE | 安全側に倒す |
@@ -77,6 +81,10 @@ v4.0.0 で導入された変更のリスクレベルに応じた三段階分類�
 > **`CLAUDE.md` 行の入場記録（2026-08-27 / 誕生ゲート取引 #23）**: 本行は実装 `_hook_utils.py` `_PM_PATH_PATTERNS` に 2026-07-26 から存在したが、条文には約 4 週間収載されていなかった（§D 在庫 #5）。**真正な退出 2 件（取引 #21・#22 = `decision-making.md` の MAGI 手続き 2 条項の skill 降格）と引き換えに入場**し、乖離を閉じた。2026-08-26 に無料で閉じる試みは gabriel probe に差し戻されている（`docs/artifacts/clause-gate-ledger.md` §射程内記述）。**これにより L1 は `CLAUDE.md` 編集の事前宣言義務を条文上も負う**。
 >
 > **`docs/internal/*.md` 行の入場記録（2026-09-04 / `retro-2026-09-04.md` A1 / ユーザー承認済）**: `CLAUDE.md` の Hierarchy of Truth は `docs/internal/00-08` を **level 2**、`docs/specs/` を **level 3** と定めるのに、本表は specs=PM / internal=SE と**逆転させていた**。2026-09-04 に穴を実際に通った —— 247 行の新規 SSOT `docs/internal/08_EXECUTION_DISCIPLINE.md` が**無ゲートで生まれ**、PM ダイアログは参照側（`.claude/rules/` の 12 箇所付替）にのみ発火した。**ゲートが本体ではなく参照に発火していた**。加えて `docs/internal/` は同日 managed 配布物になったため、無ゲートで生まれた条文が利用者へ配られる経路でもあった。**`docs/` 配下の他（`artifacts/` / `private/` / `daily/`）は SE のまま**である —— あれらは記録であって規範ではなく、巻き込むと retro・進捗台帳の毎回書込が PM ダイアログになり「常時鳴る計器は殺される」型に直行する（陰性対照は `test_docs_internal_is_pm_and_other_docs_are_not`）。
+>
+> **hook が書く信頼アンカー 4 行の入場記録（2026-09-05 / `/full-review` iter0 C-3・C-4 / ユーザー承認済）**: これら 4 ファイルは **hook が書き、hook が読んで判断の根拠にする**。モデルが直接書けると、判断の前提そのものを偽造できる。実測（2026-09-05 / 実際の `_determine_by_path` を呼んで確認）では 4 件とも `('SE', 'default path')` で**無条件に書けた** —— `.session-pm-edit-cache.json` を偽造すれば以後の PM 承認が全て SE へ降格し（判定は `session_id` とパス文字列の一致のみで偽造耐性が無く、`session_id` はトランスクリプトのファイル名として `ls` だけで得られる）、`autonomous-state.json` の `active` を落とせば G1 checker を一度も評価せずにループが「正常終了」する。**射程は Edit / Write 経路のみ**であり、`Bash("cat > ...")` は `file_path` を持たず到達しない —— これは FR-9 / FR-3.4 deny や PLANNING 設定凍結と同じ既知の限界で、本行はそれを変えない。陰性対照は `test_unrelated_state_like_paths_stay_non_pm`（`.claude/logs/permission.log` / `tdd-patterns.log` / `skills/` / `agents/` / `states/` を巻き込んでいないこと）。
+>
+> **判定は大文字小文字を区別しない（2026-09-05 / 同上 C-2）**: 実行環境は Windows（`CLAUDE.md` §Execution Environment）で NTFS は case-insensitive だが、`normalize_path` の相対パス分岐は FS へ問い合わせない設計のため、`.claude/Rules/security-commands.md`（大文字 R）が**判定は SE・書込先は実在の PM 級ファイル本体**という経路を作っていた。`Claude.md` / `docs/Specs/` でも同様。実装は `_PM_PATH_FLAGS = re.IGNORECASE`。したがって**本表のパスは大文字小文字の任意の組み合わせを含む**と読むこと。検査は `test_pm_gate_case_and_state_files.py`。
 >
 > **本表が PM 級パス列挙の正本である**（実装は `_hook_utils.py` `_PM_PATH_PATTERNS` / out-of-root のみ `pre-tool-use.py` がローカル保持）。**本ファイル内の他節は本表を参照し、列挙を複製しないこと** —— 複製は必ずドリフトする（2026-08-22 の掃きで実測 / `CLAUDE.md` の欠落が 4 箇所に同時に存在し、約 4 週間発見されなかった）。
 

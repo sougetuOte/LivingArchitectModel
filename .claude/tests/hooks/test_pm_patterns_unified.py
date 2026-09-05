@@ -71,6 +71,15 @@ _EXPECTED_PM_PATH_PATTERNS = {
     r"^\.claude/rules/.*\.md$",
     r"^\.claude/settings.*\.json$",
     r"^CLAUDE\.md$",
+    # hook が書く信頼アンカー（2026-09-05 追加 / /full-review iter0 C-3・C-4 /
+    # ユーザー承認済）。hook が書き、hook が読んで判断の根拠にするファイルであり、
+    # モデルが直接書けると判断の前提そのものを偽造できた（実測: いずれも
+    # ('SE', 'default path') で無条件に書けた）。
+    # 内容と射程の限界は .claude/tests/hooks/test_pm_gate_case_and_state_files.py
+    r"^\.claude/\.session-pm-edit-cache\.json$",
+    r"^\.claude/autonomous-state\.json$",
+    r"^\.claude/gd-session-state\.json$",
+    r"^\.claude/lam-loop-state\.json$",
 }
 
 

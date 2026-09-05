@@ -122,6 +122,10 @@ _PM_PATH_REASONS = (
     "rules/ path",
     "settings path",
     "root CLAUDE.md",
+    "hook-owned trust anchor (pm-edit-cache)",
+    "hook-owned trust anchor (autonomous-state)",
+    "hook-owned trust anchor (gd-session-state)",
+    "hook-owned trust anchor (lam-loop-state)",
 )
 _PM_PATTERNS = [_PM_OUT_OF_ROOT_PATTERN] + list(zip(_PM_PATH_PATTERNS, _PM_PATH_REASONS))
 

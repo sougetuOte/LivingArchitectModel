@@ -58,9 +58,21 @@ def build_allowlisted_env(extra: dict[str, str] | None = None) -> dict[str, str]
 # 毎回 PM ダイアログを再表示させる（安全側維持 / root 外パスは信頼度が低いため
 # セッションスコープ降格の対象にしない設計判断）。pre-tool-use.py 側では
 # `^__out_of_root__/` を別途ローカルで維持する。
+#
+# 大文字小文字を区別しない（2026-09-05 追加 / /full-review iter0 C-2 / ユーザー承認済）。
+# 実行環境は Windows（`CLAUDE.md` §Execution Environment）であり NTFS は既定で
+# case-insensitive かつ case-preserving である。一方 `normalize_path` の相対パス分岐は
+# FS へ問い合わせない設計（意図的）なので、`.claude/Rules/security-commands.md` は
+# 正規化後も大文字 R のまま残り、大小文字を区別する正規表現に一致しなかった。
+# 実測（2026-09-05）: `.claude/Rules/security-commands.md` -> ('SE', 'default path') /
+# `Claude.md` -> ('SE', 'default path') となる一方、`head -1 ".claude/Rules/..."` は
+# 実ファイルを読み出す。**判定は SE、書込先は PM 級ファイル本体**という経路が
+# 成立していた。判定側を FS の性質に合わせることで塞ぐ。
+# 検査: .claude/tests/hooks/test_pm_gate_case_and_state_files.py
+_PM_PATH_FLAGS = re.IGNORECASE
 _PM_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
-    re.compile(r"^docs/specs/.*\.md$"),
-    re.compile(r"^docs/adr/.*\.md$"),
+    re.compile(r"^docs/specs/.*\.md$", _PM_PATH_FLAGS),
+    re.compile(r"^docs/adr/.*\.md$", _PM_PATH_FLAGS),
     # docs/internal/（2026-09-04 追加 / retro-2026-09-04 A1 / ユーザー承認済）。
     # Hierarchy of Truth（CLAUDE.md）は docs/internal/00-08 を level 2、docs/specs/ を
     # level 3 と定めるのに、等級は specs=PM / internal=SE と逆転していた。
@@ -68,15 +80,33 @@ _PM_PATH_PATTERNS: tuple[re.Pattern[str], ...] = (
     # 生まれ、PM ダイアログは参照側（.claude/rules/ の 12 箇所付替）にのみ発火した。
     # さらに docs/internal/ は managed 配布物であり、無ゲートの条文が利用者へ配られる。
     # docs/ 配下の他（artifacts / private / daily）は記録であり規範ではないため SE のまま。
-    re.compile(r"^docs/internal/.*\.md$"),
-    re.compile(r"^\.claude/rules/.*\.md$"),
-    re.compile(r"^\.claude/settings.*\.json$"),
+    re.compile(r"^docs/internal/.*\.md$", _PM_PATH_FLAGS),
+    re.compile(r"^\.claude/rules/.*\.md$", _PM_PATH_FLAGS),
+    re.compile(r"^\.claude/settings.*\.json$", _PM_PATH_FLAGS),
     # ルート CLAUDE.md（2026-07-26 追加 / 誕生ゲート設計 §4.2-4.3 / ユーザー承認済）。
     # 無条件ロードされる最も常駐性の高い 1 ファイルであり、条項追加が PM ダイアログも
     # 事前宣言義務も経ないという穴になっていた（HGA #19 仮定 5-iii）。
     # nested な CLAUDE.md を含めないのは、`/compact` 後に再注入されるのが
     # プロジェクトルートのみであり、常駐性の根拠がルートに限られるため。
-    re.compile(r"^CLAUDE\.md$"),
+    re.compile(r"^CLAUDE\.md$", _PM_PATH_FLAGS),
+    # hook が書く信頼アンカー（2026-09-05 追加 / /full-review iter0 C-3・C-4 /
+    # ユーザー承認済）。これらは「hook が書き、hook が読んで判断の根拠にする」
+    # ファイルであり、モデルが直接書けると判断の前提そのものを偽造できる。
+    # 実測（2026-09-05）: いずれも ('SE', 'default path') で無条件に書けた。
+    #   - .session-pm-edit-cache.json: 偽造すると以後の PM 承認が全て SE へ降格する
+    #     （判定は session_id とパス文字列の一致のみで偽造耐性が無く、session_id は
+    #     トランスクリプトのファイル名として `ls` だけで得られる）
+    #   - autonomous-state.json: active=false にすると G1 checker を一度も評価せずに
+    #     ループが「正常終了」した体で止まる
+    #   - gd-session-state.json: token/time bound による PM エスカレーションを回避できる
+    #   - lam-loop-state.json: ループ制御そのものを外側から書き換えられる
+    # 射程は Edit / Write 経路のみ（Bash 経由は `file_path` を持たず到達しない）。
+    # これは FR-9 / FR-3.4 deny や PLANNING 設定凍結と同じ既知の限界であり、
+    # ここで変えるものではない。
+    re.compile(r"^\.claude/\.session-pm-edit-cache\.json$", _PM_PATH_FLAGS),
+    re.compile(r"^\.claude/autonomous-state\.json$", _PM_PATH_FLAGS),
+    re.compile(r"^\.claude/gd-session-state\.json$", _PM_PATH_FLAGS),
+    re.compile(r"^\.claude/lam-loop-state\.json$", _PM_PATH_FLAGS),
 )
 
 
