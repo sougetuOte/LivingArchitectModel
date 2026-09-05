@@ -463,12 +463,22 @@ def test_parse_does_not_raise_on_unexpected_exception():
 
 
 def test_parse_with_real_git_log():
-    """実プロジェクトの git log を走査し、少なくとも 1 件以上の Wave を検出すること（UQ-4）。
+    """実プロジェクトの git を実際に呼び出す経路が、例外を出さず ok な結果を返すこと（UQ-4）。
 
-    実 git log のパターン（確認済み）:
-        feat(B-5): b4-dashboard Wave 2 パーサ層 + V-2 ビュー実装（W2-B5-T7〜T11・テスト 144/144 PASS）
-        feat(B-5): b4-dashboard Wave 1 骨格実装 (W1-B5-T1〜T5, テスト 47/47 PASS)
-        docs(B-5): B-4 Wave 1.5 波及不整合修正（W-1〜W-5）
+    Wave/Task 抽出ロジック自体の正しさ（regex が実データパターンを正しく捕捉するか）は、
+    実データパターンを模したモック git log を用いる上記の他テスト
+    （`test_parse_extracts_wave_number_from_commit_message` 等・`subprocess.run` を
+    patch 済み）が既に担保している。本テストが検査するのは
+    「実 git バイナリを呼ぶ経路が壊れていないこと」と「戻り値の構造が正しいこと」のみで、
+    実 git log の**内容**（直近 100 コミットに "Wave" 表記や Task ID が含まれるか）には
+    依存しない。
+
+    2026-09-05 是正: 旧アサーションは `len(waves) >= 1` のように実 git log の内容へ
+    直接依存していた。直近 100 コミットの window に "Wave" 表記も Task ID 由来の
+    Wave 導出（`W<N>-...`）も無い期に入ると、素の clone（本テストと同じ git 履歴を
+    持つ）でも実際に赤くなる（rule-002 が記録する D-1 期の実例と同型の脆さ）。
+    パーサの正しさは上記のモックテスト群で担保済みのため、本テストは
+    「実出力を投げても例外を出さず、ok な dict 構造を返す」までに検査対象を狭めた。
     """
     from dashboard.parsers.git_history import GitHistoryParser
 
@@ -480,18 +490,48 @@ def test_parse_with_real_git_log():
         pytest.skip(f"git log 実行失敗（CI 環境の可能性）: {result['error']}")
 
     assert result["data"] is not None
-    waves = result["data"]["completed_waves"]
-    tasks = result["data"]["completed_tasks"]
+    assert isinstance(result["data"]["completed_waves"], list)
+    assert isinstance(result["data"]["completed_tasks"], list)
 
-    # 実 git log には "Wave 1", "Wave 2", "Wave 1.5" 等が存在するはず
-    assert len(waves) >= 1, f"Wave が 1 件も検出されなかった（completed_waves={waves}）"
 
-    # 実 git log には "W2-B5-T7", "W1-B5-T1", "W-R3-S1-T1" 等の Task ID が存在するはず。
-    # ただし直近 100 コミット window に Task ID を明示するコミットが無い期は skip 許容
-    # (実運用: L3 導入セッション等では Wave 記述のみで Task ID 省略される傾向 / rule-002 候補)
-    if len(tasks) == 0:
-        pytest.skip(
-            f"実 git log 直近 100 コミットに Task ID が含まれない期 (Wave={waves} は検出)。"
-            f"parser 動作は Wave 検出で担保。"
+def test_parse_extracts_from_synthetic_git_repo(tmp_path):
+    """**実 git バイナリの出力**から Wave / Task を抽出できること（決定的・履歴非依存）。
+
+    2026-09-05 追加。`test_parse_with_real_git_log` を構造検査のみへ狭めた結果、
+    「`git log --oneline -100` の**実出力形式**に対して regex が働くか」を
+    検査するテストが 1 件も無くなった —— モックテスト群は `subprocess.run` を
+    patch するため、実出力の形式が変わっても緑のままになる。
+
+    そこで**内容が既知の git リポジトリをその場で組み立てて**同じ性質を検査する。
+    実バイナリを通しつつ、リポジトリの実履歴には一切依存しない。
+    """
+    import subprocess
+
+    from dashboard.parsers.git_history import GitHistoryParser
+
+    def _git(*args):
+        return subprocess.run(
+            ["git", "-c", "user.email=t@example.invalid", "-c", "user.name=t", *args],
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
-    assert len(tasks) >= 1, f"Task が 1 件も検出されなかった（completed_tasks={tasks}）"
+
+    if _git("init", "-q").returncode != 0:
+        pytest.skip("git バイナリが使えない環境")
+
+    (tmp_path / "a.txt").write_text("x", encoding="utf-8")
+    _git("add", "a.txt")
+    committed = _git(
+        "commit", "-q", "-m", "feat(B-5): b4-dashboard Wave 2 パーサ層実装 (W2-B5-T7)"
+    )
+    if committed.returncode != 0:
+        pytest.skip(f"git commit が失敗した環境: {committed.stderr}")
+
+    result = GitHistoryParser(project_root=tmp_path).parse()
+
+    assert result["ok"] is True, result["error"]
+    assert "2" in result["data"]["completed_waves"], result["data"]
+    assert "W2-B5-T7" in result["data"]["completed_tasks"], result["data"]

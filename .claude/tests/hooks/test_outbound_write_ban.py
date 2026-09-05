@@ -124,20 +124,60 @@ def test_ban_script_is_self_contained():
         "D:/work7/Fable-Alembic/knowledge/Fable行動規範.md",
         r"D:\work7\Fable-Alembic\README.md",
         "D:/work7/Fable-Alembic/",
-        "../Fable-Alembic/knowledge/x.md",
-        r"..\Fable-Alembic\knowledge\x.md",
     ],
 )
 def test_outbound_write_ban_denies_all_separator_forms(owb, file_path):
-    """`Fable-Alembic` 配下は表記形によらず deny となる。
+    """`Fable-Alembic` 配下は表記形（絶対パス）によらず deny となる。
 
     gabriel G-3(a): 素朴な前方一致ではセパレータ違いを取りこぼす。
     実装は `Path.resolve()` による正規化を経ること。
 
-    注: 相対形（`../Fable-Alembic/...`）はリポジトリの配置に依存して解決される。
-    本リポジトリが対象の兄弟位置にある構成でのみ deny になる。
+    絶対パス形は `resolve_target()` が `project_root` を参照しないため、
+    `_REPO_ROOT`（= 実行環境でのこのリポジトリの clone 位置）に依存しない。
+    相対形（`../Fable-Alembic/...`）の検査は配置依存になるため、
+    `test_outbound_write_ban_denies_relative_forms_via_synthetic_root` へ分離した
+    （2026-09-05: 素の clone を別ディレクトリに置くと相対形 2 件だけが赤くなる
+    ことを実測し、性質を保ったまま配置非依存な形へ書き換えた）。
     """
     reason = owb.check(file_path, _REPO_ROOT)
+    assert reason is not None, f"{file_path!r} が deny されない"
+    assert "Outbound Write Ban" in reason
+
+
+@pytest.mark.parametrize(
+    "file_path",
+    [
+        "../Fable-Alembic/knowledge/x.md",
+        r"..\Fable-Alembic\knowledge\x.md",
+    ],
+)
+def test_outbound_write_ban_denies_relative_forms_via_synthetic_root(owb, file_path):
+    """相対形（`../Fable-Alembic/...`）もセパレータ違いによらず deny となる。
+
+    gabriel G-3(a) の相対 traversal ケース。`resolve_target()` は非絶対パスを
+    `project_root / file_path` として解決するため、相対形の判定結果は
+    呼び出し時に渡す `project_root` に依存する。
+
+    旧テストはここで `_REPO_ROOT`（実行環境でのこのリポジトリの clone 位置）を
+    渡していたため、**本リポジトリが `D:/work7/Fable-Alembic` の兄弟位置に
+    clone された構成でしか deny にならなかった**（配置依存）。別ディレクトリへ
+    clone した素の clone では、同じ相対 traversal + セパレータ正規化という
+    検査対象の性質を検証できないまま赤くなる。
+
+    そこで `project_root` に実際の clone 位置ではなく、テスト内で組み立てた
+    合成値 `D:/work7/<任意名>` を渡す。`_BAN_ROOTS` は `D:/work7/Fable-Alembic`
+    に固定されている（本 hook 自体が作者環境限定 / SE 級）ため、この合成値は
+    実在しなくても `Path.resolve()` が `..` を lexical に畳み込み、
+    `D:/work7/Fable-Alembic/...` へ正規化される。すなわち本テストは
+    「相対パスの解決に `Path.resolve()` の正規化を経ていること」だけを検査し、
+    実行環境でのこのリポジトリの実配置には依存しない。
+    """
+    # 合成 root は `_BAN_ROOTS` から**導出する**（リテラルで持たない）。
+    # 「ban root の兄弟位置」という関係そのものが本テストの前提であり、
+    # リテラルで書くと `_BAN_ROOTS` の変更に追随せず関係が黙って崩れる
+    # （維持リストを持たない = 機構 #7 / #11 と同型の構え）。
+    synthetic_project_root = owb._BAN_ROOTS[0].parent / "_lam_outbound_ban_relative_form_probe"
+    reason = owb.check(file_path, synthetic_project_root)
     assert reason is not None, f"{file_path!r} が deny されない"
     assert "Outbound Write Ban" in reason
 
