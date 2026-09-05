@@ -29,6 +29,58 @@ E2E 準備段の P-1。`.claude/hooks/` の **7 件**を `plugins/lam-harness/ho
 **これ以降 `--plugin-dir` を使ってはならない**（project hooks と plugin hooks が両方走り、
 `tdd-patterns.log` へ復元不能な二重追記が起きる）。
 
+### 複製相を「手で 2 部 + 恒等性検査」から「正本 1 部 + 変換つき生成」へ解体する決定（2026-09-05 / **PM 級**）
+
+E2E が検出した欠陥 3 件の是正方針を、MAGI（AoT）2 巡 + gabriel 2 巡（**いずれも `refuted & critical`** /
+AC-W-C-7 到達）+ **HGA #33** で決めた。**決定の本体は D-1 の直し方ではなく、複製相そのものの解体である。**
+
+- **Step 0 前の ADR 走査が効いた** —— D-1 は新規の設計課題ではなく、**ADR-0010 I-4（Accepted）が
+  約 2 か月実装されていなかった遵守ギャップ**だった。目標形は既に決まっていた
+- **HGA #33 裁定 1: 生成への解体は正しいが、L1 が立てた導出の向きは逆だった** ——
+  **正本は `plugins/`、`.claude/` を prefix 除去で導出する**。一般規則は
+  **「正本は、第 2 段の後に生き残る側」**（→ ADR-0010 追補 2）。
+  **この向きなら `.claude/` のバイトは 1 つも変わらず、第 2 段の前倒しにもならない**
+- **HGA #33 裁定 2: 「宣言 < 実際」が 3 回続いた原因は様式でも対象でもなく、宣言の作られ方** ——
+  漏れたのは毎回「主対象に**機構で結合**しているファイル」であり、**書込集合は列挙ではなく閉包**。
+  閉包は機構の側にしかないので手書きは必ず落とす。**決定打 = gabriel の指摘を受けて再列挙した
+  Round 2 で、最も機構的な 2 ファイルが漏れた（注意の問題ではない）**
+- **HGA #33 裁定 3**: 「宣伝しない」の根拠を第 2 段から切り離し、**「清浄環境で未解決参照 0」という計数**に置く
+- **実測で重大度が上がった**: bare `gabriel` は `not found` で**止まる**が、**bare `test-runner` は
+  組み込みが黙って動く** —— 「動かない」ではなく「**別物が動く**」
+
+**却下した案**（再論しないため ADR に記録）: 出荷用と生産用のリポジトリ分割（ユーザー提案 /
+**LAM 自身の実測が反証** —— `lam-harness` 1.0.0 は別リポジトリで **skills 9/14 が 2 か月 drift して無検出**）/
+project 側 `name:` へのコロン埋め込み / bare・namespaced の両建て / 間接記述への畳み込み。
+
+詳細: `docs/artifacts/2026-09-05-magi-e2e-defect-remediation.md` / `docs/adr/0010-...` 追補 2
+
+### 第 1 段 E2E 合格 —— plugin 配布の輸送を第三者環境で実証し、欠陥 3 件を検出した（2026-09-05）
+
+`bfe1aa1` の clone を別名 marketplace（`sougetuote-lam`）で登録し、使い捨てサンドボックスへ
+`--scope project` で install して 15 ステップを完走した。ステップ 7〜12 は `claude -p`（headless）で
+1 ステップ 1 セッションとして実行。**E1〜E6 の全証人が pass、陰性対照で E1 / E4 / E5 / E6 が赤転した。**
+
+- **E2 は managed 36 件をテンプレートとバイト比較**して不一致 0（件数一致ではなく内容一致で確認）
+- **E4** は `/lam-harness:building` が解決し、**init が敷いた `phase-rules.md` と `02_DEVELOPMENT_FLOW.md` を読んで
+  規律どおり切替を拒否した** —— skill と規範層が利用者環境で噛み合っていることの実証
+- **陰性対照が最も鋭かった** —— disable 後に**同じ Write を成功させても** `permission.log` は 27 行のまま、
+  `doc-sync-flag` も不変。**同一操作で正反対の痕跡**
+
+**検出した欠陥 3 件**:
+
+1. **bare `subagent_type` が解決しない**（`lam-harness:gabriel` のみ存在 / `gabriel` は無い）。
+   配布 skills 内の agent 名の言及は **97 箇所 / 12 名**あり、`magi/SKILL.md` の `subagent_type=gabriel` は
+   実行指示である。`goal-driven-l2-foreman.md` の frontmatter `tools: Agent(goal-driven-l3-executor)` も bare
+2. **`init/SKILL.md` の `${CLAUDE_PLUGIN_ROOT:?…}` ガードが必ず失敗する**（Bash ツール環境に当該変数が export されない）。
+   今回は実行セッションが補って続行したが、**補わない利用者では init が冒頭で止まる**
+3. **E2 の証人の書き方が誤っていた** —— `.claude/rules` は 16（managed 14 ＋ starter 2）
+
+**合格の限界も記録した**: E2 / E3 は陰性対照で赤転しない（init の産物が残るため）/
+**PM 級 Edit は headless では deny されるため `.session-pm-edit-cache.json` を証人にできない**
+（＝第三者環境でも PM ゲートが効いている証拠でもある）→ `permission.log` の PM 分類行と `doc-sync-flag` に差し替えた。
+
+詳細: `docs/artifacts/2026-09-05-magi-migration-sequence.md` §(D)
+
 ### P-2 —— 素の clone で赤くなるテストを、配置と履歴に依存しない形へ書き換えた（2026-09-05）
 
 HEAD を一時ディレクトリへ clone して `pytest` を回すと赤になるテストを是正した（L2 委譲 + L1 検収）。
