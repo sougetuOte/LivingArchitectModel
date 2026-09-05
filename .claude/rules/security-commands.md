@@ -43,13 +43,19 @@ allow に含まれず deny にも含まれない操作は **ask** (ユーザー�
 | テスト | `pytest`, `python -m pytest`, `python3 -m pytest`, `npm test`, `go test` | — | — |
 | 静的解析・整形 (PG 級 auto allow) | `ruff check`, `ruff check --fix`, `ruff format`, `python -m ruff check`, `npx prettier`, `npx eslint --fix` | — | — |
 | シークレット走査 | `gitleaks detect`, `gitleaks protect`, `gitleaks version` | — | — |
-| LAM スクリプト実行 | `bash .claude/scripts/py_invoke.sh` (Python 呼び出しの単一 entry point / D4 の allowlist prefix 1 本) | — | — |
+| LAM スクリプト実行 | `bash .claude/scripts/py_invoke.sh` (Python 呼び出しの単一 entry point / D4 の allowlist prefix 1 本)。**`-c` を持たない呼び出し**（スクリプトパス / `-m pytest` 等）**および破壊系トークンを含まない `-c`** は auto allow | **破壊系トークンを含む `-c`**（`subprocess` / `os.system` / `shutil.rmtree` / `unlink` / `chmod` / `rename` / `exec(` / `eval(` / `__import__` 等 / 下記注記） | — |
 | パッケージ情報 | `npm list`, `pip list` | — | — |
 | プロセス情報 | `ps` | — | — |
 | ネットワーク | — | `curl <既知 URL>`, `wget`, `ssh` | `curl \| bash`, `curl \| sh`, `wget \| bash` (外部通信 + 実行の複合) |
 | 実行 | — | `python` (全般), `npm start`, `npm run`, `make` | — |
 | システム変更 | — | — | `apt`, `yum`, `brew`, `systemctl`, `service`, `reboot`, `shutdown` (システム設定の変更) |
 
+> **`py_invoke.sh -c` 行の注記（2026-09-05 / `/full-review` iter0 C-1 / ユーザー承認済）**: この ask 判定は **Layer 2（`pre-tool-use.py`）にのみ存在し、`settings.json` には無い**（したがって下記の allow 29 / ask 17 / deny 24 の計数は変わらない）。理由は 2 つある。**(1)** allow の `Bash(bash .claude/scripts/py_invoke.sh *)` は末尾ワイルドカードで**任意の引数**にマッチするため、Python 経由で `rm` / `mv` / `chmod` / `git push --force` 相当を全て代替でき、**deny リストがこの経路には一切当たらなかった**（実測: 監査セッション自身が承認なしに任意 Python を 6 回実行した）。**(2)** `-c` は `CLAUDE.md` の Python 呼び出し規約が前提としており `/full-review`・`/ship` が常用するため、**一律 ask にすると承認ダイアログが常時鳴り「常時鳴る計器は殺される」型に直行する**。よってペイロードを見て昇格する形にした —— これは同表の AUDITING PG コマンドに対する既存判定（shell メタ文字 + ブラックリスト引数）と**同じ形**である。
+>
+> **D1（deny 単独で守らない）への対応**: 上表の allow 欄に対を明記した。**射程の限界**: `-m` 経路と一般のファイル書込は対象外（後者は `Bash("cat > ...")` と同じ「Bash 経路はパス判定に到達しない」既知の限界で、本件とは別の穴）。難読化（`getattr(__import__('os'),'system')`）は `__import__` の検出で一部拾うが完全ではない。検査: `.claude/tests/hooks/test_py_invoke_payload_gate.py`。
+>
+> **前提の裏取り**: 「allow マッチ時に hook がスキップされる」なら本判定は空振りするが、**成立しない**ことを確認済み —— 上流で「allow ルールで事前承認されたものには呼ばれない」と明記されているのは `CanUseTool`（SDK の権限コールバック）であって PreToolUse hook ではなく、実測でも allow 規則へ厳密一致するコマンドの hook 記録が `permission.log` に **418 件**ある。
+>
 > **本表は `.claude/settings.json` の実測（allow 29 / ask 17 / deny 24）と一致する**（2026-08-26 突合 / `docs/artifacts/2026-08-22-enumeration-drift-sweep.md` §2）。片方だけを更新しないこと —— **表と実装のどちらが正しいかは、表からは判定できない**（同掃き §6 共通の教訓）。
 
 上記に含まれないコマンドは **高リスク扱い**（ask / ユーザー判断必須）。

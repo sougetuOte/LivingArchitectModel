@@ -64,7 +64,15 @@ _ADDITIONAL_CONTEXT_LIMIT = 9500
 
 # AUDITING フェーズの PG 許可コマンドのプレフィックス
 # 注: settings.json の allow リストにも同コマンドが登録されている。
-# Claude Code は allow マッチ時に hook をスキップする場合があるため、
+#
+# **訂正（2026-09-05 / /full-review iter0 C-1）**: 旧版はここに
+# 「Claude Code は allow マッチ時に hook をスキップする場合がある」と書いていたが、
+# **裏付けが取れなかった**。上流ドキュメントで「allow ルールで事前承認されたものには
+# 呼ばれない」と明記されているのは `CanUseTool`（SDK の権限コールバック）であって
+# PreToolUse hook ではない。hook 側は「exit 0 で出力なし = 通常の権限フローに委ねる」=
+# 権限評価より前に走る構造である。実測でも `.claude/logs/permission.log` に、allow 規則
+# `Bash(bash .claude/scripts/py_invoke.sh *)` へ厳密一致するコマンドの記録が 418 件あり、
+# **毎回発火している**。したがって hook 側の判定は空振りしない。
 # このブラックリストチェックは「二重防御」として機能する。
 # allow 側の粗いワイルドカード（例: "Bash(ruff check --fix *)"）を
 # hook 側で精密にフィルタする設計。実害が確認された場合は
@@ -89,6 +97,63 @@ _PG_BLACKLISTED_ARGS = (
     "--ignore-path",
     "--ext",
 )
+
+# ---------------------------------------------------------------------------
+# py_invoke.sh の `-c` ペイロード判定（2026-09-05 / /full-review iter0 C-1）
+#
+# settings.json の allow `Bash(bash .claude/scripts/py_invoke.sh *)` は末尾ワイルドカードで
+# **任意の引数**にマッチする。Python は subprocess / os.system / shutil で rm / mv / chmod /
+# git push --force 相当を全て代替できるため、settings.json の deny リストは
+# **この経路からは一切当たらなかった**。実測: 監査セッション自身が承認なしに 6 回実行した。
+#
+# `-c` を一律 PM にすると /full-review・/ship など LAM 自身の動線で承認ダイアログが常時鳴り、
+# 「常時鳴る計器は殺される」型に直行する。よってペイロードを見て昇格する ——
+# これは上の AUDITING PG コマンド判定（shell メタ文字 + ブラックリスト引数）と同じ形である。
+#
+# ADR-0008 D1（deny 単独で守らない）への対応: allow 対は「**該当トークンを含まない `-c` は
+# SE のまま自動許可**」であり、security-commands.md §コマンド許可マトリクスに対で記載した。
+#
+# 射程の限界（意図的）: `-m` 経路は対象外（任意コードには結局ファイルが要る）。
+# 一般のファイル書込も対象外 —— `-c` から PM 級パスへ書けるのは事実だが、それは
+# `Bash("cat > ...")` と同じ「Bash 経路はパス判定に到達しない」既知の限界であり別の穴。
+# 検査: .claude/tests/hooks/test_py_invoke_payload_gate.py
+# ---------------------------------------------------------------------------
+_PY_INVOKE_MARKER = "py_invoke.sh"
+#: `-c` を単独トークンとして持つか（`--check` 等と取り違えないため）。
+_PY_INVOKE_DASH_C_PAT = re.compile(r"(?:^|\s)-c(?:\s|$)")
+#: deny リスト相当の操作を Python で行う形。理由文字列に一致名を載せてログから追えるようにする。
+_PY_INVOKE_RISKY_PATTERNS = (
+    (re.compile(r"\bsubprocess\b"), "subprocess"),
+    (re.compile(r"\bos\s*\.\s*(?:system|popen|exec\w*|spawn\w*|fork)\b"), "os process spawn"),
+    (re.compile(r"\bshutil\s*\.\s*(?:rmtree|move|copytree|chown)\b"), "shutil"),
+    (
+        re.compile(r"\bos\s*\.\s*(?:remove|unlink|rmdir|removedirs|rename|replace|chmod|chown|truncate)\b"),
+        "os filesystem mutation",
+    ),
+    (re.compile(r"\.\s*unlink\s*\("), "unlink"),
+    (re.compile(r"\.\s*chmod\s*\("), "chmod"),
+    (re.compile(r"\.\s*rmdir\s*\("), "rmdir"),
+    (re.compile(r"\bexec\s*\("), "exec()"),
+    (re.compile(r"\beval\s*\("), "eval()"),
+    (re.compile(r"__import__"), "__import__"),
+    (re.compile(r"\bpty\s*\."), "pty"),
+)
+
+
+def _determine_py_invoke_level(command: str) -> "tuple[str, str] | None":
+    """py_invoke.sh 呼び出しなら等級を返す。対象外なら None。
+
+    `-c` を持たない呼び出し（スクリプトパス / `-m pytest` 等）は判定に関与しない
+    （None を返し、既定の SE 判定へ落とす = D1 の allow 対）。
+    """
+    if _PY_INVOKE_MARKER not in command:
+        return None
+    if not _PY_INVOKE_DASH_C_PAT.search(command):
+        return None
+    for pattern, label in _PY_INVOKE_RISKY_PATTERNS:
+        if pattern.search(command):
+            return "PM", f"py_invoke -c payload contains {label}"
+    return None
 
 # R1-032 + R1-052: PG コマンドで禁止する shell メタ文字（コマンド連結・置換演算子）。
 # `ruff format x.py; rm -rf /tmp` のような合成が settings.json Layer 1 allow の
@@ -295,6 +360,12 @@ def _determine_by_command(
     phase_file: Path,
 ) -> tuple[str, str]:
     """コマンド文字列から権限等級を判定する（コマンドベース判定・Bash ツール等）。"""
+    # py_invoke.sh の `-c` ペイロード判定（iter0 C-1）。フェーズ非依存で最初に見る ——
+    # deny リストの迂回は AUDITING に限らず成立するため。
+    py_invoke_level = _determine_py_invoke_level(command)
+    if py_invoke_level is not None:
+        return py_invoke_level
+
     # AUDITING フェーズの PG コマンド特別処理
     if _read_current_phase(phase_file) == "AUDITING":
         for pg_prefix in _AUDITING_PG_COMMANDS:
