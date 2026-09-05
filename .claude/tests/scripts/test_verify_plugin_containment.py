@@ -22,6 +22,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import verify_plugin_containment as vpc  # noqa: E402
 from verify_plugin_containment import (  # noqa: E402
+    check_hook_declaration,
     check_managed_identity,
     check_mirror_identity,
     check_reference_closure,
@@ -313,4 +314,98 @@ def test_module_exposes_scope_constants():
     # 2026-09-05（複製相の恒等性検査 T3 追加）: skills / agents は開発側・plugin 側
     # 双方に実体を持つ複製相であり、_MANAGED_AREAS（一方向テンプレート）とは
     # 別定数として管理する。本 assert は射程変更を diff に出すトリップワイヤ。
-    assert set(vpc._MIRROR_AREAS) == {"skills", "agents"}
+    # 2026-09-05（P-1）: `hooks` を追加。hooks も複製相に入った。
+    assert set(vpc._MIRROR_AREAS) == {"skills", "agents", "hooks"}
+
+
+# --- T4 hook 宣言の実体（陰性対照）----------------------------------------
+
+
+def _hooks_repo(tmp_path: Path, *, config: str, targets: tuple = ()) -> Path:
+    """plugin の hooks.json と、それが名指しする実体を持つ最小の偽リポジトリを作る。"""
+    plugin = tmp_path / "plugins" / "lam-harness"
+    (plugin / "hooks").mkdir(parents=True)
+    (plugin / "hooks" / "hooks.json").write_text(config, encoding="utf-8")
+    for rel in targets:
+        p = plugin / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text("# stub\n", encoding="utf-8")
+    return tmp_path
+
+
+_WELL_FORMED = """{
+  "hooks": {
+    "PreToolUse": [
+      {"hooks": [{"type": "command",
+        "command": "bash \\"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.py\\""}]}
+    ]
+  }
+}
+"""
+
+
+def test_t4_accepts_well_formed_declaration(tmp_path):
+    repo = _hooks_repo(tmp_path, config=_WELL_FORMED, targets=("hooks/pre-tool-use.py",))
+    assert check_hook_declaration(repo) == []
+
+
+def test_t4_detects_missing_target(tmp_path):
+    """宣言された実体が配布されていなければ落ちる（**そのイベントだけが黙って発火しない**形）。"""
+    repo = _hooks_repo(tmp_path, config=_WELL_FORMED)  # 実体を置かない
+    violations = check_hook_declaration(repo)
+    assert len(violations) == 1
+    assert violations[0].check == "T4"
+    assert "PreToolUse" in violations[0].detail
+    assert "hooks/pre-tool-use.py" in violations[0].detail
+
+
+def test_t4_detects_broken_json(tmp_path):
+    repo = _hooks_repo(tmp_path, config='{"hooks": {')
+    violations = check_hook_declaration(repo)
+    assert len(violations) == 1
+    assert "JSON として読めない" in violations[0].detail
+
+
+def test_t4_detects_missing_hooks_object(tmp_path):
+    """`hooks` キーが無ければ 1 件も発火しない。**構文は正しいので黙って無音になる。**"""
+    repo = _hooks_repo(tmp_path, config='{"description": "no hooks here"}')
+    violations = check_hook_declaration(repo)
+    assert len(violations) == 1
+    assert "hooks" in violations[0].detail
+
+
+def test_t4_detects_reference_outside_plugin(tmp_path):
+    """`${CLAUDE_PLUGIN_ROOT}` を使わない宣言は install 先で解決しないため落とす。"""
+    config = (
+        '{"hooks": {"Stop": [{"hooks": [{"type": "command",'
+        ' "command": "bash \\"$CLAUDE_PROJECT_DIR/.claude/hooks/lam-stop-hook.py\\""}]}]}}'
+    )
+    repo = _hooks_repo(tmp_path, config=config)
+    violations = check_hook_declaration(repo)
+    assert len(violations) == 1
+    assert "CLAUDE_PLUGIN_ROOT" in violations[0].detail
+
+
+def test_t4_check_is_not_vacuous():
+    """実リポジトリの hooks.json が実際に複数イベントを宣言していることを要求する。
+
+    0 件なら「常に緑」になる（機構 #10 / 他の not_vacuous と同じ構え）。
+    """
+    cfg = REPO_ROOT / "plugins" / "lam-harness" / "hooks" / "hooks.json"
+    assert cfg.is_file(), "plugin 側 hooks.json が存在しない = T4 が空回りしている"
+    import json
+
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    assert len(data["hooks"]) >= 5, "宣言イベントが少なすぎる（settings.json 側は 5 イベント）"
+
+
+def test_hooks_mirror_is_not_vacuous():
+    """hooks の複製相が実際に比較されていることを要求する（片側のみなら黙って 0 件になる）。"""
+    matched = [
+        (p, d)
+        for p, d in vpc._iter_mirror_matches(REPO_ROOT)
+        if "hooks" in p.parts
+    ]
+    assert len(matched) >= 7, (
+        f"hooks の一致エントリが少なすぎる（{len(matched)} 件）= 複製されていない"
+    )

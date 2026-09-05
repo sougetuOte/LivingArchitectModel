@@ -1,4 +1,4 @@
-"""verify_plugin_containment.py — plugin ディレクトリの 3 つの封じ込めを検査する。
+"""verify_plugin_containment.py — plugin ディレクトリの 4 つの封じ込めを検査する。
 
 R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13.5-B / HGA #29）。
 
@@ -10,7 +10,7 @@ R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13
 
 本スクリプトは K4 を原則から**テスト**に変える。
 
-## 3 つの検査
+## 4 つの検査
 
 - **T1 包含（機構 #11）**: `plugins/<plugin>/templates/managed/` 配下の各ファイルは、
   開発側の対応物と**内容が一致する**こと。検査対象は「templates ディレクトリに実在するファイル」から
@@ -26,7 +26,15 @@ R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13
   （例: 開発側のみの `build-dashboard`（非配布）/ `clause-gate`（LAM 固有）、
   plugin 側のみの `init`（plugin 専用））。誤って片側のみの存在を違反として報告すると、
   意図的な非対称を毎回赤にする「常時落ちる計器」になり検査自体が殺されるため、
-  この除外は本検査の核心である。
+  この除外は本検査の核心である。**ただしこの除外は「配布集合そのものが正しいか」を
+  検査できないことを意味する**（新しい skill を複製し忘れても緑のまま /
+  `docs/artifacts/2026-09-05-distribution-scope-review.md` §1-a）。
+- **T4 hook 宣言の実体検査（2026-09-05 追加 / P-1）**: `plugins/<plugin>/hooks/*.json` が
+  `${CLAUDE_PLUGIN_ROOT}/…` の形で名指しする実体が、plugin 内に**実在する**こと。
+  hook の輸送は **hooks.json のエントリ単位**で成立するため、宣言と実体のずれは
+  「**そのイベントだけが黙って発火しない**」という形で現れる。E2E の証人は 5 イベント中 2 本しか
+  無い（`2026-09-05-magi-migration-sequence.md` §(A) E6）ため、残り 3 本を守るのは本検査である。
+  検査対象は hooks.json の実在から導出する（維持リスト不要 / T1・T3 と同型）。
 
 ## T2 の射程（v1 / 意図的に狭い）
 
@@ -50,6 +58,7 @@ exit 0 = 違反なし / exit 1 = 違反あり（内容を stdout に出す）。
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -86,7 +95,13 @@ _NON_DISTRIBUTED_REFS = (re.compile(r"docs/private/"),)
 _MIRROR_AREAS = {
     "skills": Path(".claude") / "skills",
     "agents": Path(".claude") / "agents",
+    # 2026-09-05 追加（P-1）: hooks は複製相に入った。開発側の analyzers / checkers /
+    # tests は hook の import 閉包に含まれない（実測）ため配布せず、片側のみとして無視される。
+    "hooks": Path(".claude") / "hooks",
 }
+
+# hooks.json 内で plugin 実体を名指しする形（上流の公式変数 / code.claude.com/docs/en/hooks）
+_PLUGIN_ROOT_REF_RE = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([\w./-]+)")
 
 _TEXT_SUFFIXES = {".md", ".json", ".py", ".sh", ".txt", ".yaml", ".yml", ".html"}
 
@@ -251,11 +266,79 @@ def check_mirror_identity(repo_root: Path) -> List[Violation]:
     return violations
 
 
+def _iter_hook_commands(data: dict):
+    """hooks.json の (イベント名, command 文字列) を列挙する。
+
+    構造は上流の settings.json `hooks` と同一（イベント → グループ配列 → `hooks` 配列）。
+    壊れた形は握りつぶさず、呼び出し側が違反として報告できるよう空を返すに留める。
+    """
+    events = data.get("hooks")
+    if not isinstance(events, dict):
+        return
+    for event, groups in events.items():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            if not isinstance(group, dict):
+                continue
+            for entry in group.get("hooks") or []:
+                if isinstance(entry, dict) and isinstance(entry.get("command"), str):
+                    yield event, entry["command"]
+
+
+def check_hook_declaration(repo_root: Path) -> List[Violation]:
+    """T4: hooks.json が名指しする実体が plugin 内に実在することを検査する。
+
+    検査対象は hooks.json の実在から導出する（維持リストを持たない / T1・T3 と同型）。
+    """
+    violations: List[Violation] = []
+    for plugin_dir in sorted((repo_root / "plugins").glob("*/")):
+        hooks_dir = plugin_dir / "hooks"
+        if not hooks_dir.is_dir():
+            continue
+        for cfg in sorted(hooks_dir.glob("*.json")):
+            shown = str(cfg.relative_to(repo_root)).replace("\\", "/")
+            try:
+                data = json.loads(_read(cfg))
+            except json.JSONDecodeError as exc:
+                violations.append(Violation("T4", shown, f"JSON として読めない: {exc}"))
+                continue
+            if not isinstance(data, dict) or not isinstance(data.get("hooks"), dict):
+                violations.append(
+                    Violation("T4", shown, "`hooks` オブジェクトを持たない（1 件も発火しない）")
+                )
+                continue
+            declared = 0
+            for event, command in _iter_hook_commands(data):
+                for m in _PLUGIN_ROOT_REF_RE.finditer(command):
+                    declared += 1
+                    target = plugin_dir / m.group(1)
+                    if not target.is_file():
+                        violations.append(
+                            Violation(
+                                "T4",
+                                shown,
+                                f"{event} が名指しする実体が plugin 内に無い: {m.group(1)}",
+                            )
+                        )
+            if declared == 0:
+                violations.append(
+                    Violation(
+                        "T4",
+                        shown,
+                        "${CLAUDE_PLUGIN_ROOT} 参照が 1 件も無い"
+                        "（plugin 外を指していれば install 先で解決しない）",
+                    )
+                )
+    return violations
+
+
 def verify(repo_root: Path) -> List[Violation]:
     return (
         check_managed_identity(repo_root)
         + check_reference_closure(repo_root)
         + check_mirror_identity(repo_root)
+        + check_hook_declaration(repo_root)
     )
 
 
@@ -272,10 +355,20 @@ def main() -> int:
     print(f"managed テンプレート: {managed} 件 を検査した")
 
     mirror_matched = sum(1 for _ in _iter_mirror_matches(repo_root))
-    print(f"複製相（skills/agents）: {mirror_matched} 件の一致エントリを検査した")
+    print(f"複製相（skills/agents/hooks）: {mirror_matched} 件の一致エントリを検査した")
+
+    hook_cfgs = sum(
+        1
+        for plugin_dir in (repo_root / "plugins").glob("*/")
+        for _ in (plugin_dir / "hooks").glob("*.json")
+    )
+    print(f"hook 宣言: {hook_cfgs} 件の hooks.json を検査した")
 
     if not violations:
-        print("OK  plugin ディレクトリは包含（T1）・閉包（T2）・複製相の恒等性（T3）を満たす")
+        print(
+            "OK  plugin ディレクトリは包含（T1）・閉包（T2）・"
+            "複製相の恒等性（T3）・hook 宣言の実体（T4）を満たす"
+        )
         return 0
 
     print(f"NG  違反 {len(violations)} 件")
