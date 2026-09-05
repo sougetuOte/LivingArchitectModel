@@ -677,3 +677,93 @@ def test_cli_all_wave_includes_mode_enum_key():
     assert result.returncode == 0
     payload = json.loads(result.stdout)
     assert "mode-enum" in payload["drifts_by_wave"]
+
+
+# ---- パターン 5: gabriel-metrics anchor カバレッジ (2026-09-05 / iter0 C-5) ----
+#
+# パターン 4 が見ていたのは「書かれた行が enum に従うか」だけで、「書かれなかった」は
+# 検出できなかった。実測ではログが 2026-07-18 で止まったまま 5 回の probe が記録されず、
+# それでも検査は緑だった（空集合は常にスキーマに適合する）。
+
+
+def _write_metrics_log(tmp_path, lines: str):
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir(parents=True, exist_ok=True)
+    (claude_dir / "gabriel-metrics.log").write_text(lines, encoding="utf-8")
+
+
+def _write_magi_record(tmp_path, name: str, body: str):
+    artifacts = tmp_path / "docs" / "artifacts"
+    artifacts.mkdir(parents=True, exist_ok=True)
+    (artifacts / name).write_text(body, encoding="utf-8")
+
+
+def test_verify_anchor_coverage_skips_when_log_absent(monkeypatch, tmp_path):
+    """D3: ログ不在時は skip し drift ゼロ（clone 直後の利用者環境が常にこれ）."""
+    _write_magi_record(tmp_path, "2026-09-10-magi-x.md", "- verdict: **refuted**\n")
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    assert vr.verify_anchor_coverage() == []
+
+
+def test_verify_anchor_coverage_detects_unlogged_probe(monkeypatch, tmp_path):
+    """陰性対照（Red 実証）: probe 記録があるのにログ行が無ければ赤くなる.
+
+    これが赤くならない検査は、まさに今回見つかった「緑のまま 7 週間死んでいた」
+    状態を再生産する。
+    """
+    _write_metrics_log(
+        tmp_path,
+        '{"timestamp":"2026-09-10T00:00:00+09:00","mode":"aot",'
+        '"anchor":"docs/artifacts/2026-09-10-magi-other.md"}\n',
+    )
+    _write_magi_record(
+        tmp_path,
+        "2026-09-10-magi-x.md",
+        "# MAGI\n\n- verdict: **refuted** / severity: **critical**\n",
+    )
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+
+    result = vr.verify_anchor_coverage()
+    matches = [d for d in result if d["pattern"] == "gabriel-metrics-anchor-coverage"]
+    assert len(matches) == 1, f"未記録の probe が検出されていません: {result}"
+    assert matches[0]["source"] == "docs/artifacts/2026-09-10-magi-x.md"
+
+
+def test_verify_anchor_coverage_passes_when_anchored(monkeypatch, tmp_path):
+    """正例: 記録が anchor で指されていれば drift ゼロ."""
+    _write_metrics_log(
+        tmp_path,
+        '{"timestamp":"2026-09-10T00:00:00+09:00","mode":"aot",'
+        '"anchor":"docs/artifacts/2026-09-10-magi-x.md"}\n',
+    )
+    _write_magi_record(
+        tmp_path,
+        "2026-09-10-magi-x.md",
+        "# MAGI\n\n- verdict: **confirmed** / severity: **info**\n",
+    )
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    assert vr.verify_anchor_coverage() == []
+
+
+def test_verify_anchor_coverage_ignores_records_before_baseline(monkeypatch, tmp_path):
+    """基準日以前の記録は対象外（遡ると計器データの捏造が要るため）."""
+    _write_metrics_log(tmp_path, "")
+    _write_magi_record(
+        tmp_path,
+        "2026-07-05-magi-r1-planning.md",
+        "- verdict: **refuted** / severity: **warning**\n",
+    )
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    assert vr.verify_anchor_coverage() == []
+
+
+def test_verify_anchor_coverage_ignores_records_without_verdict(monkeypatch, tmp_path):
+    """陰性対照: probe を記録していない文書は対象にしない（誤爆防止）."""
+    _write_metrics_log(tmp_path, "")
+    _write_magi_record(
+        tmp_path,
+        "2026-09-10-retro.md",
+        "# retro\n\n本文に verdict という語が散文で出てくるだけの文書。\n",
+    )
+    monkeypatch.setattr(vr, "REPO_ROOT", tmp_path)
+    assert vr.verify_anchor_coverage() == []

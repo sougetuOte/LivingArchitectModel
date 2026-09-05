@@ -131,6 +131,21 @@ CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作�
 
 ### Step 4.1: verdict 別分岐処理
 
+> **分岐する前に、probe 1 回につき 1 行を `.claude/gabriel-metrics.log` に追記すること（MUST）**。
+> **追記してから分岐する** —— 分岐の後に回すと、エスカレーションや再 MAGI に注意が移って必ず落ちる。
+>
+> 実測（2026-09-05）: この工程が**本 SKILL.md のどこにも書かれていなかった**ため、ログは
+> **4 行 / 最終更新 2026-07-18** で止まり、以後 5 回走った probe が 1 行も記録されなかった。
+> それでも `verify_reference_resolution.py` の検査は**緑を返し続けた**（古い 4 行が enum 準拠のため）。
+> **空集合は常にスキーマに適合する。** 同じ位置づけの `hga-summon-log.md` が #33 まで生きているのは、
+> `hga-summoning.md` が「全召喚を追記すること（MUST）」を明記し、召喚手順から参照しているためである。
+> 本注記はその書き方を写したものである。
+>
+> 書式は 12 フィールドの JSONL（`docs/artifacts/gabriel-metrics-environment-2026-07-05.md` が正本）。
+> **`anchor` には MAGI 記録ファイルのパスを入れる** —— これが記録とログを突き合わせる鍵になる
+> （検査: `verify_reference_resolution.py` の `gabriel-metrics-anchor-coverage`）。
+> `gabriel_output` の 6 フィールドは `magi_dispatch.validate_gabriel_output()` の契約に従う。
+
 gabriel の返り値に応じて以下のいずれかの経路を辿る。**優先順位は `recommended_action=abort` > `severity=critical` > `warning` > `info` > `confirmed` > `inconclusive`**。
 
 | gabriel 出力 | 挙動 | 参照 |

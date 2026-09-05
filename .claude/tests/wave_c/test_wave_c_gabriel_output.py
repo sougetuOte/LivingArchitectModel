@@ -16,109 +16,26 @@ fixtures/*.json は「gabriel 出力を模した stub データ」であり、
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
-import jsonschema
 import pytest
 
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+# 契約の正本は本番モジュール側にある（2026-09-05 移設 / /full-review iter0 C-5）。
+# 以前はこのテストファイル内に転記した定義を、同じファイル内の fixture に対して
+# 通しているだけで、本番から import される経路が 0 件だった。
+from magi_dispatch import (  # noqa: E402
+    GABRIEL_OUTPUT_SCHEMA,
+    CrossFieldConstraintError,
+    validate_gabriel_output,
+)
+
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
-
-# design.md §3 の JSON スキーマ完全定義（そのまま転記）。
-# additionalProperties: false により、未定義フィールドの混入も検出する。
-GABRIEL_OUTPUT_SCHEMA = {
-    "$schema": "http://json-schema.org/draft-07/schema#",
-    "title": "GabrielOutput",
-    "type": "object",
-    "required": [
-        "verdict",
-        "severity",
-        "affected_atoms",
-        "reasoning",
-        "recommended_action",
-        "confidence",
-    ],
-    "additionalProperties": False,
-    "properties": {
-        "verdict": {
-            "type": "string",
-            "enum": ["confirmed", "refuted", "inconclusive"],
-        },
-        "severity": {
-            "type": "string",
-            "enum": ["critical", "warning", "info"],
-        },
-        "affected_atoms": {
-            "type": "array",
-            "items": {"type": "string"},
-        },
-        "reasoning": {
-            "type": "string",
-            "minLength": 200,
-            "maxLength": 1000,
-        },
-        "recommended_action": {
-            "type": "string",
-            "enum": ["proceed", "re-magi", "abort"],
-        },
-        "confidence": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 1.0,
-        },
-    },
-}
-
-
-class CrossFieldConstraintError(ValueError):
-    """クロスフィールド制約違反を表す例外（JSON schema だけでは表現できない制約）。"""
-
-
-def validate_gabriel_output(data: dict) -> None:
-    """gabriel 出力の完全な契約検証を行う。
-
-    1. JSON schema（draft-07）検証（design.md §3）
-    2. クロスフィールド制約検証（FR-W-C-6 / design.md §3 フィールド制約テーブル）
-
-    いずれかに違反する場合は例外を送出する。
-    Silent Failure を避けるため、違反時は必ず例外を投げる（None 等での握りつぶし禁止）。
-    """
-    jsonschema.validate(instance=data, schema=GABRIEL_OUTPUT_SCHEMA)
-    _validate_cross_field_constraints(data)
-
-
-def _validate_cross_field_constraints(data: dict) -> None:
-    """FR-W-C-6 / design.md §3 のクロスフィールド制約を検証する。"""
-    verdict = data["verdict"]
-    severity = data["severity"]
-    affected_atoms = data["affected_atoms"]
-    recommended_action = data["recommended_action"]
-    confidence = data["confidence"]
-
-    # AC-W-C-8: confidence < 0.3 の場合、verdict は inconclusive でなければならない
-    if confidence < 0.3 and verdict != "inconclusive":
-        raise CrossFieldConstraintError(
-            f"confidence={confidence} (<0.3) requires verdict=inconclusive, "
-            f"got verdict={verdict!r}"
-        )
-
-    # AC-W-C-9: affected_atoms=[] の場合、verdict は refuted であってはならない
-    if verdict == "refuted" and not affected_atoms:
-        raise CrossFieldConstraintError(
-            "verdict=refuted requires non-empty affected_atoms, got []"
-        )
-
-    # design.md §3: verdict=confirmed または inconclusive の場合、severity は info
-    if verdict in ("confirmed", "inconclusive") and severity != "info":
-        raise CrossFieldConstraintError(
-            f"verdict={verdict!r} requires severity=info, got severity={severity!r}"
-        )
-
-    # design.md §3: severity=critical の場合、recommended_action は re-magi または abort
-    if severity == "critical" and recommended_action not in ("re-magi", "abort"):
-        raise CrossFieldConstraintError(
-            "severity=critical requires recommended_action in "
-            f"{{'re-magi', 'abort'}}, got {recommended_action!r}"
-        )
+_SKILL_MD = Path(__file__).resolve().parent.parent.parent / "skills" / "magi" / "SKILL.md"
 
 
 def _load_fixture(filename: str) -> dict:
@@ -231,3 +148,29 @@ def test_timeout_fallback_passes():
 def test_all_fixtures_reasoning_length_within_bounds(filename):
     data = _load_fixture(filename)
     assert 200 <= len(data["reasoning"]) <= 1000
+
+
+# ---------------------------------------------------------------------------
+# 追加 (2026-09-05 / /full-review iter0 C-5): 契約の正本が SKILL.md の宣言と一致する
+#
+# スキーマは design.md からの手動転記に依存しており、転記元との乖離を検出する経路が
+# 無かった。SKILL.md §Step 4 の「required フィールド 6 件」という宣言を証人として
+# 使い、本番側スキーマがそれと食い違ったら赤くする。
+# ---------------------------------------------------------------------------
+def test_production_schema_required_fields_match_skill_md():
+    """`GABRIEL_OUTPUT_SCHEMA` の required が SKILL.md の宣言 6 件と一致する。"""
+    text = _SKILL_MD.read_text(encoding="utf-8")
+    declared = [
+        name
+        for name in (
+            "verdict",
+            "severity",
+            "affected_atoms",
+            "reasoning",
+            "recommended_action",
+            "confidence",
+        )
+        if name in text
+    ]
+    assert len(declared) == 6, f"SKILL.md に載っていないフィールドがある: {declared}"
+    assert set(GABRIEL_OUTPUT_SCHEMA["required"]) == set(declared)

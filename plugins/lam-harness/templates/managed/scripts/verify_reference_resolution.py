@@ -96,6 +96,16 @@ _ENUM_VALUE_TOKEN_PAT = re.compile(r"[A-Za-z][A-Za-z-]*")
 # ファイル不在（gitignore 対象・環境依存）の場合は skip（T7 の設計通り log 本体は commit しない）。
 _GABRIEL_MODE_ENUM = {"aot", "lightweight", "widescan_verify"}
 
+# ---- パターン 5: gabriel-metrics anchor カバレッジ検査 (2026-09-05 / iter0 C-5) ----
+
+#: この日付**より後**のファイル名日付を持つ MAGI 記録のみを検査対象にする。
+#: 追記工程（skills/magi/SKILL.md §Step 4.1 の MUST）を入れたのが 2026-09-05 であり、
+#: それ以前の記録を被覆させるには計器データの捏造が要る（やらない）。
+_ANCHOR_COVERAGE_BASELINE = "2026-09-05"
+#: MAGI 記録側で probe を記録している行（`- verdict: **refuted** / ...` 形式）。
+_MAGI_RECORD_VERDICT_PAT = re.compile(r"^\s*[-*]\s*verdict:", re.MULTILINE)
+_FILENAME_DATE_PAT = re.compile(r"(\d{4}-\d{2}-\d{2})")
+
 
 def _normalize(p: str) -> str:
     return p.replace("\\", "/")
@@ -359,11 +369,71 @@ def verify_mode_enum() -> list[dict]:
     return drifts
 
 
+def verify_anchor_coverage() -> list[dict]:
+    """パターン 5: MAGI 記録に対する gabriel-metrics ログの被覆を検査する.
+
+    2026-09-05 追加（/full-review iter0 C-5）。パターン 4 が検査していたのは
+    「**書かれた行**が enum に従うか」だけであり、「**書かれなかった**」は
+    検出できなかった。実測: ログは 4 行・最終更新 2026-07-18 で止まり、以後
+    5 回走った probe が 1 行も記録されないまま検査は緑を返し続けていた
+    （空集合は常にスキーマに適合する）。
+
+    証人は MAGI 記録側の `- verdict:` 行と、ログ側の `anchor` フィールドである。
+    記録に probe があるのに、その記録を anchor に持つログ行が 1 つも無ければ drift。
+
+    **基準日より後のファイルのみを対象とする**（`_ANCHOR_COVERAGE_BASELINE`）。
+    追記工程（`skills/magi/SKILL.md` §Step 4.1 の MUST）が存在しなかった時期の
+    記録まで遡ると、埋めるには計器データを捏造するしかない。それは
+    `security-commands.md` §計器への書き込みを伴う検証 が禁じる方向である。
+
+    ログ不在時は skip し drift ゼロで正常終了する（パターン 4 と同じ D3 / ログは
+    gitignore 対象のため、clone 直後の利用者環境では常に不在になる）。
+    """
+    drifts: list[dict] = []
+    log_path = REPO_ROOT / ".claude/gabriel-metrics.log"
+    if not log_path.exists():
+        return drifts
+
+    anchors: set[str] = set()
+    for line in _read(log_path).splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        anchor = entry.get("anchor")
+        if anchor:
+            anchors.add(_normalize(str(anchor)))
+
+    for path in _iter_files(["docs/artifacts/*.md"]):
+        matched = _FILENAME_DATE_PAT.search(path.name)
+        if not matched or matched.group(1) <= _ANCHOR_COVERAGE_BASELINE:
+            continue
+        if not _MAGI_RECORD_VERDICT_PAT.search(_read(path)):
+            continue
+        rel = _normalize(str(path.relative_to(REPO_ROOT)))
+        if rel not in anchors:
+            drifts.append(
+                {
+                    "pattern": "gabriel-metrics-anchor-coverage",
+                    "source": rel,
+                    "referenced": ".claude/gabriel-metrics.log",
+                    "match": (
+                        "probe 記録があるが、この記録を anchor に持つログ行が無い"
+                        "（skills/magi/SKILL.md §Step 4.1 の追記 MUST を参照）"
+                    ),
+                }
+            )
+    return drifts
+
+
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument(
         "--wave",
-        choices=["w-r3", "w-r4", "mode-enum", "all"],
+        choices=["w-r3", "w-r4", "mode-enum", "anchor-coverage", "all"],
         default="all",
         help="実行対象 Wave (既定: all)",
     )
@@ -382,6 +452,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         result["w-r4"] = verify_w_r4()
     if args.wave in ("mode-enum", "all"):
         result["mode-enum"] = verify_mode_enum()
+    if args.wave in ("anchor-coverage", "all"):
+        result["anchor-coverage"] = verify_anchor_coverage()
 
     total = sum(len(v) for v in result.values())
     payload = {

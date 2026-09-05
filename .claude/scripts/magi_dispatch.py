@@ -411,3 +411,120 @@ def should_run_gabriel(
             "gabriel probe をスキップする。"
         ),
     )
+
+
+# ---------------------------------------------------------------------------
+# gabriel 出力契約（2026-09-05 移設 / /full-review iter0 C-5）
+#
+# 経緯: このスキーマと検証関数は `.claude/tests/wave_c/test_wave_c_gabriel_output.py`
+# の**内部にのみ**存在し、本番側から import される箇所が 0 件だった。テスト自身は
+# 「実 LLM 呼び出しは行わない / fixtures は stub」と明記しており虚偽ではなかったが、
+# 契約の定義が検査側にしか無いため、実運用の記録を検証する経路が作れなかった。
+# 正本をここ（本番モジュール）へ移し、テストは import して使う。
+#
+# `jsonschema` は関数内で import する。本モジュールは managed scripts として配布され、
+# 利用者環境に jsonschema があるとは限らないため、import 時に落とさない。
+# ---------------------------------------------------------------------------
+
+#: design.md §3 の JSON スキーマ完全定義。
+#: additionalProperties: false により、未定義フィールドの混入も検出する。
+GABRIEL_OUTPUT_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "GabrielOutput",
+    "type": "object",
+    "required": [
+        "verdict",
+        "severity",
+        "affected_atoms",
+        "reasoning",
+        "recommended_action",
+        "confidence",
+    ],
+    "additionalProperties": False,
+    "properties": {
+        "verdict": {
+            "type": "string",
+            "enum": ["confirmed", "refuted", "inconclusive"],
+        },
+        "severity": {
+            "type": "string",
+            "enum": ["critical", "warning", "info"],
+        },
+        "affected_atoms": {
+            "type": "array",
+            "items": {"type": "string"},
+        },
+        "reasoning": {
+            "type": "string",
+            "minLength": 200,
+            "maxLength": 1000,
+        },
+        "recommended_action": {
+            "type": "string",
+            "enum": ["proceed", "re-magi", "abort"],
+        },
+        "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+        },
+    },
+}
+
+
+class CrossFieldConstraintError(ValueError):
+    """クロスフィールド制約違反を表す例外（JSON schema だけでは表現できない制約）。"""
+
+
+def validate_gabriel_output(data: dict) -> None:
+    """gabriel 出力の完全な契約検証を行う。
+
+    1. JSON schema（draft-07）検証（design.md §3）
+    2. クロスフィールド制約検証（FR-W-C-6 / design.md §3 フィールド制約テーブル）
+
+    いずれかに違反する場合は例外を送出する。
+    Silent Failure を避けるため、違反時は必ず例外を投げる（None 等での握りつぶし禁止）。
+
+    Raises:
+        ImportError: jsonschema が利用できない場合（握りつぶさない / 検証できないことを
+            「検証に通った」と誤読させないため）
+    """
+    import jsonschema  # noqa: PLC0415 — 配布先に無い可能性があるため関数内 import
+
+    jsonschema.validate(instance=data, schema=GABRIEL_OUTPUT_SCHEMA)
+    _validate_cross_field_constraints(data)
+
+
+def _validate_cross_field_constraints(data: dict) -> None:
+    """FR-W-C-6 / design.md §3 のクロスフィールド制約を検証する。"""
+    verdict = data["verdict"]
+    severity = data["severity"]
+    affected_atoms = data["affected_atoms"]
+    recommended_action = data["recommended_action"]
+    confidence = data["confidence"]
+
+    # AC-W-C-8: confidence < 0.3 の場合、verdict は inconclusive でなければならない
+    if confidence < 0.3 and verdict != "inconclusive":
+        raise CrossFieldConstraintError(
+            f"confidence={confidence} (<0.3) requires verdict=inconclusive, "
+            f"got verdict={verdict!r}"
+        )
+
+    # AC-W-C-9: affected_atoms=[] の場合、verdict は refuted であってはならない
+    if verdict == "refuted" and not affected_atoms:
+        raise CrossFieldConstraintError(
+            "verdict=refuted requires non-empty affected_atoms, got []"
+        )
+
+    # design.md §3: verdict=confirmed または inconclusive の場合、severity は info
+    if verdict in ("confirmed", "inconclusive") and severity != "info":
+        raise CrossFieldConstraintError(
+            f"verdict={verdict!r} requires severity=info, got severity={severity!r}"
+        )
+
+    # design.md §3: severity=critical の場合、recommended_action は re-magi または abort
+    if severity == "critical" and recommended_action not in ("re-magi", "abort"):
+        raise CrossFieldConstraintError(
+            "severity=critical requires recommended_action in "
+            f"{{'re-magi', 'abort'}}, got {recommended_action!r}"
+        )
