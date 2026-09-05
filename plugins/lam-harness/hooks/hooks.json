@@ -1,0 +1,57 @@
+{
+  "description": "LAM governance hooks: permission grading (PG/SE/PM), phase guards, TDD introspection, and compaction exposure recording.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts/py_invoke.sh\" \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-tool-use.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts/py_invoke.sh\" \"${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts/py_invoke.sh\" \"${CLAUDE_PLUGIN_ROOT}/hooks/post-tool-use.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts/py_invoke.sh\" \"${CLAUDE_PLUGIN_ROOT}/hooks/lam-stop-hook.py\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts/py_invoke.sh\" \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-compact.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
