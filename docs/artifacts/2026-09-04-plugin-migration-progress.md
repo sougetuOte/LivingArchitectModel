@@ -206,9 +206,35 @@ MAGI（gabriel 2 巡とも `refuted & critical` / 2 巡目 `abort` = AC-W-C-7 �
 
 ---
 
+### §2.6 範囲レビューと P-1（2026-09-05 / セッション 32）
+
+**正本 2 つ**: 範囲レビュー = `docs/artifacts/2026-09-05-distribution-scope-review.md` /
+着手順 = `2026-09-05-magi-migration-sequence.md`。
+
+| # | 内容 |
+|:-:|:--|
+| **1** | **範囲レビュー実施**（§2.5 #7 のユーザー指示）。検査が**すべて緑のまま、利用者環境で解決しない参照が 86 件 / 182 箇所**（配布物 85 ファイル × 利用者環境 44 ファイルの全数突合 / **下界**）。記録の「60 件超」は部分集合だった |
+| **2** | **新形**: plugin 配布下では **`.claude/skills/…` `.claude/agents/…` `.claude/hooks/…` のパス自己参照が原理的に壊れる**（37 箇所）。**移行そのものが参照を壊した**類型で、既存の切り分け基準では捕まらない |
+| **3** | **順序決定（ユーザー）**: **参照の是正は E2E の後**。37 箇所の正しい直し方は E2E が実体の見え方を実測してはじめて決まるため |
+| **4** | **是正 2 件**: 台帳 §C 機構 #11 の行を実装に追随（`scripts` / 複製相 T3 が未反映だった）/ 確定版の証人補強（E2 に starter 8・E6 に `permission.log` を追加、**残り 3 イベントが無証人**である限界を明記） |
+| **5** | **P-1 完了**: hooks **7 件**（import 閉包を実測して確定 / `analyzers` `checkers` は hook から import されない）を `plugins/lam-harness/hooks/` へ複製 ＋ **`hooks/hooks.json` 新設**（上流仕様を context7 で裏取り / `${CLAUDE_PLUGIN_ROOT}` は引用符で囲む） |
+| **6** | **`_MIRROR_AREAS` に `hooks` 追加（T3）＋ T4 新設** —— hooks.json が名指しする実体の実在検査。**輸送はエントリ単位**で成立するため、宣言と実体のずれは「そのイベントだけが黙って発火しない」形になる。**陰性対照を実測**（plugin 側コピーを 1 行汚して T3 が名指しで赤転 → 復元で緑） |
+| **7** | **テスト 1343 → 1350 passed / 14 skipped** |
+| **8** | **P-3 完了（対象を実測で改訂）**: 実施は `marketplace remove lam` の **1 件のみ**。**残留 5 件はいずれも user スコープではなく**（local 1 + project 4）、新規サンドボックスに漏れないことが判明したため、計画が挙げていた「4 プロジェクトの残存を消す」は**費用に見合わないと判断して見送った**。実在した危険は名前解決側の 2 つで、(i) `lam` が生きた作業ツリーを指していた（**除去済**）/ (ii) `lam-global` が同名 `lam-harness` を提供し続けている（→ **E2E は完全修飾形で打つ・clone の marketplace 名に `lam` を使わない**） |
+
+**P-1 で確認した安全性**（着手前の錠）: `claude plugin list --json` で `lam-harness` 5 エントリすべて
+`enabled: false`・`projectPath` に LAM 無し。**二重発火の条件が無いことを確認してから hooks.json を置いた**。
+
+---
+
 ## §3 いま触ると壊れるもの（重要）
 
-**hooks / agents / skills / scripts はまだ `.claude/` にある。移動は手順 5 まで待つこと。**
+> **【更新 / 2026-09-05 セッション 32】hooks は複製相に入った**（`plugins/lam-harness/hooks/` に 7 件 + `hooks.json`）。
+> **これ以降 `--plugin-dir` を使ってはならない** —— project hooks と plugin hooks が**両方走り**、
+> `tdd-patterns.log` へ**復元不能な**二重追記が起きる（上流は「hook は全ソースから収集され、すべて実行される」と明記 / #40826 は not planned）。
+> 現在 LAM で `lam-harness` は **disabled** であり、この錠が二重発火を止めている。
+
+**agents / skills / scripts / hooks はまだ `.claude/` にも実体がある（複製相）。撤去は第 2 段まで待つこと。**
 
 plugin コンポーネントは**インストールされて初めて有効になる**。いま `.claude/` から `plugins/` へ移すと、その瞬間に無効化される（LAM 自身のハーネスが死ぬ）。移動と local install は同じ波で行う。
 

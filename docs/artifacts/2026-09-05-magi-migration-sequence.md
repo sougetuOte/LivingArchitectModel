@@ -641,20 +641,35 @@ user 層 hooks 3 本は LAM 計器を書かない。
 
 - **新規の使い捨てプロジェクト**（`lam-p1` は汚染済のため**破棄**する）
 - **LAM ワークツリーで `lam-harness` が enabled でない**
-- **user スコープの残留が無い**（**HGA #32 の要検証を反映 / 2026-09-05 追加**）——
-  `install --scope` の既定は `user` であり、初期状態が「サンドボックスの新規作成」だけだと
-  **user スコープの状態は前回走行から持ち越され、証人が前回の残骸で緑になる**。
-  これは HGA #32 が予測した「3 回目の穴」の 2 番目の形そのもの（**rule-001 観測 #6 型 = 緑のまま誤報告**）。
-  具体的には `lam-harness@lam`（`lam-p1` に残存）と `lam-harness@lam-global`（4 プロジェクトに残存）を
-  **P-3 で先に消す**ことが初期状態の前提条件になる
+- **残留 install が新規サンドボックスへ漏れない**（**2026-09-05 セッション 32 に実測で書き換え** / 旧文は下記）——
+  `install` / `uninstall` の `--scope` 既定が `user` であることは**実測で正しい**（`--help`）。
+  **しかし実在した残留 5 件はいずれも user スコープではなかった** ——
+  `lam-harness@lam` が **local**（`lam-p1`）、`lam-harness@lam-global` が **project** × 4
+  （`C:\work6\godot-test` / `C:\work6\plactice-range` / `D:\work7\Kyozai-Athanor` / `D:\work7\Mossarium`）。
+  **project / local スコープの install は新規サンドボックスには漏れない**ため、
+  「前回の残骸で証人が緑になる」経路は**この 5 件については成立しない**。
+  代わりに実在する危険は **2 つ**で、いずれも名前解決の側にある:
+  - **(i) `lam` marketplace が `source: directory` で生きた作業ツリー（`D:\work7\LivingArchitectModel`）を
+    指していた** —— 残っていると `lam-harness@lam` が**ワークツリーを被検体にしてしまい、
+    「HEAD の clone に束縛する」という設計そのものが無効化される**。**P-3 で除去済**
+  - **(ii) `lam-global` は現在も `lam-harness` という同名 plugin を提供している**（manifest 実測）。
+    よって **E2E の全コマンドは `lam-harness@<clone-marketplace>` の完全修飾形で打つこと**、
+    かつ **clone の marketplace 名に `lam` を使わないこと**（孤児キャッシュ
+    `~/.claude/plugins/cache/lam/lam-harness/0.1.0` が残っており、#45542 の
+    「入れ直してもキャッシュが更新されない」と組み合わさると**古い実体で緑になる**）
+
+  > **旧文（誤り / 保存）**: 「`install --scope` の既定は `user` … `lam-harness@lam` と
+  > `lam-harness@lam-global` を P-3 で先に消すことが初期状態の前提条件になる」。
+  > **一般論としての既定は正しいが、実在した残留の性質を確認せずに対処対象を決めていた**。
+  > HGA #32 が予測した形の**逆向き** —— 宣言された危険が、実際の危険より**大きい / 別物**だった。
 
 ### 準備段（書込集合を明示 / **素であることを示せたので 3 並列**）
 
 | # | 内容 | 読む | **書く** | 担当 |
 |:-:|:--|:--|:--|:--|
-| **P-1** | hooks 7 件を plugin へ複製 + 同一性検査 | `.claude/hooks/**` | `plugins/lam-harness/hooks/**` / `verify_plugin_containment.py` + そのテスト | L1 直（**宣言 1 行**） |
+| **P-1** ✅ | hooks 7 件を plugin へ複製 + 同一性検査（**2026-09-05 セッション 32 完了**） | `.claude/hooks/**` | `plugins/lam-harness/hooks/**` / `verify_plugin_containment.py` + そのテスト | L1 直（**宣言 1 行**） |
 | **P-2** | fresh clone の赤 3 件 | テスト出力 | `hooks-local/outbound-write-ban.py` + そのテスト（配置依存 2 件）／**`dashboard/parsers/git_history.py` 系 + `test_git_history_parser.py`（履歴依存 1 件）** | L2 |
-| **P-3** | 孤児 `cache/lam` + `lam-global` quarantine | `plugin list --json` / `marketplace list --json` | **環境のみ**（リポジトリ書込なし） | L1 直 |
+| **P-3** ✅ | 孤児 `cache/lam` + `lam-global` quarantine（**2026-09-05 セッション 32 / 対象を実測で改訂**） | `plugin list --json` / `marketplace list --json` / `lam-global` の manifest | **環境のみ**（リポジトリ書込なし） | L1 直 |
 
 **3 者の書込集合は交わらない**（P-1 は containment 系 / P-2 は outbound-write-ban 系 + git_history 系 / P-3 は環境のみ）。
 **これが「並列は書込集合が自明に素と示せた例外のみ」の唯一の適用箇所である**。
@@ -670,6 +685,43 @@ gabriel 3 巡目が**ファイル実測でこの非交差を確認した**（`ve
 > **P-3 は本番シナリオの入場条件でもある**（上記「初期状態」参照）。並列に走らせてよいが、
 > **P-3 の完了なしに本番へ進んではならない**。
 
+> **P-1 の実施記録（2026-09-05 / セッション 32）**: 着手前に「hooks 7 件」という申告が実際より
+> 小さくないかを **import 閉包で実測**した —— 5 つの entry point が import するのは
+> **トップレベル 7 件のみ**で、`analyzers/`（19 件）と `checkers/`（2 件）は hook から import されない
+> （**ただし配布 skill の `/ship` と `/full-review` は `analyzers` を import する**。これは配布されておらず、
+> §2 の 182 箇所と同じ「E2E 後」バケットに入る）。`hooks-local/outbound-write-ban.py` は LAM 私物のため非配布。
+> **申告どおり 7 件で正しかった** —— 「宣言 < 実際」を疑って測り、今回は一致した、という記録である。
+>
+> 併せて **T4（hooks.json が名指しする実体の実在検査）を新設**した。E6 の証人は 5 イベント中 2 本しか
+> 無いため、**残り 3 本の輸送を守るのは E2E ではなく T4 である**。
+
+> **P-3 の実施記録（2026-09-05 / セッション 32）**: **実施したのは 1 件のみ** ——
+> `claude plugin marketplace remove lam`（生きた作業ツリーを指していた登録 / 上記 (i)）。
+> 予告どおり `lam-harness@lam`（`lam-p1` の local install）も同時に消えた。
+>
+> **実施しなかったもの**と理由:
+>
+> - **`lam-harness@lam-global` 4 件**: **project スコープのため新規サンドボックスには漏れない**（上記の実測）。
+>   **【訂正 / 同セッション内】** L1 は当初これを「`enabled: false` の無害な残骸」と記述したが**誤り**である ——
+>   **`claude plugin list` の `enabled` は cwd 相対**であり、LAM から見て false だったにすぎない。
+>   **4 プロジェクトの `.claude/settings.json` はいずれも `"lam-harness@lam-global": true`** と記録しており、
+>   **それらの環境では現に有効な plugin である**（＝**古い 1.0.0 のハーネスが 4 プロジェクトで生きている**）。
+>   よって `lam-global` marketplace の削除は「残骸の掃除」ではなく **4 プロジェクトの機能停止**を意味する。
+>   **ユーザー決定（2026-09-05）= 改名**（「lam-global 側を変えることも視野に。こっちのプロジェクトが本道」）——
+>   `~/claude-global-assets/lam-marketplace` の manifest 2 枚で plugin 名を **`lam-harness-legacy`** に変更し、
+>   **`renames` マップ**（`{"lam-harness": "lam-harness-legacy"}` / v2.1.193+ / 実環境 **2.1.261**）を追加した。
+>   `claude plugin marketplace update lam-global` が **検証を通過**（manifest は妥当）。
+>
+>   **未検証（正直に残す）**: 4 プロジェクトの `enabledPlugins` は依然 `lam-harness@lam-global` と記録されており、
+>   **`renames` による移行はそれらのプロジェクトで次にセッションを開いたときに起きる**。
+>   本セッションからは確認できない。**移行の確認は各プロジェクトでの起動時に行うこと**。
+>
+>   **`renames` は旧名を別名として生かす**ため、**bare `lam-harness` の曖昧さは完全には消えていない**。
+>   E2E の「完全修飾形で打つ」要件は**引き続き必須**である。
+> - **孤児キャッシュ `~/.claude/plugins/cache/lam/`**: `Remove-Item` が **user 層 hook
+>   （`pretooluse-safety.sh`）に block された**。marketplace 登録が消えた今は孤児であり
+>   **E2E に影響しない**（clone を `lam` 以外の名前で登録する限り）。**手動削除候補**として残す。
+
 
 
 ### 本番シナリオ（**逐次**・observe-before-mutate）
@@ -679,7 +731,7 @@ gabriel 3 巡目が**ファイル実測でこの非交差を確認した**（`ve
 | 1 | **【不変条件・事前】** `lam-harness` が LAM で enabled でない | グローバル registry | — | （錠 / 4-d） |
 | 2 | **【前提】** `origin/master..HEAD` の差が 0 | git | — | **push 漏れを push せずに検出** |
 | 3 | **HEAD を一時 dir へ clone**（**ステップ 15 まで保持する** / 14 が暗黙に再利用するため） | git | 一時 dir | **被検体をコミットに束縛** |
-| 4 | clone を**別名** marketplace で登録 | — | グローバル registry | （同名上書きを踏まない） |
+| 4 | clone を**別名** marketplace で登録（**`lam` 禁止** = 孤児キャッシュが残っている / 以降のコマンドは `lam-harness@<別名>` の**完全修飾形**で打つ = `lam-global` が同名 plugin を提供しているため） | — | グローバル registry | （同名上書きを踏まない） |
 | 5 | 新規サンドボックス作成 | — | サンドボックス | （初期状態の明示） |
 | 6 | `install --scope project` | — | サンドボックスの `settings.json` / キャッシュ | **E1** |
 | 7 | **セッション再開** | — | セッション | （**4-b** レジストリスナップショット） |

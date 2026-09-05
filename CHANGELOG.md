@@ -4,6 +4,63 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### P-1 —— hooks を複製相へ入れ、hook 宣言の実体検査（T4）を新設した（2026-09-05）
+
+E2E 準備段の P-1。`.claude/hooks/` の **7 件**を `plugins/lam-harness/hooks/` へ複製し、
+**`hooks/hooks.json` を新設**した（上流仕様は context7 で裏取り / `${CLAUDE_PLUGIN_ROOT}` は引用符で囲む）。
+
+- **着手前に錠を確認した**: `claude plugin list --json` で `lam-harness` の 5 エントリすべてが
+  `enabled: false`、`projectPath` に LAM 無し。**二重発火の条件が無いことを確認してから** hooks.json を置いた
+- **「7 件」を疑って実測した**: 5 つの entry point の **import 閉包**はトップレベル 7 件のみで、
+  `analyzers/`（19）と `checkers/`（2）は hook から import されない。**申告どおりだった**
+  （ただし配布 skill の `/ship` `/full-review` は `analyzers` を import しており、これは未配布 = 既知ギャップ）
+- **`py_invoke.sh` の解決先**: plugin hooks は `${CLAUDE_PLUGIN_ROOT}/templates/managed/scripts/py_invoke.sh`
+  を呼ぶ。**init 前でも動く**ことと、コピーを 3 つに増やさないことの両立
+- **`get_project_root()` は P0 で既に `CLAUDE_PROJECT_DIR` 優先**、`py_invoke.sh` も
+  `${CLAUDE_PROJECT_DIR:-$(pwd)}` 基準のため、plugin キャッシュから走っても計器が cache に落ちない
+- **T3 の射程に `hooks` を追加**（`_MIRROR_AREAS`）。**陰性対照を実測** —— plugin 側コピーを 1 行汚すと
+  `[T3] plugins/lam-harness/hooks/pre-compact.py` と**名指しで赤転**し、復元で緑に戻ることを確認
+- **T4 新設**: `hooks/*.json` が `${CLAUDE_PLUGIN_ROOT}/…` で名指しする実体が plugin 内に実在すること。
+  **hook の輸送は hooks.json のエントリ単位**で成立するため、宣言と実体のずれは
+  「**そのイベントだけが黙って発火しない**」形で現れる。E2E の証人は 5 イベント中 2 本しか無く、
+  **残り 3 本を守るのは T4 である**。JSON 破損・`hooks` キー欠落・plugin 外参照も陰性対照つきで検出する
+- **テスト 1343 → 1350 passed / 14 skipped**
+
+**これ以降 `--plugin-dir` を使ってはならない**（project hooks と plugin hooks が両方走り、
+`tdd-patterns.log` へ復元不能な二重追記が起きる）。
+
+### P-3 —— 対象を実測で改訂し、生きた作業ツリーを指す marketplace 登録を除去した（2026-09-05）
+
+計画は「`lam-harness@lam` と `lam-harness@lam-global`（4 プロジェクト）を消す」としていた。根拠は
+「`install --scope` の既定が `user` なので前回走行の残骸が新規サンドボックスへ漏れる」。
+**既定が `user` であること自体は実測で正しかったが、実在した残留 5 件はいずれも user スコープではなかった**
+（local 1 + **project 4**）。**project / local の install は新規サンドボックスに漏れない。**
+
+実在した危険は名前解決の側にあり、2 つだった:
+
+- **(i) `lam` marketplace が `source: directory` で生きた作業ツリーを指していた** ——
+  残っていると **被検体がワークツリーになり、「HEAD の clone に束縛する」設計が無効化される**。
+  **`claude plugin marketplace remove lam` で除去**（`lam-harness@lam` の local install も予告どおり同時に消えた）
+- **(ii) `lam-global` は現在も同名 `lam-harness` を提供している**（manifest 実測）→
+  **E2E は `lam-harness@<別名>` の完全修飾形で打ち、clone の marketplace 名に `lam` を使わない**
+  （孤児キャッシュ `~/.claude/plugins/cache/lam/` が残っており、#45542 と組み合わさると古い実体で緑になりうる）
+
+**見送ったもの**: `lam-harness@lam-global` 4 件の除去。**当初「`enabled: false` の無害な残骸」と判定したが誤り**で、
+同セッション内に訂正した —— **`claude plugin list` の `enabled` は cwd 相対**であり、LAM から見て false だっただけ。
+**4 プロジェクトの `.claude/settings.json` はいずれも `"lam-harness@lam-global": true`** で、
+**古い 1.0.0 のハーネスが 4 プロジェクトで現に有効**である。削除は掃除ではなく**機能停止**を意味する。
+
+**ユーザー決定 = 改名**（「lam-global 側を変えることも視野に。こっちのプロジェクトが本道」）。
+`~/claude-global-assets/lam-marketplace` の manifest 2 枚で plugin 名を **`lam-harness-legacy`** に変更し、
+**`renames` マップ**（v2.1.193+ / 実環境 2.1.261）を追加。`marketplace update lam-global` が検証を通過した。
+**4 プロジェクトは動き続ける**（移行は各プロジェクトの次回セッション時 = **本セッションからは未検証**）。
+なお **`renames` は旧名を別名として生かす**ため、**bare `lam-harness` の曖昧さは完全には消えていない** ——
+E2E の「`lam-harness@<別名>` の完全修飾形で打つ」要件は引き続き必須。
+孤児キャッシュの削除は **user 層 hook（`pretooluse-safety.sh`）が PowerShell 削除を block** したため手動候補。
+
+**宣言と実際のずれは、今回は逆向きだった** —— 宣言された危険が実際より**大きく、かつ別物**だった。
+「宣言 < 実際」だけを警戒すると、この向きは見落とす。
+
 ### 配布範囲の全体レビュー —— 検査が緑のまま、利用者環境で解決しない参照が 182 箇所あった（2026-09-05）
 
 E2E 着手前に、ユーザー指示（「範囲自体も見直しながら全体をレビューすべき」）で**射程そのものを問い直した**。
