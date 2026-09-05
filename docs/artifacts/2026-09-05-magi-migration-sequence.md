@@ -788,6 +788,58 @@ gabriel 3 巡目が**ファイル実測でこの非交差を確認した**（`ve
 > 参照解決は **E2E ではなく機構側**（機構 #10 に利用者環境ベースラインと陰性対照を与える形）で扱う。
 > ただし現時点で 182 箇所が赤のため、**そのまま入れると常時赤 = 殺される計器**になる。導入設計は E2E 合格後。
 
+---
+
+# (D) 第 1 段 E2E の実行記録（2026-09-05 / セッション 32）
+
+**判定: 合格（コミット `bfe1aa1` において成立）。** E1〜E6 の全証人が pass 側を示し、陰性対照で
+**E1 / E4 / E5 / E6 が赤転**した。ただし下記「合格の限界」2 件を付す。
+
+実行環境: 被検体 = `bfe1aa1` の clone / marketplace 名 = **`sougetuote-lam`**（clone の manifest 名がそのまま採られた
+= `lam` とも `lam-global` とも衝突しない）/ サンドボックス = 使い捨ての新規 git リポジトリ /
+ステップ 7〜12 は **`claude -p`（headless）** で 1 ステップ 1 セッションとして実行した。
+
+| 証人 | 結果 | 実測値 |
+|:--|:--|:--|
+| **E1** | pass | サンドボックスの `plugin list --json` で `"enabled": true` / `settings.json` に `"lam-harness@sougetuote-lam": true` |
+| **E2** | pass | **managed 36 件をテンプレートとバイト比較して不一致 0** ＋ starter 8 件すべて実在 |
+| **E3** | pass | 敷かれた `py_invoke.sh` が exit 0（python 3.11.9 を解決） |
+| **E4** | pass | `/lam-harness:building` が解決・本文ロードし、**init が敷いた `phase-rules.md` と `02_DEVELOPMENT_FLOW.md` を読んで規律どおり切替を拒否した** |
+| **E5** | pass（**ただし bare は不可** / 下記） | `lam-harness:gabriel` で起動成功。gabriel が Read 1 回で `current-phase.md` の 1 行目を返した |
+| **E6** | pass（**証人を差し替えた** / 下記） | PreToolUse = `permission.log` に `PM<TAB>Edit<TAB>…<TAB>"rules/ path"`。PostToolUse = `doc-sync-flag` が不在 → `src/probe.py` |
+
+**陰性対照（ステップ 14 / plugin を disable → 新セッション）**: `lam-harness:` のスラッシュコマンド **なし** /
+`lam-harness:gabriel` **なし** / **同じ Write（`src/probe2.py`）を成功させても `permission.log` は 27 行のまま・
+`doc-sync-flag` も不変**。**同一操作で正反対の痕跡**という最も分離の良い形が取れた。
+
+## E2E が見つけた欠陥 3 件
+
+| # | 欠陥 | 影響 |
+|:-:|:--|:--|
+| **D-1** | **bare `subagent_type` は解決しない**。利用可能な型は `lam-harness:gabriel` のみで、`gabriel` は存在しない | **配布 skill が bare 名で agent を起動する指示は利用者環境で動かない**。配布 skills 内の agent 名の言及は **97 箇所 / 12 名**（多くは散文だが `magi/SKILL.md` の `subagent_type=gabriel` は実行指示）。`goal-driven-l2-foreman.md` の frontmatter `tools: Agent(goal-driven-l3-executor)` も bare |
+| **D-2** | `init/SKILL.md` 冒頭の `${CLAUDE_PLUGIN_ROOT:?…}` ガードが、**Bash ツール環境に当該変数が export されないため必ず失敗する** | 今回は実行セッションが展開済み絶対パスから plugin root を補って続行した。**補わない利用者では init が冒頭で止まる** |
+| **D-3** | **E2 の証人の書き方が実際と食い違っていた** —— `.claude/rules` は **16**（managed 14 ＋ starter の `model-roster.md` / `terminology.md` 2）。「14」を数えると必ず外れる | 証人を「テンプレート 36 件との内容一致」へ置き換えて解消（上表 E2） |
+
+## 合格の限界（過大評価しないこと）
+
+- **E2 / E3 は陰性対照で赤転しない**。init が敷いたファイルは plugin を disable しても残るため、
+  「配布が効いている」ことと「過去に配布された痕跡がある」ことを**この 2 つでは分離できない**。
+  分離できるのは E1 / E4 / E5 / E6 の 4 つである
+- **E6 の証人はシナリオ指定の `.session-pm-edit-cache.json` では取れなかった**。
+  PM 級パスへの Edit は **headless では承認する人間がいないため deny され**、PostToolUse が発火しないため
+  キャッシュが生まれない（`--permission-mode auto` でも `acceptEdits` でも deny された）。
+  **これは欠陥ではなく、第三者環境でも PM ゲートが実際に効いていることの証拠でもある**。
+  代替として (i) PreToolUse は `permission.log` の **LAM 自身の語彙による PM 分類行**（帰属が取れる）
+  (ii) PostToolUse は `doc-sync-flag`（SE 級 `src/` 書込で発火）を用いた。
+  **headless で E2E を回す限り、この差し替えは恒久的に必要**である
+- **ステップ 12 の想定は誤っていた** —— `/building` は `current-phase.md` を書かない。仕様が無い状態では
+  規律どおり切替を拒否する。よってシナリオの「書く状態: `current-phase.md`（BUILDING へ）」は発生しない
+  （E4 の証人「本文ロード」は満たされているため判定に影響しない）
+
+## 後片付け（ステップ 15）
+
+`sougetuote-lam` marketplace は**登録解除済**。一時 clone とサンドボックスは `rm` が deny のため**手動削除候補**。
+
 ## ループの外
 
 | | 内容 | 実行 |
