@@ -392,3 +392,64 @@ LAM は現在、skills / agents / hooks を `.claude/` と `plugins/` の**両�
 - `docs/artifacts/2026-09-05-magi-e2e-defect-remediation.md`（本決定の MAGI + gabriel 2 巡 + HGA #33 全文）
 - `docs/artifacts/2026-09-05-magi-migration-sequence.md` §(D)（第 1 段 E2E の実行記録）
 - `docs/artifacts/hga-summon-log.md` #33
+
+---
+
+## 追補 3（2026-09-06 / **決定 2 の射程一般化** / ユーザー決定 + MAGI + gabriel）
+
+### 背景 —— T1 が決定 2 の前提を満たさない
+
+Action 4b（skill の slash 形の名前空間化）の設計中に、**追補 2 決定 2 が T1 チェーンでは
+成立しない**ことが判明した（gabriel が指摘 / `docs/artifacts/2026-09-06-magi-action4b-skill-references.md` §Step 4）。
+
+決定 2 は検査を 2 本で閉じると定める —— 「派生 == 導出(正本)」と
+「**正本側に bare の実行参照が残っていないこと**」。**文字どおり適用すると、T1 の正本である
+`.claude/rules/` 自身が名前空間化の対象になる。** だが LAM 本体は plugin を disabled で運用し、
+`.claude/rules/` を **bare のまま**読んでいる。名前空間化すれば LAM 自身が壊れる。
+
+**衝突の正体は、決定 2 が「正本 = 配布される側」を暗黙に前提していることである。**
+条文自身が目的を書いている ——「緑のまま**配布物**が壊れる」。守ろうとしているのは**配布物**であって
+「正本」という語ではない。追補 2 を書いた 2026-09-05 時点では T3 しか存在せず、
+そこでは 正本（`plugins/`）= 配布側だったため、両者が一致していた。
+**T1 は正本（`.claude/`）が配布されない側であり、この前提が成り立たない。**
+
+### 決定 —— 不変条件を「配布される側」へ一般化する
+
+> **検査は「派生 == 導出(正本)」と「**配布される側**に bare の実行参照が残っていないこと」の 2 本で閉じる。**
+
+| チェーン | 正本 | 派生 | **配布される側** | bare が禁じられる場所 |
+|:--|:--|:--|:--|:--|
+| **T3** | `plugins/{skills,agents,hooks}` | `.claude/{skills,agents,hooks}` | **正本** | 正本（**追補 2 と同じ判定**） |
+| **T1** | `.claude/rules` / `docs/internal` / `.claude/scripts` | `plugins/*/templates/managed/` | **派生** | 派生 |
+
+**目的は変えていない。射程を正しただけである。** T3 における判定は追補 2 と完全に一致し、
+**4a の実装（`verify_plugin_containment` の T5）は無変更**である。
+
+### 帰結 —— T1 の導出は「prefix の付与」になる
+
+追補 2 決定 1 の根拠 1 は「付与は 63 箇所を**分類**する必要があり、分類は導出ではない」だった。
+**この根拠は Action 4a の規則 R-A の成立によって消えている** —— R-A は
+「agent 名は全出現を名前空間化し、除外は構文的に判定できる 3 位置のみ
+（frontmatter `name:` / `<name>.md` のファイル名文脈 / 言語タグ `markdown`・`json` のフェンス内）」
+という**全域規則**であり、1 件ずつの判断を含まない。skill 側の規則 R-S
+（ハーネスの起動構文 `/<name>` のみ）も同様で、**置換候補 125 箇所を全数レビューして誤爆 0 を実測した**。
+
+したがって **T1 の導出（bare → 名前空間つき）は分類ではなく導出である**。
+決定 1 の「向き」は変えない —— **T1 の正本は引き続き `.claude/` 側**である。理由は 2 つ:
+
+1. `.claude/rules/` **19 件のうち 5 件は配布されない**（`hga-summoning.md` / `model-roster.md` /
+   `terminology.md` / `auto-generated/rule-001.md` / `auto-generated/rule-002.md`）。
+   向きを反転すれば 14 件が plugins 正本・5 件が `.claude/` 正本という**正本の分裂**が起きる
+2. **PM 級ゲートが `.claude/rules/` と `docs/internal/` を指している**（`permission-levels.md`）
+
+### 変えないもの
+
+- **統治不変条件 I-1 〜 I-6** / バックアップ B-1・B-3 / 移行順序 M-1・M-2
+- **追補 2 決定 1 の向き**（正本は第 2 段の後に生き残る側）と決定 3
+- **第 2 段のゲート**（HGA #31 4-a）
+- **T3 の判定**（4a の実装は無変更）
+
+### 参照
+
+- `docs/artifacts/2026-09-06-magi-action4b-skill-references.md`（本決定の MAGI + gabriel / Atom B1〜B4）
+- `docs/artifacts/2026-09-06-magi-action4-reference-model.md`（規則 R-A の成立 / MAGI 2 巡 + HGA #34）
