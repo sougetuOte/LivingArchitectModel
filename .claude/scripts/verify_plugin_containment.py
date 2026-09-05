@@ -1,4 +1,4 @@
-"""verify_plugin_containment.py — plugin ディレクトリの 2 つの封じ込めを検査する。
+"""verify_plugin_containment.py — plugin ディレクトリの 3 つの封じ込めを検査する。
 
 R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13.5-B / HGA #29）。
 
@@ -10,13 +10,23 @@ R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13
 
 本スクリプトは K4 を原則から**テスト**に変える。
 
-## 2 つの検査
+## 3 つの検査
 
 - **T1 包含（機構 #11）**: `plugins/<plugin>/templates/managed/` 配下の各ファイルは、
   開発側の対応物と**内容が一致する**こと。検査対象は「templates ディレクトリに実在するファイル」から
   導出するため、**維持リストを持たない**（R3 機構 #7 / #10 と同型）。
 - **T2 閉包（機構 #12）**: `plugins/` 配下のファイルは、**作者環境の絶対パス**と
   **配布されないディレクトリ（`docs/private/`）への参照**を含まないこと。
+- **T3 複製相の恒等性（2026-09-05 追加）**: LAM は plugin 移行の途中にあり、
+  `skills` と `agents` は開発側 (`.claude/skills/` `.claude/agents/`) と配布側
+  (`plugins/<plugin>/skills/` `plugins/<plugin>/agents/`) の**両方に実体を持つ複製相**にある。
+  将来 project 側を撤去するまで両者は一致していなければならない。検査対象は
+  「**両側に同名で存在するトップレベルエントリ**（skill ディレクトリ / agent ファイル）」のみから
+  導出する（維持リスト不要 / T1 と同型）。**片側にしか無いエントリは意図的な差分として無視する**
+  （例: 開発側のみの `build-dashboard`（非配布）/ `clause-gate`（LAM 固有）、
+  plugin 側のみの `init`（plugin 専用））。誤って片側のみの存在を違反として報告すると、
+  意図的な非対称を毎回赤にする「常時落ちる計器」になり検査自体が殺されるため、
+  この除外は本検査の核心である。
 
 ## T2 の射程（v1 / 意図的に狭い）
 
@@ -65,6 +75,18 @@ _ABSOLUTE_PATH_PATTERNS = (
 
 # 配布されないディレクトリへの参照
 _NON_DISTRIBUTED_REFS = (re.compile(r"docs/private/"),)
+
+# plugins/<plugin>/<領域> ↔ 開発側のディレクトリ。
+# T1 の _MANAGED_AREAS とは異なり、こちらは「テンプレートの派生元」ではなく
+# 「両側に実体を持つ複製相」（将来 project 側撤去まで一致を要する）。
+# ディレクトリ構造が異なる（managed は完全に一方向のテンプレート、
+# こちらは両側が対等な複製）ため、_MANAGED_AREAS とは別定数・別関数で扱う。
+# 将来 `plugins/lam-harness/hooks/` 等が新設された場合は、ここに 1 行足すだけで
+# 検査対象を拡張できる（`_MANAGED_AREAS` と同じ思想）。
+_MIRROR_AREAS = {
+    "skills": Path(".claude") / "skills",
+    "agents": Path(".claude") / "agents",
+}
 
 _TEXT_SUFFIXES = {".md", ".json", ".py", ".sh", ".txt", ".yaml", ".yml", ".html"}
 
@@ -157,8 +179,84 @@ def check_reference_closure(repo_root: Path) -> List[Violation]:
     return violations
 
 
+def _relative_text_files(root: Path) -> dict:
+    """root 配下の text suffix ファイルを、root からの相対パス → 絶対パスの辞書として返す。
+
+    root がディレクトリなら再帰的に列挙する（skills）。root がファイルなら
+    それ自身を `{Path(root.name): root}` として返す（agents）。この統一により
+    「skill はディレクトリ、agent は単一ファイル」という構造差を吸収し、
+    ディレクトリ/ファイルで検査ロジックを分岐させずに済む。
+    """
+    if root.is_file():
+        if root.suffix.lower() not in _TEXT_SUFFIXES:
+            return {}
+        return {Path(root.name): root}
+    return {t.relative_to(root): t for t in _iter_text_files(root)}
+
+
+def _iter_mirror_matches(repo_root: Path):
+    """plugins/<plugin>/<領域> と開発側で**同名のトップレベルエントリ**を列挙する。
+
+    片側にしか無いエントリ（意図的な差分）はここで既に除外されるため、
+    呼び出し側（check_mirror_identity / main）が別途フィルタする必要はない。
+    """
+    for plugin_dir in sorted((repo_root / "plugins").glob("*/")):
+        for area, dev_dir in _MIRROR_AREAS.items():
+            plugin_area_root = plugin_dir / area
+            dev_area_root = repo_root / dev_dir
+            if not plugin_area_root.is_dir() or not dev_area_root.is_dir():
+                continue
+            plugin_names = {p.name: p for p in plugin_area_root.iterdir()}
+            dev_names = {p.name: p for p in dev_area_root.iterdir()}
+            for name in sorted(set(plugin_names) & set(dev_names)):
+                yield plugin_names[name], dev_names[name]
+
+
+def _compare_mirror_entry(repo_root: Path, plugin_entry: Path, dev_entry: Path) -> List[Violation]:
+    """同名の複製相エントリ（skill ディレクトリ or agent ファイル）を再帰的に比較する。"""
+    violations: List[Violation] = []
+    plugin_map = _relative_text_files(plugin_entry)
+    dev_map = _relative_text_files(dev_entry)
+    for rel in sorted(set(plugin_map) | set(dev_map)):
+        if rel not in dev_map:
+            shown = str(plugin_map[rel].relative_to(repo_root)).replace("\\", "/")
+            violations.append(
+                Violation("T3", shown, "開発側に対応物がない（複製相の非対称）")
+            )
+        elif rel not in plugin_map:
+            shown = str(dev_map[rel].relative_to(repo_root)).replace("\\", "/")
+            violations.append(
+                Violation("T3", shown, "plugin 側に複製されていない（複製相の非対称）")
+            )
+        else:
+            if _read(plugin_map[rel]) != _read(dev_map[rel]):
+                shown = str(plugin_map[rel].relative_to(repo_root)).replace("\\", "/")
+                dev_shown = str(dev_map[rel].relative_to(repo_root)).replace("\\", "/")
+                violations.append(
+                    Violation("T3", shown, f"開発側と内容が異なる: {dev_shown}")
+                )
+    return violations
+
+
+def check_mirror_identity(repo_root: Path) -> List[Violation]:
+    """T3: plugin 側の複製相（skills / agents）が開発側と内容一致することを検査する。
+
+    検査対象は「両側に同名で存在するトップレベルエントリ」から導出する
+    （維持リスト不要 / T1 と同型）。片側にしか無いエントリは意図的な差分として
+    無視する（モジュール冒頭の docstring §3 つの検査 参照）。
+    """
+    violations: List[Violation] = []
+    for plugin_entry, dev_entry in _iter_mirror_matches(repo_root):
+        violations.extend(_compare_mirror_entry(repo_root, plugin_entry, dev_entry))
+    return violations
+
+
 def verify(repo_root: Path) -> List[Violation]:
-    return check_managed_identity(repo_root) + check_reference_closure(repo_root)
+    return (
+        check_managed_identity(repo_root)
+        + check_reference_closure(repo_root)
+        + check_mirror_identity(repo_root)
+    )
 
 
 def main() -> int:
@@ -173,8 +271,11 @@ def main() -> int:
     )
     print(f"managed テンプレート: {managed} 件 を検査した")
 
+    mirror_matched = sum(1 for _ in _iter_mirror_matches(repo_root))
+    print(f"複製相（skills/agents）: {mirror_matched} 件の一致エントリを検査した")
+
     if not violations:
-        print("OK  plugin ディレクトリは包含（T1）と閉包（T2）を満たす")
+        print("OK  plugin ディレクトリは包含（T1）・閉包（T2）・複製相の恒等性（T3）を満たす")
         return 0
 
     print(f"NG  違反 {len(violations)} 件")

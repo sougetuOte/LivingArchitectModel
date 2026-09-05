@@ -23,6 +23,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 import verify_plugin_containment as vpc  # noqa: E402
 from verify_plugin_containment import (  # noqa: E402
     check_managed_identity,
+    check_mirror_identity,
     check_reference_closure,
     main,
     verify,
@@ -68,6 +69,17 @@ def test_check_is_not_vacuous():
     assert len(files) >= 20, f"テンプレートが少なすぎる（{len(files)} 件）= 検査が空回りしている"
 
 
+def test_t3_check_is_not_vacuous():
+    """T3 の検査対象（両側一致エントリ）が実リポジトリで十分な件数あることを要求する。
+
+    0 件なら「常に緑」になる（機構 #10 / test_check_is_not_vacuous と同じ構え）。
+    """
+    matched = list(vpc._iter_mirror_matches(REPO_ROOT))
+    assert len(matched) >= 20, (
+        f"複製相の一致エントリが少なすぎる（{len(matched)} 件）= 検査が空回りしている"
+    )
+
+
 def test_main_returns_zero_on_real_repo(capsys):
     assert main() == 0
     assert "OK" in capsys.readouterr().out
@@ -97,6 +109,115 @@ def test_t1_ignores_line_ending_difference(tmp_path):
     """CRLF/LF の差だけでは落ちない（Windows の git 変換で偽陽性を出さない）。"""
     repo = _fake_repo(tmp_path, template_body="a\r\nb\r\n", source_body="a\nb\n")
     assert check_managed_identity(repo) == []
+
+
+# --- T3 陰性対照（複製相の恒等性） -----------------------------------------
+
+
+def _mirror_repo(tmp_path: Path, *, plugin: dict, dev: dict, area: str = "skills") -> Path:
+    """複製相（skills/agents）を持つ最小の偽リポジトリを作る。
+
+    `plugin` / `dev` は {相対パス文字列: 内容} 形式。
+    skills なら "skillname/SKILL.md"、agents なら "name.md" を渡す。
+    write_bytes で書く（CRLF 対照のため改行コードを保持する / `_fake_repo` と同じ理由）。
+    """
+    plugin_root = tmp_path / "plugins" / "lam-harness" / area
+    dev_root = tmp_path / ".claude" / area
+    for rel, body in plugin.items():
+        p = plugin_root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(body.encode("utf-8"))
+    for rel, body in dev.items():
+        p = dev_root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(body.encode("utf-8"))
+    return tmp_path
+
+
+def test_t3_detects_content_drift(tmp_path):
+    """同名 skill の内容が食い違えば検出する（本 Task の発端となった事故と同型）。"""
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"sample/SKILL.md": "old\n"},
+        dev={"sample/SKILL.md": "new\n"},
+    )
+    violations = check_mirror_identity(repo)
+    assert len(violations) == 1
+    assert violations[0].check == "T3"
+    assert "内容が異なる" in violations[0].detail
+
+
+def test_t3_detects_missing_on_dev_side(tmp_path):
+    """plugin 側にのみ存在するファイルが同名 skill 配下にあれば検出する。"""
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"sample/SKILL.md": "x\n", "sample/references/extra.md": "y\n"},
+        dev={"sample/SKILL.md": "x\n"},
+    )
+    violations = check_mirror_identity(repo)
+    assert len(violations) == 1
+    assert "開発側に対応物がない" in violations[0].detail
+
+
+def test_t3_detects_missing_on_plugin_side(tmp_path):
+    """開発側にのみ存在するファイルが同名 skill 配下にあれば検出する（未複製）。"""
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"sample/SKILL.md": "x\n"},
+        dev={"sample/SKILL.md": "x\n", "sample/references/extra.md": "y\n"},
+    )
+    violations = check_mirror_identity(repo)
+    assert len(violations) == 1
+    assert "plugin 側に複製されていない" in violations[0].detail
+
+
+def test_t3_ignores_one_sided_entries(tmp_path):
+    """片側にしか存在しない skill/agent は違反として報告しない（意図的な差分）。
+
+    実例: 開発側のみの `build-dashboard`（非配布）/ `clause-gate`（LAM 固有）、
+    plugin 側のみの `init`（plugin 専用）。ここを違反扱いにすると、意図的な非対称を
+    毎回赤にする「常時落ちる計器」になり検査自体が殺される。
+    """
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"init/SKILL.md": "plugin only\n"},
+        dev={"build-dashboard/SKILL.md": "dev only\n"},
+    )
+    assert check_mirror_identity(repo) == []
+
+
+def test_t3_agent_files_are_compared_directly(tmp_path):
+    """agents は単一ファイルの複製相なので、ディレクトリを経由せず直接比較する。"""
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"test-runner.md": "old\n"},
+        dev={"test-runner.md": "new\n"},
+        area="agents",
+    )
+    violations = check_mirror_identity(repo)
+    assert len(violations) == 1
+    assert violations[0].check == "T3"
+    assert "内容が異なる" in violations[0].detail
+
+
+def test_t3_ignores_line_ending_difference(tmp_path):
+    """CRLF/LF の差だけでは落ちない（T1 と同じ配慮）。"""
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"sample/SKILL.md": "a\r\nb\r\n"},
+        dev={"sample/SKILL.md": "a\nb\n"},
+    )
+    assert check_mirror_identity(repo) == []
+
+
+def test_t3_matching_mirror_has_no_violations(tmp_path):
+    """完全に一致する複製相は違反ゼロ（陽性対照）。"""
+    repo = _mirror_repo(
+        tmp_path,
+        plugin={"sample/SKILL.md": "same\n", "sample/references/a.md": "b\n"},
+        dev={"sample/SKILL.md": "same\n", "sample/references/a.md": "b\n"},
+    )
+    assert check_mirror_identity(repo) == []
 
 
 # --- T2 陰性対照 ----------------------------------------------------------
@@ -189,3 +310,7 @@ def test_module_exposes_scope_constants():
     # `py_invoke.sh` を呼んで落ちる状態だった。本 assert は射程変更を
     # diff に出すためのトリップワイヤであり、実際にそう働いた。
     assert set(vpc._MANAGED_AREAS) == {"rules", "docs-internal", "scripts"}
+    # 2026-09-05（複製相の恒等性検査 T3 追加）: skills / agents は開発側・plugin 側
+    # 双方に実体を持つ複製相であり、_MANAGED_AREAS（一方向テンプレート）とは
+    # 別定数として管理する。本 assert は射程変更を diff に出すトリップワイヤ。
+    assert set(vpc._MIRROR_AREAS) == {"skills", "agents"}
