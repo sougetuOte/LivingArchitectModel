@@ -32,7 +32,7 @@
 
 - `docs/internal/06_DECISION_MAKING.md` に基づき、MELCHIOR / BALTHASAR / CASPAR の視点で仕様をレビュー済みか確認する。
 - 特に BALTHASAR（批判者）によるリスク指摘が解決されているかを確認すること。
-- 複雑な判断（判断ポイント 2+、影響レイヤー 3+、選択肢 3+）には `/magi` スキルの活用を推奨する。
+- 複雑な判断（判断ポイント 2+、影響レイヤー 3+、選択肢 3+）には `/lam-harness:magi` スキルの活用を推奨する。
 
 ### F. Clarification（曖昧さの解消）
 

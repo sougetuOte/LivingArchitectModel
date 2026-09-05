@@ -6,18 +6,18 @@ disable-model-invocation: true
 argument-hint: "<対象ファイル or ディレクトリ> [--rubric-path=<rubric.md>] [--auto-approve]"
 ---
 
-# /full-review - 並列監査 + 全修正 + 自動ループ
+# /lam-harness:full-review - 並列監査 + 全修正 + 自動ループ
 
 引数: 対象ファイルまたはディレクトリ（必須）
 
-> **⚠️ 警告（直列のみ運用）**: フェーズ 2 では複数 `/full-review` の同時実行を禁止する。
+> **⚠️ 警告（直列のみ運用）**: フェーズ 2 では複数 `/lam-harness:full-review` の同時実行を禁止する。
 > 状態ファイル（`lam-loop-state.json` 等）は固定名のためレース条件が発生する（R-1/R-2 リスク）。
 > 並列対応（invocation_id による状態ファイル分離）はフェーズ 3 で実装予定。
 
 ## AUDITING フェーズとの使い分け
 
 - AUDITING フェーズ: 手動でフェーズ切替し段階的に監査（skill 廃止済 / `.claude/current-phase.md` を手動更新）
-- `/full-review`: ワンショット実行。並列監査 -> 修正 -> 検証を自動ループで完了
+- `/lam-harness:full-review`: ワンショット実行。並列監査 -> 修正 -> 検証を自動ループで完了
 
 ---
 
@@ -33,7 +33,7 @@ argument-hint: "<対象ファイル or ディレクトリ> [--rubric-path=<rubri
 
 ```bash
 # 引数から --rubric-path=<value> を抽出（省略時は空文字）
-# 例: /full-review src/ --rubric-path=rubric.md → RUBRIC_PATH=rubric.md
+# 例: /lam-harness:full-review src/ --rubric-path=rubric.md → RUBRIC_PATH=rubric.md
 RUBRIC_PATH=""
 AUTO_APPROVE=false
 for arg in $ARGUMENTS; do
@@ -75,18 +75,18 @@ EOF
 
 | フィールド | 型 | 説明 | 管理者 |
 |-----------|---|------|--------|
-| `active` | boolean | ループ有効フラグ | `/full-review` |
-| `command` | string | 起動コマンド（常に `"full-review"`） | `/full-review` |
-| `target` | string | 監査対象パス（引数から取得） | `/full-review` |
-| `iteration` | number | 現在のイテレーション番号（0始まり） | `/full-review` |
-| `max_iterations` | number | 最大イテレーション数（デフォルト: **5**） | `/full-review` |
-| `started_at` | string | ループ開始時刻（ISO 8601） | `/full-review` |
-| `log` | array | 各イテレーションの記録（下記参照） | `/full-review` |
-| `fullscan_pending` | boolean | フルスキャン待ちフラグ（Stage 5 でセット、Claude が参照） | `/full-review` |
-| `pm_pending` | boolean | PM級承認待ちフラグ（Stage 4 でセット、Claude/Stop hook が参照） | `/full-review` |
+| `active` | boolean | ループ有効フラグ | `/lam-harness:full-review` |
+| `command` | string | 起動コマンド（常に `"full-review"`） | `/lam-harness:full-review` |
+| `target` | string | 監査対象パス（引数から取得） | `/lam-harness:full-review` |
+| `iteration` | number | 現在のイテレーション番号（0始まり） | `/lam-harness:full-review` |
+| `max_iterations` | number | 最大イテレーション数（デフォルト: **5**） | `/lam-harness:full-review` |
+| `started_at` | string | ループ開始時刻（ISO 8601） | `/lam-harness:full-review` |
+| `log` | array | 各イテレーションの記録（下記参照） | `/lam-harness:full-review` |
+| `fullscan_pending` | boolean | フルスキャン待ちフラグ（Stage 5 でセット、Claude が参照） | `/lam-harness:full-review` |
+| `pm_pending` | boolean | PM級承認待ちフラグ（Stage 4 でセット、Claude/Stop hook が参照） | `/lam-harness:full-review` |
 | `tool_events` | array | ツール実行イベントの記録（PostToolUse hook が追記） | PostToolUse hook |
-| `rubric_path` | string | ゴール条件 rubric ファイルのパス（省略時は空文字 `""`） | `/full-review` |
-| `auto_approve` | boolean | 対話スキップ + 構造化 JSON 出力モード（デフォルト: `false`） | `/full-review` |
+| `rubric_path` | string | ゴール条件 rubric ファイルのパス（省略時は空文字 `""`） | `/lam-harness:full-review` |
+| `auto_approve` | boolean | 対話スキップ + 構造化 JSON 出力モード（デフォルト: `false`） | `/lam-harness:full-review` |
 
 **log エントリ**:
 

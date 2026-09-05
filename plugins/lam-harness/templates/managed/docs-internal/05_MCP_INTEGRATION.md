@@ -135,6 +135,6 @@ Claude Code の auto memory 機能（`MEMORY.md`）の運用方針を定義す�
 | メカニズム | 用途 | 時間軸 | 管理 |
 |-----------|------|--------|------|
 | `docs/internal/`, `docs/specs/`, `docs/adr/` | プロジェクトの真実（SSOT） | 永続 | git 管理 |
-| `SESSION_STATE.md` | セッション状態のハンドオフ | 使い捨て | 手動（/quick-save） |
+| `SESSION_STATE.md` | セッション状態のハンドオフ | 使い捨て | 手動（/lam-harness:quick-save） |
 | `MEMORY.md` (auto memory) | Subagent の役割ノウハウ蓄積 | 永続（累積） | 自動 |
 | Heimdall | ベクトル検索による過去の意思決定検索 | 永続 | MCP サーバー |

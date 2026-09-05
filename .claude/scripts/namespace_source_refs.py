@@ -1,4 +1,4 @@
-"""namespace_source_refs.py — 正本（`plugins/`）の agent 名参照を名前空間つきへ変換する。
+"""namespace_source_refs.py — 正本（`plugins/`）のコンポーネント参照を名前空間つきへ変換する。
 
 ## なぜ要るか
 
@@ -12,15 +12,18 @@ plugin 由来の agent は `subagent_type` で **必ず名前空間つき**で�
 
 ## 規則（**分類をしない** / MAGI 2 巡 + HGA #34）
 
-判定は `verify_plugin_containment.to_namespaced_agent_text` が持つ（**検査と同一関数**）。
-要約すると「agent 名は固有名詞なので**全出現を ns 化**し、除外は構文的に判定できる 3 位置のみ」——
-(D) frontmatter `name:` の値 / (P) `<name>.md` のファイル名文脈 / (T) 言語タグが
-`markdown` / `json` のフェンス内（= 出力テンプレート・スキーマ）。
+判定は `verify_plugin_containment.to_distributed_text` が持つ（**検査と同一関数**）。
 
-**skills は対象外**（Action 4b）。`phase="building"` のような別名前空間の値と衝突し、
-かつ slash 形は T1 チェーン 55 箇所と分裂するため、独立した設計判断を要する。
+- **規則 R-A（agent 名 = 固有名詞）**: **全出現を ns 化**し、除外は構文的に判定できる 3 位置のみ ——
+  (D) frontmatter `name:` の値 / (P) `<name>.md` のファイル名文脈 / (T) 言語タグが
+  `markdown` / `json` のフェンス内（= 出力テンプレート・スキーマ）。
+- **規則 R-S（skill 名 = 一般語）**: **ハーネスの起動構文のみ**（slash 形 `/<name>` /
+  `Skill(skill="<name>")`）。slash の無い bare は概念の言及として対象外 ——
+  実測で `phase="building"` / `"command": "full-review"` のような**別名前空間の値**が存在し、
+  一律 ns 化は壊す。
 
-設計の全文と棄却案は `docs/artifacts/2026-09-06-magi-action4-reference-model.md`。
+設計の全文と棄却案は `docs/artifacts/2026-09-06-magi-action4-reference-model.md`（R-A）と
+`docs/artifacts/2026-09-06-magi-action4b-skill-references.md`（R-S）。
 
 ## 使い方
 
@@ -53,7 +56,8 @@ from verify_plugin_containment import (  # noqa: E402
     _read,
     agent_names,
     plugin_namespace,
-    to_namespaced_agent_text,
+    skill_names,
+    to_distributed_text,
     to_project_text,
 )
 
@@ -66,6 +70,7 @@ def plan(repo_root: Path):
     for plugin_dir in sorted((repo_root / "plugins").glob("*/")):
         namespace = plugin_namespace(plugin_dir)
         names = agent_names(plugin_dir)
+        skills = skill_names(plugin_dir)
         if not namespace or not names:
             continue
         for area in _AREAS:
@@ -76,7 +81,7 @@ def plan(repo_root: Path):
                 if path.suffix.lower() != ".md":
                     continue
                 before = _read(path)
-                after = to_namespaced_agent_text(before, namespace, names)
+                after = to_distributed_text(before, namespace, names, skills)
                 if after != before:
                     pending.append((path, before, after, namespace, names))
     return pending
@@ -110,12 +115,12 @@ def main() -> int:
     pending = plan(repo_root)
 
     if not pending:
-        print("OK  正本の agent 名参照はすべて名前空間つきである（規則 R-A）")
+        print("OK  正本のコンポーネント参照はすべて名前空間つきである（規則 R-A / R-S）")
         return 0
 
     for path, _, _, _, _ in pending:
         print(f"変換対象: {path.relative_to(repo_root).as_posix()}")
-    print(f"{len(pending)} ファイルに bare な agent 名参照がある")
+    print(f"{len(pending)} ファイルに bare なコンポーネント参照がある")
 
     if not args.write:
         print("（--write を付けると書き換える）")

@@ -106,7 +106,7 @@ Phase 3（実行）の途中でユーザーから追加要望が発生した場�
 
 ## 構造化思考（MAGI System）
 
-複雑な判断が必要な場面で `/magi` スキルの思考フレームワークを発動する。
+複雑な判断が必要な場面で `/lam-harness:magi` スキルの思考フレームワークを発動する。
 SSOT は `docs/internal/06_DECISION_MAKING.md`。
 
 ### 発動条件（いずれか）
@@ -120,7 +120,7 @@ SSOT は `docs/internal/06_DECISION_MAKING.md`。
 
 ### 実行フロー
 
-`/magi` スキルの Step 0〜5 に従う。詳細は `.claude/skills/magi/SKILL.md` を参照。
+`/lam-harness:magi` スキルの Step 0〜5 に従う。詳細は `.claude/skills/magi/SKILL.md` を参照。
 
 ```
 Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: lam-harness:gabriel probe → Step 5: AoT Synthesis
@@ -142,7 +142,7 @@ Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: lam-harness:gabr
 
 ### 参照
 
-- `/magi` スキル: `.claude/skills/magi/SKILL.md`
+- `/lam-harness:magi` スキル: `.claude/skills/magi/SKILL.md`
 - SSOT: `docs/internal/06_DECISION_MAKING.md`
 
 ## Subagent 選択ルール
@@ -167,20 +167,20 @@ Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: lam-harness:gabr
 
 ## ループ統合（v4.0.0）
 
-lam-orchestrate は `/full-review` コマンドと連携し、自動ループの状態管理を担う。
+lam-orchestrate は `/lam-harness:full-review` コマンドと連携し、自動ループの状態管理を担う。
 
 ### 状態ファイル: `.claude/lam-loop-state.json`
 
-lam-orchestrate または `/full-review` Stage 0 が生成し、ループのライフサイクル全体を通じて管理する中核ファイル。
-`/full-review` が単独実行された場合は `/full-review` 自身が生成する。lam-orchestrate 経由の場合は lam-orchestrate が生成する。
+lam-orchestrate または `/lam-harness:full-review` Stage 0 が生成し、ループのライフサイクル全体を通じて管理する中核ファイル。
+`/lam-harness:full-review` が単独実行された場合は `/lam-harness:full-review` 自身が生成する。lam-orchestrate 経由の場合は lam-orchestrate が生成する。
 
-**スキーマ定義（SSOT）**: `/full-review` スキル（`.claude/skills/full-review/SKILL.md` Stage 0）を参照。
+**スキーマ定義（SSOT）**: `/lam-harness:full-review` スキル（`.claude/skills/full-review/SKILL.md` Stage 0）を参照。
 
 ### ループライフサイクル
 
 ```
-1. 初期化（/full-review Stage 0）
-   `/full-review` または lam-orchestrate が状態ファイルを生成
+1. 初期化（/lam-harness:full-review Stage 0）
+   `/lam-harness:full-review` または lam-orchestrate が状態ファイルを生成
    → active: true, iteration: 0
 
 2. 状態更新（各イテレーション完了時）
@@ -207,7 +207,7 @@ lam-orchestrate が生成・更新する状態ファイルを、各 hook が参�
 ```
 lam-orchestrate (状態ファイル生成)
     ↓
-/full-review Stage 1-4 (Claude が監査・修正を実行)
+/lam-harness:full-review Stage 1-4 (Claude が監査・修正を実行)
     ↓
 PostToolUse hook (ツール結果を状態ファイルに記録)
     ↓
@@ -218,14 +218,14 @@ Stop hook (状態ファイルを読み、継続/停止を判定)
 Stage 2 に戻る（自動ループ）
 ```
 
-### `/full-review` コマンドとの統合
+### `/lam-harness:full-review` コマンドとの統合
 
-lam-orchestrate と `/full-review` の状態ファイル生成責任:
+lam-orchestrate と `/lam-harness:full-review` の状態ファイル生成責任:
 
-- **単独実行**: `/full-review` 自身が Stage 0 で状態ファイルを生成する
-- **lam-orchestrate 経由**: lam-orchestrate が状態ファイルを生成し、`/full-review` は生成をスキップする（既存ファイルを検出した場合）
+- **単独実行**: `/lam-harness:full-review` 自身が Stage 0 で状態ファイルを生成する
+- **lam-orchestrate 経由**: lam-orchestrate が状態ファイルを生成し、`/lam-harness:full-review` は生成をスキップする（既存ファイルを検出した場合）
 
-lam-orchestrate は、より複雑なマルチタスク実行時に `/full-review` を内包する形で使用される。
+lam-orchestrate は、より複雑なマルチタスク実行時に `/lam-harness:full-review` を内包する形で使用される。
 
 ### fullscan_pending フラグ管理
 
@@ -236,7 +236,7 @@ Stage 5 の差分チェックで Green State を達成した場合、フルス�
 bash .claude/scripts/py_invoke.sh -c "import json,pathlib;p=pathlib.Path('.claude/lam-loop-state.json');d=json.loads(p.read_text());d['fullscan_pending']=True;p.write_text(json.dumps(d,indent=2,ensure_ascii=False))"
 ```
 
-フルスキャン発動は Claude の自律制御による（`/full-review` Stage 5 参照）。Stop hook は `fullscan_pending` フラグを直接検出しない。
+フルスキャン発動は Claude の自律制御による（`/lam-harness:full-review` Stage 5 参照）。Stop hook は `fullscan_pending` フラグを直接検出しない。
 
 ### エスカレーション条件
 
@@ -245,9 +245,9 @@ bash .claude/scripts/py_invoke.sh -c "import json,pathlib;p=pathlib.Path('.claud
 | 条件 | 検出者 | 対応 | 実装状況 |
 |------|--------|------|---------|
 | `stop_hook_active=true`（再帰防止） | Stop hook STEP 0 | 無条件 exit 0 | 実装済み |
-| PM級の問題を検出 | `/full-review` Stage 4 | ループ停止、承認待ち | 実装済み |
+| PM級の問題を検出 | `/lam-harness:full-review` Stage 4 | ループ停止、承認待ち | 実装済み |
 | max_iterations 到達 | Stop hook | ループ強制停止 | 実装済み |
-| コンテキスト枯渇（PreCompact 発火） | Stop hook | ループ停止、`/quick-save` 推奨 | 実装済み |
+| コンテキスト枯渇（PreCompact 発火） | Stop hook | ループ停止、`/lam-harness:quick-save` 推奨 | 実装済み |
 | 前サイクルの Issue 再発 | Claude 自律制御 | ループ停止、手動介入推奨 | Claude 判断で実施 |
 | テスト数減少 | Claude 自律制御 | ループ停止、PM級エスカレーション | Claude 判断で実施 |
 

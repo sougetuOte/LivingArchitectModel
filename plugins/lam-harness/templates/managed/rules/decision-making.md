@@ -18,8 +18,8 @@
 1. **Divergence**: MELCHIOR と BALTHASAR が意見を出し尽くす
 2. **Debate**: 対立ポイントについて解決策を検討
 3. **Convergence**: CASPAR が最終決定を下す
-4. **gabriel Adversarial Probe（AoT 適用時のみ）**: 独立コンテキストで動作する gabriel subagent が CASPAR 結論を adversarial verification。verdict={confirmed/refuted/inconclusive} + severity + confidence を返す。詳細分岐は `.claude/skills/magi/SKILL.md` §Step 4.1 参照
-   > **注記**: 旧 Reflection は Wave C（骨子 ②）で gabriel に置換済（ADR-0007 Accepted 2026-07-02）。B-4 監査（2026-06-19）で Reflection 変更率 0% を実測、独立コンテキストによる adversarial probe への構造的置換で解消
+4. **lam-harness:gabriel Adversarial Probe（AoT 適用時のみ）**: 独立コンテキストで動作する lam-harness:gabriel subagent が CASPAR 結論を adversarial verification。verdict={confirmed/refuted/inconclusive} + severity + confidence を返す。詳細分岐は `.claude/skills/magi/SKILL.md` §Step 4.1 参照
+   > **注記**: 旧 Reflection は Wave C（骨子 ②）で lam-harness:gabriel に置換済（ADR-0007 Accepted 2026-07-02）。B-4 監査（2026-06-19）で Reflection 変更率 0% を実測、独立コンテキストによる adversarial probe への構造的置換で解消
 
 ## AoT（Atom of Thought）
 
@@ -42,9 +42,9 @@
 ### ワークフロー
 
 ```
-AoT Decomposition → MAGI Debate (各Atom) → gabriel probe → AoT Synthesis
+AoT Decomposition → MAGI Debate (各Atom) → lam-harness:gabriel probe → AoT Synthesis
 
-（軽量モード / 非 AoT: MAGI Debate のみで完結 / gabriel は起動しない）
+（軽量モード / 非 AoT: MAGI Debate のみで完結 / lam-harness:gabriel は起動しない）
 ```
 
 > **AoT フレームワーク保存**: 上記 §Atom の定義・適用条件は無改変で保存する（**NFR-W-C-6 MUST NOT** / 詳細: 親 §6.3）。破壊は統合テスト 3 系統（`.claude/tests/wave_c/` **31+21+16 件** / 2026-08-20 に `--collect-only` で実測）が拾う設計。

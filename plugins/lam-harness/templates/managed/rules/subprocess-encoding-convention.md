@@ -22,7 +22,7 @@ UTF-8 で書かれていることが多く、両者が食い違うと `UnicodeDe
 本 Task の BUILDING セッション中に、**この失敗を実機で 3 パターン自然再現**した
 （monkeypatch を用いた仮想再現ではなく、実際の失敗）:
 
-1. **`UnicodeDecodeError`（親プロセス側のデコード失敗）**: `/quick-save` の
+1. **`UnicodeDecodeError`（親プロセス側のデコード失敗）**: `/lam-harness:quick-save` の
    dashboard 生成時、`.claude/scripts/dashboard/parsers/git_history.py`
    （修正前）が `subprocess.run(["git", "log", ...], text=True)` で
    日本語コミットメッセージ（例: `983110b docs(M-1): ADR-0011 ...`）を読み取り、

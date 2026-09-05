@@ -13,8 +13,8 @@ Wave または Phase の完了時に実施する構造化振り返り。
 
 ## 引数
 
-- `/retro wave` — 直近の Wave を振り返る（デフォルト）
-- `/retro phase` — Phase 全体を振り返る（Phase 完了時）
+- `/lam-harness:retro wave` — 直近の Wave を振り返る（デフォルト）
+- `/lam-harness:retro phase` — Phase 全体を振り返る（Phase 完了時）
 
 ## 実行ステップ
 
@@ -130,8 +130,8 @@ Step 4 の最後に、以下を 1 度だけ確認する:
 > 「記憶の誤りが判断を歪める」向きは実測・敵対検証が拾う（2026-09-04 に 2 件とも同日中に是正された）。
 > 一方「正本を直したが記憶が古いまま」は、**その記憶が使われるまで誤りだと分からない**。
 >
-> **なぜ `/ship` や `/release` ではないか**: 頻度が高くほとんどの回で空振りするため
-> （`feedback-skill-auto-script-exec-noise` の型に直行する）。`/retro` はセッション末に回る唯一の定点。
+> **なぜ `/lam-harness:ship` や `/lam-harness:release` ではないか**: 頻度が高くほとんどの回で空振りするため
+> （`feedback-skill-auto-script-exec-noise` の型に直行する）。`/lam-harness:retro` はセッション末に回る唯一の定点。
 
 ### Step 5: 記録
 
@@ -149,7 +149,7 @@ Keep: X件 / Problem: X件 / Try: X件
 記録: docs/artifacts/retro-wave-{N}.md / retro-phase-{N}.md / retro-<version>.md
 ```
 
-## Phase 振り返り（`/retro phase`）の追加ステップ
+## Phase 振り返り（`/lam-harness:retro phase`）の追加ステップ
 
 Phase 全体の場合、Step 2-3 に加えて以下を実施:
 

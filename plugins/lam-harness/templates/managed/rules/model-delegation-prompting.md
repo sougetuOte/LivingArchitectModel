@@ -42,7 +42,7 @@ paths:
 
 ## §3 coverage 型 (敵対レビュー) の唯一例外
 
-**[配送済]**: `code-reviewer` / `gabriel` / `quality-auditor` の 3 定義に「coverage 段階では確信度で絞らない」を常駐化した（2026-07-26）。以下は**それ以外の agent にレビューを委譲するとき**に書き手が使う原文。
+**[配送済]**: `lam-harness:code-reviewer` / `lam-harness:gabriel` / `lam-harness:quality-auditor` の 3 定義に「coverage 段階では確信度で絞らない」を常駐化した（2026-07-26）。以下は**それ以外の agent にレビューを委譲するとき**に書き手が使う原文。
 
 デルタ 6 により、Sonnet 5 に監査・レビューを委譲する際に「重要なものだけ報告せよ」と書くと recall が下がる。coverage 目的の敵対レビューでは公式推奨文をそのまま使う:
 

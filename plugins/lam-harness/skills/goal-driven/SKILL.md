@@ -32,7 +32,7 @@ effort を `xhigh` へ昇格させる指定をしてはならない（MUST NOT�
 ## 起動引数
 
 ```
-/goal-driven <task-description-or-slug>
+/lam-harness:goal-driven <task-description-or-slug>
 ```
 
 - `<task-description-or-slug>`: 実行するタスクの説明またはスラッグ。

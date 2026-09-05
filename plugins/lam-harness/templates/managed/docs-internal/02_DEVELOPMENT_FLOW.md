@@ -26,17 +26,17 @@
 
 ### MAGI System（構造化意思決定）との連携
 
-Phase 1 の各ステップにおいて、`/magi` スキル（AoT + MAGI Debate + gabriel probe）を活用できる:
+Phase 1 の各ステップにおいて、`/lam-harness:magi` スキル（AoT + MAGI Debate + lam-harness:gabriel probe）を活用できる:
 
 | ステップ | 適用 | 参照 |
 |----------|------|------|
-| 要件定義 | 要件の Atom 分解 + MAGI 合議 | `/magi`, `.claude/agents/requirement-analyst.md` |
-| 設計 | 設計の Atom 分解 + トレードオフ分析 | `/magi`, `.claude/agents/design-architect.md` |
-| タスク分割 | タスクの Atom 化 + Wave 構成判断 | `/magi`, `.claude/agents/task-decomposer.md` |
+| 要件定義 | 要件の Atom 分解 + MAGI 合議 | `/lam-harness:magi`, `.claude/agents/requirement-analyst.md` |
+| 設計 | 設計の Atom 分解 + トレードオフ分析 | `/lam-harness:magi`, `.claude/agents/design-architect.md` |
+| タスク分割 | タスクの Atom 化 + Wave 構成判断 | `/lam-harness:magi`, `.claude/agents/task-decomposer.md` |
 
 詳細は `docs/internal/06_DECISION_MAKING.md` を参照。
 
-> **Note**: `/magi` は主に Phase 1 で使用するが、Phase 2 での実装中に新たな設計判断が発生した場合や、
+> **Note**: `/lam-harness:magi` は主に Phase 1 で使用するが、Phase 2 での実装中に新たな設計判断が発生した場合や、
 > Phase 3 でのリファクタリング方針決定時にも適用可能である。
 
 ## Phase 2: The TDD & Implementation Cycle (実装サイクル)
@@ -74,9 +74,9 @@ Phase 1 の各ステップにおいて、`/magi` スキル（AoT + MAGI Debate +
 
 PostToolUse hook がテスト実行結果を自動監視し、以下を記録する:
 - JUnit XML（`.claude/test-results.xml`）を読み取り、テスト成否を `.claude/tdd-patterns.log` に蓄積
-- FAIL→PASS 遷移検出時に `/retro` 実行を推奨（通知のみ、自動実行なし）
-- 同一パターン 2回以上出現で `/retro` 内でルール候補を提案（PM級承認）
-- `src/` 配下のファイル変更を検知し、ドキュメント同期フラグを設定（詳細は `/ship` コマンド参照）※ `src/` は配布先プロジェクトでの実装コード配置を想定した記述であり、LAM リポジトリ自体には `src/` は存在しない（`00_PROJECT_STRUCTURE.md` §1 の注記を参照）
+- FAIL→PASS 遷移検出時に `/lam-harness:retro` 実行を推奨（通知のみ、自動実行なし）
+- 同一パターン 2回以上出現で `/lam-harness:retro` 内でルール候補を提案（PM級承認）
+- `src/` 配下のファイル変更を検知し、ドキュメント同期フラグを設定（詳細は `/lam-harness:ship` コマンド参照）※ `src/` は配布先プロジェクトでの実装コード配置を想定した記述であり、LAM リポジトリ自体には `src/` は存在しない（`00_PROJECT_STRUCTURE.md` §1 の注記を参照）
 
 詳細は `.claude/rules/auto-generated/trust-model.md` を参照。
 

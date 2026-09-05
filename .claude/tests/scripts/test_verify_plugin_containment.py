@@ -90,12 +90,19 @@ def test_main_returns_zero_on_real_repo(capsys):
 
 
 def test_t1_detects_content_drift(tmp_path):
-    """テンプレートと開発側の内容が食い違えば検出する（= lam-harness 1.0.0 の事故）。"""
+    """テンプレートと開発側の内容が食い違えば検出する（= lam-harness 1.0.0 の事故）。
+
+    **2026-09-06（Action 4b / ADR-0010 追補 3）に判定が変わった** —— T1 は「バイト恒等」から
+    「**派生 == 導出(正本)**」へ改められた（T3 が 2026-09-05 に通ったのと同じ改訂）。
+    導出は Markdown に prefix を付与するため、本文が bare な名前を含まない限り
+    恒等写像であり、**本ケース（`old` vs `new`）の判定は変わらない**。
+    導出そのものの検査は `test_managed_derivation.py` が持つ。
+    """
     repo = _fake_repo(tmp_path, template_body="old\n", source_body="new\n")
     violations = check_managed_identity(repo)
     assert len(violations) == 1
     assert violations[0].check == "T1"
-    assert "内容が異なる" in violations[0].detail
+    assert "導出結果と一致しない" in violations[0].detail
 
 
 def test_t1_detects_missing_source(tmp_path):

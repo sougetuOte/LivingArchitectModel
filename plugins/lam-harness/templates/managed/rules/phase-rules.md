@@ -36,7 +36,7 @@ requirements / design / tasks の各成果物完成時、ユーザーへ承認�
 - 設定ファイル変更（package.json, pyproject.toml 等）
 - 未承認での次サブフェーズ開始
 
-> **機構（2026-07-27 / R3 二重化 / MAGI + gabriel 2 巡を経て実施）**: 上記 4 項のうち機構が執行するのは **3 項目め（設定ファイル変更）のみ**。`pre-tool-use.py` の `_PLANNING_CONFIG_DENY_BASENAMES` が PLANNING フェーズ限定で deny し、allow 対は `_PLANNING_ALLOW_PATTERNS`（本節「許可」の出力先 / ADR-0008 D1）。テストと境界条件は `.claude/tests/hooks/test_planning_config_deny.py`。
+> **機構（2026-07-27 / R3 二重化 / MAGI + lam-harness:gabriel 2 巡を経て実施）**: 上記 4 項のうち機構が執行するのは **3 項目め（設定ファイル変更）のみ**。`pre-tool-use.py` の `_PLANNING_CONFIG_DENY_BASENAMES` が PLANNING フェーズ限定で deny し、allow 対は `_PLANNING_ALLOW_PATTERNS`（本節「許可」の出力先 / ADR-0008 D1）。テストと境界条件は `.claude/tests/hooks/test_planning_config_deny.py`。
 >
 > **射程は Edit / Write 経路のみ**。`Bash("cat >> pyproject.toml")` は `file_path` を持たず `_determine_by_command` に落ちるため、本機構では捕捉しない（対処は Layer 1 = `permissions.deny` の領分であり、同じ穴は AUTONOMOUS の FR-9 / FR-3.4 deny にも空いている）。
 >
@@ -129,12 +129,12 @@ F4 (全体検証 5 点) は AUDITING フェーズで発動する (下記)。
 ### TDD 内省パイプライン v2
 
 PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 遷移を自動記録する。
-`/retro` 実行時に人間がパターン分析を行い、同一パターンが閾値（2回）以上出現する場合にルール候補を提案する。
+`/lam-harness:retro` 実行時に人間がパターン分析を行い、同一パターンが閾値（2回）以上出現する場合にルール候補を提案する。
 
 - パターン記録: `.claude/tdd-patterns.log`（自動、PG級）
 - パターン詳細: `docs/artifacts/tdd-patterns/`
 - ルール候補: `.claude/rules/auto-generated/draft-*.md`（PM級で起票・承認）
-- パターン分析: `/retro` Step 2.5
+- パターン分析: `/lam-harness:retro` Step 2.5
 
 詳細: `.claude/rules/auto-generated/trust-model.md`
 
@@ -166,7 +166,7 @@ PostToolUse hook がテスト結果（JUnit XML）を読み取り、FAIL→PASS 
 
 ### F4 (全体検証)
 
-AUDITING フェーズ開始時に**1 箇所固定**で発動 (`/ship` Phase 5 後の発火は禁止 = commit 済で「壊しに行く」検証が遅く、かつ /ship に儀式 2 個載ると両方形骸化する)。
+AUDITING フェーズ開始時に**1 箇所固定**で発動 (`/lam-harness:ship` Phase 5 後の発火は禁止 = commit 済で「壊しに行く」検証が遅く、かつ /lam-harness:ship に儀式 2 個載ると両方形骸化する)。
 
 - [ ] 報告に書く各原因に「症状への寄与の証拠」を 1 つずつ持つ。なければ「寄与は未確認」と書け
 
@@ -220,6 +220,6 @@ Critical: X件 / Warning: X件 / Info: X件
 ```
 ⚠️ フェーズ警告: 現在は [PHASE] フェーズです。
 1. ルールに沿って続行
-2. フェーズ切替（PLANNING, /building, AUDITING の各フェーズへ手動切替）
+2. フェーズ切替（PLANNING, /lam-harness:building, AUDITING の各フェーズへ手動切替）
 3. 「承知の上で続行」と明示
 ```

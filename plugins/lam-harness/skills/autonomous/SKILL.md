@@ -18,7 +18,7 @@ disable-model-invocation: true
 ## 起動引数
 
 ```
-/autonomous <spec_target>
+/lam-harness:autonomous <spec_target>
 ```
 
 - `<spec_target>`: 対象 spec のパス（例: `docs/specs/<feature>/requirements.md`）。

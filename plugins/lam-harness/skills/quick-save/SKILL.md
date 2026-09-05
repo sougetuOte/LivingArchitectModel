@@ -8,7 +8,7 @@ disable-model-invocation: true
 # クイックセーブ
 
 プロジェクトルートの `SESSION_STATE.md` への記録 + ループログ保存 + Daily 記録。
-git commit は行わない（コミットは `/ship` を使用）。
+git commit は行わない（コミットは `/lam-harness:ship` を使用）。
 コンテキスト消費を抑えるため、簡潔に実行すること。
 
 ## 1. プロジェクトルートの SESSION_STATE.md を書き出す
@@ -106,8 +106,8 @@ Daily: docs/daily/YYYY-MM-DD.md
   claude -c  （直前セッション続行）
   claude     （新規セッション）
 
-再開後: /quick-load
-git commit が必要なら: /ship
+再開後: /lam-harness:quick-load
+git commit が必要なら: /lam-harness:ship
 ---
 ```
 

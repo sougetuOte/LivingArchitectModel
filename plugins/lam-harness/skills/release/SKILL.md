@@ -6,14 +6,14 @@ disable-model-invocation: true
 argument-hint: "<version> (例: v4.8.0)"
 ---
 
-# /release - リリース
+# /lam-harness:release - リリース
 
 引数: `<version>` — リリースするバージョン（例: `v4.8.0`）。`v` 接頭辞付き semver。
 引数がない場合は CHANGELOG の `[Unreleased]` 内容から semver 昇格案（major/minor/patch）を提示し、ユーザーに確定を求める。
 
 ## 前提条件チェック
 
-1. リリース対象以外の未コミット変更がないこと（あれば `/ship` を先に案内）
+1. リリース対象以外の未コミット変更がないこと（あれば `/lam-harness:ship` を先に案内）
 2. `git tag` に同名タグが存在しないこと（存在したら中止）
 3. テストが Green であること（例: `bash .claude/scripts/py_invoke.sh -m pytest .claude/tests`）
    - 失敗時は警告し、ユーザーの「承知の上で続行」を得るまで進まない
@@ -54,7 +54,7 @@ bash .claude/scripts/py_invoke.sh .claude/scripts/verify_distributable_claims.py
 (1) 提示されたスラッシュコマンドが `.claude/skills/` に実在するか、
 (2) 紹介された `.claude/` 直下ディレクトリが存在し**空でない**か。
 （対象・実在一覧・空判定とも実体から導出。維持リストを持たない / 例外は理由必須）
-**落ちたら `/ship` で先に直す** —— リリースコミットは単独に保つ。
+**落ちたら `/lam-harness:ship` で先に直す** —— リリースコミットは単独に保つ。
 
 ```bash
 # plugin を持つリポジトリでのみ実行する（本検査は配布されない = 下記の注記参照）
@@ -112,9 +112,9 @@ plugin ディレクトリの 2 つの封じ込めを検査する（R3 機構 **#
 ## Phase 3: commit
 
 1. `git status` + `git diff --stat` で変更を確認
-2. gitleaks シークレットスキャン（`/ship` Phase 1 に準ずる。未インストール時は WARNING で続行）
+2. gitleaks シークレットスキャン（`/lam-harness:ship` Phase 1 に準ずる。未インストール時は WARNING で続行）
 3. `chore(release): <version> — <概要>` でコミット（CHANGELOG + slides 等のリリース成果物）
-   - 別機能の未コミット変更がある場合は `/ship` を先に促し、リリースコミットを単独に保つ
+   - 別機能の未コミット変更がある場合は `/lam-harness:ship` を先に促し、リリースコミットを単独に保つ
 
 ## Phase 4: tag
 
@@ -174,7 +174,7 @@ plugin ディレクトリの 2 つの封じ込めを検査する（R3 機構 **#
 - **Release 作成も公開操作である**。Phase 6 も明示承認後にのみ実行する
 - 同名タグが既に存在する場合は中止する
 - テスト未通過時は承認を求める
-- リリースコミットは単独に保つ（別機能の変更は `/release` 前に `/ship` で確定）
+- リリースコミットは単独に保つ（別機能の変更は `/lam-harness:release` 前に `/lam-harness:ship` で確定）
 - **Phase 5 で終わらせない** —— タグのみの状態は「リリースしたつもり」を生む最も蓋然性の高い失敗形である
 
 ## 完了条件（チェックリスト）

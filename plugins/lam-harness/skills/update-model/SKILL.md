@@ -5,7 +5,7 @@ version: 1.0.0
 disable-model-invocation: true
 ---
 
-# /update-model - モデル世代交代手順
+# /lam-harness:update-model - モデル世代交代手順
 
 `.claude/rules/model-roster.md` §1（層 → モデル名の束縛）を更新するときに実行する
 **薄い順序表**。判断ロジック（条件分岐・閾値判定）は本 skill に実装しない。

@@ -17,9 +17,9 @@ exitCode が存在しないため動作していなかった（2026-03-13 判明
     ↓
 PostToolUse hook → tdd-patterns.log に FAIL/PASS 記録
     ↓
-FAIL→PASS 遷移時 → systemMessage で /retro 推奨（通知A）
+FAIL→PASS 遷移時 → systemMessage で /lam-harness:retro 推奨（通知A）
     ↓
-/retro 実行（人間が判断）→ Step 2.5 でパターン分析
+/lam-harness:retro 実行（人間が判断）→ Step 2.5 でパターン分析
     ↓
 頻出パターン（2回以上）→ ルール候補を draft-NNN.md として提案
     ↓
@@ -31,21 +31,21 @@ FAIL→PASS 遷移時 → systemMessage で /retro 推奨（通知A）
 | 条件 | アクション |
 |------|-----------|
 | FAIL→PASS 遷移 | `tdd-patterns.log` に自動記録（PG級） |
-| 同一パターン 2回以上 | `/retro` でルール候補を提案（PM級） |
+| 同一パターン 2回以上 | `/lam-harness:retro` でルール候補を提案（PM級） |
 
-**初期閾値: 2回**。v1 の3回から引き下げ。`/retro` が人間実行であり誤爆リスクが低いため。
+**初期閾値: 2回**。v1 の3回から引き下げ。`/lam-harness:retro` が人間実行であり誤爆リスクが低いため。
 
 ## カウント単位
 
 信頼度モデルにおける「同一パターンの発火回数」は **検出イベント単位**で数える。
 
-**検出イベント単位の定義**: 1 つの検証イベント (1 セッション内の /retro 実行 / 1 回の HGA 召喚 / 1 回の監査 Stage / 1 回の gabriel probe 等) 内で検出された複数 issue は、件数によらず **1 カウント**とする。
+**検出イベント単位の定義**: 1 つの検証イベント (1 セッション内の /lam-harness:retro 実行 / 1 回の HGA 召喚 / 1 回の監査 Stage / 1 回の lam-harness:gabriel probe 等) 内で検出された複数 issue は、件数によらず **1 カウント**とする。
 
 **データソース** (design §4.2 W-c 反映): 検出イベントは `tdd-patterns.log` の FAIL→PASS 遷移に限らず、以下も含む:
 
 - HGA 召喚 (`docs/artifacts/hga-summon-log.md` 記載の各 #N)
 - 監査 Stage (`docs/artifacts/*-audit-*.md` 記載の Stage 単位)
-- gabriel probe (`gabriel-metrics.log` 記載の各 probe 実行)
+- lam-harness:gabriel probe (`gabriel-metrics.log` 記載の各 probe 実行)
 
 **遡及一貫性**: rule-001 の実績カウント (4 検出イベント: 2026-06-27 / 2026-07-05 / 2026-07-06 / 2026-07-07) は本定義と遡及一貫する (異日付・異セッションが各 1 検出イベント)。
 
@@ -53,7 +53,7 @@ FAIL→PASS 遷移時 → systemMessage で /retro 推奨（通知A）
 
 ## パターン照合ロジック
 
-`/retro` の Step 2.5 で実施:
+`/lam-harness:retro` の Step 2.5 で実施:
 
 1. `tdd-patterns.log` から最終 `ANALYZED` マーカー以降のエントリを抽出
 2. FAIL→PASS ペアを構成（同一テストフレームワーク、時系列順）
@@ -89,7 +89,7 @@ FAIL→PASS 遷移時 → systemMessage で /retro 推奨（通知A）
 ## ルール寿命管理
 
 - 各承認済みルールに `last_matched` 日付をメタデータとして記録（ISO 8601形式）
-- `/quick-save` の Daily 記録時に 90 日以上未使用のルールを棚卸し対象として通知
+- `/lam-harness:quick-save` の Daily 記録時に 90 日以上未使用のルールを棚卸し対象として通知
 - ルール削除は **PM級**（人間承認必須）
 
 ## N 回目発火時の恒久解検討
@@ -106,7 +106,7 @@ FAIL→PASS 遷移時 → systemMessage で /retro 推奨（通知A）
 
 - 信頼度モデル自体の変更: **PM級**
 - パターン記録の追加: **PG級**（PostToolUse hook が自動記録）
-- ルール候補の生成・承認・却下: **PM級**（`/retro` 内で人間が判断）
+- ルール候補の生成・承認・却下: **PM級**（`/lam-harness:retro` 内で人間が判断）
 
 ## 参照
 

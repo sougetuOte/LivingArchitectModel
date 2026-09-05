@@ -91,7 +91,7 @@ PLANNING フェーズで承認を完了してください。
 ## TDD 内省パイプライン v2
 
 BUILDING フェーズでの TDD サイクル中、テスト失敗→成功のパターンは PostToolUse hook によって `.claude/tdd-patterns.log` に自動記録される。
-閾値（2回）に達したパターンは `/retro` Step 2.5 で審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
+閾値（2回）に達したパターンは `/lam-harness:retro` Step 2.5 で審査し、承認されれば `.claude/rules/auto-generated/` にルールとして昇格する。
 詳細: `.claude/rules/auto-generated/trust-model.md`
 
 ## 禁止事項

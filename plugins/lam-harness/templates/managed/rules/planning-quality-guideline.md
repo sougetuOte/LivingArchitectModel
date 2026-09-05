@@ -15,7 +15,7 @@ paths:
 > 行為繋留だった §7（新機能・外部依存の採用評価）のみ `upstream-first.md` へ移した。
 
 PLANNING フェーズで作成する成果物（specs, design, tasks）の品質判断基準。
-`spec-template`、`design-architect`、`task-decomposer` と併用する。
+`spec-template`、`lam-harness:design-architect`、`lam-harness:task-decomposer` と併用する。
 
 ## 1. Requirements Smells（仕様の曖昧さ検出）
 

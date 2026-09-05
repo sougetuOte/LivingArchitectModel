@@ -81,9 +81,30 @@ def test_exclusion_d_frontmatter_name_declaration():
 
 
 def test_exclusion_p_filename_context():
-    """(P) `<name>.md` はファイルを指しており名前の参照ではない。"""
+    """(P) その語がファイルを指しているなら参照ではない。"""
     assert _ns("`gabriel.md` を読む") == "`gabriel.md` を読む"
     assert _ns("agents/gabriel を読む") == "agents/gabriel を読む"
+
+
+def test_exclusion_p_covers_brace_expanded_path_list():
+    """(P) **ブレース展開のパス列挙**もファイルを指している。
+
+    `.claude/agents/{a,b,c}.md` の 2 件目以降は直前が `,` であり、`/` の
+    lookbehind だけでは捕まらない。**判定は「その語を含むトークンが `/` を含むか」**であり、
+    区切りにカンマを含めないことでブレース内が 1 トークンに保たれる。
+
+    これは 2026-09-06 の **diff レビューが実際に検出した唯一の意味破壊**である
+    （`docs/internal/08_EXECUTION_DISCIPLINE.md` のファイル列挙が名前空間化されて壊れた）。
+    集計ではなく全数目視でしか出てこない類であり、レビュー工程を必須にしている根拠でもある。
+    """
+    src = "`.claude/agents/{doc-writer,quality-auditor,code-reviewer}.md` — 注入先"
+    assert _ns(src) == src
+
+
+def test_exclusion_p_does_not_swallow_plain_prose():
+    """偽陽性の対照 —— `/` を含まないトークンは通常どおり変換される。"""
+    assert _ns("`subagent_type=gabriel`") == "`subagent_type=lam-harness:gabriel`"
+    assert _ns("docs/specs/ を読む gabriel") == "docs/specs/ を読む lam-harness:gabriel"
 
 
 def test_exclusion_t_template_fence_is_untouched():
@@ -242,3 +263,81 @@ def test_frontmatter_still_parses_after_namespacing():
                 assert not isinstance(value, dict), f"{shown}: '{key}' がコロンで dict 化した"
             checked += 1
     assert checked >= 50, f"検査対象が少なすぎる（{checked} 件）= 探索の失敗を緑と誤認しないため"
+
+
+# --- 規則 R-S: skill 起動参照（Action 4b / 2026-09-06）--------------------------------
+
+SKILLS = {"ship", "full-review", "magi", "building", "retro", "quick-save"}
+
+
+def _rs(text: str) -> str:
+    from verify_plugin_containment import to_namespaced_skill_text
+
+    return to_namespaced_skill_text(text, NS, SKILLS)
+
+
+def test_rs_slash_form_is_namespaced():
+    assert _rs("`/ship` を実行する") == "`/lam-harness:ship` を実行する"
+
+
+def test_rs_skill_call_form_is_namespaced():
+    assert _rs('Skill(skill="magi")') == 'Skill(skill="lam-harness:magi")'
+
+
+def test_rs_leaves_values_in_other_namespaces_alone():
+    """**skill 名は一般語**であり、別名前空間の値と衝突する。slash が無いものは触らない。
+
+    実測で存在した 3 形すべてを固定する —— ここが壊れると
+    `autonomous/SKILL.md` の状態遷移や `full-review` のループ状態 JSON が壊れる。
+    """
+    src = '`phase="building"` に戻す / `"command": "full-review"` / `"mode": "autonomous"`'
+    assert _rs(src) == src
+
+
+def test_rs_does_not_match_path_segments():
+    """`docs/full-review/` のようなパス片は起動構文ではない（直前が `/` 以外の語）。"""
+    assert _rs("docs/full-review/report.md") == "docs/full-review/report.md"
+
+
+def test_rs_is_idempotent():
+    once = _rs("/ship と /retro")
+    assert _rs(once) == once
+    assert once == "/lam-harness:ship と /lam-harness:retro"
+
+
+def test_rs_template_fence_is_untouched():
+    src = "```markdown\n実行: /ship\n```\n"
+    assert _rs(src) == src
+
+
+def test_rs_untagged_fence_is_namespaced():
+    assert _rs("```\n/ship\n```\n") == "```\n/lam-harness:ship\n```\n"
+
+
+def test_rs_agent_names_are_not_touched_by_rs():
+    """R-S は agent 名に触れない（役割分離の陰性対照）。"""
+    assert _rs("gabriel と quality-auditor") == "gabriel と quality-auditor"
+
+
+def test_distributed_text_composes_both_rules():
+    from verify_plugin_containment import to_distributed_text
+
+    src = "`/ship` の後に gabriel を起動する"
+    assert to_distributed_text(src, NS, NAMES, SKILLS) == (
+        "`/lam-harness:ship` の後に lam-harness:gabriel を起動する"
+    )
+
+
+def test_real_source_has_no_bare_skill_invocation():
+    """本番の正本が規則 R-S を満たすこと（再混入防止 gate / T5）。"""
+    from verify_plugin_containment import to_namespaced_skill_text
+
+    ns = plugin_namespace(PLUGIN_DIR)
+    skills = {p.name for p in (PLUGIN_DIR / "skills").iterdir() if p.is_dir()}
+    offenders = []
+    for area in ("skills", "agents"):
+        for path in sorted((PLUGIN_DIR / area).rglob("*.md")):
+            text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+            if to_namespaced_skill_text(text, ns, skills) != text:
+                offenders.append(path.relative_to(REPO_ROOT).as_posix())
+    assert offenders == []

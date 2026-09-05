@@ -82,7 +82,7 @@ Info（または指摘しない）
 ### モジュール間帰責判断
 
 複数モジュールにまたがる Issue で、修正責任が曖昧な場合の判断基準。
-`/full-review` の Stage 3 レポートおよび Stage 4 修正時に適用する。
+`/lam-harness:full-review` の Stage 3 レポートおよび Stage 4 修正時に適用する。
 
 #### フローチャート
 

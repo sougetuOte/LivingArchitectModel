@@ -6,7 +6,7 @@ disable-model-invocation: true
 argument-hint: "[dry-run]"
 ---
 
-# /ship - 論理グループ分けコミット
+# /lam-harness:ship - 論理グループ分けコミット
 
 引数: `dry-run`（任意） — Phase 4 まで実行して終了
 
@@ -175,6 +175,6 @@ dry-run こそ計画品質の確認場のため、実況ステップは**走ら�
 ### ユーザー作業
 
 - push が必要な場合は `git push origin <branch>` を案内
-- リリースが必要な場合は `/release` を案内
+- リリースが必要な場合は `/lam-harness:release` を案内
 - ブランチ作成・マージが必要な場合は手順を案内
 - 外部サービスへの通知が必要な場合は列挙

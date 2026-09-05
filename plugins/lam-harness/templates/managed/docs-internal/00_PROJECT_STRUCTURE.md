@@ -18,11 +18,11 @@
 │   ├── tasks/              # タスク管理 (Kanban/List)
 │   ├── internal/           # プロジェクト運用ルール (本フォルダ)
 │   ├── artifacts/          # 中間成果物・監査レポート・知見
-│   │   ├── knowledge/      # /retro Step4 で整理した知見
+│   │   ├── knowledge/      # /lam-harness:retro Step4 で整理した知見
 │   │   ├── audit-reports/  # 監査レポート
 │   │   └── tdd-patterns/   # TDD パターン詳細記録（v2 のログは .claude/tdd-patterns.log）
 │   ├── slides/             # 概念説明スライド
-│   ├── daily/              # /quick-save Daily 記録
+│   ├── daily/              # /lam-harness:quick-save Daily 記録
 │   └── memos/              # [Input] ユーザーからの生メモ・資料
 ├── .claude/                # Claude Code用設定・コマンド・状態管理
 │   ├── rules/              # ガードレール（自動ロード）
@@ -44,8 +44,8 @@
 
 - **Raw Ideas**: ユーザーからの未加工のアイデアやチャットログは `docs/memos/YYYY-MM-DD_topic.md` に保存する。
 - **Intermediate Reports**: lam-orchestrate の Wave 間で受け渡す調査結果等の中間成果物は `docs/artifacts/YYYY-MM-DD_intermediate_[topic].md` に保存する（Coordinator のコンテキスト圧迫を防ぐため）。
-- **Knowledge**: `/retro` Step 4 で整理した知見は `docs/artifacts/knowledge/` に蓄積する。
-- **Audit Reports**: `/full-review` の監査レポートは `docs/artifacts/audit-reports/` に保存する。
+- **Knowledge**: `/lam-harness:retro` Step 4 で整理した知見は `docs/artifacts/knowledge/` に蓄積する。
+- **Audit Reports**: `/lam-harness:full-review` の監査レポートは `docs/artifacts/audit-reports/` に保存する。
 - **TDD Patterns**: テスト失敗/成功パターンの詳細記録は `docs/artifacts/tdd-patterns/` に保存する。
 - **Reference Materials**: 参考資料（画像、PDF）は `docs/memos/assets/` に配置する。
 
@@ -66,9 +66,9 @@
 
 ### E. State Management (状態管理)
 
-- **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/quick-save` で記録、`/quick-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
+- **SESSION_STATE.md** (プロジェクトルート): 現在のセッション状態。`/lam-harness:quick-save` で記録、`/lam-harness:quick-load` で復元。セッション間ハンドオフ用の使い捨てファイル。
 - **.claude/states/*.json**: 機能/Milestone 単位の承認ゲート状態・進捗記録 (例: `<milestone-slug>.json` / `cc-spec-alignment.json`, `large-scale-review.json` 等)。フェーズ (PLANNING/BUILDING/AUDITING) 現在値管理ではなく、各機能開発の進行管理に使用 (フェーズ現在値は `.claude/current-phase.md` が担当)。
-- **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。PLANNING/AUDITING は手動更新、BUILDING は `/building` 実行時に更新される。
+- **.claude/current-phase.md**: 現在の開発フェーズ（PLANNING/BUILDING/AUDITING）。PLANNING/AUDITING は手動更新、BUILDING は `/lam-harness:building` 実行時に更新される。
 
 ## 3. SSOT 3層アーキテクチャ
 

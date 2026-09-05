@@ -145,6 +145,9 @@ def check_managed_identity(repo_root: Path) -> List[Violation]:
         managed_root = plugin_dir / "templates" / "managed"
         if not managed_root.is_dir():
             continue
+        namespace = plugin_namespace(plugin_dir)
+        agents = agent_names(plugin_dir)
+        skills = skill_names(plugin_dir)
         for area, dev_dir in _MANAGED_AREAS.items():
             area_root = managed_root / area
             if not area_root.is_dir():
@@ -162,12 +165,16 @@ def check_managed_identity(repo_root: Path) -> List[Violation]:
                         )
                     )
                     continue
-                if _read(template) != _read(source):
+                expected = derive_managed_text(
+                    rel, _read(source), namespace, agents, skills
+                )
+                if _read(template) != expected:
                     violations.append(
                         Violation(
                             "T1",
                             shown,
-                            f"開発側と内容が異なる: {dev_dir.as_posix()}/{rel.as_posix()}",
+                            f"開発側からの導出結果と一致しない: {dev_dir.as_posix()}/{rel.as_posix()}"
+                            "（`derive_managed_templates.py --write` で再生成する）",
                         )
                     )
     return violations
@@ -310,6 +317,29 @@ def _frontmatter_end(lines: List[str]) -> int:
     return -1
 
 
+_TOKEN_DELIMITERS = " \t`"
+
+
+def _enclosing_token(line: str, index: int) -> str:
+    """`index` を含むトークンを返す（区切りは空白とバッククォートのみ）。
+
+    除外 (P) の判定に使う —— **その語がファイルを指しているかは、その語を含むトークンが
+    パスの形をしているか（`/` を含むか）で決まる**。
+
+    区切りにカンマを含めないのが要点である。`` `.claude/agents/{a,b,c}.md` `` のような
+    **ブレース展開のパス列挙**では、カンマはパスの内側にある —— カンマを区切りにすると
+    2 件目以降が「パスではない」と判定され、**ファイル列挙が名前空間化されて壊れる**
+    （2026-09-06 / diff レビューが実際に検出した唯一の意味破壊）。
+    """
+    start = index
+    while start > 0 and line[start - 1] not in _TOKEN_DELIMITERS:
+        start -= 1
+    end = index
+    while end < len(line) and line[end] not in _TOKEN_DELIMITERS:
+        end += 1
+    return line[start:end]
+
+
 def _template_fence_lines(text: str):
     """除外 (T) に該当するフェンスの内側の行を (行番号 1-origin, 行) で列挙する。"""
     inside = False
@@ -360,13 +390,110 @@ def to_namespaced_agent_text(text: str, namespace: str, names: set) -> str:
             continue
 
         def _sub(mm, _line=line):
-            # 除外 (P): `<name>.md` はファイルを指しており名前の参照ではない。
+            # 除外 (P): その語が**ファイルを指している**なら参照ではない。判定は 2 つ。
             if _line[mm.end():].startswith(".md"):
+                return mm.group(0)
+            if "/" in _enclosing_token(_line, mm.start()):
                 return mm.group(0)
             return namespace + mm.group(0)
 
         out.append(pattern.sub(_sub, line))
     return "\n".join(out)
+
+
+# --- 規則 R-S: skill 参照の名前空間化（Action 4b / 2026-09-06）----------------------
+#
+# **skill 名は一般語であり、agent 名（固有名詞）と同じ規則を当てると壊れる** ——
+# 実測で `phase="building"` / `"command": "full-review"` / `"mode": "autonomous"` という
+# **別名前空間の値**が存在する。そこで R-S は「**ハーネスの起動構文にある出現のみ**」を対象とする。
+#
+# slash は著者が発明したマークではなく**ハーネス自身の起動文法**であり、
+# 「読者がそれで解決する唯一の signal」という条件を満たす（RFC 1946 の設計と同型）。
+# 置換候補 125 箇所を全数レビューし、誤爆 0 を実測した（2026-09-06）。
+#
+# **bare は「短縮形」ではない。** 名前空間を省くと、利用者環境に同名の personal / project skill が
+# あればそちらが起動する（`templates/starter/CLAUDE.md`）。Ansible の `ansible.legacy.copy` と
+# 同型であり、この変換は**意味を変える**（だからこそ配布物には名前空間つきが正しい）。
+
+def skill_names(plugin_dir: Path) -> set:
+    """skill 名の集合を plugin の実在から導出する（維持リストを持たない）。"""
+    skills_dir = plugin_dir / "skills"
+    if not skills_dir.is_dir():
+        return set()
+    return {p.name for p in skills_dir.iterdir() if p.is_dir()}
+
+
+def to_namespaced_skill_text(text: str, namespace: str, names: set) -> str:
+    """skill のハーネス起動構文を名前空間つきへ変換する（規則 R-S）。
+
+    対象は slash 形 `/<name>` と `Skill(skill="<name>")` のみ。**slash の無い bare は
+    概念の言及と定義し、対象外とする**。除外 (T)（言語タグ `markdown` / `json` のフェンス内 =
+    出力テンプレート・スキーマ）は R-A と共通。
+    """
+    if not namespace or not names:
+        return text
+    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    # 直前が英数字・`_`・`-`・`/` でない `/`。既に `/<ns>:<name>` の形は name の直前が `:` なので当たらない
+    slash_re = re.compile(r"(?<![A-Za-z0-9_/-])/(" + alternation + r")(?![A-Za-z0-9_:-])")
+    call_re = re.compile(r"(?<=skill=[\"'])(" + alternation + r")(?=[\"'])")
+
+    out = []
+    inside = False
+    lang = ""
+    for line in text.split("\n"):
+        m = _FENCE_RE.match(line)
+        if m:
+            if not inside:
+                lang = m.group(1).lower()
+            inside = not inside
+            out.append(line)
+            continue
+        if inside and lang in _TEMPLATE_FENCE_LANGS:
+            out.append(line)  # 除外 (T)
+            continue
+        line = slash_re.sub(lambda mm: "/" + namespace + mm.group(1), line)
+        line = call_re.sub(lambda mm: namespace + mm.group(1), line)
+        out.append(line)
+    return "\n".join(out)
+
+
+def to_distributed_text(text: str, namespace: str, agents: set, skills: set) -> str:
+    """配布される側のテキストを導出する（規則 R-A ∘ R-S）。
+
+    **ADR-0010 追補 3**: 不変条件は「**配布される側**に bare の実行参照が残っていないこと」。
+    T3 では配布側 = 正本（`plugins/`）なので正本に直接適用し、T1 では配布側 = 派生
+    （`templates/managed/`）なので生成時に適用する。
+    """
+    return to_namespaced_skill_text(
+        to_namespaced_agent_text(text, namespace, agents), namespace, skills
+    )
+
+
+def derive_managed_text(rel: Path, text: str, namespace: str, agents: set, skills: set) -> str:
+    """T1 の導出: `.claude/` 正本 → `templates/managed/` 派生。
+
+    **Markdown だけを変換する。** `.py` / `.sh` はそのまま複製する —— 実行されるコードであり、
+    コメントの読者は開発者であってハーネスでもモデルでもない（4a の hooks 除外と同じ理由 /
+    実測: managed scripts の slash 形は docstring・コメントの 7 箇所のみ）。
+    """
+    if rel.suffix.lower() != ".md":
+        return text
+    return to_distributed_text(text, namespace, agents, skills)
+
+
+def invert_managed_text(rel: Path, text: str, namespace: str, every: set) -> str:
+    """`derive_managed_text` の逆写像（往復恒等の検証に使う）。
+
+    **`.md` 以外に `to_project_text` を当ててはならない。** 導出が恒等写像である領域に
+    prefix 除去を当てると、**もともと名前空間つきで書かれていた記述まで剥がしてしまう** ——
+    実測: `.claude/scripts/verify_distributable_claims.py` のコメントは
+    `/lam-harness:init` の形を**意図的に**持つ（正規表現が `/lam-harness` で切れる件の説明）。
+    本関数を素朴に `to_project_text` 一本にすると、この 1 件で往復恒等が偽陽性で落ちる
+    （2026-09-06 / 陰性対照テストが実際に検出した）。
+    """
+    if rel.suffix.lower() != ".md":
+        return text
+    return to_project_text(text, namespace, every)
 
 
 def check_source_namespacing(repo_root: Path) -> List[Violation]:
@@ -380,6 +507,7 @@ def check_source_namespacing(repo_root: Path) -> List[Violation]:
     for plugin_dir in sorted((repo_root / "plugins").glob("*/")):
         namespace = plugin_namespace(plugin_dir)
         names = agent_names(plugin_dir)
+        skills = skill_names(plugin_dir)
         if not namespace or not names:
             continue
         for area in ("skills", "agents"):
@@ -398,6 +526,15 @@ def check_source_namespacing(repo_root: Path) -> List[Violation]:
                             shown,
                             "bare な agent 名参照が残っている"
                             "（規則 R-A / 利用者環境では解決しないか、別 agent が黙って動く）",
+                        )
+                    )
+                if to_namespaced_skill_text(text, namespace, skills) != text:
+                    violations.append(
+                        Violation(
+                            "T5",
+                            shown,
+                            "bare な skill 起動参照が残っている"
+                            "（規則 R-S / 利用者環境では同名の personal / project skill が起動しうる）",
                         )
                     )
                 for lineno, line in _template_fence_lines(text):

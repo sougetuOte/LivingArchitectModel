@@ -7,9 +7,9 @@
 ```
 1. PostToolUse hook がテスト結果（JUnit XML）を読み取り、
    FAIL→PASS 遷移を .claude/tdd-patterns.log に記録
-   （FAIL→PASS 遷移時に systemMessage で /retro を推奨）
+   （FAIL→PASS 遷移時に systemMessage で /lam-harness:retro を推奨）
 
-2. /retro 実行時（人間が判断）に tdd-patterns.log を分析
+2. /lam-harness:retro 実行時（人間が判断）に tdd-patterns.log を分析
    → 同一パターンが閾値（初期値: 2回）以上出現する場合
    → draft-NNN.md としてルール候補を提案
 
@@ -18,7 +18,7 @@
    → 却下: draft を削除
 
 4. ルール寿命管理
-   → 90日以上未使用のルールを /quick-save (Daily記録) で棚卸し通知
+   → 90日以上未使用のルールを /lam-harness:quick-save (Daily記録) で棚卸し通知
    → 寿命管理と削除の権限は trust-model.md §ルール寿命管理（正本）
 ```
 
