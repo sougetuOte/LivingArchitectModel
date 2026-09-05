@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### PM 級ゲートの 2 つの穴と、7 週間死んでいた gabriel 計器を塞いだ（2026-09-05 / `/full-review` iter0）
+
+Action 4 着手前のベースライン取得として `.claude/` + `plugins/` を監査した（Stage 1 静的解析 +
+観点別 4 並列）。**Critical 5 / Warning 22 / Info 11**。Critical は全件 L1 が実測で裏取りし、
+1 件を降格・1 件を新規発見した。ユーザー決定により **Critical 4 件を修正、残りは起票**。
+
+- **PM 級判定が大文字小文字で迂回できた**（C-2）。Windows の NTFS は case-insensitive だが
+  `normalize_path` の相対パス分岐は FS に問い合わせない設計のため、`.claude/Rules/security-commands.md`
+  は **判定 SE・書込先は実在の PM 級ファイル本体**になっていた。`Claude.md` / `docs/Specs/` も同型。
+  **実測で経路全体を確認した** —— 判定関数が `('SE', 'default path')` を返し、かつ
+  `head -1 ".claude/Rules/..."` が実ファイルを読み出す。`re.IGNORECASE` で塞いだ
+- **hook が書く信頼アンカー 4 件が PM 級集合の外にあった**（C-3 / C-4）。
+  `.session-pm-edit-cache.json` を偽造すれば以後の PM 承認が全て SE へ降格し（判定は `session_id` と
+  パス文字列の一致のみ / `session_id` は `ls` だけで得られる）、`autonomous-state.json` の `active` を
+  落とせば **G1 checker を一度も評価せずに**ループが「正常終了」した。4 件を PM 級に追加
+- **射程は Edit / Write 経路のみ**。`Bash("cat > ...")` は `file_path` を持たず到達しない ——
+  FR-9 / FR-3.4 deny や PLANNING 設定凍結と**同じ既知の限界**であり、ここでは変えていない
+- **gabriel の計器が 7 週間死んでいた**（C-5）。`gabriel-metrics.log` は **4 行 / 最終更新 2026-07-18**
+  で、以後 5 回走った probe が 1 行も記録されていない。**それでも検査は緑だった** ——
+  古い 4 行が enum 準拠だから。**空集合は常にスキーマに適合する**。
+  根本原因は `magi/SKILL.md` に**このログが一度も登場しないこと**だった
+- 処方は 3 つ。(1) §Step 4.1 の冒頭に「**分岐する前に 1 行追記する（MUST）**」を新設 ——
+  `hga-summon-log.md` が #33 まで生きているのは `hga-summoning.md` に同じ MUST があるからで、
+  **その書き方を写した**。(2) 契約スキーマをテスト内から本番モジュールへ移設（本番から import される
+  経路が 0 件だった）。(3) **「書かれなかった」を検出する** anchor カバレッジ検査を新設
+- **未記録の 5 件は埋めていない**。遡って被覆させるには計器データを捏造するしかなく、
+  `security-commands.md` §計器への書き込みを伴う検証 が禁じる方向であるため、基準日を 2026-09-05 に置いた
+- **C-1 は未修正**（`py_invoke.sh -c` で Bash deny リストを全迂回できる / **本監査セッション自身が
+  無承認で任意 Python を 6 回実行したことが実証**）。方向は決定済みだが、`pre-tool-use.py` 自身の
+  コメントが「allow マッチ時に hook をスキップする場合がある」と述べており、**upstream 確認が先**
+- テスト **1364 → 1377 passed**。新規検査の陰性対照が実際に赤転することを確認済
+- 詳細: `docs/artifacts/audit-reports/2026-09-05-iter0.md`
+
 ### P-1 —— hooks を複製相へ入れ、hook 宣言の実体検査（T4）を新設した（2026-09-05）
 
 E2E 準備段の P-1。`.claude/hooks/` の **7 件**を `plugins/lam-harness/hooks/` へ複製し、
