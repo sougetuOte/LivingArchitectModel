@@ -67,10 +67,10 @@ if len(chunks) > 5:
 
 | エージェント | 観点 | 出力要件 |
 |-------------|------|---------|
-| `code-reviewer` (1) | ソースコード品質（命名、構造、エラー処理） | 各 Issue に PG/SE/PM 分類を付与 |
-| `code-reviewer` (2) | テストコード品質（網羅性、可読性、テストパターン） | 各 Issue に PG/SE/PM 分類を付与 |
-| `quality-auditor` | アーキテクチャ・仕様整合性（依存関係、**仕様ドリフト**、**構造整合性**） | 仕様ドリフト + 構造整合性結果を含む |
-| `code-reviewer` (3) | セキュリティ（OWASP Top 10、シークレット漏洩、依存脆弱性、インジェクション） | 各 Issue にリスクレベル (Critical/High/Medium/Low) + PG/SE/PM 分類を付与 |
+| `lam-harness:code-reviewer` (1) | ソースコード品質（命名、構造、エラー処理） | 各 Issue に PG/SE/PM 分類を付与 |
+| `lam-harness:code-reviewer` (2) | テストコード品質（網羅性、可読性、テストパターン） | 各 Issue に PG/SE/PM 分類を付与 |
+| `lam-harness:quality-auditor` | アーキテクチャ・仕様整合性（依存関係、**仕様ドリフト**、**構造整合性**） | 仕様ドリフト + 構造整合性結果を含む |
+| `lam-harness:code-reviewer` (3) | セキュリティ（OWASP Top 10、シークレット漏洩、依存脆弱性、インジェクション） | 各 Issue にリスクレベル (Critical/High/Medium/Low) + PG/SE/PM 分類を付与 |
 
 **セキュリティチェックリスト（統合済み）**:
 - [ ] 入力値検証（Input Validation）
@@ -90,7 +90,7 @@ if len(chunks) > 5:
 | Low | PG | 自動修正可 |
 
 プロジェクト規模に応じてエージェント構成を調整可能。
-小規模の場合は `code-reviewer` x1 + `quality-auditor` x1 でもよい（ただしセキュリティ観点は省略しないこと）。
+小規模の場合は `lam-harness:code-reviewer` x1 + `lam-harness:quality-auditor` x1 でもよい（ただしセキュリティ観点は省略しないこと）。
 再監査ループで Critical・契約違反・セキュリティ系 Issue が 2 巡連続ゼロの場合は、縮小構成（SRC+SEC 統合 / TEST 統合 / QA の 3 体）への移行を推奨する。Warning 判定は「新系統 Critical 級・契約違反・具体的攻撃シナリオ・guideline 閾値の明確な超過」に限定する。（B-2 retro 反映）
 
 各エージェントは独立した監査レポートを生成する。
@@ -217,9 +217,9 @@ merge_contracts() でモジュール単位に集約 → save_contract_card() で
 
 **前巡査定記録の注入**: 2回目以降の監査プロンプトには、前巡までの Info 降格・棄却記録（監査レポートの査定メモ）を「再指摘不要リスト」として注入し、同一ボーダーライン指摘の再出を抑制する。（B-2 retro 反映）
 
-**仕様ドリフトチェック（quality-auditor）**: quality-auditor は `docs/specs/` と対象コードの整合性を検証する。仕様に記述されているが実装されていない機能、または実装されているが仕様に記述されていない機能を「仕様ドリフト」として報告する。
+**仕様ドリフトチェック（lam-harness:quality-auditor）**: lam-harness:quality-auditor は `docs/specs/` と対象コードの整合性を検証する。仕様に記述されているが実装されていない機能、または実装されているが仕様に記述されていない機能を「仕様ドリフト」として報告する。
 
-**セキュリティチェック（code-reviewer セキュリティ）**: OWASP Top 10 に基づくコードレベルの脆弱性検出を行う。具体的には:
+**セキュリティチェック（lam-harness:code-reviewer セキュリティ）**: OWASP Top 10 に基づくコードレベルの脆弱性検出を行う。具体的には:
 - **インジェクション**: SQL/NoSQL/コマンドインジェクション、eval 使用
 - **認証・認可**: ハードコードされた認証情報、不適切なアクセス制御
 - **シークレット漏洩**: API キー、パスワード、トークンのコード内露出
@@ -229,7 +229,7 @@ merge_contracts() でモジュール単位に集約 → save_contract_card() で
 
 公式参考: [Anthropic security-guidance plugin](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/security-guidance)
 
-**構造整合性チェック（quality-auditor）**: コンポーネント間の「接続」が正しいかを検証する。Wave やタスクを跨いで構築されたコンポーネント（hooks, commands, skills, agents）間で、以下の整合性を確認する:
+**構造整合性チェック（lam-harness:quality-auditor）**: コンポーネント間の「接続」が正しいかを検証する。Wave やタスクを跨いで構築されたコンポーネント（hooks, commands, skills, agents）間で、以下の整合性を確認する:
 
 - **スキーマ整合性**: 状態ファイル（`lam-loop-state.json` 等）の書き手と読み手でフィールド名・型が一致しているか
 - **参照整合性**: コマンドやスキルが参照するファイル・エージェントが実在するか、パスが正しいか

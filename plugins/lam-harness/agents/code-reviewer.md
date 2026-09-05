@@ -6,8 +6,8 @@ description: >
   セキュリティのうち呼び出し側が指定した 1 観点を担当する。フェーズ非依存。
   Use proactively after code changes to review quality, security, and maintainability.
   /full-review Stage 2 では本 agent を観点別に 3 並列で起動する。
-  リポジトリ横断の構造整合性・仕様ドリフト検証は quality-auditor を使うこと（守備範囲は
-  quality-auditor に包含されるが、軽量ゆえに並列ワーカーとして使い分ける）。
+  リポジトリ横断の構造整合性・仕様ドリフト検証は lam-harness:quality-auditor を使うこと（守備範囲は
+  lam-harness:quality-auditor に包含されるが、軽量ゆえに並列ワーカーとして使い分ける）。
 model: sonnet
 tools: Read, Grep, Glob, Bash
 memory: project

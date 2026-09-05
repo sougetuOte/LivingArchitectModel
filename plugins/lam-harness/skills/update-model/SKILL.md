@@ -66,7 +66,7 @@ bash .claude/scripts/py_invoke.sh -m pytest
 ```
 
 上記コマンドの PASS/FAIL/SKIP 内訳を項目 1（pytest 全数）として記録する。
-残り 5 項目（Green State 件数 / `tdd-patterns.log` FAIL→PASS 率 / gabriel verdict 分布 /
+残り 5 項目（Green State 件数 / `tdd-patterns.log` FAIL→PASS 率 / lam-harness:gabriel verdict 分布 /
 PM 級ダイアログ発火数 / `CLAUDE.md` + `rules` トークン数）は、design.md §4.1 の表が定める
 個別の実測手順にそのまま従う。
 

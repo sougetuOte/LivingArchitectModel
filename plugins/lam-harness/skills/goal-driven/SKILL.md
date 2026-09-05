@@ -160,7 +160,7 @@ while loop_count < max_loop_count AND total_tokens < global_token_bound:
   [1] bound 残量チェック（spawn-time enforcement）
       → 残量不足ならエスカレーション
 
-  [2] Agent(goal-driven-l3-executor) 起動
+  [2] Agent(lam-harness:goal-driven-l3-executor) 起動
       prompt: タスク内容 + rubric.md パス + 前回の差し戻し情報
       → 構造化報告 JSON を受け取る（design §7 スキーマ）
 
@@ -169,7 +169,7 @@ while loop_count < max_loop_count AND total_tokens < global_token_bound:
       実測取得失敗時のみ報告 JSON の tokens_used（自己申告）を P-2 フォールバックとして採用
       （WARN ログ出力・乖離率 >0.20 の場合は cost_log._divergences に記録）
 
-  [4] Agent(goal-driven-grader) 起動（別コンテキスト・FR-2）
+  [4] Agent(lam-harness:goal-driven-grader) 起動（別コンテキスト・FR-2）
       prompt: 構造化報告 JSON + rubric.md
       → grader 判定 JSON を受け取る
 
@@ -188,7 +188,7 @@ loop_count >= max_loop_count → エスカレーション（bound 超過）
 - grader 合格をもって完了とする（L1 最終検収スキップ・design §9.1 MUST）
 
 **大タスクルートでは**:
-- Agent(goal-driven-l2-foreman) を介して l3-executor を分配する
+- Agent(lam-harness:goal-driven-l2-foreman) を介して l3-executor を分配する
 - ネスト失敗時は `gd-session-state.json` に `fallback: "two_layer"` をセットし
   L1 が l3-executor を直接制御する（三層→二層退避・design §11b）
 
@@ -214,7 +214,7 @@ Callable[[str], tuple[str, Optional[int]]]
 #   subagent_tokens は Agent ツール結果から取得した実測値。取得不可時は None。
 ```
 
-それぞれ Agent(goal-driven-l3-executor) / Agent(goal-driven-grader) の
+それぞれ Agent(lam-harness:goal-driven-l3-executor) / Agent(lam-harness:goal-driven-grader) の
 呼び出しを渡すこと（AC-5: 独立した Agent 呼び出し・FR-2: 別コンテキスト）。
 
 **W4-T2 実装（`.claude/scripts/gd_state.py`）の追加 API（コスト集計）**:
@@ -236,7 +236,7 @@ grader は毎回独立した Agent 呼び出しで起動する（作業者と別
 
 ```
 Agent(
-  agent="goal-driven-grader",
+  agent="lam-harness:goal-driven-grader",
   prompt="rubric_path=<project_root>/docs/tasks/<slug>/rubric.md\n" +
          "report=<構造化報告 JSON>"
 )

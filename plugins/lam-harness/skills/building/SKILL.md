@@ -42,7 +42,7 @@ disable-model-invocation: true
    - 1サイクル完了ごとにユーザーに報告
 
 7. **作業の進め方**
-   - TDD実装には `tdd-developer` サブエージェントを推奨
+   - TDD実装には `lam-harness:tdd-developer` サブエージェントを推奨
    - 実装前に必ず `docs/specs/` の対応仕様を確認
    - コード変更時は対応ドキュメントも同時更新（Atomic Commit）
 

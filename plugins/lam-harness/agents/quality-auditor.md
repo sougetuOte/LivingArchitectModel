@@ -6,7 +6,7 @@ description: |
   アーキテクチャ健全性。3 Agents Model を適用した改善提案と監査レポートを生成する。
   AUDITING フェーズの全体監査、および /full-review Stage 2 の QA 枠で使用する。
   単一の変更差分に対する短距離レビュー（コード品質 / テスト品質 / セキュリティの
-  1 観点）には code-reviewer を使うこと。
+  1 観点）には lam-harness:code-reviewer を使うこと。
 tools: Read, Glob, Grep, Bash
 model: sonnet
 memory: project

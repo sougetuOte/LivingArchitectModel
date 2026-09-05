@@ -54,7 +54,7 @@ print(f'Summary: {result.summary_path}')
 静的解析で Issue が検出された場合、Stage 2（並列監査）のエージェントに以下の追加コンテキストを提供する:
 - `.claude/review-state/summary.md` の内容を各監査エージェントのプロンプトに含める
 - 静的解析で既に検出済みの Issue は LLM が重複検出する必要がないことを伝える
-- セキュリティ Issue は `code-reviewer`（セキュリティ）エージェントに優先的に渡す
+- セキュリティ Issue は `lam-harness:code-reviewer`（セキュリティ）エージェントに優先的に渡す
 
 ### ツール未インストール時
 

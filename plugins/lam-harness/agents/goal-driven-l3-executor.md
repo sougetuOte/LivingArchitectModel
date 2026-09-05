@@ -10,7 +10,7 @@ maxTurns: 20
 memory: project
 ---
 
-# goal-driven-l3-executor: 末端実装エージェント
+# lam-harness:goal-driven-l3-executor: 末端実装エージェント
 
 ## 役割
 

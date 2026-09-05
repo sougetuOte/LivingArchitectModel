@@ -226,7 +226,7 @@ Agent prompt で指定された仕様書パス（`docs/specs/*.md`）を Read �
 
 原因の可能性:
 1. 仕様が曖昧 → PLANNING フェーズへ差し戻し仕様を明確化
-2. 設計が不適切 → design-architect と協議
+2. 設計が不適切 → lam-harness:design-architect と協議
 3. 技術的制約 → ADR で記録
 
 どう対応しますか？

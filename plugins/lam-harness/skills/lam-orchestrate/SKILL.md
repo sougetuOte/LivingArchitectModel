@@ -123,7 +123,7 @@ SSOT は `docs/internal/06_DECISION_MAKING.md`。
 `/magi` スキルの Step 0〜5 に従う。詳細は `.claude/skills/magi/SKILL.md` を参照。
 
 ```
-Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: gabriel probe → Step 5: AoT Synthesis
+Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: lam-harness:gabriel probe → Step 5: AoT Synthesis
 ```
 
 | レベル | 条件 | モデル |
@@ -136,7 +136,7 @@ Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: gabriel probe �
 
 思考過程を `docs/artifacts/YYYY-MM-DD-magi-{用途}.md` に書き出す（可視化・追跡可能）。
 - 書き込み権限: CASPAR のみ（Single-Writer）
-- 読み取り権限: 全 MAGI + gabriel（Multi-Reader）
+- 読み取り権限: 全 MAGI + lam-harness:gabriel（Multi-Reader）
 - 削除: ユーザーのみ可能
 - フォーマット: `.claude/skills/magi/references/anchor-format.md` を参照
 
@@ -152,13 +152,13 @@ Step 0: AoT Decomposition → Step 1-3: MAGI Debate → Step 4: gabriel probe �
 
 | ファイルパターン | 推奨 Subagent | 備考 |
 |------------------|---------------|------|
-| `*test*`, `*spec*` | test-runner | カスタム定義 |
-| `*.md`, `docs/` | doc-writer | カスタム定義。仕様策定（思考）と清書（整形）の両方を担当。方針と調査結果を渡し、詳細策定を委ねる |
-| コードレビュー系 | code-reviewer | カスタム定義（LAM品質基準適用） |
-| 品質監査・整合性 | quality-auditor | カスタム定義（アーキテクチャ・仕様ドリフト検証） |
-| 要件分析系 | requirement-analyst | カスタム定義（3 Agents Model 内蔵） |
-| 設計・アーキテクチャ系 | design-architect | カスタム定義（データモデル・API設計） |
-| タスク分解系 | task-decomposer | カスタム定義（1PR単位分割） |
+| `*test*`, `*spec*` | lam-harness:test-runner | カスタム定義 |
+| `*.md`, `docs/` | lam-harness:doc-writer | カスタム定義。仕様策定（思考）と清書（整形）の両方を担当。方針と調査結果を渡し、詳細策定を委ねる |
+| コードレビュー系 | lam-harness:code-reviewer | カスタム定義（LAM品質基準適用） |
+| 品質監査・整合性 | lam-harness:quality-auditor | カスタム定義（アーキテクチャ・仕様ドリフト検証） |
+| 要件分析系 | lam-harness:requirement-analyst | カスタム定義（3 Agents Model 内蔵） |
+| 設計・アーキテクチャ系 | lam-harness:design-architect | カスタム定義（データモデル・API設計） |
+| タスク分解系 | lam-harness:task-decomposer | カスタム定義（1PR単位分割） |
 | 調査・探索系 | Explore | ビルトイン |
 | その他 | general-purpose | ビルトイン |
 

@@ -62,7 +62,7 @@ PostToolUse hook が自動生成する `.claude/doc-sync-flag` を参照する�
 SE/PM級の変更がある場合:
 
 1. 対応する `docs/specs/` ファイルを特定（ファイル名パターンマッチ）
-2. `doc-writer` エージェントで更新案を生成（差分形式）
+2. `lam-harness:doc-writer` エージェントで更新案を生成（差分形式）
 3. 更新案をユーザーに提示:
    - CHANGELOG.md への追記が必要か確認
    - README.md / CHEATSHEET.md への反映が必要か確認

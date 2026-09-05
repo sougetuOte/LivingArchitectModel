@@ -63,7 +63,7 @@ Coordinator から渡された方針・調査結果をもとに、詳細仕様�
 
 ### 入力
 
-- 変更ファイル一覧（`/ship` Phase 2 が `.claude/doc-sync-flag` から読み取り、doc-writer に渡す。PROJECT_ROOT からの相対パス形式）
+- 変更ファイル一覧（`/ship` Phase 2 が `.claude/doc-sync-flag` から読み取り、lam-harness:doc-writer に渡す。PROJECT_ROOT からの相対パス形式）
 - 変更内容（`git diff` で取得）
 
 ### 処理フロー
@@ -110,7 +110,7 @@ Coordinator から渡された方針・調査結果をもとに、詳細仕様�
 
 ### 完全実装（PostToolUse 非同期呼び出し）
 
-MVP では `/ship` 時のみトリガー。完全実装では PostToolUse hook から doc-writer を非同期で呼び出し、短時間の連続変更をバッファリングしてドキュメント更新案を生成する。
+MVP では `/ship` 時のみトリガー。完全実装では PostToolUse hook から lam-harness:doc-writer を非同期で呼び出し、短時間の連続変更をバッファリングしてドキュメント更新案を生成する。
 
 ## 制約
 

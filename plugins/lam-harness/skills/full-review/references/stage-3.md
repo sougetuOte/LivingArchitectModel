@@ -118,7 +118,7 @@ print(f'Context size: {len(context)} chars')
 上記でコンテキストを永続化した後、Agent を起動して仕様ドリフトを検出する:
 
 ```
-Agent(quality-auditor): 仕様ドリフト検出
+Agent(lam-harness:quality-auditor): 仕様ドリフト検出
   入力: .claude/review-state/spec-drift-context.md の内容
   指示: 「モジュール実装サマリー」と「仕様書」を比較し、
         仕様に記述されているが実装されていない機能、

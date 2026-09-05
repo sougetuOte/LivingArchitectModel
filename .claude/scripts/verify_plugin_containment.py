@@ -1,4 +1,4 @@
-"""verify_plugin_containment.py — plugin ディレクトリの 4 つの封じ込めを検査する。
+"""verify_plugin_containment.py — plugin ディレクトリの 5 つの封じ込めを検査する。
 
 R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13.5-B / HGA #29）。
 
@@ -10,7 +10,7 @@ R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13
 
 本スクリプトは K4 を原則から**テスト**に変える。
 
-## 4 つの検査
+## 5 つの検査
 
 - **T1 包含（機構 #11）**: `plugins/<plugin>/templates/managed/` 配下の各ファイルは、
   開発側の対応物と**内容が一致する**こと。検査対象は「templates ディレクトリに実在するファイル」から
@@ -37,6 +37,13 @@ R3 機構 #11 / #12（`docs/artifacts/2026-09-04-magi-distribution-form.md` §13
   「**そのイベントだけが黙って発火しない**」という形で現れる。E2E の証人は 5 イベント中 2 本しか
   無い（`2026-09-05-magi-migration-sequence.md` §(A) E6）ため、残り 3 本を守るのは本検査である。
   検査対象は hooks.json の実在から導出する（維持リスト不要 / T1・T3 と同型）。
+- **T5 正本の名前空間化（2026-09-06 追加 / Action 4a）**: 正本
+  （`plugins/<plugin>/{skills,agents}` の Markdown）に **bare な agent 名参照が残っていない**こと。
+  bare 参照は利用者環境で解決しない —— そして `test-runner` のように**組み込みと同名のものは、
+  止まらずに別 agent が黙って動く**（2026-09-05 実測）。判定は「規則 R-A による変換が
+  恒等写像であること」で表され、**codemod と検査が同一関数 `to_namespaced_agent_text` を共有する**。
+  併せて「除外 (T) のフェンス内にハーネス呼び出し構文が無い」ことも検査し、除外の前提を
+  主張ではなく不変条件にする。設計は `docs/artifacts/2026-09-06-magi-action4-reference-model.md`。
 
 ## T2 の射程（v1 / 意図的に狭い）
 
@@ -249,6 +256,163 @@ def to_project_text(text: str, namespace: str, names: set) -> str:
     return pattern.sub(r"\1", text)
 
 
+# --- T5: 正本の agent 名の名前空間化（規則 R-A / 2026-09-06 追加）--------------------
+#
+# 設計は `docs/artifacts/2026-09-06-magi-action4-reference-model.md`（MAGI 2 巡 + HGA #34）。
+# 要点だけ再掲する（複製しない）:
+#
+#   「実行参照か散文か」を判定するのをやめ、**kind と構文位置だけで決まる規則**にした。
+#   agent 名は固有名詞なので**全出現を ns 化**し、除外は構文的に判定できる 3 位置のみとする。
+#   読者は LLM であり、無マークの散文（`agents/quality-auditor.md` の description 内
+#   「code-reviewer を使うこと」）からも tool call を組み立てるため、「マーク無し = 散文」は
+#   地図を書き換えただけで領土は変わらない（HGA #34 裁定 1）。
+#
+# skills（一般語）は本規則の対象外。`phase="building"` / `"command": "full-review"` /
+# `"mode": "autonomous"` のように**別名前空間の値**と衝突するため一律 ns 化は壊す。
+# slash 形だけを T3 側で ns 化すると T1 チェーン（`.claude/rules/` 55 箇所）と配布物の中で
+# 分裂するため、独立した設計判断を要する（Action 4b / 同アンカー §発見 B）。
+
+# 除外 (T): 出力テンプレート・スキーマを格納するフェンスの情報文字列。
+# 実測（2026-09-06 / フェンス内 agent 名 40 件を全数目視 = markdown 32 / json 2 / タグ無し 6）。
+# **既定は ns 化**であり、新しいタグのフェンスは自動的に対象になる（安全側 = 過剰に付く方に
+# 倒れ diff に出る）。ここを ns 化すると、T1 チェーンの `.claude/rules/decision-making.md`
+# §Output Format と `.claude/scripts/magi_dispatch.py` の emit 文字列（**順変換が存在しない**）と
+# 3 者不一致になる。
+_TEMPLATE_FENCE_LANGS = {"markdown", "json"}
+
+_FENCE_RE = re.compile(r"^\s*(?:```|~~~)\s*([A-Za-z0-9_+.-]*)")
+
+# 除外 (D): frontmatter の `name:` は宣言であって参照ではない。ns 化すると
+# `lam-harness:lam-harness:gabriel` になる（ハーネスが plugin 名を前置して登録するため）。
+_NAME_DECL_RE = re.compile(r"^name:\s")
+
+# ハーネス呼び出し構文。除外 (T) の内側にこれが現れたら、除外の前提（出力テンプレートしか
+# 入っていない）が破れている。gabriel 2 巡目が「フェンスタグは実際の不変量の**代理指標**であり、
+# 将来 markdown フェンス内に真の実行指示が混入すれば検出できない」と指摘したため、
+# 代理を検査可能な不変条件に変えるための対。
+_HARNESS_CALL_RE = re.compile(r"Agent\s*\(|subagent_type\s*=|agent\s*=\s*[\"']")
+
+
+def agent_names(plugin_dir: Path) -> set:
+    """agent 名の集合を plugin の実在から導出する（維持リストを持たない / T1・T3 と同型）。"""
+    agents_dir = plugin_dir / "agents"
+    if not agents_dir.is_dir():
+        return set()
+    return {p.stem for p in agents_dir.glob("*.md")}
+
+
+def _frontmatter_end(lines: List[str]) -> int:
+    if not lines or lines[0].strip() != "---":
+        return -1
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return i
+    return -1
+
+
+def _template_fence_lines(text: str):
+    """除外 (T) に該当するフェンスの内側の行を (行番号 1-origin, 行) で列挙する。"""
+    inside = False
+    lang = ""
+    for i, line in enumerate(text.split("\n")):
+        m = _FENCE_RE.match(line)
+        if m:
+            if not inside:
+                lang = m.group(1).lower()
+            inside = not inside
+            continue
+        if inside and lang in _TEMPLATE_FENCE_LANGS:
+            yield i + 1, line
+
+
+def to_namespaced_agent_text(text: str, namespace: str, names: set) -> str:
+    """正本テキストの agent 名参照を名前空間つきへ変換する（規則 R-A）。
+
+    **codemod と検査はこの同一関数を使う**（別実装にすると両者がドリフトする /
+    `to_project_text` を生成器と T3 検査が共有しているのと同じ思想）。検査は
+    「この変換が恒等写像であること」= 変換すべき箇所が残っていないこと、で表される。
+    """
+    if not namespace or not names:
+        return text
+    alternation = "|".join(re.escape(n) for n in sorted(names, key=len, reverse=True))
+    # 直前が英数字・`_`・`-`・`:`・`/` でないこと。`:` は既に ns 付きのものを、
+    # `/` は `agents/<name>` のパス文脈（除外 (P)）を、それぞれ境界だけで弾く。
+    pattern = re.compile(r"(?<![A-Za-z0-9_:/-])(" + alternation + r")" + _NAME_BOUNDARY)
+
+    lines = text.split("\n")
+    fm_end = _frontmatter_end(lines)
+    out = []
+    inside = False
+    lang = ""
+    for i, line in enumerate(lines):
+        m = _FENCE_RE.match(line)
+        if m:
+            if not inside:
+                lang = m.group(1).lower()
+            inside = not inside
+            out.append(line)
+            continue
+        if inside and lang in _TEMPLATE_FENCE_LANGS:
+            out.append(line)  # 除外 (T)
+            continue
+        if i <= fm_end and _NAME_DECL_RE.match(line):
+            out.append(line)  # 除外 (D)
+            continue
+
+        def _sub(mm, _line=line):
+            # 除外 (P): `<name>.md` はファイルを指しており名前の参照ではない。
+            if _line[mm.end():].startswith(".md"):
+                return mm.group(0)
+            return namespace + mm.group(0)
+
+        out.append(pattern.sub(_sub, line))
+    return "\n".join(out)
+
+
+def check_source_namespacing(repo_root: Path) -> List[Violation]:
+    """T5: 正本（`plugins/<plugin>/{skills,agents}` の Markdown）に bare な agent 名が無いこと。
+
+    射程が Markdown のみであるのは、**モデルが読む文書**が対象だからである。
+    `hooks/*.py` は実行されるコードで、コメントの読者は開発者であってハーネスでもモデルでもない
+    （実測: agent 名の出現は過去の合議に言及する散文コメント 1 件 / 実行参照 0）。
+    """
+    violations: List[Violation] = []
+    for plugin_dir in sorted((repo_root / "plugins").glob("*/")):
+        namespace = plugin_namespace(plugin_dir)
+        names = agent_names(plugin_dir)
+        if not namespace or not names:
+            continue
+        for area in ("skills", "agents"):
+            root = plugin_dir / area
+            if not root.is_dir():
+                continue
+            for path in _iter_text_files(root):
+                if path.suffix.lower() != ".md":
+                    continue
+                shown = path.relative_to(repo_root).as_posix()
+                text = _read(path)
+                if to_namespaced_agent_text(text, namespace, names) != text:
+                    violations.append(
+                        Violation(
+                            "T5",
+                            shown,
+                            "bare な agent 名参照が残っている"
+                            "（規則 R-A / 利用者環境では解決しないか、別 agent が黙って動く）",
+                        )
+                    )
+                for lineno, line in _template_fence_lines(text):
+                    if _HARNESS_CALL_RE.search(line):
+                        violations.append(
+                            Violation(
+                                "T5",
+                                f"{shown}:{lineno}",
+                                "出力テンプレート用フェンス（markdown/json）の内側に"
+                                "ハーネス呼び出し構文がある（除外 (T) の前提が破れている）",
+                            )
+                        )
+    return violations
+
+
 def _relative_text_files(root: Path) -> dict:
     """root 配下の text suffix ファイルを、root からの相対パス → 絶対パスの辞書として返す。
 
@@ -409,6 +573,7 @@ def verify(repo_root: Path) -> List[Violation]:
         + check_reference_closure(repo_root)
         + check_mirror_identity(repo_root)
         + check_hook_declaration(repo_root)
+        + check_source_namespacing(repo_root)
     )
 
 
@@ -436,8 +601,8 @@ def main() -> int:
 
     if not violations:
         print(
-            "OK  plugin ディレクトリは包含（T1）・閉包（T2）・"
-            "複製相の導出一致（T3）・hook 宣言の実体（T4）を満たす"
+            "OK  plugin ディレクトリは包含（T1）・閉包（T2）・複製相の導出一致（T3）・"
+            "hook 宣言の実体（T4）・正本の名前空間化（T5）を満たす"
         )
         return 0
 

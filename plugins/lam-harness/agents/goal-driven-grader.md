@@ -12,7 +12,7 @@ model: haiku
 memory: project
 ---
 
-# goal-driven-grader: 独立評価エージェント
+# lam-harness:goal-driven-grader: 独立評価エージェント
 
 ## 役割
 

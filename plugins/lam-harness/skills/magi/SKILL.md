@@ -1,7 +1,7 @@
 ---
 name: magi
 description: >
-  MAGI System v2 — AoT 分解 + MELCHIOR/BALTHASAR/CASPAR 合議 + gabriel adversarial probe による
+  MAGI System v2 — AoT 分解 + MELCHIOR/BALTHASAR/CASPAR 合議 + lam-harness:gabriel adversarial probe による
   構造化意思決定フレームワーク。判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ で使用。
   Use when facing complex decisions with multiple trade-offs or architectural choices.
 when_to_use: "判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ の複雑な意思決定・アーキテクチャ選択を行うとき。"
@@ -9,7 +9,7 @@ when_to_use: "判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ の�
 
 # /magi — 構造化意思決定（MAGI System v2）
 
-名前の由来: エヴァンゲリオンの MAGI システム（3 つの独立した思考体による合議意思決定）+ **gabriel adversarial verifier**（4 番目の独立検証者）。
+名前の由来: エヴァンゲリオンの MAGI システム（3 つの独立した思考体による合議意思決定）+ **lam-harness:gabriel adversarial verifier**（4 番目の独立検証者）。
 
 ## MAGI System v2
 
@@ -21,7 +21,7 @@ when_to_use: "判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ の�
 | **MELCHIOR** | 科学者（推進者）[旧: Affirmative] | Value, Speed, Innovation |
 | **BALTHASAR** | 母（批判者）[旧: Critical] | Risk, Security, Debt |
 | **CASPAR** | 女（調停者）[旧: Mediator] | Synthesis, Balance, Decision（**純調停者化**: Step 3 で完結） |
-| **gabriel** | 独立検証者（4 番目）| Adversarial probe / 外部視点からの Convergence 検証 / **AoT 適用時のみ起動** |
+| **lam-harness:gabriel** | 独立検証者（4 番目）| Adversarial probe / 外部視点からの Convergence 検証 / **AoT 適用時のみ起動** |
 
 ## 適用条件
 
@@ -39,8 +39,8 @@ when_to_use: "判断ポイント 2+ / 影響レイヤー 3+ / 選択肢 3+ の�
 
 MAGI は 2 つのモードを持つ:
 
-- **AoT 適用モード**: 判断ポイント 2+ / 影響 3+ / 選択肢 3+ の **いずれか** を満たす → Step 0-5 実施（gabriel probe 含む）
-- **軽量モード（非 AoT）**: 上記条件を満たさない → Step 1-3 のみ / **gabriel probe は起動しない**（FR-W-C-3 MUST NOT）
+- **AoT 適用モード**: 判断ポイント 2+ / 影響 3+ / 選択肢 3+ の **いずれか** を満たす → Step 0-5 実施（lam-harness:gabriel probe 含む）
+- **軽量モード（非 AoT）**: 上記条件を満たさない → Step 1-3 のみ / **lam-harness:gabriel probe は起動しない**（FR-W-C-3 MUST NOT）
 
 MAGI ログ冒頭で必ずモード（`AoT` または `軽量`）を宣言する。
 
@@ -84,7 +84,7 @@ MELCHIOR と BALTHASAR がそれぞれの立場から意見を出し尽くす。
 
 ### Step 3: Convergence（収束）
 
-CASPAR が議論を整理し、結論を下す。**CASPAR は Step 3 で完結し、gabriel の結果を受けて再処理を行わない**（純調停者化 / gabriel 統合後の設計原則）。
+CASPAR が議論を整理し、結論を下す。**CASPAR は Step 3 で完結し、lam-harness:gabriel の結果を受けて再処理を行わない**（純調停者化 / lam-harness:gabriel 統合後の設計原則）。
 
 ```markdown
 ### Atom A1: [判断内容]
@@ -94,18 +94,18 @@ CASPAR が議論を整理し、結論を下す。**CASPAR は Step 3 で完結�
 **[CASPAR]**: 結論: ...
 ```
 
-### Step 4: gabriel adversarial probe（AoT 適用モードのみ / 新設）
+### Step 4: lam-harness:gabriel adversarial probe（AoT 適用モードのみ / 新設）
 
-> **旧 Step 4 Reflection は廃止**（gabriel probe に統合）。
-> B-4 監査（2026-06-19）実機計測: Reflection の初回変更率 0%（全 7 件「致命的な見落とし: なし → 結論確定」）で「無効な安全網」であったため、Wave C（骨子 ②）で構造的解決として gabriel に置換した（ADR-0007 Accepted）。
+> **旧 Step 4 Reflection は廃止**（lam-harness:gabriel probe に統合）。
+> B-4 監査（2026-06-19）実機計測: Reflection の初回変更率 0%（全 7 件「致命的な見落とし: なし → 結論確定」）で「無効な安全網」であったため、Wave C（骨子 ②）で構造的解決として lam-harness:gabriel に置換した（ADR-0007 Accepted）。
 
-CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作する gabriel subagent が adversarial verification を実施する。
+CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作する lam-harness:gabriel subagent が adversarial verification を実施する。
 
 **起動条件**:
 - AoT Decomposition（Step 0）が実施されていること
-- gabriel opt-out 記録がないこと（下記 §Step 4.2 参照）
+- lam-harness:gabriel opt-out 記録がないこと（下記 §Step 4.2 参照）
 
-**gabriel の役割**: CASPAR の統合結論を **そのまま正としてではなく**、結論に至った前提・根拠・棄却された代替案を独立に再検証する（design.md §4 / FR-W-C-1）。
+**lam-harness:gabriel の役割**: CASPAR の統合結論を **そのまま正としてではなく**、結論に至った前提・根拠・棄却された代替案を独立に再検証する（design.md §4 / FR-W-C-1）。
 
 **プローブ観点（rubric 5 観点）**:
 1. **論理的一貫性**: 各 Atom の結論に矛盾がないか
@@ -117,11 +117,11 @@ CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作�
    （書かれていない書込 —— とくに hook 副作用 —— を探す）
 5. **境界条件**: 結論が適用できないエッジケース（スコープ外・例外）が未記録ではないか
 
-**呼び出し方法**: Task ツール経由で `subagent_type=gabriel` を起動する。gabriel は独立コンテキストで動作し、**Read/Glob/Grep のみ利用可**（Write/Edit/Bash・Agent ツール禁止 / NFR-W-C-3 暴走リスク抑制）。**`memory: project` は Write/Edit を自動付与するため、`disallowedTools: Write, Edit` で打ち消している**（2026-08-26 canary で実測 / `docs/artifacts/2026-08-22-enumeration-drift-sweep.md` §1）。
+**呼び出し方法**: Task ツール経由で `subagent_type=lam-harness:gabriel` を起動する。lam-harness:gabriel は独立コンテキストで動作し、**Read/Glob/Grep のみ利用可**（Write/Edit/Bash・Agent ツール禁止 / NFR-W-C-3 暴走リスク抑制）。**`memory: project` は Write/Edit を自動付与するため、`disallowedTools: Write, Edit` で打ち消している**（2026-08-26 canary で実測 / `docs/artifacts/2026-08-22-enumeration-drift-sweep.md` §1）。
 
 **タイムアウト**: 360 秒（NFR-W-C-1 / SHOULD / 2026-07-26 改訂）。呼び出し元で経過時間を計測し、超過時は `verdict=inconclusive + timeout 注記` として扱う。
 
-**gabriel 出力**: 6 フィールド JSON（design.md §3 参照）:
+**lam-harness:gabriel 出力**: 6 フィールド JSON（design.md §3 参照）:
 - `verdict`: `confirmed` / `refuted` / `inconclusive`
 - `severity`: `critical` / `warning` / `info`
 - `affected_atoms`: Atom 識別子リスト（`verdict=refuted` 時は非空必須）
@@ -146,16 +146,16 @@ CASPAR の Convergence 結論に対し、**独立コンテキスト**で動作�
 > （検査: `verify_reference_resolution.py` の `gabriel-metrics-anchor-coverage`）。
 > `gabriel_output` の 6 フィールドは `magi_dispatch.validate_gabriel_output()` の契約に従う。
 
-gabriel の返り値に応じて以下のいずれかの経路を辿る。**優先順位は `recommended_action=abort` > `severity=critical` > `warning` > `info` > `confirmed` > `inconclusive`**。
+lam-harness:gabriel の返り値に応じて以下のいずれかの経路を辿る。**優先順位は `recommended_action=abort` > `severity=critical` > `warning` > `info` > `confirmed` > `inconclusive`**。
 
-| gabriel 出力 | 挙動 | 参照 |
+| lam-harness:gabriel 出力 | 挙動 | 参照 |
 |:------------|:-----|:-----|
 | `recommended_action=abort`（verdict / severity 問わず） | **即時人間エスカレーション**（再 MAGI なし / MAGI 結論を「保留」記録） | AC-W-C-5 補完 |
-| `verdict=refuted & severity=critical`（初回） | **再 MAGI 1 ラウンド**（`gabriel.reasoning` を Divergence 入力に追加）→ Step 1 に戻る | AC-W-C-5 |
+| `verdict=refuted & severity=critical`（初回） | **再 MAGI 1 ラウンド**（`lam-harness:gabriel.reasoning` を Divergence 入力に追加）→ Step 1 に戻る | AC-W-C-5 |
 | `verdict=refuted & severity=critical`（2 回目） | **人間エスカレーション**（再 MAGI 上限到達 / MAGI 結論を「保留」記録） | AC-W-C-7 |
-| `verdict=refuted & severity=warning` | MAGI 結論に **gabriel 指摘を併記** + 警告ラベル | AC-W-C-6 |
+| `verdict=refuted & severity=warning` | MAGI 結論に **lam-harness:gabriel 指摘を併記** + 警告ラベル | AC-W-C-6 |
 | `verdict=refuted & severity=info` | **記録のみ** / MAGI 結論不変 | — |
-| `verdict=confirmed` | MAGI 結論を確定（gabriel 補強として記録） | — |
+| `verdict=confirmed` | MAGI 結論を確定（lam-harness:gabriel 補強として記録） | — |
 | `verdict=inconclusive` | MAGI 結論を確定（inconclusive 注記を添付） | — |
 | timeout（> 360 秒 / NFR-W-C-1） | `verdict=inconclusive` として扱う / 再 MAGI なし | NFR-W-C-1 |
 | format_error（JSON 欠損 / 型不一致 / NFR-W-C-2） | `verdict=inconclusive` として扱う / 再 MAGI なし | NFR-W-C-2 |
@@ -166,12 +166,12 @@ gabriel の返り値に応じて以下のいずれかの経路を辿る。**優�
 
 ### Step 4.2: opt-out 経路
 
-以下 2 条件を **すべて** 満たす場合のみ gabriel probe をスキップできる:
+以下 2 条件を **すべて** 満たす場合のみ lam-harness:gabriel probe をスキップできる:
 
 1. opt-out 理由を MAGI ログに 1 文以上記録すること
 2. **ユーザー（L1 統括）** がスキップを明示すること
 
-**AUTONOMOUS フェーズでの自律ループ実行者の opt-out 宣言は却下される**（ADR-0005 FR-9.1 統治への自己書込禁止の趣旨に従う / design.md §6.1）。試行された場合は MAGI ログに「opt-out 試行 / 却下」を記録し、通常通り gabriel probe を実施する。
+**AUTONOMOUS フェーズでの自律ループ実行者の opt-out 宣言は却下される**（ADR-0005 FR-9.1 統治への自己書込禁止の趣旨に従う / design.md §6.1）。試行された場合は MAGI ログに「opt-out 試行 / 却下」を記録し、通常通り lam-harness:gabriel probe を実施する。
 
 **opt-out 記録形式**:
 ```markdown
@@ -184,12 +184,12 @@ gabriel の返り値に応じて以下のいずれかの経路を辿る。**優�
 
 **正当理由の例**:
 - 時間的緊急性（締め切り前の軽微な仕様確認等）
-- gabriel 判定に必要な情報が揮発的で正確な判定が期待できない場合
+- lam-harness:gabriel 判定に必要な情報が揮発的で正確な判定が期待できない場合
 - ユーザーがリスクを承知の上で速度優先を選択する場合
 
 ### Step 5: AoT Synthesis（統合 / AoT 適用モードのみ）
 
-各 Atom の結論 + gabriel probe 結果を統合し、最終決定と Action Items を導出する。
+各 Atom の結論 + lam-harness:gabriel probe 結果を統合し、最終決定と Action Items を導出する。
 
 ```markdown
 ### AoT Synthesis
@@ -220,7 +220,7 @@ AoT 適用条件を満たさない軽量 MAGI では以下のステップ体系�
 - Step 1（Divergence）: 実施
 - Step 2（Debate）: 実施
 - Step 3（Convergence）: CASPAR 結論で完結（直接結論確定）
-- Step 4（gabriel probe）: **起動しない**（FR-W-C-3 MUST NOT）
+- Step 4（lam-harness:gabriel probe）: **起動しない**（FR-W-C-3 MUST NOT）
 - Step 5（AoT Synthesis）: 存在しない
 
 MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体系の混乱を避ける。
@@ -338,17 +338,17 @@ MAGI ログ記録時は「MAGI 軽量モード」と明示し、Step 番号体�
 フォーマットは `references/anchor-format.md` を参照。
 
 - 書き込み権限: CASPAR のみ（Single-Writer）
-- 読み取り権限: 全 MAGI + gabriel（Multi-Reader）
+- 読み取り権限: 全 MAGI + lam-harness:gabriel（Multi-Reader）
 - 削除: ユーザーのみ可能
 
 ## 参照
 
-- SSOT: `docs/internal/06_DECISION_MAKING.md`（§6「gabriel Adversarial Probe（AoT 適用時のみ / 旧 Reflection）」に**置換済** / 2026-08-20 確認）
+- SSOT: `docs/internal/06_DECISION_MAKING.md`（§6「lam-harness:gabriel Adversarial Probe（AoT 適用時のみ / 旧 Reflection）」に**置換済** / 2026-08-20 確認）
 - Wave C 統合仕様: `docs/specs/magi-v2-gabriel/{requirements,design}.md` v0.4.0
-- ADR-0007: `docs/adr/0007-magi-v2-gabriel-integration.md`（gabriel 統合根拠 / Accepted 2026-07-02）
+- ADR-0007: `docs/adr/0007-magi-v2-gabriel-integration.md`（lam-harness:gabriel 統合根拠 / Accepted 2026-07-02）
 - ADR-0005: `docs/adr/0005-thin-harness-autonomous-governance.md`（Reflection 追補 / FR-9.1 opt-out 権限境界の根拠）
-- gabriel subagent: `.claude/agents/gabriel.md`（Wave C Stage 2 実装済 / 2026-07-04 commit `6880421`）
+- lam-harness:gabriel subagent: `.claude/agents/gabriel.md`（Wave C Stage 2 実装済 / 2026-07-04 commit `6880421`）
 - verdict 別分岐 Python SSOT: `.claude/scripts/magi_dispatch.py` (Wave C Stage 3 T6 / 2026-07-05 実装)
 - 統合テスト: `.claude/tests/wave_c/test_wave_c_magi_integration.py` (T6 / **全 9 verdict パターン**)
 - アンカーフォーマット: `.claude/skills/magi/references/anchor-format.md`
-- decision-making ルール: `.claude/rules/decision-making.md`（Step 4 は「gabriel Adversarial Probe（AoT 適用時のみ）」に**置換済** / 2026-08-20 確認）
+- decision-making ルール: `.claude/rules/decision-making.md`（Step 4 は「lam-harness:gabriel Adversarial Probe（AoT 適用時のみ）」に**置換済** / 2026-08-20 確認）

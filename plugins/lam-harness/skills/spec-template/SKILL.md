@@ -55,8 +55,8 @@ allowed-tools: Read, Write, Edit
 
 | 文書 | 担当 |
 |:--|:--|
-| `design.md`（設計・アーキテクチャ） | `design-architect` サブエージェント |
-| `tasks.md`（タスク分解） | `task-decomposer` サブエージェント |
+| `design.md`（設計・アーキテクチャ） | `lam-harness:design-architect` サブエージェント |
+| `tasks.md`（タスク分解） | `lam-harness:task-decomposer` サブエージェント |
 | ADR | `adr-template` スキル |
 
 ### UI 仕様を書く場合
