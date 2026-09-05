@@ -607,16 +607,27 @@ LAM は既に `test_docs_internal_is_pm_and_other_docs_are_not` で同じ実践�
 | | 何が観測されていなければならないか | **証人**（観測する変数 / pass / fail） |
 |:--|:--|:--|
 | **E1** | plugin が install され**有効化**される | `claude plugin list --json` の `lam-harness` エントリの **`enabled`** / **`true`** / **`false` または不在** |
-| **E2** | `/lam-harness:init` が managed 36 + starter 8 を敷く | `.claude/rules` 14・`docs/internal` 10・`.claude/scripts` 12 / 一致 / 不一致 |
+| **E2** | `/lam-harness:init` が managed 36 + starter 8 を敷く | (a) `.claude/rules` 14・`docs/internal` 10・`.claude/scripts` 12 ＋ (b) **starter 8**（`CLAUDE.md` / `CHEATSHEET.md` / `CHANGELOG.md` / `SESSION_STATE.md` / `.claude/current-phase.md` / `.claude/harness.json` / `.claude/rules/{model-roster,terminology}.md`）/ **両方一致** / いずれか不一致 |
 | **E3** | 敷いた scripts が実際に動く | `py_invoke.sh` の終了コード / 0 / 非 0 |
 | **E4** | skill が名前空間で解決する | `/lam-harness:building` の本文ロード / する / しない |
 | **E5** | agent が解決する（bare `subagent_type` / description 衝突） | 起動結果 / 解決する / しない・誤解決 |
-| **E6** | **plugin 経路の hook が起動され、その出力が採用される** | **`.claude/.session-pm-edit-cache.json`** / **生成される** / **生成されない** |
+| **E6** | **plugin 経路の hook が起動され、その出力が採用される**（**輸送は `hooks.json` のエントリ単位**のため 2 イベントを証人にする） | (a) **`.claude/.session-pm-edit-cache.json`**（PostToolUse）＋ (b) **`.claude/logs/permission.log`**（PreToolUse）/ **両方生成される** / いずれかが生成されない |
 
 **E6 の証人の根拠**（HGA の要検証 1 を L1 が実測で解消 / 2026-09-05）:
 `post-tool-use.py` **だけ**が書く（`pre-tool-use.py` は読むのみ）/ **フェーズ非依存** /
 第三者プロジェクトには project 層 hooks が無いため **plugin 由来と一意に言える** /
 user 層 hooks 3 本は LAM 計器を書かない。
+
+**E6 の証人を 2 本にした根拠**（**範囲レビュー / セッション 32 の追加** / `2026-09-05-distribution-scope-review.md` §4-2）:
+`settings.json` の hooks は **5 イベント**（`PreToolUse` / `PostToolUse` / `PostToolUseFailure` / `Stop` / `PreCompact`）を持ち、
+**plugin 経由の輸送は `hooks.json` のエントリ単位で成立する**。したがって **1 本の緑は他 4 本の緑を意味しない**。
+最小の追加でこれを緩和するため、**同じステップ 11 から取れる 2 本目**（`pre-tool-use.py` **だけ**が書く
+`.claude/logs/permission.log` / 実装 `pre-tool-use.py:568`）を証人に加えた。
+**残り 3 イベントは依然として無証人である**（継ぎ目主義を優先し、E2E では追わない —— この限界を明示して残す）。
+
+**E2 の証人に starter を足した根拠**（同 §4-1）: E2 は主張として「managed 36 **+ starter 8**」と書きながら、
+**証人は managed 3 ディレクトリの件数のみ**だった。**宣言が証人より広い** = HGA #32 が予測した形の
+（向きは逆の）同型であり、starter が 1 件も敷かれなくても E2 は緑になっていた。
 
 **E1 の証人の精緻化根拠**（gabriel 3 巡目の [Critical] / L1 が実測で確定 / 2026-09-05）:
 当初 E1 の証人は「`list --json` に**出る / 出ない**」だったが、**disabled な plugin も一覧に出続ける**
@@ -709,6 +720,21 @@ gabriel 3 巡目が**ファイル実測でこの非交差を確認した**（`ve
 
 合格 = **14 ステップの痕跡に対し、E1〜E6 の全証人が pass 側の値を示し、かつ陰性対照で全証人が fail 側を示す**。
 **合格は「コミット `<SHA>` において成立した」という形で記録する**（ワークツリーに束縛しない / HGA 3 節）。
+
+> ### 合格が意味しないこと（**範囲レビュー / セッション 32 の追加** / `2026-09-05-distribution-scope-review.md` §2・§4-3）
+>
+> **本シナリオは輸送を検査するものであり、届いた中身が利用者環境で成立するかは見ない。**
+> E4 が見るのは「skill 本文がロードされる」までで、**その skill が指す先が存在するか**は射程外である。
+> 実測では、**利用者環境で解決しない参照が 86 件 / 182 箇所**あり（配布物 85 ファイル × 利用者環境 44 ファイルの全数突合 / 下界）、
+> **その全件が E1〜E6 を緑で通過する**。
+>
+> とくに **plugin 配布下では `.claude/skills/…` `.claude/agents/…` `.claude/hooks/…` というパス自己参照が
+> 原理的に壊れる**（実体は plugin キャッシュに置かれる / **37 箇所**）。**この 37 箇所の正しい直し方は、
+> 本シナリオが plugin 配下の実体の見え方を実測してはじめて決まる** —— これが「参照の是正を E2E の後に回す」
+> という順序判断の根拠である（ユーザー決定 / 2026-09-05 セッション 32）。
+>
+> 参照解決は **E2E ではなく機構側**（機構 #10 に利用者環境ベースラインと陰性対照を与える形）で扱う。
+> ただし現時点で 182 箇所が赤のため、**そのまま入れると常時赤 = 殺される計器**になる。導入設計は E2E 合格後。
 
 ## ループの外
 
