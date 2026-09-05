@@ -4,6 +4,57 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 配布物の agent 名参照を名前空間つきに揃えた —— 「分類をやめる」ことで（2026-09-06 / Action 4a）
+
+plugin 由来の agent は `subagent_type` で**必ず名前空間つき**でしか解決しない。正本に bare 名が
+残っていると、利用者環境では `gabriel` が `not found` で止まり、**`test-runner` は止まらずに
+「組み込みの `test-runner`」が黙って動く**。この是正を「正本 97 箇所の変換」として抱えていたが、
+**着手前の実測が前提を覆した。**
+
+- **「97 箇所」は変換対象の母数ではなかった。** 領域 × 出現位置で全数計数した結果、
+  総ヒット 410 のうち **T1 派生（`templates/managed/`）146 件と `hooks/` 25 件は実行参照 0**、
+  `agents/` の 12 件は**自分の `name:` 宣言**だった。97 は「名前が出現した回数」であって
+  「解決される回数」ではない
+- **マークアップは実行参照と相関しない**（実測の反例）。`name: gabriel` は宣言で、ns 化すると
+  `lam-harness:lam-harness:gabriel` になり**壊れる**。フェンス内の `### gabriel probe` は
+  出力テンプレートの見出し。逆に `agents/quality-auditor.md` の frontmatter 散文
+  「code-reviewer を使うこと」は**マークが無いのに実行指示**である
+- 外部の prior art（Rustdoc RFC 1946 / Sphinx `nitpicky` / Doxygen AUTOLINK / CamelCase wiki の廃止 /
+  PEP 328 / Rust edition / Rails `zeitwerk:check` / Google LSC / Stripe codemod）を調べた。
+  実運用に耐えた系は**例外なく明示構文**を選び、推論型は打ち消し記法を必要とするか廃止された。
+  推論の実測精度は **F1 70〜80% 帯**
+- 当初案は「著者が実行参照を明示マークする」だった。**gabriel が critical で refute した** ——
+  それは HGA #33 裁定 2「**閉包は機構の側にしかないので手書きの宣言は必ず落とす**」と正面衝突する。
+  **3 巡目の critical だったため異常判定の線に従い HGA #34 を召喚**した
+- **HGA #34 の裁定: 読者モデルが誤っていた。** RFC 1946 の角括弧規約が成立するのは
+  **読者が人間**だから。**本件の読者は LLM** で、無マーク散文からも tool call を組み立てる。
+  「マーク無し = 定義により散文」は地図を書き換えただけで領土は変わらない。
+  対案の「機械生成ベースライン ratchet」も**符号を反転させた宣言**にすぎず同じ穴が残る
+- **採った形は「分類を消す」** —— agent 名は固有名詞なので**全出現を ns 化**し、除外は
+  構文だけで決まる 3 位置のみ: **(D)** frontmatter `name:` / **(P)** `<name>.md` のファイル名文脈 /
+  **(T)** 言語タグが `markdown` / `json` のフェンス内。除外 (T) の根拠は実測（フェンス内 40 件を
+  全数目視 = markdown 32 / json 2 / タグ無し 6）と、ns 化すると T1 チェーンの
+  `decision-making.md` §Output Format・`magi_dispatch.py` の emit 文字列と**3 者不一致**になること
+- **skills は対象外にした**（Action 4b へ分離）。`phase="building"` / `"command": "full-review"` /
+  `"mode": "autonomous"` のような**別名前空間の値**と衝突し、slash 形だけを T3 側で ns 化すると
+  **T1 チェーン 55 箇所と配布物の中で分裂する**（T1 は向きが逆で順変換が存在しない）
+- **Zero-Regression は主張ではなく証明にした** —— codemod は書き込み前に**往復恒等**
+  （変換後の正本から導出される開発側テキストが変換前からのものとバイト一致）を検証し、
+  破れたら何も書かずに落ちる。実際 **`.claude/` 側の差分は 0 バイト**だった
+- **検査と codemod は同一関数を共有する**（`to_namespaced_agent_text`）。別実装にすると
+  両者がドリフトする。**段階を作らず**同一コミットで投入し、再混入防止 gate として常設した（T5）
+- gabriel 2 巡目は `refuted / warning / proceed`。**算術不一致を 1 件検出**（表が 36+2+6=44 で
+  本文の 40 と食い違っていた → 再集計して 32+2+6=40 に訂正）。加えて「除外 (T) は
+  **代理指標**であり markdown フェンスに実行指示が混入しても検出できない」と指摘したため、
+  **「除外フェンス内にハーネス呼び出し構文が現れたら exit 1」を足して不変条件に変えた**
+- **diff レビューで設計時に見えていなかった危険が 1 件見つかった** —— `lam-harness:` は
+  **コロンを含む**。`description:` の plain scalar でコロンが誤解釈されると値が dict 化し、
+  **agent / skill がそもそも登録されない**（唯一の「静かに全部壊れる」経路）。
+  55 件の frontmatter を YAML 再パースして破損 0 を確認し、**恒久の対照テストとして固定**した
+
+正本 22 ファイル（約 90 箇所）を変換。テストは **1381 → 1400 passed / 14 skipped**（陰性対照 3 件を含む）。
+設計と棄却案の全文は `docs/artifacts/2026-09-06-magi-action4-reference-model.md`。
+
 ### 権限ゲートの 3 つの穴と、7 週間死んでいた gabriel 計器を塞いだ（2026-09-05 / `/full-review` iter0）
 
 Action 4 着手前のベースライン取得として `.claude/` + `plugins/` を監査した（Stage 1 静的解析 +
