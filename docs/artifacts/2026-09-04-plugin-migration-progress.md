@@ -189,6 +189,23 @@ MAGI（gabriel 2 巡とも `refuted & critical` / 2 巡目 `abort` = AC-W-C-7 �
 **次セッションの実装対象**: 存在検出（`hooks-local/` の SessionStart）/ 鮮度検出（`CLAUDE_PLUGIN_ROOT` 判定）/
 復旧手順（CLI 2 行 + 内容ハッシュ確認）。
 
+### §2.5 着手順の再設計と、様式の恒久修正（2026-09-05 / セッション 31）
+
+**正本は `docs/artifacts/2026-09-05-magi-migration-sequence.md`**（MAGI 2 巡 + gabriel 3 巡 + **HGA #31 / #32**）。
+ここには次セッションが最初に知るべきことだけを置く。
+
+| # | 内容 |
+|:-:|:--|
+| **1** | **着手順を「項目 + 並列配列」から「(A) 網羅表 / (B) 単一線形シナリオ 15 ステップ / (C) 証人照合 + 陰性対照」へ全面改稿**（HGA #31）。ゴールはユーザー決定により **第三者 E2E 先行 → その後 self-hosting** |
+| **2** | **被検体はワークツリーでなく「HEAD の clone」**。別名 marketplace で directory 登録すれば **push なしでコミット漏れを検出できる**。github source はループ外の最終 1 発 |
+| **3** | **分解表の様式を恒久修正**（HGA #32）—— 「依存 / 並列可否」列を廃し「**読む状態 / 書く状態**」列へ。gabriel rubric 観点 4 に「**状態列なき並列主張はそれ自体 critical**」を追加。`decision-making.md`（PM 級）/ `magi/SKILL.md` / `anchor-format.md` / `gabriel.md` に適用済 |
+| **4** | **機構 #11 の射程を skills / agents（将来の hooks）へ拡張** —— 3 領域しか見ておらず、**本セッションで実際に 4 件の乖離を緑のまま通した**ため |
+| **5** | **`lam-orchestrate/references/magi-skill.md` を両側から削除**し、`v5-fat-reduction` §4 に superseded 注記（PM 級） |
+| **6** | **【未解決 / 次セッション】dangling 参照の射程は「managed 規範」ではなく「配布物全体」**。skills / agents にも LAM 固有実体への参照がある |
+| **7** | **【次セッション / ユーザー指示】E2E 着手前に「範囲自体を問い直す全体レビュー」**。本セッションで**射程の見積りが 3 回とも小さかった**ため（詳細は正本 §4） |
+
+---
+
 ## §3 いま触ると壊れるもの（重要）
 
 **hooks / agents / skills / scripts はまだ `.claude/` にある。移動は手順 5 まで待つこと。**

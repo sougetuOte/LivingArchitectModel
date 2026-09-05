@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 分解表から「関係を宣言する列」を追放し、複製相の恒等性検査を追加した（2026-09-05 / **PM 級**）
+
+L1 が **2 セッション連続で同型の分解ミス**をした（#30 = 性質の異なる 2 つを 1 語で束ねた / #31 = 結合している
+2 つを「独立」と宣言した）。HGA #32 の裁定:
+
+> 項目を n 個並べた瞬間、**n(n−1)/2 本の「独立である」という証明不能な主張が暗黙に立つ**。
+> 同一性も独立性も**各要素が触る状態を書けば導出できる**性質であり、宣言する性質ではない。
+
+**rule-001 の恒久解（散文から推論せず宣言欄を読む）/ R3 機構 #7（維持リストを持たず基質から導出する）と
+同型の手**であり、LAM が既に 2 回学んだものを 3 度目に適用した。
+
+- **AoT 分解表の「依存」列を「読む状態 / 書く状態」へ置換**（`decision-making.md`（PM 級）/ `magi/SKILL.md` /
+  `magi/references/anchor-format.md`）。依存は「A の書く状態を B が読む」として、並列可否は
+  「書込集合が交わらない」として**導出させる**
+- **gabriel rubric 観点 4 を書き換え** —— 「**状態列の無いまま依存・並列・独立・同一を主張していれば
+  それ自体を `severity=critical`**」＋「列がある場合は**基質と照合**し、宣言が実際より小さくないかを検査する」
+- **依存関係 DAG も導出物に降格**（`anchor-format.md`）—— 辺は「A の書く状態を B が読む」ときのみ引く。
+  図と表が食い違うなら**表が正**
+- **機構 #11（`verify_plugin_containment.py`）の射程を skills / agents（将来の hooks）へ拡張** ——
+  従来は rules / docs-internal / scripts の 3 領域のみで、**本セッションで実際に 4 件の乖離を
+  1335 passed のまま通した**（rules を触ったときは鳴ったのに skills / agents では鳴らなかった）
+- **`lam-orchestrate/references/magi-skill.md` を両側から削除** —— 実行時参照ゼロの SKILL.md 全文コピー
+  （gabriel 統合前の旧版）。2026-08-21 に同じ理由で `anchor-format.md` の重複を削除したのと同型。
+  併せて `v5-fat-reduction` §4（FR-4.1〜4.3 / AC-9・AC-10 / T10〜T12）に **ADR-0007 で superseded** の注記。
+  **FR-4.5（AoT 温存）は生きている**ため区別して記載した
+- **plugin 移行の着手順を全面改稿** —— 「(A) 網羅表 / (B) 単一線形シナリオ / (C) 証人照合 + 陰性対照」の
+  3 部構成へ（HGA #31）。**被検体はワークツリーでなく HEAD の clone** とし、**push なしでコミット漏れを検出**する
+
+**未解決（次セッション）**: dangling 参照の射程は「managed 規範」ではなく**配布物全体**（skills / agents を含む）。
+本セッションは**射程の見積りが 3 回とも小さかった**ため、E2E 着手前に**範囲自体を問い直す全体レビュー**を行う。
+経緯の全文は `docs/artifacts/2026-09-05-magi-migration-sequence.md`。
+
 ### marketplace 名を衝突耐性のあるものへ改名し、`/release` に上流公式の検証を組み込んだ（2026-09-05）
 
 上流調査で、同名 marketplace の `add` が**既存登録を無警告で上書きする**問題（anthropics/claude-code
