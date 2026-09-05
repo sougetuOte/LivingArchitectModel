@@ -1,6 +1,6 @@
 {
   "harness_version": "0.1.0",
-  "source": "lam-harness@lam",
+  "source": "lam-harness@sougetuote-lam",
   "applied_at": "<ISO 8601 現在時刻>",
   "layers": {
     "managed": "plugin 所有。/plugin update で更新が届く（.claude/rules/ と docs/internal/）",

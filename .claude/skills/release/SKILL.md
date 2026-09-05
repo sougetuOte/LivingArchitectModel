@@ -61,6 +61,30 @@ bash .claude/scripts/py_invoke.sh .claude/scripts/verify_distributable_claims.py
 [ -d plugins ] && bash .claude/scripts/py_invoke.sh .claude/scripts/verify_plugin_containment.py   || echo "plugins/ が無いためスキップ"
 ```
 
+### 上流公式の検証（2026-09-05 追加 / 自前で書かず上流に寄せる）
+
+```bash
+claude plugin validate . --strict
+claude plugin validate ./plugins/lam-harness --strict
+```
+
+**`--strict` は警告をエラー扱いにする**（`--json` 併用可 / 終了コードは同じ）。manifest スキーマ・
+コンポーネントパス・frontmatter を検査し、**community marketplace の審査パイプラインと同じ
+チェック**を走らせる。誤字フィールドの訂正候補も出る。
+
+version を上げる版では、tag 作成を上流に任せる:
+
+```bash
+claude plugin tag ./plugins/lam-harness
+```
+
+`{name}--v{version}` の git tag を作りつつ、**`plugin.json` と marketplace エントリの version が
+一致しているか**を検証する。手で tag を打つと、この整合検査を捨てることになる。
+
+> **なぜ自前で書かないか**: これらは上流が保守する検証系であり、こちらで書けば
+> **plugin スキーマが変わるたびに追随する義務**を負う。R3 機構は「LAM 固有の規律」に限り、
+> 上流仕様の検査は上流のツールに寄せる。
+
 > **本スクリプトは配布されない**（`NON_DISTRIBUTED_SCRIPTS` に理由つきで登録済）。
 > 検査対象が `plugins/` 配下であり、利用者のプロジェクトにはそれが存在しないため。
 > ガード無しで書くと、利用者環境の `/lam-harness:release` が**存在しないスクリプトを

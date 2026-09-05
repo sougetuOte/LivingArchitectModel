@@ -306,3 +306,44 @@ def test_distill_lessons_pair_moves_together() -> None:
     assert present in (set(), pair), (
         "distill の 2 ファイル構成が片側だけ配られている: " + ", ".join(sorted(present))
     )
+
+
+# ==========================================================================
+# 上流公式ツールの組み込み（2026-09-05 / 外部調査で発見）
+#
+# `claude plugin validate --strict` と `claude plugin tag` は上流が提供する
+# 公式の検証系である。前者は manifest スキーマ・コンポーネントパス・frontmatter を
+# 検査し、community marketplace の審査パイプラインと同じチェックを走らせる。
+# 後者は plugin.json と marketplace エントリの version 一致を検証しつつ tag を作る。
+# 自前で書くより上流に寄せる（維持対象を増やさない）。
+# ==========================================================================
+
+
+def test_release_skill_runs_official_plugin_validate() -> None:
+    text = (REPO_ROOT / ".claude" / "skills" / "release" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    assert "claude plugin validate" in text, (
+        "/release が上流公式の plugin validate を呼んでいない"
+    )
+    assert "--strict" in text, "validate が --strict で呼ばれていない（CI 相当の厳格さ）"
+
+
+def test_marketplace_name_is_collision_resistant() -> None:
+    """marketplace 名は所有者を含む（同名衝突は無警告で上書きされ、上流は直さない）。
+
+    根拠: anthropics/claude-code #44042 は「同名 marketplace の add が既存を
+    無警告で上書きする」を **Closed as not planned** としている。実害例では
+    別リポジトリの plugin が壊れたまま 1 週間気づかれなかった。
+    上流に防御が無い以上、**名前の一意性が唯一の防御線**である。
+    """
+    import json as _json
+
+    name = _json.loads(
+        (REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")
+    )["name"]
+    assert len(name) >= 8, f"marketplace 名が短すぎて衝突しやすい: {name}"
+    assert "-" in name, (
+        f"marketplace 名に所有者/プロジェクトの区切りが無い: {name}"
+        "（#44042 の推奨は org-prefixed な命名）"
+    )
