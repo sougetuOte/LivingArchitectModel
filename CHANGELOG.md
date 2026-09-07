@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 配布物のパス参照を設計し、配布集合を「閉包の導出」に改めた（2026-09-07 / Action 4c 設計 + ADR-0010 追補 4）
+
+**実装は未着手。本項は設計と条文の変更である。**
+
+Action 4c は当初「`.claude/skills/...` のパス自己参照 37 箇所を直す作業」として起票されていた。
+実測が前提を 3 段階で覆した。
+
+- **4b が分離根拠とした「情報の欠落」は存在しなかった** —— 行番号参照は **0 件**、
+  アンカー付きは 35 箇所中 7 箇所で、すべて節見出し（名前参照でも保持できる）
+- **192 箇所は 4 種の別問題だった** —— 移設もの 35 / 開発記録 157 / 計器の偽陽性 / containment 欠陥。
+  そして最大の層（T1 = 利用者の `.claude/rules` `docs/internal` になる派生）には
+  **`${CLAUDE_PLUGIN_ROOT}` が原理的に届かない**。上流の展開範囲は
+  「Skill and agent content」に限られ、T1 の出力は plugin component ではない
+- **計器の射程外で機能が壊れていた** —— 配布 skill のフェンス内コマンド **13 箇所**が
+  非配布の実体を名指しし、`/lam-harness:quick-save` と `/lam-harness:full-review` は
+  **利用者環境で実際に落ちる**。さらに配布 hook `pre-tool-use.py` が
+  **非配布の `docs/artifacts/incident-patterns.yaml`** を読んで **fail-open** しており、
+  **ADR-0008 の動的 deny は全利用者環境で沈黙したまま無効**だった
+
+**原因は配布集合の中身ではなく、閉包を計算したエントリポイントが hook だけだったこと**である。
+`_MIRROR_AREAS` の注記「analyzers は hook の import 閉包に含まれない」は正しく計算されていた ——
+`/lam-harness:full-review` が analyzers を呼ぶことが、閉包の入力に入っていなかった。
+
+**ADR-0010 追補 4（PM 級 / ユーザー承認）**:
+
+- **決定 1**: 不変条件に**パス参照**を加えた。配布 Markdown に残ってよいのは
+  (a) 利用者環境で解決するもの / (b) `${CLAUDE_PLUGIN_ROOT}`（**展開される層に限る**）/ (c) 正典 URL。
+  射程は `.md` のみで、`templates/starter/**` は**利用者所有ファイル**として射程外。
+  **射程内に解決しない参照が現れたら、規則に例外を足さず本文を直す**
+- **決定 2**: K4 を**エントリポイントからの到達閉包**へ拡張した。
+  エントリポイントは配布 hooks と**配布 Markdown のフェンス内コマンド**、
+  到達関係は **import 閉包 ∪ 実行時データ依存**。fail-open を黙認しない
+
+**配布集合の決定（PM 級 / ユーザー承認）**: `subprocess-encoding-convention.md` の配布をやめる
+（最大の参照元 18 箇所が 1 決定で消える）/ 実害 13 は手順書き換えで解消（`scale_detector.py`
+`build_dashboard.py` は配らず、実体が無ければ skip して継続）/ `incident-patterns.yaml` は
+hook のパス解決に `${CLAUDE_PLUGIN_ROOT}` 相対フォールバックを足して配る。
+
+**過程で計器自身の欠陥を 2 つ見つけた** —— `census_dangling.py` の `PATH_RE` が
+glob を切り詰めて `.claude/agents/*.md` を `.claude/agents` として報告していたこと（偽陽性の半分は
+分類問題ではなくトークナイザのバグだった）と、`py-fixture` 除外の**理由が偽**だったこと
+（9 件中 6 件は配布コードの docstring であってテストフィクスチャではない）。どちらも 4c-0 で是正する。
+
+設計は `docs/artifacts/2026-09-07-magi-action4c-path-references.md`
+（**HGA #35 + MAGI 2 巡 + gabriel 2 回**）。gabriel は 2 回とも結論を削り、
+1 巡目の critical 5 件・2 巡目の warning 8 件はいずれも実測で裏付けられた。
+
 ### T1 に生成器を入れ、配布規範と配布 skill の skill 参照を名前空間つきに揃えた（2026-09-06 / Action 4b）
 
 Action 4a が分離した「skill の slash 形」に着手したところ、**それは単独では解けなかった**。

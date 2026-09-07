@@ -21,7 +21,10 @@
 |:-:|:--|:--|:--|
 | **1** | ~~**Action 4** = 正本 97 箇所の namespaced 化~~ → **Action 4a（agent 名）として 2026-09-06 に完了** | **完了** | 実測が前提を覆した。「97 箇所」は母数ではなく、**skills を含めると T1 チェーンと分裂する**ため **Action 4b に分割**した。設計・棄却案・積み残しは `docs/artifacts/2026-09-06-magi-action4-reference-model.md`（MAGI 2 巡 + **HGA #34**） |
 | **1b** | ~~**Action 4b** = skill の slash 形の名前空間化~~ → **2026-09-06 に完了** | **完了** | 本体は slash 形ではなく **T1 に生成器が無かったこと**だった。**T1 生成器を新設**し、T1 の判定を「バイト恒等」→「派生 == 導出(正本)」へ改めた。前提として **ADR-0010 追補 3**（PM 級 / 承認済）で不変条件を「**配布される側**に bare が残っていないこと」へ一般化した。設計は `docs/artifacts/2026-09-06-magi-action4b-skill-references.md` |
-| **1c** | **Action 4c** = 182 箇所のうち **37 箇所**（`.claude/skills/...` `.claude/agents/...` の**パス自己参照**） | **次はここ** | 4a・4b とは**変換規則が違う**。名前の修飾ではなく「plugin 配布下でパス参照が原理的に壊れる」形であり、パス → コンポーネント参照の変換は**情報の欠落を伴う**（`:120` のような行・節の指定が消える）。**混ぜてはならない**（4b の Atom B3） |
+| **1c** | ~~**Action 4c** = 182 箇所のうち 37 箇所のパス自己参照~~ → **2026-09-07 に設計完了・PM 級 2 件承認済**。実施は未着手 | **設計完了 / 実施が次** | **前提が 3 段階で覆った**。(1) 4b が分離根拠とした「情報の欠落」は**存在しなかった**（行番号参照 0 件）(2) 192 箇所は**4 種の別問題**で、最大の層 T1 managed には `${CLAUDE_PLUGIN_ROOT}` が**原理的に届かない** (3) 計器の射程外に**機能破壊 13 箇所**と **fail-open した security 機構**が在った。設計は `docs/artifacts/2026-09-07-magi-action4c-path-references.md`（**HGA #35 + MAGI 2 巡 + gabriel 2 回**）。条文は **ADR-0010 追補 4**（承認済）。着手順は **4c-0 → 4c-1 → 4c-2** |
+| **1c-0** | **4c-0** = census の 5 点是正（glob 切り詰めバグ / `rglob` 集合判定 / `exists_dev × exists_user` 行列 / フェンス内コマンドを別欄 / `py-fixture` を単一の真の理由へ） | **次はここ** | SE 級。**ゲート化の前に計器を直す**（初日から真っ赤を自作しない）。書込集合 = `census_dangling.py` + そのテスト |
+| **1c-1** | **4c-1** = 決定 A・B・C の実施 ＋ 閉包導出器 | **PM 承認済** | **A**: `subprocess-encoding-convention.md` の配布をやめる（**18 箇所が消える**）/ **B**: 実害 13 は手順書き換え（`scale_detector` `build_dashboard` は配らず skip 継続）/ **C**: `incident-patterns.yaml` は hook のパス解決を `${CLAUDE_PLUGIN_ROOT}` 相対フォールバック化して配る ＋ `source_md` の非配布 retro 参照を処理。**配布集合を動かすと T1/T3 が即赤になる**ので同一コミット |
+| **1c-2** | **4c-2** = 規則 R-P の実装（T1 順 / T3 逆）＋ codemod ＋ T2 差し替え | 承認済（SE） | R-P・射程・冪等性・合成順・到達性検査は設計アンカー §D1・D6 が確定形。**diff 全数レビュー必須**。**`.claude/{skills,agents}/**` の派生再生成を忘れない**（忘れると T3 が赤） |
 | 2 | **Action 7** = 事後突合の計器（宣言した閉包 vs 実際に変わったもの = git 差分 + hook ログ追記） | **繰り上げ提案 / 未承認** | HGA #33 裁定 2 の処方。**末尾に置いたままだと「決めたのに実装しない」型を再生産する** |
 | 3 | **Action 5**（D-2 = init のガードと Step 5 の件数一致 / `CLAUDE.md` の Context 別 form 表に 1 行 = **PM 級**） | 未着手 | Action 4・7 と独立 |
 | 4 | **Action 6**（宣伝ゲートを「清浄環境で未解決参照 0」へ付け替え + `/release` 結合） | 未着手 | 同上 |
@@ -104,3 +107,24 @@
 - **次に gabriel が critical を返したら 3 巡目**なので、局所修正で流さず **HGA へ**
 - **宣言漏れ（宣言 < 実際）が 1 回でも起きたら、Action 7 を最優先に繰り上げる**
 - **「緑なのに事実と食い違う」形を見たら即停止**（`rule-001` 観測 #6 型 / セッション 33 でも 1 件実見 = gabriel 計器）
+
+---
+
+## 8. セッション 35（2026-09-07）で判明したこと
+
+- **`.claude/hooks/analyzers/tests` の 565 件が常用の実行対象に入っていない**。
+  LAM が「1429 passed」と呼んでいるのは **`.claude/tests` ＋ `.claude/hooks/tests`** であり、
+  `analyzers/tests` を足すと **1994 passed / 5 deselected** になる。
+  **緑の範囲が宣言より狭い**（`rule-001` 観測 #6 型と同じ形の懸念）。
+  なお `analyzers` は 4c-1 の決定 B で「配らない」と決めたパッケージである。
+  **どちらが正しい常用範囲かは未判断** —— 実行時間は +3 秒程度なので、含めない理由が現時点で無い
+- **計器（`census_dangling.py`）に 2 つの欠陥**があった（4c-0 で是正）——
+  `PATH_RE` の glob 切り詰め（`.claude/agents/*.md` → `.claude/agents`）と、
+  `py-fixture` 除外の**理由が偽**（9 件中 6 件は配布コードの docstring であってテストフィクスチャではない）
+- **FS 問い合わせは NTFS で case を化かす**（実演: `ls -d .claude/Rules` は**成功する**が
+  `rglob` 由来の集合では False）。`exists_dev` を `Path.is_file()` で実装してはならない ——
+  `permission-levels.md` が 2026-09-05 に踏んだ罠と同型
+- **`/release` のゲートは `/release` だけでは走らない** ——
+  `test_verify_plugin_containment.py::test_real_repo_has_no_violations` が
+  **全 pytest 実行で実リポジトリに `verify()` を走らせている**。
+  配布集合を動かす作業（4c-1）は**同一コミットでないと全テストが赤になる**
