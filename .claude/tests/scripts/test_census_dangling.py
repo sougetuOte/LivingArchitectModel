@@ -127,6 +127,26 @@ def test_census_runs_on_real_repo():
     assert set(dropped) == {"placeholder", "runtime", "write-dest", cd._PY_SCOPE_KEY}
 
 
+def test_runtime_exclusion_covers_hook_written_state():
+    """hook が書く実行時状態が `runtime` 除外に載っていること（2026-09-08 / 4c-1 で発覚）。
+
+    `.claude/pre-compact-fired` は**先頭ドットなし**が実体であり、旧パターン
+    `\\.pre-compact-fired` は一度も発火していなかった。`gd-session-state.json` と
+    `last-test-result` は列挙漏れ。**発火しない除外は、除外が無いのと同じである。**
+    """
+    rx = cd._EXCLUSIONS["runtime"][0]
+    for ref in (
+        ".claude/pre-compact-fired",
+        ".claude/gd-session-state.json",
+        ".claude/last-test-result",
+        ".claude/lam-loop-state.json",
+    ):
+        assert rx.search(ref), f"{ref} が runtime 除外に載っていない"
+    # **消しすぎていないこと**（規範・スクリプト本体は実行時生成物ではない）
+    for ref in (".claude/rules/permission-levels.md", ".claude/scripts/py_invoke.sh"):
+        assert not rx.search(ref), f"{ref} を実行時生成物として落としている"
+
+
 # --- Action 4c-0 (a): glob 切り詰め ------------------------------------------------
 
 

@@ -305,11 +305,17 @@ _EXCLUSIONS = {
         re.compile(r"(?:-$|/xxx|xxx\.|/research/|feat-|api-$|data-$)"),
         "命名パターンの提示であり特定の実体を指していない",
     ),
+    # 2026-09-08（4c-1 の閉包導出で発覚）: 3 件を補い、1 件の綴りを直した。
+    # `\.pre-compact-fired` は**実体が `.claude/pre-compact-fired`（先頭ドットなし）**であり、
+    # この除外は一度も発火していなかった。`gd-session-state.json` / `last-test-result` は
+    # hook が書く実行時状態で、列挙から漏れていた（前 2 者は `permission-levels.md` が
+    # 「hook が書く信頼アンカー」として PM 級に挙げている当のファイルである）。
     "runtime": (
         re.compile(
             r"^\.claude/(logs|review-state|states|projects|agent-memory|commands|settings"
             r"|tdd-patterns\.log|test-results\.xml|doc-sync-flag|lam-loop-state\.json"
-            r"|\.session-pm-edit-cache\.json|\.pre-compact-fired|compaction-exposure\.log"
+            r"|gd-session-state\.json|last-test-result"
+            r"|\.session-pm-edit-cache\.json|\.?pre-compact-fired|compaction-exposure\.log"
             r"|gabriel-metrics\.log|rubric-tmp\.md)"
         ),
         "実行時に生成される / 利用者が作る出力先であり事前に存在しなくてよい",
