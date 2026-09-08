@@ -46,10 +46,13 @@ git commit は行わない（コミットは `/ship` を使用）。
 
 ### 書き出し後の宣言欄確認（MUST / **2026-08-17 改訂**）
 
-`SESSION_STATE.md` を書き換えたら、**Milestone 宣言欄が存在し解釈可能であること**を確認する（`.claude/rules/auto-generated/rule-001.md` / 観測 6 回 / 2026-08-17 恒久解 (c)）:
+`SESSION_STATE.md` を書き換えたら、**Milestone 宣言欄が存在し解釈可能であること**を確認する（`.claude/rules/auto-generated/rule-001.md` / 観測 6 回 / 2026-08-17 恒久解 (c)）。
+
+> **下記の pytest は LAM 開発時のみ実行できる**（テストは配布されない）。
+> 利用者環境では、その下の「ヘッダに次のいずれかの形で宣言があること」を**目視で**確認する。
 
 ```
-bash .claude/scripts/py_invoke.sh -m pytest .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_milestone .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_wave -q
+[ -f .claude/tests/dashboard/test_session_state_parser.py ] \n  && bash .claude/scripts/py_invoke.sh -m pytest .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_milestone .claude/tests/dashboard/test_session_state_parser.py::test_parse_real_session_state_contains_wave -q \n  || echo "テストは配布されないためスキップ（下記の形をヘッダで目視確認する）"
 ```
 
 ヘッダに次のいずれかの形で宣言があること。**「なし」は正当な値であり、欠落ではない。**

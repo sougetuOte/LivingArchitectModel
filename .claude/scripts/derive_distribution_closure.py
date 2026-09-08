@@ -73,6 +73,12 @@ _MANAGED_MAP = (
     ("docs/internal/", "templates/managed/docs-internal/"),
     (".claude/scripts/", "templates/managed/scripts/"),
 )
+# 領域単位ではなく**ファイル単位のフォールバック**。plugin は既定を別名で同梱し、
+# hook が実行時に「プロジェクト側 → plugin 同梱」の順で解決する
+# （`pre-tool-use.py` の `resolve_incident_yaml` / 2026-09-08 / 決定 C）。
+# **ここと hook がずれると計器が嘘をつく**ため、`test_fallback_map_matches_the_hook` で束ねる。
+_FALLBACK_MAP = ((("docs/artifacts/incident-patterns.yaml"), "hooks/incident-patterns.yaml"),)
+
 _MIRROR_MAP = (
     # analyzers は **plugin 直下**にある（`hooks/` 配下ではない）。hooks/ 配下に置くと
     # T3 の積集合に入って開発側 tests/ 22 件が非対称違反になるため（2026-09-08 / 4c-1）。
@@ -93,6 +99,12 @@ _SYSPATH_LINE_RE = re.compile(r"sys\.path")
 _FROM_IMPORT_RE = re.compile(r"^\s*from\s+([A-Za-z_][\w.]*)\s+import\b")
 _IMPORT_RE = re.compile(r"^\s*import\s+([A-Za-z_][\w.]*)")
 _FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
+
+# `[ -f X ]` / `[ -d X ]` で守られた呼び出しは**硬い依存ではない**。
+# ADR-0010 追補 4 は「配られるか、**不在時の挙動が仕様として明示されている**か」を要求し、
+# このガードは**その仕様を実行可能な形で書いたもの**である（prose の注記より強い）。
+# 文意判定ではなく構文で切れる —— D4 がフェンスで「実行する / 読む」を切ったのと同じ手。
+_GUARD_RE = re.compile(r"\[\s*-[fder]\s+([^\]\s]+)\s*\]")
 
 _dev_files_cache: dict = {}
 
@@ -132,6 +144,9 @@ def dist_location(dev_rel: str, plugin_dir: Path = PLUGIN, repo: Path = REPO):
     plugin_files = _dev_files(plugin_dir)
     plugin_rel = plugin_dir.relative_to(repo).as_posix()
     candidates = []
+    for src, dest in _FALLBACK_MAP:
+        if dev_rel == src:
+            candidates.append(dest)
     for src, dest in (*_MANAGED_MAP, *_MIRROR_MAP):
         if dev_rel.startswith(src):
             candidates.append(dest + dev_rel[len(src) :])
@@ -279,15 +294,20 @@ def fence_entry_points(md_path: Path, root: Path) -> dict:
     out: dict = {}
     inside = False
     syspath_roots: list = []
+    guarded: set = set()
     for lineno, line in enumerate(md_path.read_text(encoding="utf-8", errors="replace").split("\n"), 1):
         if _FENCE_RE.match(line):
             inside = not inside
             if inside:
                 syspath_roots = []
+                guarded = set()
             continue
         if not inside:
             continue
         site = f"{rel_doc}:{lineno}"
+        # ガードは**フェンス単位**で持つ —— `[ -f X ] \` の行継続で守る書き方が普通であり、
+        # 行単位で見ると同じブロック内の呼び出しを取りこぼす（実測）。
+        guarded |= {m.group(1) for m in _GUARD_RE.finditer(line)}
         if _SYSPATH_LINE_RE.search(line):
             for m in _SYSPATH_RE.finditer(line):
                 # 空文字（`or ''`）は探索根にならない。引用符の種類は後方参照で束縛する
@@ -297,6 +317,8 @@ def fence_entry_points(md_path: Path, root: Path) -> dict:
         for m in cd.PATH_RE.finditer(line):
             ref = m.group(0)
             if cd.PLACEHOLDER.search(line[: m.start()] + ref) or _is_excluded(ref):
+                continue
+            if ref in guarded:  # 不在時の挙動が実行可能な形で書かれている
                 continue
             if ref in known:  # ディレクトリは実体ではないので入らない
                 out.setdefault(ref, []).append(site)

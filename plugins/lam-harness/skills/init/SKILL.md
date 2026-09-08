@@ -24,7 +24,7 @@ Layer 0（規範）と、それを執行する機構の一部はまさにそこ�
 
 | 層 | 中身 | 本スキル | 更新 |
 |:--|:--|:--|:--|
-| **Layer 0 / managed** | `.claude/rules/` 14 件 ＋ `docs/internal/` 10 件 ＋ `.claude/scripts/` 12 件 | **敷く** | `/plugin update` で**届く** |
+| **Layer 0 / managed** | `.claude/rules/` ＋ `docs/internal/` ＋ `.claude/scripts/`（**件数は書かない** —— 実際に敷くものは Step 3 でテンプレートの実在から導出する / 維持リストを持たない） | **敷く** | `/plugin update` で**届く** |
 | **Layer 0 / starter** | `CLAUDE.md` / `CHEATSHEET.md` / `CHANGELOG.md` / `SESSION_STATE.md` / `.claude/current-phase.md` / `.claude/harness.json` / `.claude/rules/model-roster.md` / `.claude/rules/terminology.md` | **敷く（初回のみ）** | 届かない（利用者の資産） |
 | **Layer 2 / 機構** | `.claude/hooks/` ・ `.claude/agents/` ・ skills ・ **analyzers**（`/lam-harness:full-review` と `/lam-harness:ship` が呼ぶ） | **敷かない** | plugin が直接供給する |
 | **Layer 1 / 決定的な禁止** | `.claude/settings.json` の `permissions` | **敷かない** | **利用者の手作業**（下記 Step 6） |

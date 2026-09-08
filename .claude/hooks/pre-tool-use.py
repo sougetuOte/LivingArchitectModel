@@ -21,6 +21,7 @@ PG/SE/PM の等級を判定する。
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import unicodedata
@@ -638,11 +639,32 @@ def _emit_incident_response(pmatch: PatternMatch, target: str) -> None:
     ))
 
 
+def resolve_incident_yaml(project_root: Path) -> Path:
+    """動的 deny のパターン定義の在処を決める。**プロジェクト側が優先**。
+
+    無ければ plugin 同梱の既定へ落ちる。これが無いと、配布 hook が読む実体が
+    利用者環境に存在せず、`load_patterns` が None を返して**動的 deny が沈黙する**
+    （2026-09-07 実測 / ADR-0010 追補 4「fail-open を黙認しない」）。
+
+    どちらも無い場合はプロジェクト側のパスを返す —— 例外を投げると hook が落ち、
+    **全ツール呼び出しが止まる**。既存のフェイルセーフ（None）へ繋ぐのが正しい。
+    """
+    own = project_root / "docs" / "artifacts" / "incident-patterns.yaml"
+    if own.is_file():
+        return own
+    plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT")
+    if plugin_root:
+        shipped = Path(plugin_root) / "hooks" / "incident-patterns.yaml"
+        if shipped.is_file():
+            return shipped
+    return own
+
+
 def main() -> None:
     project_root = get_project_root()
     log_file = project_root / ".claude" / "logs" / "permission.log"
     phase_file = project_root / ".claude" / "current-phase.md"
-    incident_yaml = project_root / "docs" / "artifacts" / "incident-patterns.yaml"
+    incident_yaml = resolve_incident_yaml(project_root)
 
     # stdin から JSON 読み込み
     data = read_stdin_json()

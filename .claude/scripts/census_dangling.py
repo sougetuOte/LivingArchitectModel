@@ -321,7 +321,11 @@ _EXCLUSIONS = {
         "実行時に生成される / 利用者が作る出力先であり事前に存在しなくてよい",
     ),
     "write-dest": (
-        re.compile(r"^docs/(artifacts/(knowledge|tdd-patterns|audit-reports)$|tasks/)"),
+        # 2026-09-08: `artifacts/dashboard` を追加（`build_dashboard.py` の**出力先**であり
+        # 読み込む依存ではない。計器は read / write を判別できないため、ここで落とす）。
+        re.compile(
+            r"^docs/(artifacts/(knowledge|tdd-patterns|audit-reports|dashboard)|tasks/)"
+        ),
         "書込先ディレクトリ（init が docs/artifacts を作る / 中身は利用者が生む）",
     ),
 }

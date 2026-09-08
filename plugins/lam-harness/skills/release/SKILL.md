@@ -57,8 +57,9 @@ bash .claude/scripts/py_invoke.sh .claude/scripts/verify_distributable_claims.py
 **落ちたら `/lam-harness:ship` で先に直す** —— リリースコミットは単独に保つ。
 
 ```bash
-# plugin を持つリポジトリでのみ実行する（本検査は配布されない = 下記の注記参照）
-[ -d plugins ] && bash .claude/scripts/py_invoke.sh .claude/scripts/verify_plugin_containment.py   || echo "plugins/ が無いためスキップ"
+# **LAM 開発時のみ**。本検査（verify_plugin_containment.py）は配布されないため、
+# 利用者環境では実体が無く、下の `[ -d plugins ]` で skip される（下記の注記参照）
+[ -f .claude/scripts/verify_plugin_containment.py ] \n  && bash .claude/scripts/py_invoke.sh .claude/scripts/verify_plugin_containment.py \n  || echo "本検査は配布されないためスキップ（LAM 開発時のみ実行される）"
 ```
 
 ### 上流公式の検証（2026-09-05 追加 / 自前で書かず上流に寄せる）

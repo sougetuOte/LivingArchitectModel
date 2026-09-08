@@ -320,3 +320,42 @@ def test_dist_location_maps_analyzers_to_plugin_root():
     )
     # 開発側だけの `tests/` は配布されない（片側無視の対象）
     assert dc.dist_location(".claude/hooks/analyzers/tests/test_e2e_review.py") is None
+
+
+def test_fence_entry_points_mark_guarded_commands_as_conditional(tmp_path):
+    """`[ -f X ] &&` / `[ -d X ] &&` で守られた呼び出しは**硬い依存ではない**こと。
+
+    ADR-0010 追補 4 は「配られるか、**その不在時の挙動が仕様として明示されている**か」を
+    要求する。`[ -f X ]` ガードは**その仕様を実行可能な形で書いたもの**であり、
+    prose の「LAM 開発時のみ」より強い。文意判定ではなく**構文**で切れる。
+    """
+    (tmp_path / ".claude" / "scripts").mkdir(parents=True)
+    (tmp_path / ".claude" / "scripts" / "only_dev.py").write_text("", encoding="utf-8")
+    doc = tmp_path / "skill.md"
+    doc.write_text(
+        "```bash\n"
+        "[ -f .claude/scripts/only_dev.py ] && python .claude/scripts/only_dev.py || echo skip\n"
+        "```\n",
+        encoding="utf-8",
+    )
+    found = dc.fence_entry_points(doc, tmp_path)
+    assert ".claude/scripts/only_dev.py" not in found, "ガード付きは硬い依存に数えない"
+
+
+def test_fallback_map_matches_the_hook():
+    """ファイル単位のフォールバック写像が、**hook の実際の解決と一致**すること。
+
+    計器と実装がずれると、計器は「配ってある」と嘘をつく。
+    `resolve_incident_yaml` が `${CLAUDE_PLUGIN_ROOT}/hooks/incident-patterns.yaml` を
+    見に行くことを、hook の実文と突き合わせて固定する。
+    """
+    hook = (REPO_ROOT / "plugins" / "lam-harness" / "hooks" / "pre-tool-use.py").read_text(
+        encoding="utf-8"
+    )
+    assert "def resolve_incident_yaml" in hook
+    for dev_rel, plugin_rel in dc._FALLBACK_MAP:
+        tail = plugin_rel.split("/", 1)[1]
+        assert f'"{tail}"' in hook or f"'{tail}'" in hook, (
+            f"hook が {plugin_rel} を見ていない（写像が実装とずれている）"
+        )
+        assert dc.dist_location(dev_rel) == f"plugins/lam-harness/{plugin_rel}"

@@ -78,10 +78,16 @@ PM 級ダイアログ発火数 / `CLAUDE.md` + `rules` トークン数）は、d
 `hga-summon-log.md` #18 の 3 テスト（起点 / 閉集合 / 対象）を構造的に全通過する。
 これを行わない場合、補償条項は現レジームの寿命を超えて残り続ける。
 
-1. 対象を列挙する（**軸1 = モデル誤り予防**の条項のみ。ユーザー意思 veto 分と不変制約は対象外）:
+1. 対象を列挙する（**軸1 = モデル誤り予防**の条項のみ。ユーザー意思 veto 分と不変制約は対象外）。
+
+> **LAM 開発時のみ**: 分類表 `docs/artifacts/m-1-triage-table.md` は LAM 固有の実績表であり
+> 配布されない。利用者環境では、自プロジェクトの規範から「モデル名を直書きしている条項」を
+> 直接 grep して数える（下の手順 2 以降は分類表に依存しない）。
 
 ```bash
-grep -c "モデル誤り予防" docs/artifacts/m-1-triage-table.md
+[ -f docs/artifacts/m-1-triage-table.md ] \
+  && grep -c "モデル誤り予防" docs/artifacts/m-1-triage-table.md \
+  || grep -rln "claude-\(opus\|sonnet\|haiku\|fable\)-" .claude/rules docs/internal
 ```
 
 2. 判定材料を集める。材料は **`docs/internal/08_EXECUTION_DISCIPLINE.md` §9 観測チャンネル対応表**が指す
