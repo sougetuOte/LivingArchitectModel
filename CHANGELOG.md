@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 計器を直したら、実害が「13 箇所」ではなかった（2026-09-08 / Action 4c-0）
+
+前項が「4c-0 で是正する」と書いた計器の欠陥 2 件を含む **5 点**を直した。
+`census_dangling.py` の 5 点すべてに**陰性対照**を置いた（是正が効いていることを示すため /
+新規テスト 9 件）。本欄の実測は **91 参照 / 192 箇所 → 89 参照 / 179 箇所**。
+
+- **glob 切り詰めは分類問題ではなくトークナイザ問題だった** —— `PATH_RE` に `*` が無いため
+  `` `.claude/agents/*.md` `` が `.claude/agents` に切り詰められ、その後の
+  プレースホルダ検査は**切り詰めた後の文字列**に走っていた。除外表を足さずに消えた
+- **`exists_dev` を `Path.is_file()` で実装してはならない** —— NTFS は case-insensitive で、
+  PM ゲートの大小文字非区別を説明する**証拠テキスト** `.claude/Rules/...` に True を返す。
+  `rglob` 由来の集合で判定する。`permission-levels.md` が 2026-09-05 に踏んだ罠と同型
+- **`exists_dev × exists_user` の 2 環境行列**を足し、機構 #10 との役割分担を可視化した
+- **フェンス内コマンドを別欄にした** —— 読者が**実行する**ものと**読む**ものを構文で二分する。
+  **コマンド引数に参照規則（URL 化）を当ててはならない**: URL 化すればコマンドが壊れる。
+  これは綴りでは直らず、**配るか手順から外すかの二択**である
+- **`py-fixture` 除外の偽の理由を訂正した** —— 判定条件（参照元が全て `.py`）は元から正しく、
+  偽だったのは理由の側。真の理由 1 つ（**`.py` は規則の射程外 / 読者は開発者**）で 9 件すべてを覆う
+
+**前項の「実害 13 箇所」は過小だった。** フェンス欄の実測は **12 参照 / 25 箇所**（うち 3 箇所は
+ディレクトリ図＝上界ノイズ）で、最大のものは `scale_detector.py` 単体ではない ——
+**配布 `.md` の 11 箇所が `sys.path.insert(0, '.claude/hooks')` して
+`analyzers.{run_pipeline, chunker, card_generator, state_manager, gitleaks_scanner}` を import
+している**（`/lam-harness:ship` / `/lam-harness:full-review` Stage 1-3 / `/lam-harness:autonomous`）。
+前項の決定「実害 13 は手順書き換えで解消」は、**書き換えるとこれらの Stage が利用者環境で
+機能を失う**ことを含意する。**決定の前提が変わったため、4c-1 の入口で諮る。**
+
 ### 配布物のパス参照を設計し、配布集合を「閉包の導出」に改めた（2026-09-07 / Action 4c 設計 + ADR-0010 追補 4）
 
 **実装は未着手。本項は設計と条文の変更である。**
