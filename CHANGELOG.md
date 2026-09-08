@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 閉包を導出したら、承認した経路が実装前に破れた（2026-09-08 / Action 4c-1 前半）
+
+ADR-0010 追補 4 が条文にした「配布集合＝エントリポイントからの到達閉包」を、実際に計算する器
+（`derive_distribution_closure.py`）を入れた。**閉包 65 件 / 未配布 40 件。**
+決定 A（`subprocess-encoding-convention.md` を配らない）は 18 参照だけでなく**閉包の枝 10 件**も落とす。
+
+**導出器にも欠陥が 2 つあり、諮る前に直した** —— **docstring を「実行時データ依存」に数えていた**
+（初版 gap 75 件のうち 20 件超は hook の docstring が仕様書を参照していただけ / 4c-0 で直した
+`py-fixture` の偽の理由と同じ型）と、**`Path` の `/` 連結を辿れず `incident-patterns.yaml` を
+取り逃していた**（追補 4 が名指しした当の依存が、単一リテラルでは書かれていなかった）。
+ついでに census 側の**発火しない除外**も見つけた —— `runtime` 除外の `\.pre-compact-fired` は
+実体（先頭ドットなし）と綴りが違い、一度も発火していなかった。**発火しない除外は、除外が無いのと同じ。**
+
+**ユーザーが配布集合を決定した**（analyzers = 配る / dashboard = 配る / 小物 3 件 = 手順書き換え）。
+これは 2026-09-07 の決定 B を supersede する —— **決定 B の前提「実害 13 箇所」が過小だった**。
+実体は `/lam-harness:full-review` Stage 1-3 と `/lam-harness:ship` の gitleaks 走査が
+**analyzers 6 モジュールへの依存 11 箇所**で機能しないことだった。
+
+**そして L1 が推し、ユーザーが承認した経路は実装前検証で破れた** —— `analyzers` の 4 モジュールが
+`from _hook_utils import build_allowlisted_env` しており、`_hook_utils.py` は Layer 2
+（plugin が直接供給）で利用者の `.claude/hooks/` には敷かれないため、managed で敷いても
+**ImportError で落ちる**。「配ったのに動かない」形であり、4c-1 が解こうとしている問題そのものだった。
+
+MAGI 2 巡 + gabriel 2 回で確定した経路: analyzers は **`plugins/lam-harness/analyzers/`**
+（`_MIRROR_AREAS` に 1 行 / T3 が同期を強制 / dev 側 `tests/` 22 件はトップレベル片側として無視）、
+`_hook_utils` は**移さず二重配布もせず** skill 側で `${CLAUDE_PLUGIN_ROOT}/hooks` を sys.path に足す、
+dashboard は managed scripts、**T3 の導出に `.md` ガード**を入れて T1 と対称にする
+（`to_project_text` は `.py` にも無ガードで当たっており、`invert_managed_text` の docstring が
+**この誤りを既に禁止と書いていた** —— 片方向にだけ書かれた規則は、もう片方向で必ず破られる）。
+
+gabriel の 1 巡目 critical は「**配るという決定が repo のどこにも記録されていない**」だった。
+gabriel は会話を読めないので正当な指摘であり、指摘の実体は記録の欠落だった。記録を実装より先に置いた。
+2 巡目 warning 2 件はいずれも実測で処理した（plugin ローダ安全性は upstream で確認 /
+**書込集合の宣言漏れ**は 6 項目を追加）。設計は
+`docs/artifacts/2026-09-08-magi-analyzers-distribution-route.md`。
+
 ### 計器を直したら、実害が「13 箇所」ではなかった（2026-09-08 / Action 4c-0）
 
 前項が「4c-0 で是正する」と書いた計器の欠陥 2 件を含む **5 点**を直した。

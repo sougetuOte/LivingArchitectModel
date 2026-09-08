@@ -924,7 +924,7 @@ L1 の推奨 4 件がすべて承認された。**D5 の「L1 の提案」列は
 | # | 決定 | 帰結 |
 |:-:|:--|:--|
 | **A** | **`subprocess-encoding-convention.md` の配布をやめる** | 最大の参照元 **18 箇所が 1 決定で消える**。`templates/managed/rules/` から除去（T1 の派生集合が 14 → 13）。**L1 の読み「これは製品規範ではなく LAM 開発規約」をユーザーが追認した**。`.claude/rules/` の正本は残る（LAM 自身は使い続ける） |
-| **B** | **実害 13 は手順書き換えを既定**（`scale_detector.py` / `build_dashboard.py` とも**配らない**） | 配布 skill を「実体が無ければそのステップを skip して継続」へ書き換える。**配布集合を膨らませず、T1／T3 の構造制約にも触れない**（`analyzers` の plugin hooks 配下への配置 = T3 が 30 件超赤 / `templates/managed/scripts/` 配置 = T1 が赤、をどちらも回避）。利用者は scale 検出とダッシュボードを失うが、**skill は落ちなくなる** |
+| **B** | ~~**実害 13 は手順書き換えを既定**（`scale_detector.py` / `build_dashboard.py` とも**配らない**）~~ **→ 2026-09-08 に supersede された**（`docs/artifacts/2026-09-08-magi-analyzers-distribution-route.md` §決定記録）。**前提だった「実害 13 箇所」が過小だった** —— 閉包導出器の実測は gap 40 件で、実体は `full-review` Stage 1-3 と `ship` の gitleaks が **analyzers 6 モジュールへの依存 11 箇所**で機能しないことだった。以下は当時の記録として保存する | 配布 skill を「実体が無ければそのステップを skip して継続」へ書き換える。**配布集合を膨らませず、T1／T3 の構造制約にも触れない**（`analyzers` の plugin hooks 配下への配置 = T3 が 30 件超赤 / `templates/managed/scripts/` 配置 = T1 が赤、をどちらも回避）。利用者は scale 検出とダッシュボードを失うが、**skill は落ちなくなる** |
 | **C** | **`incident-patterns.yaml` は hook のパス解決を改修して配る** | `pre-tool-use.py` に `${CLAUDE_PLUGIN_ROOT}` 相対のフォールバックを足す（プロジェクト側にあればそちらを優先）。**既存の構造定数を動かさない**（HGA #35 の歯止めに触れない）。併せて `source_md` の非配布 LAM retro 参照（`retro-W6-B5-2026-06-25.md` / `retro-B4-W1-W15-2026-06-20.md`）を URL 化または空にする —— **マッチ時に利用者へ提示される**ため |
 | **D** | **ADR-0010 追補 4 を承認** | D8 の文言で条文化する。**4c-2 の前に入れる**（4b が追補 3 で通った道と同じ / 実装と条文のドリフトを自分で作らない） |
 
