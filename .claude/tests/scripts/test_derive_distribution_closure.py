@@ -59,8 +59,7 @@ def test_dist_location_maps_managed_areas():
 
 def test_dist_location_is_none_for_non_distributed():
     """**配られていないものは None**（これが gap の判定そのもの）。"""
-    assert dc.dist_location(".claude/hooks/analyzers/chunker.py") is None
-    assert dc.dist_location(".claude/scripts/build_dashboard.py") is None
+    assert dc.dist_location(".claude/scripts/r1_inventory.py") is None
     assert dc.dist_location(".claude/rules/hga-summoning.md") is None
     assert dc.dist_location("docs/artifacts/whatever.md") is None
 
@@ -252,3 +251,72 @@ def test_closure_stays_inside_the_repo():
         assert not Path(dev_rel).is_absolute()
         assert ".." not in dev_rel.split("/")
         assert (REPO_ROOT / dev_rel).exists(), f"{dev_rel} は実在しない"
+
+
+def test_resolve_imports_handles_from_package_import_module(tmp_path):
+    """`from . import mod` / `from pkg import mod` の形を解決できること。
+
+    **初版はこれを取り逃していた** —— `ast.ImportFrom` の `node.module` は
+    `from . import static_assets` では **None** であり、モジュール名は `names` 側にある。
+    実測: `.claude/scripts/dashboard/builder.py:36` がこの形で `static_assets` を引き、
+    そこから `_radix_colors` へ繋がる枝が**閉包から丸ごと落ちていた**。
+    配布集合が実際より小さくなる = 配ったのに動かない形である。
+    """
+    pkg = tmp_path / "pkg"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "leaf.py").write_text("", encoding="utf-8")
+    (pkg / "entry.py").write_text("from . import leaf\n", encoding="utf-8")
+    found = dc.resolve_imports(pkg / "entry.py", tmp_path, [tmp_path])
+    assert "pkg/leaf.py" in found
+
+    (tmp_path / "top.py").write_text("from pkg import leaf\n", encoding="utf-8")
+    found2 = dc.resolve_imports(tmp_path / "top.py", tmp_path, [tmp_path])
+    assert "pkg/leaf.py" in found2, "from pkg import mod もモジュール参照でありうる"
+
+
+def test_fence_entry_points_recognize_both_syspath_forms(tmp_path):
+    """`sys.path.insert(...)` と `sys.path[:0] = [...]` の**両方**を認識すること。
+
+    4c-1 の codemod で配布 skill を後者の形へ書き換えた直後、計器が前者しか知らず
+    **閉包が 18 → 11 に縮んだ**（計器が自分の測定対象に追随していなかった）。
+    宣言が実際より小さくなる形であり、gabriel rubric #4 が狙う欠陥そのもの。
+    """
+    pkg = tmp_path / ".claude" / "hooks" / "analyzers"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "chunker.py").write_text("", encoding="utf-8")
+    doc = tmp_path / "skill.md"
+    doc.write_text(
+        "```bash\n"
+        "bash x -c \"\n"
+        "import sys, os; _r = r'${CLAUDE_PLUGIN_ROOT}' or ''; "
+        "sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']\n"
+        "from analyzers.chunker import chunk_file\n"
+        '"\n'
+        "```\n",
+        encoding="utf-8",
+    )
+    found = dc.fence_entry_points(doc, tmp_path)
+    assert ".claude/hooks/analyzers/chunker.py" in found
+
+
+def test_dist_location_maps_analyzers_to_plugin_root():
+    """analyzers は **plugin 直下**に配布される（`hooks/` 配下ではない）。
+
+    hooks/ 配下に置くと T3 の積集合に入り、開発側 `tests/` 22 件が非対称違反になる
+    （gabriel 2026-09-07 実測 / 2026-09-08 に L1 が `_iter_mirror_matches` を実読して裏づけた）。
+    **前方一致は長い方を先に試す**ことが要件である。
+    """
+    assert dc.dist_location(".claude/hooks/analyzers/chunker.py") == (
+        "plugins/lam-harness/analyzers/chunker.py"
+    )
+    assert dc.dist_location(".claude/hooks/analyzers/graph/scc.py") == (
+        "plugins/lam-harness/analyzers/graph/scc.py"
+    )
+    # hooks 本体は従来どおり hooks/ 配下
+    assert dc.dist_location(".claude/hooks/pre-tool-use.py") == (
+        "plugins/lam-harness/hooks/pre-tool-use.py"
+    )
+    # 開発側だけの `tests/` は配布されない（片側無視の対象）
+    assert dc.dist_location(".claude/hooks/analyzers/tests/test_e2e_review.py") is None

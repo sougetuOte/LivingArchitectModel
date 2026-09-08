@@ -17,7 +17,7 @@ argument-hint: "[dry-run]"
    ```bash
    # Python スクリプトで実行
    bash .claude/scripts/py_invoke.sh -c "
-   import sys; sys.path.insert(0, '.claude/hooks')
+   import sys; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
    from analyzers.gitleaks_scanner import run_protect_staged, is_available, get_install_guide
    if not is_available():
        print('⚠️ gitleaks 未インストール: シークレットスキャンをスキップします')

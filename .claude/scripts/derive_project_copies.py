@@ -65,7 +65,7 @@ from verify_plugin_containment import (  # noqa: E402
     _relative_text_files,
     component_names,
     plugin_namespace,
-    to_project_text,
+    derive_project_text,
 )
 
 
@@ -82,7 +82,7 @@ def plan(repo_root: Path):
                 # 複製相の非対称は T3 が違反として報告する。生成器は新規作成しない
                 # （片側だけの存在は意図的な差分でありうるため、機械的に増やさない）
                 continue
-            expected = to_project_text(_read(src), namespace, names)
+            expected = derive_project_text(rel, _read(src), namespace, names)
             if _read(dev_map[rel]) != expected:
                 pending.append((dev_map[rel], expected))
     return pending

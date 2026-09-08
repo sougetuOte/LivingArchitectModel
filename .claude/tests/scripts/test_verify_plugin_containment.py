@@ -322,7 +322,7 @@ def test_module_exposes_scope_constants():
     # 双方に実体を持つ複製相であり、_MANAGED_AREAS（一方向テンプレート）とは
     # 別定数として管理する。本 assert は射程変更を diff に出すトリップワイヤ。
     # 2026-09-05（P-1）: `hooks` を追加。hooks も複製相に入った。
-    assert set(vpc._MIRROR_AREAS) == {"skills", "agents", "hooks"}
+    assert set(vpc._MIRROR_AREAS) == {"skills", "agents", "hooks", "analyzers"}
 
 
 # --- T4 hook 宣言の実体（陰性対照）----------------------------------------
@@ -485,3 +485,51 @@ def test_t3_detects_untransformed_dev_side(tmp_path):
     assert len(violations) == 1
     assert violations[0].check == "T3"
     assert "導出結果と異なる" in violations[0].detail
+
+
+# --- T3 導出の `.md` ガード（Action 4c-1 決定 1 / 2026-09-08）------------------------
+
+
+def test_derive_project_text_only_converts_markdown():
+    """T3 の導出も **Markdown だけ**を変換すること（T1 の `derive_managed_text` と対称）。
+
+    `invert_managed_text` の docstring は「**`.md` 以外に `to_project_text` を当ててはならない**」
+    と既に書いていたが、**順方向（T3）には同じガードが無かった** ——
+    片方向にだけ書かれた規則は、もう片方向で必ず破られる。
+
+    `.py` の docstring が `/lam-harness:ship` の形を**意図的に**持つことはありうる
+    （実測: `verify_distributable_claims.py` のコメントがまさにそれ）。
+    prefix を剥がせば、その記述の意味が壊れる。
+    """
+    from pathlib import Path as _P
+
+    names = {"ship", "gabriel"}
+    text = "実行は `/lam-harness:ship`。エージェントは lam-harness:gabriel。"
+
+    # `.md` は変換される（従来どおり）
+    assert vpc.derive_project_text(_P("a.md"), text, "lam-harness:", names) == (
+        "実行は `/ship`。エージェントは gabriel。"
+    )
+    # `.py` / `.sh` / `.json` / `.yaml` は**恒等**
+    for name in ("a.py", "a.sh", "a.json", "a.yaml"):
+        assert vpc.derive_project_text(_P(name), text, "lam-harness:", names) == text, (
+            f"{name} に prefix 除去が当たっている"
+        )
+    # 大文字拡張子も同じ扱い（NTFS 由来の揺れを判定に持ち込まない）
+    assert vpc.derive_project_text(_P("a.MD"), text, "lam-harness:", names) != text
+
+
+def test_t1_and_t3_derivations_agree_on_scope():
+    """T1 と T3 の導出が**同じ射程**（`.md` のみ変換）を持つこと。"""
+    from pathlib import Path as _P
+
+    for name in ("x.py", "x.sh", "x.json"):
+        rel = _P(name)
+        body = "lam-harness:gabriel"
+        assert vpc.derive_managed_text(rel, body, "lam-harness:", set(), set()) == body
+        assert vpc.derive_project_text(rel, body, "lam-harness:", {"gabriel"}) == body
+
+
+def test_real_repo_mirror_stays_green_with_the_guard():
+    """ガード導入で **T3 の判定が変わらない**こと（`lam-harness:` 出現 0 件のため挙動不変）。"""
+    assert vpc.check_mirror_identity(REPO_ROOT) == []

@@ -15,7 +15,7 @@ Stage 2 の概要カード生成（C-1a/C-1b）完了後、モジュール境界
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.card_generator import (
     detect_module_boundaries, generate_module_cards, save_module_card
 )
@@ -43,7 +43,7 @@ Stage 2 のトポロジカル順レビュー中に `parse_contract()` でリア�
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.card_generator import (
     merge_contracts, save_contract_card, detect_module_boundaries,
     load_file_card
@@ -77,7 +77,7 @@ print(f'Modules for contracts: {len(module_to_files)}')
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.card_generator import (
     detect_circular_dependencies, detect_module_naming_violations
 )
@@ -102,7 +102,7 @@ all_issues = [{'file': i.file, 'line': i.line, 'severity': i.severity, 'category
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys; sys.path.insert(0, '.claude/hooks')
+import sys; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.card_generator import collect_spec_drift_context
 from pathlib import Path
 

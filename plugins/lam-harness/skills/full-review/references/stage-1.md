@@ -16,7 +16,7 @@
 ```bash
 # 静的解析パイプラインを実行
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.run_pipeline import run_phase0
 from _hook_utils import get_project_root
 
@@ -75,7 +75,7 @@ G5 チェック（Stage 5）でこの Issue が FAIL を引き起こす。
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.card_generator import build_topo_order
 from analyzers.state_manager import save_dependency_graph
 from pathlib import Path

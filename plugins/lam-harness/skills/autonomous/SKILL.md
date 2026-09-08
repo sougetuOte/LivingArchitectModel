@@ -69,7 +69,7 @@ disable-model-invocation: true
 1. **`autonomous-state.json` を生成**（schema の SSOT は
    [`autonomous_state.py`](../../hooks/autonomous_state.py) `build_initial_state`。直書きで drift させない）:
    ```bash
-   bash .claude/scripts/py_invoke.sh -c "import sys; sys.path.insert(0, '.claude/hooks'); import json, autonomous_state as a; from pathlib import Path; s = a.build_initial_state('<spec_target>'); Path('.claude/autonomous-state.json').write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding='utf-8')"
+   bash .claude/scripts/py_invoke.sh -c "import sys; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']; import json, autonomous_state as a; from pathlib import Path; s = a.build_initial_state('<spec_target>'); Path('.claude/autonomous-state.json').write_text(json.dumps(s, ensure_ascii=False, indent=2), encoding='utf-8')"
    ```
    生成後 `active=true` / `phase="building"` / `spec_target` 一致を確認する。
 2. **`.claude/current-phase.md` を `AUTONOMOUS` に更新**（`**AUTONOMOUS**` 行。値の登録は T1-6）。

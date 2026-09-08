@@ -11,7 +11,7 @@
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys; sys.path.insert(0, '.claude/hooks')
+import sys; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.chunker import chunk_file, TreeSitterNotAvailable
 try:
     chunk_file('x = 1', 'test.py')
@@ -34,7 +34,7 @@ except TreeSitterNotAvailable:
 
 ```bash
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.chunker import chunk_file
 from analyzers.state_manager import save_chunks_index
 from analyzers.config import ReviewConfig
@@ -165,7 +165,7 @@ Step 2 でチャンクが生成されている場合（`.claude/review-state/chu
 ```bash
 # チャンク一覧を読み込み
 bash .claude/scripts/py_invoke.sh -c "
-import sys, json; sys.path.insert(0, '.claude/hooks')
+import sys, json; import os; _r = r'${CLAUDE_PLUGIN_ROOT}' or os.environ.get('CLAUDE_PLUGIN_ROOT') or ''; sys.path[:0] = ([_r, _r + '/hooks'] if _r else []) + ['.claude/hooks']
 from analyzers.state_manager import load_chunks_index
 from analyzers.orchestrator import batch_chunks
 from analyzers.chunker import Chunk

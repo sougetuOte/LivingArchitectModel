@@ -74,12 +74,22 @@ _MANAGED_MAP = (
     (".claude/scripts/", "templates/managed/scripts/"),
 )
 _MIRROR_MAP = (
+    # analyzers は **plugin 直下**にある（`hooks/` 配下ではない）。hooks/ 配下に置くと
+    # T3 の積集合に入って開発側 tests/ 22 件が非対称違反になるため（2026-09-08 / 4c-1）。
+    # `.claude/hooks/` より**先に**置く —— 前方一致は長い方を先に試す。
+    (".claude/hooks/analyzers/", "analyzers/"),
     (".claude/hooks/", "hooks/"),
     (".claude/skills/", "skills/"),
     (".claude/agents/", "agents/"),
 )
 
-_SYSPATH_RE = re.compile(r"sys\.path\.insert\(\s*\d+\s*,\s*['\"]([^'\"]+)['\"]\s*\)")
+# `sys.path` を触る行の**引用符つき文字列すべて**を探索根の候補にする。
+# 形を 1 つに決め打ちしない —— 4c-1 の codemod が `sys.path.insert(0, '...')` を
+# `sys.path[:0] = [...]` へ書き換えた直後、`insert` 専用の正規表現だったせいで
+# 閉包が 18 → 11 に縮んだ（**計器が自分の測定対象に追随していなかった**）。
+# 解決できない候補（`${CLAUDE_PLUGIN_ROOT}` / `/hooks`）は `_resolve_module` が黙って捨てる。
+_SYSPATH_RE = re.compile(r"(['\"])([^'\"\n]*)\1")
+_SYSPATH_LINE_RE = re.compile(r"sys\.path")
 _FROM_IMPORT_RE = re.compile(r"^\s*from\s+([A-Za-z_][\w.]*)\s+import\b")
 _IMPORT_RE = re.compile(r"^\s*import\s+([A-Za-z_][\w.]*)")
 _FENCE_RE = re.compile(r"^\s*(?:```|~~~)")
@@ -177,13 +187,22 @@ def resolve_imports(py_path: Path, root: Path, search_roots) -> set:
             for alias in node.names:
                 found |= _resolve_module(alias.name, roots, root)
         elif isinstance(node, ast.ImportFrom):
+            # `from X import Y` の Y は**モジュールでもありうる**。`from . import mod` に至っては
+            # node.module が None で、モジュール名は names 側にしか無い。
+            # 初版はこれを落とし、`dashboard/builder.py:36` の `from . import static_assets` から
+            # 先の枝（static_assets → _radix_colors）が閉包から丸ごと消えていた。
+            bases = roots
             if node.level:  # 相対 import は自分の位置を起点にする
                 base = py_path.parent
                 for _ in range(node.level - 1):
                     base = base.parent
-                found |= _resolve_module(node.module or "", [base], root)
-            elif node.module:
-                found |= _resolve_module(node.module, roots, root)
+                bases = [base]
+            prefix = f"{node.module}." if node.module else ""
+            if node.module:
+                found |= _resolve_module(node.module, bases, root)
+            for alias in node.names:
+                if alias.name != "*":
+                    found |= _resolve_module(prefix + alias.name, bases, root)
     return found
 
 
@@ -269,8 +288,12 @@ def fence_entry_points(md_path: Path, root: Path) -> dict:
         if not inside:
             continue
         site = f"{rel_doc}:{lineno}"
-        for m in _SYSPATH_RE.finditer(line):
-            syspath_roots.append(root / m.group(1))
+        if _SYSPATH_LINE_RE.search(line):
+            for m in _SYSPATH_RE.finditer(line):
+                # 空文字（`or ''`）は探索根にならない。引用符の種類は後方参照で束縛する
+                # —— `+` で書くと `''` を跨いで誤対応し、根が壊れる（実測）。
+                if m.group(2):
+                    syspath_roots.append(root / m.group(2))
         for m in cd.PATH_RE.finditer(line):
             ref = m.group(0)
             if cd.PLACEHOLDER.search(line[: m.start()] + ref) or _is_excluded(ref):

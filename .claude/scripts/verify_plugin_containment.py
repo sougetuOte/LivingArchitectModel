@@ -104,9 +104,17 @@ _NON_DISTRIBUTED_REFS = (re.compile(r"docs/private/"),)
 _MIRROR_AREAS = {
     "skills": Path(".claude") / "skills",
     "agents": Path(".claude") / "agents",
-    # 2026-09-05 追加（P-1）: hooks は複製相に入った。開発側の analyzers / checkers /
-    # tests は hook の import 閉包に含まれない（実測）ため配布せず、片側のみとして無視される。
+    # 2026-09-05 追加（P-1）: hooks は複製相に入った。開発側の checkers / tests は
+    # hook の import 閉包に含まれない（実測）ため配布せず、片側のみとして無視される。
     "hooks": Path(".claude") / "hooks",
+    # 2026-09-08 追加（Action 4c-1）: analyzers は **hook の import 閉包には無いが、
+    # 配布 skill のフェンス内コマンドが名指しする**（/lam-harness:full-review Stage 1-3 と
+    # /lam-harness:ship の gitleaks 走査 = 11 箇所）。ADR-0010 追補 4 が K4 を
+    # 「エントリポイントからの到達閉包」へ拡張したのはこの見落としのためである。
+    # plugin 直下に置くのは、hooks/ 配下に置くと T3 の積集合に入って開発側 tests/ 22 件が
+    # 非対称違反になるため（gabriel 2026-09-07 実測）。ここでは analyzers 直下の
+    # tests/ がトップレベル片側として無視される —— hooks エリアと同じ粒度である。
+    "analyzers": Path(".claude") / "hooks" / "analyzers",
 }
 
 # hooks.json 内で plugin 実体を名指しする形（上流の公式変数 / code.claude.com/docs/en/hooks）
@@ -481,6 +489,25 @@ def derive_managed_text(rel: Path, text: str, namespace: str, agents: set, skill
     return to_distributed_text(text, namespace, agents, skills)
 
 
+def derive_project_text(rel: Path, text: str, namespace: str, names: set) -> str:
+    """T3 の導出: plugin 正本 → 開発側の複製相。**Markdown だけを変換する。**
+
+    `derive_managed_text`（T1）と**対称**である。下の `invert_managed_text` は
+    「**`.md` 以外に `to_project_text` を当ててはならない**」と 2026-09-06 から書いていたが、
+    **順方向（T3）には同じガードが無かった** —— 片方向にだけ書かれた規則は、
+    もう片方向で必ず破られる（2026-09-08 / Action 4c-1 決定 1）。
+
+    `.py` の docstring やコメントが `/lam-harness:ship` の形を**意図的に**持つことはありうる
+    （実測: `verify_distributable_claims.py`）。prefix を剥がせばその記述の意味が壊れる。
+
+    導入時点で配布 `.py` / `.json` に `lam-harness:` の出現は **0 件**であり、**挙動は変わらない**
+    —— だからこそ、露出が増える前に入れられる。
+    """
+    if rel.suffix.lower() != ".md":
+        return text
+    return to_project_text(text, namespace, names)
+
+
 def invert_managed_text(rel: Path, text: str, namespace: str, every: set) -> str:
     """`derive_managed_text` の逆写像（往復恒等の検証に使う）。
 
@@ -607,7 +634,7 @@ def _compare_mirror_entry(
                 Violation("T3", shown, "plugin 側に複製されていない（複製相の非対称）")
             )
         else:
-            expected = to_project_text(_read(plugin_map[rel]), namespace, names)
+            expected = derive_project_text(rel, _read(plugin_map[rel]), namespace, names)
             if _read(dev_map[rel]) != expected:
                 shown = str(plugin_map[rel].relative_to(repo_root)).replace("\\", "/")
                 dev_shown = str(dev_map[rel].relative_to(repo_root)).replace("\\", "/")
@@ -623,7 +650,10 @@ def _compare_mirror_entry(
 
 
 def check_mirror_identity(repo_root: Path) -> List[Violation]:
-    """T3: 開発側の複製相（skills / agents / hooks）が、**正本からの導出結果と一致する**ことを検査する。
+    """T3: 開発側の複製相が、**正本からの導出結果と一致する**ことを検査する。
+
+    対象領域は `_MIRROR_AREAS` から導出する（**ここに領域名を書かない** ——
+    列挙を複製すると必ず実体より小さくなる / 2026-09-08 に analyzers を足して実測）。
 
     検査対象は「両側に同名で存在するトップレベルエントリ」から導出する
     （維持リスト不要 / T1 と同型）。片側にしか無いエントリは意図的な差分として
@@ -727,7 +757,10 @@ def main() -> int:
     print(f"managed テンプレート: {managed} 件 を検査した")
 
     mirror_matched = sum(1 for _ in _iter_mirror_matches(repo_root))
-    print(f"複製相（skills/agents/hooks）: {mirror_matched} 件の一致エントリを検査した")
+    print(
+        f"複製相（{'/'.join(_MIRROR_AREAS)}）: "
+        f"{mirror_matched} 件の一致エントリを検査した"
+    )
 
     hook_cfgs = sum(
         1
