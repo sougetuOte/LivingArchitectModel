@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### 配布集合を閉包の実測に合わせて動かした（2026-09-08 / Action 4c-1 後半）
+
+**gap 40 件 → 11 件。** 残る 11 件はすべて説明がつく —— 決定 A で消える 6 件 /
+決定 C（`incident-patterns.yaml`）1 件 / 手順書き換えに倒す小物 3 件 / 出力先 1 件。
+
+- **analyzers 18 件を `plugins/lam-harness/analyzers/` へ**。`_MIRROR_AREAS` に 1 行足し、
+  **T3 が同期を強制する**。開発側の `tests/` 22 件はトップレベル片側として無視される
+  （`hooks` エリアで既に効いている粒度）。plugin 直下にしたのは、`hooks/` 配下に置くと
+  T3 の積集合に入って 30 件超が赤になるため
+- **T3 の導出に `.md` ガード**を入れ T1 と対称にした。`invert_managed_text` の docstring は
+  「**`.md` 以外に `to_project_text` を当ててはならない**」と 2026-09-06 から書いていたのに、
+  **順方向には同じガードが無かった** —— 片方向にだけ書かれた規則は、もう片方向で必ず破られる。
+  導入時点の `lam-harness:` 出現は 0 件なので**挙動不変**であり、露出が増える前に入れられた
+- **配布 skill の 11 箇所**を plugin root 経由へ書き換えた。**`:?` ガード形は採らなかった** ——
+  LAM は self-hosting なので、それだと開発環境（`CLAUDE_PLUGIN_ROOT` は UNSET）で
+  `/lam-harness:ship` 自体が止まる。テキスト置換・環境変数・開発環境の**3 経路すべてで成立する形**にし、
+  **11 箇所 × 2 環境を実際に exec して**確認した（構文検証では初版の `_r` 未定義を捕まえられなかった）
+- **dashboard 13 件を managed scripts へ**。空ファイル設置 → 生成器 → T1 緑の手順を守った。
+  **T2 が実物を捕まえた** —— `build_dashboard.py` の使用例に作者環境の絶対パスが残っていた
+
+**計器が自分の測定対象に追随していない形を 3 回踏んだ。** `from . import X`（`node.module` が
+None）を解決できず `static_assets` → `_radix_colors` の枝を丸ごと落としていた /
+codemod が書き換えた新しい `sys.path` の形を認識できず閉包が 18 → 11 に縮んだ /
+`_MIRROR_AREAS` に analyzers を足したのに閉包側の逆写像が古いままだった。
+**いずれも「宣言が実際より小さくなる」形**であり、gabriel の rubric #4 が狙う欠陥である。
+
 ### 閉包を導出したら、承認した経路が実装前に破れた（2026-09-08 / Action 4c-1 前半）
 
 ADR-0010 追補 4 が条文にした「配布集合＝エントリポイントからの到達閉包」を、実際に計算する器
